@@ -1,0 +1,155 @@
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { Flame, Clock, Target, CheckCircle2, Award, Lock, FileText, Sparkles } from "lucide-react";
+import { PageHeader } from "@/components/app/app-shell";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { MasteryBar } from "@/components/ui/mastery-bar";
+import { TrendChart } from "@/components/dashboard/trend-chart";
+import { CategoryIcon } from "@/components/shared/category-icon";
+import { buttonVariants } from "@/components/ui/button";
+import { useStudyStore } from "@/hooks/use-study-store";
+import { CATEGORIES, categoryName } from "@/lib/content/categories";
+import { hasFeature } from "@/lib/billing/plans";
+import { formatDuration, formatDate, cn } from "@/lib/utils";
+import type { CategoryId } from "@/types";
+
+export default function ProgressPage() {
+  const { state, readiness } = useStudyStore();
+
+  const totalSeconds = state.sessions.reduce((s, x) => s + x.durationSeconds, 0);
+  const answered = state.attempts.length;
+  const correct = state.attempts.filter((a) => a.correct).length;
+  const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
+  const advanced = hasFeature(state.tier, "advancedAnalytics");
+
+  const ranked = (Object.keys(readiness.perCategory) as CategoryId[]).sort(
+    (a, b) => readiness.perCategory[a] - readiness.perCategory[b],
+  );
+
+  return (
+    <div className="mx-auto max-w-5xl">
+      <PageHeader title="Progress" description="Your readiness, mastery and study habits over time." />
+
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <StatTile icon={<Target className="h-4 w-4" />} label="Readiness" value={`${readiness.readiness}%`} tone="text-primary" />
+        <StatTile icon={<CheckCircle2 className="h-4 w-4" />} label="Accuracy" value={`${accuracy}%`} />
+        <StatTile icon={<Flame className="h-4 w-4" />} label="Current streak" value={`${state.streak.current}d`} />
+        <StatTile icon={<Award className="h-4 w-4" />} label="Longest streak" value={`${state.streak.longest}d`} />
+        <StatTile icon={<Clock className="h-4 w-4" />} label="Time studied" value={formatDuration(totalSeconds)} />
+        <StatTile icon={<Target className="h-4 w-4" />} label="Questions" value={`${answered}`} />
+        <StatTile icon={<Sparkles className="h-4 w-4" />} label="Predicted pass" value={`${readiness.passProbability}%`} tone="text-success" />
+        <StatTile icon={<Award className="h-4 w-4" />} label="Streak freezes" value={`${state.streak.freezesRemaining}`} />
+      </div>
+
+      <Card className="mt-5 p-6">
+        <h2 className="font-display text-lg font-semibold">Readiness over time</h2>
+        <div className="mt-4">
+          <TrendChart data={state.readinessHistory} height={200} />
+        </div>
+      </Card>
+
+      <Card className="mt-5 p-6">
+        <h2 className="font-display text-lg font-semibold">Category mastery</h2>
+        <p className="mt-1 text-sm text-muted-foreground">Sorted weakest-first — start at the top.</p>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2">
+          {ranked.map((cat) => (
+            <Link key={cat} href={`/study/questions?category=${cat}`} className="group block">
+              <MasteryBar
+                label={<span className="group-hover:text-primary">{categoryName(cat)}</span>}
+                value={readiness.perCategory[cat]}
+                icon={<CategoryIcon id={cat} className="h-4 w-4 text-muted-foreground" />}
+              />
+            </Link>
+          ))}
+        </div>
+      </Card>
+
+      <Card className="mt-5 p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Mock exam history</h2>
+          <Link href="/study/mock-exam" className="text-xs font-medium text-primary hover:underline">
+            Take a mock
+          </Link>
+        </div>
+        {state.mockExams.length === 0 ? (
+          <p className="mt-3 text-sm text-muted-foreground">
+            No mock exams yet. A full 68-question mock is the best test of real readiness.
+          </p>
+        ) : (
+          <ul className="mt-4 space-y-2">
+            {[...state.mockExams].reverse().map((m) => (
+              <li key={m.id} className="flex items-center justify-between rounded-lg border border-border bg-background/60 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">{m.score}/{m.total}</p>
+                    <p className="text-xs text-muted-foreground">{formatDate(m.at)}</p>
+                  </div>
+                </div>
+                <Badge variant={m.passed ? "success" : "warning"}>{m.passed ? "Passed" : "Not yet"}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* Advanced analytics — Premium Plus */}
+      <Card className="mt-5 overflow-hidden p-6">
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Advanced analytics</h2>
+          {!advanced && <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" /> Premium Plus</Badge>}
+        </div>
+        {advanced ? (
+          <div className="mt-4 grid gap-4 sm:grid-cols-3 text-sm">
+            <Insight label="Most-improved" value={ranked[ranked.length - 1] ? categoryName(ranked[ranked.length - 1]) : "—"} />
+            <Insight label="Best study time" value="Evenings" />
+            <Insight label="Avg. session" value={state.sessions.length ? formatDuration(totalSeconds / state.sessions.length) : "—"} />
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-4">
+            <p className="max-w-md text-sm text-muted-foreground">
+              Improvement trends, time-of-day study patterns and per-category velocity. Unlock with
+              Premium Plus.
+            </p>
+            <Link href="/account/billing" className={cn(buttonVariants({ variant: "outline" }))}>
+              Upgrade
+            </Link>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function StatTile({
+  icon,
+  label,
+  value,
+  tone,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  tone?: string;
+}) {
+  return (
+    <Card className="p-4">
+      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        {icon} {label}
+      </div>
+      <p className={cn("tabular mt-1 font-mono text-2xl font-semibold", tone)}>{value}</p>
+    </Card>
+  );
+}
+
+function Insight({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-background/60 p-4">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <p className="mt-1 font-medium text-foreground">{value}</p>
+    </div>
+  );
+}
