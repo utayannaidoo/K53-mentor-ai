@@ -12,15 +12,19 @@ export const SITE_URL =
 export const PASS_RATE_NOW = 40;
 export const PASS_RATE_BEFORE = 68;
 
-/** Official learner's licence test format. */
+/**
+ * Official learner's licence test format (per the K53 manual, p4).
+ * 64 questions across three sections — you must reach the pass mark in EACH
+ * section as well as overall.
+ */
 export const EXAM_FORMAT = {
-  totalQuestions: 68,
-  passMark: 51,
-  // Per-section minimums on the real CLLT.
+  totalQuestions: 64,
+  passMark: 51, // 23 + 22 + 6
+  // Per-section minimums on the real learner's test.
   sections: {
-    signs: { questions: 30, pass: 23 },
-    rules: { questions: 30, pass: 22 },
     controls: { questions: 8, pass: 6 },
+    signs: { questions: 28, pass: 23 },
+    rules: { questions: 28, pass: 22 },
   },
 } as const;
 

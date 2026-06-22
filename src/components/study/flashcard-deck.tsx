@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
-import { SignGlyph } from "@/components/shared/sign-glyph";
+import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { selectFlashcardQueue } from "@/lib/plan";
@@ -112,7 +112,7 @@ export function FlashcardDeck() {
             <Badge variant="secondary" className="gap-1">
               <CategoryIcon id={card.categoryId} className="h-3 w-3" /> {categoryName(card.categoryId)}
             </Badge>
-            {card.sign && <SignGlyph sign={card.sign} className="h-24 w-24" />}
+            {(card.image || card.sign) && <SignVisual image={card.image} sign={card.sign} alt={categoryName(card.categoryId)} className="h-24 w-24" />}
             <p className="font-display text-xl font-semibold leading-snug tracking-tight text-balance">
               {card.front}
             </p>

@@ -34,7 +34,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </ul>
         </div>
         <p className="relative text-sm text-primary-foreground/70">
-          “Passed with 64/68 after failing twice.” — Lerato M., Johannesburg
+          “Passed with 61/64 after failing twice.” — Lerato M., Johannesburg
         </p>
       </div>
 

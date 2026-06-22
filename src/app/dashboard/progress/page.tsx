@@ -80,7 +80,7 @@ export default function ProgressPage() {
             <EmptyState
               icon={<FileText className="h-6 w-6" />}
               title="No mock exams yet"
-              description="A full 68-question mock is the best test of real readiness — it mirrors the actual K53 paper."
+              description="A full 64-question mock is the best test of real readiness — it mirrors the actual K53 paper."
               action={
                 <Link href="/study/mock-exam" className={cn(buttonVariants())}>
                   Take your first mock

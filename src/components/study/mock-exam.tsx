@@ -8,10 +8,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { MasteryBar } from "@/components/ui/mastery-bar";
 import { Paywall } from "@/components/app/paywall";
-import { SignGlyph } from "@/components/shared/sign-glyph";
+import { SignVisual } from "@/components/shared/sign-visual";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { sampleMockExam } from "@/lib/diagnostic/select";
+import { sampleMockExam, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,13 @@ import type { CategoryId, CategoryScore, Question } from "@/types";
 
 const LETTERS = ["A", "B", "C", "D"];
 const EXAM_SECONDS = 60 * 60;
+
+const SECTION_LABEL: Record<ExamSection, string> = {
+  controls: "Vehicle controls",
+  signs: "Road signs & markings",
+  rules: "Rules of the road",
+};
+const EXAM_SECTIONS = Object.keys(EXAM_FORMAT.sections) as ExamSection[];
 
 export function MockExam() {
   const { state, recordMockExam, recordSession } = useStudyStore();
@@ -59,7 +66,7 @@ export function MockExam() {
   }, [phase, secondsLeft, submit]);
 
   function start() {
-    const qs = sampleMockExam(EXAM_FORMAT.totalQuestions);
+    const qs = sampleMockExam();
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));
     setI(0);
@@ -73,7 +80,7 @@ export function MockExam() {
       <div className="mx-auto max-w-md py-10">
         <Paywall
           title="You've used your free mock exam"
-          description="The free plan includes one full mock exam. Premium gives you unlimited 68-question mock exams to test your readiness as often as you like."
+          description="The free plan includes one full mock exam. Premium gives you unlimited 64-question mock exams to test your readiness as often as you like."
           cta="Unlock unlimited mocks"
         />
       </div>
@@ -89,13 +96,26 @@ export function MockExam() {
           </div>
           <h1 className="mt-5 font-display text-2xl font-semibold tracking-tight">Full mock exam</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {EXAM_FORMAT.totalQuestions} questions, just like the real test. You need{" "}
-            {EXAM_FORMAT.passMark} correct to pass. The clock starts when you begin.
+            {EXAM_FORMAT.totalQuestions} questions, just like the real test. You must reach the pass
+            mark in every section. The clock starts when you begin.
           </p>
           <div className="mt-6 grid grid-cols-3 gap-3 text-sm">
             <Stat label="Questions" value={`${EXAM_FORMAT.totalQuestions}`} />
             <Stat label="To pass" value={`${EXAM_FORMAT.passMark}`} />
             <Stat label="Time" value="60 min" />
+          </div>
+          <div className="mt-4 space-y-1.5 text-left">
+            {EXAM_SECTIONS.map((s) => (
+              <div
+                key={s}
+                className="flex items-center justify-between rounded-lg border border-border bg-background/60 px-3 py-2 text-sm"
+              >
+                <span className="text-muted-foreground">{SECTION_LABEL[s]}</span>
+                <span className="font-mono text-xs text-foreground">
+                  {EXAM_FORMAT.sections[s].questions} Q · pass {EXAM_FORMAT.sections[s].pass}
+                </span>
+              </div>
+            ))}
           </div>
           <Button size="xl" className="mt-7 w-full" onClick={start}>
             Start mock exam <ArrowRight />
@@ -114,6 +134,13 @@ export function MockExam() {
     const wrong = questions
       .map((q, idx) => ({ q, idx }))
       .filter((x) => answers[x.idx] !== x.q.correctIndex);
+    const sectionScores = EXAM_SECTIONS.map((s) => {
+      const idxs = questions
+        .map((q, idx) => ({ q, idx }))
+        .filter((x) => SECTION_OF[x.q.categoryId] === s);
+      const correct = idxs.filter((x) => answers[x.idx] === x.q.correctIndex).length;
+      return { section: s, correct, total: idxs.length, pass: EXAM_FORMAT.sections[s].pass };
+    });
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="p-8 text-center">
@@ -127,6 +154,32 @@ export function MockExam() {
             <Badge variant={last.passed ? "success" : "warning"} className="text-sm">
               {last.passed ? "You passed 🎉" : `${EXAM_FORMAT.passMark - last.score} short of passing`}
             </Badge>
+          </div>
+        </Card>
+
+        <Card className="mt-5 p-6">
+          <h2 className="font-display text-lg font-semibold">By section</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            The real test requires passing every section, not just the overall mark.
+          </p>
+          <div className="mt-4 space-y-2">
+            {sectionScores.map((s) => {
+              const passed = s.correct >= s.pass;
+              return (
+                <div
+                  key={s.section}
+                  className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
+                >
+                  <span className="text-sm font-medium text-foreground">{SECTION_LABEL[s.section]}</span>
+                  <span className="flex items-center gap-2">
+                    <span className="font-mono text-sm text-muted-foreground">
+                      {s.correct}/{s.total} · need {s.pass}
+                    </span>
+                    <Badge variant={passed ? "success" : "warning"}>{passed ? "Pass" : "Fail"}</Badge>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </Card>
 
@@ -208,9 +261,9 @@ export function MockExam() {
       </div>
 
       <div key={i} className="mt-5 animate-fade-in">
-        {q.sign && (
+        {(q.image || q.sign) && (
           <div className="mb-4">
-            <SignGlyph sign={q.sign} className="h-20 w-20" />
+            <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" />
           </div>
         )}
         <h1 className="text-balance font-display text-xl font-semibold leading-snug tracking-tight">{q.prompt}</h1>

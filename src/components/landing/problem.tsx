@@ -10,7 +10,7 @@ const PROBLEMS = [
   {
     icon: EyeOff,
     title: "You can't see your blind spots",
-    body: "Free apps tell you “41 out of 68”. They never tell you that you fail specifically at intersections and following distance.",
+    body: "Free apps tell you “41 out of 64”. They never tell you that you fail specifically at intersections and following distance.",
   },
   {
     icon: Repeat,

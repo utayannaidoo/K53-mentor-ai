@@ -12,7 +12,7 @@ interface Testimonial {
 const TESTIMONIALS: Testimonial[] = [
   {
     quote:
-      "I'd failed twice before. The diagnostic showed me I was actually fine on signs but terrible at intersections — I'd been studying the wrong things the whole time. Passed with 64/68.",
+      "I'd failed twice before. The diagnostic showed me I was actually fine on signs but terrible at intersections — I'd been studying the wrong things the whole time. Passed with 61/64.",
     name: "Lerato M.",
     role: "Johannesburg · Code 8",
     rating: 5,

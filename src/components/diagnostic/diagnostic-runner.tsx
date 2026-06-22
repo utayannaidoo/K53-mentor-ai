@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
-import { SignGlyph } from "@/components/shared/sign-glyph";
+import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { CATEGORIES } from "@/lib/content/categories";
 import { sampleDiagnostic } from "@/lib/diagnostic/select";
@@ -118,9 +118,9 @@ export function DiagnosticRunner() {
           <p className="text-sm font-medium uppercase tracking-wide text-primary">
             Question {index + 1}
           </p>
-          {current.sign && (
+          {(current.image || current.sign) && (
             <div className="mt-4">
-              <SignGlyph sign={current.sign} className="h-20 w-20" />
+              <SignVisual image={current.image} sign={current.sign} alt="Road sign" className="h-20 w-20" />
             </div>
           )}
           <h1 className="mt-3 text-balance font-display text-xl font-semibold leading-snug tracking-tight sm:text-2xl">

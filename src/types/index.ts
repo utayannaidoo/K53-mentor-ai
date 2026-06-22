@@ -42,6 +42,29 @@ export type SignKey =
   | "railway"
   | "no_stopping";
 
+/** Top-level groupings of the official SA road-sign catalogue. */
+export type SignCategory =
+  | "regulatory"
+  | "warning"
+  | "information"
+  | "guidance"
+  | "marking";
+
+/**
+ * A real road sign extracted from the official K53 manual. Images live under
+ * /public/signs and are produced by scripts/extract_signs.py.
+ */
+export interface RoadSign {
+  id: string;
+  category: SignCategory;
+  subcategory: string;
+  name: string;
+  meaning: string;
+  /** Public path to the rendered PNG, e.g. "/signs/regulatory/regulatory-006-01.png". */
+  image: string;
+  page: number;
+}
+
 export interface Category {
   id: CategoryId;
   name: string;
@@ -62,6 +85,8 @@ export interface Question {
   difficulty: Difficulty;
   scope: Scope;
   sign?: SignKey;
+  /** Real road-sign image path (preferred over `sign` glyph). */
+  image?: string;
 }
 
 export interface Flashcard {
@@ -71,6 +96,8 @@ export interface Flashcard {
   back: string;
   difficulty: Difficulty;
   sign?: SignKey;
+  /** Real road-sign image path (preferred over `sign` glyph). */
+  image?: string;
 }
 
 export interface ScenarioChoice {
@@ -89,6 +116,8 @@ export interface Scenario {
   choices: ScenarioChoice[];
   debrief: string;
   sign?: SignKey;
+  /** Real road-sign image path (preferred over `sign` glyph). */
+  image?: string;
 }
 
 export interface DriverStep {

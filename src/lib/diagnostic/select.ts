@@ -1,16 +1,17 @@
 import type { CategoryId, Question } from "@/types";
 import { QUESTIONS } from "@/lib/content/questions";
 import { CATEGORIES } from "@/lib/content/categories";
+import { EXAM_FORMAT } from "@/lib/constants";
 import { shuffle } from "@/lib/utils";
 
 /** Target question count per category for the 15-question diagnostic. */
 const DIAGNOSTIC_PLAN: Record<CategoryId, number> = {
-  signs: 3,
+  signs: 4,
   rules: 3,
   controls: 2,
   intersections: 2,
   parking: 1,
-  following_distance: 2,
+  following_distance: 1,
   hazard_awareness: 2,
 };
 
@@ -24,16 +25,35 @@ export function sampleDiagnostic(): Question[] {
   return shuffle(picked);
 }
 
-/** Build a full 68-question mock exam (repeats sampling as needed). */
-export function sampleMockExam(total = 68): Question[] {
-  const all = shuffle(QUESTIONS);
-  if (all.length >= total) return all.slice(0, total);
-  // Not enough unique questions in the seed — repeat to reach the real format.
+/** Maps the seven study categories onto the three official exam sections. */
+export type ExamSection = keyof typeof EXAM_FORMAT.sections;
+export const SECTION_OF: Record<CategoryId, ExamSection> = {
+  controls: "controls",
+  signs: "signs",
+  rules: "rules",
+  intersections: "rules",
+  parking: "rules",
+  following_distance: "rules",
+  hazard_awareness: "rules",
+};
+
+/**
+ * Build a full mock exam in the official format: 8 controls, 28 signs and
+ * 28 rules questions (64 total), each section filled with unique questions and
+ * the final order shuffled. Falls back gracefully if a section is short.
+ */
+export function sampleMockExam(): Question[] {
+  const bySection: Record<ExamSection, Question[]> = {
+    controls: [],
+    signs: [],
+    rules: [],
+  };
+  for (const q of QUESTIONS) bySection[SECTION_OF[q.categoryId]].push(q);
+
   const out: Question[] = [];
-  let i = 0;
-  while (out.length < total) {
-    out.push(all[i % all.length]);
-    i++;
+  for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {
+    const need = EXAM_FORMAT.sections[section].questions;
+    out.push(...shuffle(bySection[section]).slice(0, need));
   }
-  return out;
+  return shuffle(out);
 }

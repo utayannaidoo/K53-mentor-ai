@@ -8,7 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Paywall } from "@/components/app/paywall";
-import { SignGlyph } from "@/components/shared/sign-glyph";
+import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
@@ -103,9 +103,9 @@ export function QuestionPractice() {
         <Badge variant="secondary" className="gap-1">
           <CategoryIcon id={q.categoryId} className="h-3 w-3" /> {categoryName(q.categoryId)}
         </Badge>
-        {q.sign && (
+        {(q.image || q.sign) && (
           <div className="mt-4">
-            <SignGlyph sign={q.sign} className="h-20 w-20" />
+            <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" />
           </div>
         )}
         <h1 className="mt-3 text-balance font-display text-xl font-semibold leading-snug tracking-tight">

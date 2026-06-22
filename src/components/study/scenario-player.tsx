@@ -7,7 +7,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Paywall } from "@/components/app/paywall";
-import { SignGlyph } from "@/components/shared/sign-glyph";
+import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
@@ -83,7 +83,7 @@ export function ScenarioPlayer() {
           <Badge variant="accent" className="gap-1">
             <CategoryIcon id={sc.categoryId} className="h-3 w-3" /> {categoryName(sc.categoryId)}
           </Badge>
-          {sc.sign && <SignGlyph sign={sc.sign} className="h-12 w-12" />}
+          {(sc.image || sc.sign) && <SignVisual image={sc.image} sign={sc.sign} alt={sc.title} className="h-12 w-12" />}
         </div>
 
         <h1 className="mt-4 font-display text-2xl font-semibold tracking-tight">{sc.title}</h1>

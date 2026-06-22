@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Layers, HelpCircle, Route, FileText, MessageSquareText, ArrowRight, Lock } from "lucide-react";
+import { Layers, HelpCircle, Route, FileText, MessageSquareText, ArrowRight, Lock, Signpost } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -28,8 +28,9 @@ export default function StudyHubPage() {
       tone: "text-primary",
     },
     { href: "/study/questions", icon: HelpCircle, title: "Practice questions", desc: "Drill by category", tone: "text-primary" },
+    { href: "/study/signs", icon: Signpost, title: "Road signs", desc: "Browse every official sign", tone: "text-accent" },
     { href: "/study/scenarios", icon: Route, title: "Scenarios", desc: "Real-world judgement", tone: "text-accent", locked: !scenariosUnlocked },
-    { href: "/study/mock-exam", icon: FileText, title: "Mock exam", desc: "Full 68-question test", tone: "text-primary" },
+    { href: "/study/mock-exam", icon: FileText, title: "Mock exam", desc: "Full 64-question test", tone: "text-primary" },
     { href: "/tutor", icon: MessageSquareText, title: "AI Tutor", desc: "Ask anything, get explained", tone: "text-primary" },
   ];
 
