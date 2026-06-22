@@ -36,3 +36,6 @@ build.log
 # supabase
 .branches
 .temp
+
+# claude code (keep launch.json shared; ignore machine-local settings)
+.claude/settings.local.json
