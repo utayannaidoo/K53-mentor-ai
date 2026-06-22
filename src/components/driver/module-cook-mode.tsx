@@ -10,7 +10,7 @@ import { Paywall } from "@/components/app/paywall";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
 import { DRIVER_MODULES_BY_ID } from "@/lib/content/driver-modules";
-import { cn } from "@/lib/utils";
+import { cn, glass, glassFloat } from "@/lib/utils";
 
 export function ModuleCookMode({ moduleId }: { moduleId: string }) {
   const { state, toggleDriverStep } = useStudyStore();
@@ -83,7 +83,7 @@ export function ModuleCookMode({ moduleId }: { moduleId: string }) {
       </div>
 
       {/* Step card (cook mode) */}
-      <Card key={step.n} className="mt-5 animate-fade-in p-6">
+      <Card key={step.n} className={cn(glassFloat, "mt-5 animate-fade-in p-6")}>
         <p className="text-sm font-medium uppercase tracking-wide text-primary">
           Step {step.n} of {mod.steps.length}
         </p>
@@ -136,7 +136,7 @@ export function ModuleCookMode({ moduleId }: { moduleId: string }) {
       )}
 
       {/* Common faults */}
-      <Card className="mt-5 p-6">
+      <Card className={cn(glass, "mt-5 p-6")}>
         <h3 className="flex items-center gap-2 font-display text-lg font-semibold">
           <AlertTriangle className="h-4 w-4 text-warning" /> Common faults to avoid
         </h3>

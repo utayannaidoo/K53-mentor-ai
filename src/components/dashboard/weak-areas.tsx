@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { MasteryBar } from "@/components/ui/mastery-bar";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { categoryName } from "@/lib/content/categories";
+import { glass } from "@/lib/utils";
 import type { CategoryId } from "@/types";
 
 export function WeakAreas({
@@ -18,7 +19,7 @@ export function WeakAreas({
     .slice(0, limit);
 
   return (
-    <Card className="p-6">
+    <Card className={`${glass} p-6`}>
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg font-semibold">Weak areas</h2>
         <Link href="/dashboard/progress" className="text-xs font-medium text-primary hover:underline">

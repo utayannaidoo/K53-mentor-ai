@@ -3,10 +3,11 @@ import { cn, clamp } from "@/lib/utils";
 import { scoreTone, type ScoreTone } from "@/lib/score";
 
 const fillByTone: Record<ScoreTone, string> = {
-  primary: "bg-primary",
-  success: "bg-success",
-  warning: "bg-warning",
-  danger: "bg-danger",
+  primary: "bg-gradient-to-r from-primary to-primary-light",
+  success: "bg-gradient-to-r from-success to-success",
+  warning: "bg-gradient-to-r from-warning to-accent",
+  danger: "bg-gradient-to-r from-danger to-danger",
+  // single-hue fallbacks keep bars calm; primary/warning get a subtle blend
 };
 
 export function MasteryBar({

@@ -6,6 +6,7 @@ import { Check, Sparkles } from "lucide-react";
 import { PLANS, ANNUAL_DISCOUNT } from "@/lib/billing/plans";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { cn, formatZar } from "@/lib/utils";
 
 export function PricingSection({
@@ -36,23 +37,7 @@ export function PricingSection({
         <span className={cn("text-sm", !annual && "font-semibold text-foreground", annual && "text-muted-foreground")}>
           Monthly
         </span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={annual}
-          onClick={() => setAnnual((a) => !a)}
-          className={cn(
-            "relative h-6 w-11 rounded-full transition-colors",
-            annual ? "bg-primary" : "bg-muted",
-          )}
-        >
-          <span
-            className={cn(
-              "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-              annual ? "translate-x-[1.375rem]" : "translate-x-0.5",
-            )}
-          />
-        </button>
+        <Switch checked={annual} onChange={setAnnual} label="Annual billing" />
         <span className={cn("text-sm", annual && "font-semibold text-foreground", !annual && "text-muted-foreground")}>
           Annual <Badge variant="success" className="ml-1">Save ~35%</Badge>
         </span>

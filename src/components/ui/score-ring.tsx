@@ -13,6 +13,13 @@ const strokeByTone: Record<ScoreTone, string> = {
   danger: "stroke-danger",
 };
 
+const glowByTone: Record<ScoreTone, string> = {
+  primary: "hsl(var(--primary) / 0.3)",
+  success: "hsl(var(--success) / 0.3)",
+  warning: "hsl(var(--warning) / 0.3)",
+  danger: "hsl(var(--danger) / 0.3)",
+};
+
 export function ScoreRing({
   value,
   size = 184,
@@ -65,7 +72,7 @@ export function ScoreRing({
       className={cn("relative inline-flex items-center justify-center", className)}
       style={{ width: size, height: size }}
     >
-      <svg width={size} height={size} className="-rotate-90">
+      <svg width={size} height={size} className="-rotate-90 overflow-visible">
         <circle
           cx={size / 2}
           cy={size / 2}
@@ -84,6 +91,7 @@ export function ScoreRing({
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           className={cn("transition-[stroke] duration-500", strokeByTone[resolvedTone])}
+          style={{ filter: `drop-shadow(0 0 14px ${glowByTone[resolvedTone]})` }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center text-center">

@@ -3,7 +3,7 @@ import { CheckCircle2, Circle, Layers, HelpCircle, Route, ArrowRight, Lock } fro
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import type { PlanTask, PlanTaskType } from "@/lib/plan";
-import { cn } from "@/lib/utils";
+import { cn, glass } from "@/lib/utils";
 
 const TYPE_ICON: Record<PlanTaskType, typeof Layers> = {
   flashcards: Layers,
@@ -26,7 +26,7 @@ export function TodayPlan({
   const allDone = !firstIncomplete;
 
   return (
-    <Card className="flex flex-col p-6">
+    <Card className={cn(glass, "flex flex-col p-6")}>
       <div className="flex items-center justify-between">
         <h2 className="font-display text-lg font-semibold">Today&apos;s plan</h2>
         <span className="text-xs text-muted-foreground">~{totalMin} min</span>
@@ -43,8 +43,8 @@ export function TodayPlan({
               <Link
                 href={href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg border border-border bg-background/60 px-3 py-3 transition-colors hover:border-primary/40",
-                  done && "opacity-70",
+                  "press flex items-center gap-3 rounded-xl border border-border/50 bg-background/40 px-3 py-3 hover:border-primary/30 hover:bg-background/70",
+                  done && "opacity-60",
                 )}
               >
                 {done ? (

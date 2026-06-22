@@ -16,8 +16,8 @@ import {
 } from "lucide-react";
 import { Logo, LogoMark } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { PageLoader } from "@/components/shared/page-loader";
 import { Avatar } from "@/components/ui/avatar";
-import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -55,20 +55,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [ready, isAuthed, router]);
 
   if (!ready || !isAuthed) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center text-muted-foreground">
-        <Spinner className="h-6 w-6" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   const isPlus = state.tier === "premium_plus";
   const firstName = state.profile?.name?.split(" ")[0] ?? "Learner";
 
   return (
-    <div className="flex min-h-dvh bg-background">
+    <div className="flex min-h-dvh bg-background bg-app">
       {/* Desktop sidebar */}
-      <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-border bg-card/40 px-3 py-4 md:flex">
+      <aside className="glass-panel sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r px-3 py-4 shadow-[10px_0_30px_-22px_hsl(var(--shadow)/0.5)] md:flex">
         <Link href="/dashboard" className="px-2 py-1">
           <Logo />
         </Link>
@@ -81,10 +77,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                  "press flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    ? "bg-primary/10 text-primary shadow-[inset_0_0_0_1px_hsl(var(--primary)/0.18)]"
+                    : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                 )}
               >
                 <item.icon className="h-[1.15rem] w-[1.15rem]" />
@@ -98,7 +94,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {!isPlus && (
           <Link
             href="/account/billing"
-            className="mt-4 block rounded-xl border border-primary/20 bg-primary/[0.06] p-4 transition-colors hover:bg-primary/10"
+            className="mt-4 block rounded-xl border border-primary/20 bg-primary/[0.06] p-4 backdrop-blur-md transition-colors hover:bg-primary/10"
           >
             <div className="flex items-center gap-2 text-sm font-semibold text-primary">
               <Sparkles className="h-4 w-4" /> Upgrade
@@ -114,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-lg sm:px-6">
+        <header className="glass-panel sticky top-0 z-30 flex h-16 items-center justify-between border-b px-4 sm:px-6">
           <div className="flex items-center gap-2 md:hidden">
             <LogoMark className="h-8 w-8" />
           </div>
@@ -137,7 +133,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile bottom nav */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t border-border bg-background/95 backdrop-blur-lg md:hidden">
+      <nav className="glass-panel fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t md:hidden">
         {MOBILE_NAV.map((item) => {
           const active = item.match(pathname);
           return (
@@ -145,7 +141,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 py-2.5 text-2xs font-medium transition-colors",
+                "flex flex-1 flex-col items-center gap-1 py-2.5 text-2xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >

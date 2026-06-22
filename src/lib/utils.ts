@@ -6,6 +6,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/**
+ * Liquid-glass surface as utility classes (so it composes onto <Card> and wins
+ * over the card's opaque background via tailwind-merge). Pairs the frosted fill
+ * with the `shadow-glass` token (which carries the inset top reflection).
+ */
+export const glass = "glass-edge bg-card/50 backdrop-blur-xl border-border/50 shadow-glass";
+
+/** Most-elevated glass tier — hero cards, product shots, floating panels. */
+export const glassFloat = "glass-edge bg-card/[0.66] backdrop-blur-2xl border-border/60 shadow-float";
+
+/** Recessed tier — stat tiles / insets that sit closest to the background. */
+export const glassSubtle = "bg-card/40 backdrop-blur-md border-border/45";
+
 export function clamp(value: number, min = 0, max = 100) {
   return Math.min(max, Math.max(min, value));
 }

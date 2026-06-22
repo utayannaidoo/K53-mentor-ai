@@ -2,7 +2,7 @@ import { CheckCircle2, Circle, Flame, Sparkles } from "lucide-react";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { MasteryBar } from "@/components/ui/mastery-bar";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, glassFloat } from "@/lib/utils";
 
 const TASKS = [
   { label: "12 flashcards due", done: true },
@@ -20,7 +20,8 @@ export function ProductPreview({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl border border-border bg-card shadow-soft-lg",
+        glassFloat,
+        "overflow-hidden rounded-[1.4rem] border",
         className,
       )}
     >

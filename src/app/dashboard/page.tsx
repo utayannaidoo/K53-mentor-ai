@@ -13,7 +13,7 @@ import { TrendChart } from "@/components/dashboard/trend-chart";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { generateTodayPlan, isTaskDone } from "@/lib/plan";
 import { hasFeature } from "@/lib/billing/plans";
-import { daysUntil, cn } from "@/lib/utils";
+import { daysUntil, cn, glass } from "@/lib/utils";
 import type { CategoryId } from "@/types";
 
 export default function DashboardPage() {
@@ -87,7 +87,7 @@ export default function DashboardPage() {
         <AiRecommendation category={weakest} missCount={missCount} />
       </div>
 
-      <Card className="mt-5 p-6">
+      <Card className={cn(glass, "mt-5 p-6")}>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Readiness trend</h2>
           <Link href="/dashboard/progress" className="text-xs font-medium text-primary hover:underline">

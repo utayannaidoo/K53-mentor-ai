@@ -31,7 +31,7 @@ export function Dialog({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
       <div
-        className="absolute inset-0 bg-foreground/40 backdrop-blur-sm animate-fade-in"
+        className="absolute inset-0 bg-foreground/30 backdrop-blur-md animate-fade-in"
         onClick={onClose}
         aria-hidden
       />
@@ -39,7 +39,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "relative w-full max-w-md animate-scale-in rounded-lg border border-border bg-card p-6 shadow-soft-lg",
+          "glass relative w-full max-w-md animate-modal-in rounded-lg p-6",
           className,
         )}
       >

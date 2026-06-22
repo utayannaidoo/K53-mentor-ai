@@ -43,7 +43,7 @@ export function DiagnosticResults() {
   const focus = latest.weakCategories.slice(0, 2);
 
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-dvh bg-background bg-app">
       <header className="flex items-center justify-between px-6 py-5">
         <Logo />
         <ThemeToggle />
@@ -109,7 +109,7 @@ export function DiagnosticResults() {
               <h2 className="font-display text-lg font-semibold">Your first study session</h2>
               <ul className="mt-4 space-y-3">
                 {plan.map((task) => (
-                  <li key={task.id} className="flex items-center justify-between gap-3 rounded-lg border border-border bg-background/60 px-4 py-3">
+                  <li key={task.id} className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-background/40 px-4 py-3">
                     <div>
                       <p className="text-sm font-medium text-foreground">{task.title}</p>
                       <p className="text-xs text-muted-foreground">{task.subtitle}</p>

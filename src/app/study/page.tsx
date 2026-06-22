@@ -11,7 +11,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueFlashcards } from "@/lib/plan";
 import { hasFeature } from "@/lib/billing/plans";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
-import { cn } from "@/lib/utils";
+import { cn, glass } from "@/lib/utils";
 import type { CategoryId } from "@/types";
 
 export default function StudyHubPage() {
@@ -44,7 +44,7 @@ export default function StudyHubPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {modes.map((m) => (
           <Link key={m.href} href={m.href} className="group">
-            <Card className="flex h-full items-start gap-4 p-5 transition-shadow hover:shadow-soft-lg">
+            <Card className={cn(glass, "hover-elevate flex h-full items-start gap-4 p-5")}>
               <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted", m.tone)}>
                 <m.icon className="h-5 w-5" />
               </span>
@@ -61,7 +61,7 @@ export default function StudyHubPage() {
         ))}
       </div>
 
-      <Card className="mt-6 p-6">
+      <Card className={cn(glass, "mt-6 p-6")}>
         <h2 className="font-display text-lg font-semibold">Study by category</h2>
         <p className="mt-1 text-sm text-muted-foreground">Weakest first — tap any to drill it.</p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">

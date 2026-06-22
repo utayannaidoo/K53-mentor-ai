@@ -10,10 +10,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { Switch } from "@/components/ui/switch";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
 import { PLAN_MAP } from "@/lib/billing/plans";
-import { formatDate, cn } from "@/lib/utils";
+import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
 
 const GOAL_LABEL = {
   learners: "Learner's licence",
@@ -45,7 +46,7 @@ export default function AccountPage() {
     <div className="mx-auto max-w-3xl">
       <PageHeader title="Account" description="Your profile, plan and preferences." />
 
-      <Card className="flex items-center gap-4 p-6">
+      <Card className={cn(glassFloat, "flex items-center gap-4 p-6")}>
         <Avatar name={profile?.name ?? "Learner"} className="h-14 w-14 text-base" />
         <div className="min-w-0 flex-1">
           <p className="font-display text-lg font-semibold">{profile?.name ?? "Learner"}</p>
@@ -57,7 +58,7 @@ export default function AccountPage() {
       </Card>
 
       {/* Subscription */}
-      <Card className="mt-5 p-6">
+      <Card className={cn(glass, "mt-5 p-6")}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-semibold">Subscription</h2>
@@ -74,7 +75,7 @@ export default function AccountPage() {
 
       {/* Study profile */}
       {onboarding && (
-        <Card className="mt-5 p-6">
+        <Card className={cn(glass, "mt-5 p-6")}>
           <h2 className="font-display text-lg font-semibold">Study profile</h2>
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Info icon={<Target className="h-4 w-4" />} label="Goal" value={GOAL_LABEL[onboarding.goal]} />
@@ -92,7 +93,7 @@ export default function AccountPage() {
       )}
 
       {/* Preferences */}
-      <Card className="mt-5 p-6">
+      <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Preferences</h2>
         <div className="mt-4 flex items-center justify-between border-b border-border pb-4">
           <div>
@@ -109,12 +110,12 @@ export default function AccountPage() {
               <p className="text-sm text-muted-foreground">Disables decorative graphics and animations to save data.</p>
             </div>
           </div>
-          <Toggle on={dataSaver} onChange={setDataSaver} label="Data saver" />
+          <Switch checked={dataSaver} onChange={setDataSaver} label="Data saver" />
         </div>
       </Card>
 
       {/* Danger zone */}
-      <Card className="mt-5 p-6">
+      <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Account actions</h2>
         <div className="mt-4 flex flex-wrap gap-3">
           <Button variant="outline" className="gap-2" onClick={handleSignOut}>
@@ -138,22 +139,3 @@ function Info({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-function Toggle({ on, onChange, label }: { on: boolean; onChange: (v: boolean) => void; label: string }) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={on}
-      aria-label={label}
-      onClick={() => onChange(!on)}
-      className={cn("relative h-6 w-11 shrink-0 rounded-full transition-colors", on ? "bg-primary" : "bg-muted")}
-    >
-      <span
-        className={cn(
-          "absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform",
-          on ? "translate-x-[1.375rem]" : "translate-x-0.5",
-        )}
-      />
-    </button>
-  );
-}

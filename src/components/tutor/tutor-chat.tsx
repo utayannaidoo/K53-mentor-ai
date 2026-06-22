@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate } from "@/lib/utils";
@@ -137,8 +138,8 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
               key={t.id}
               onClick={() => openThread(t)}
               className={cn(
-                "w-full truncate rounded-lg px-3 py-2 text-left text-sm transition-colors",
-                t.id === threadId ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                "press w-full truncate rounded-lg px-3 py-2 text-left text-sm",
+                t.id === threadId ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
               )}
             >
               <span className="block truncate font-medium">{t.title}</span>
@@ -149,7 +150,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
       </aside>
 
       {/* Chat */}
-      <div className="flex min-w-0 flex-1 flex-col rounded-xl border border-border bg-card">
+      <div className="glass flex min-w-0 flex-1 flex-col rounded-xl">
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -172,28 +173,26 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
           {messages.length === 0 && (
-            <div className="flex h-full flex-col items-center justify-center text-center">
-              <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <MessageSquareText className="h-6 w-6" />
-              </span>
-              <h2 className="mt-4 font-display text-lg font-semibold">Ask me anything about the K53</h2>
-              <p className="mt-1 max-w-sm text-sm text-muted-foreground">
-                I explain the “why”, give examples, and never just dump the answer. Try a prompt below.
-              </p>
+            <div className="flex h-full items-center justify-center p-6">
+              <EmptyState
+                icon={<MessageSquareText className="h-6 w-6" />}
+                title="Ask me anything about the K53"
+                description="I explain the why behind each rule, give real examples, and never just dump the answer. Try a prompt below."
+              />
             </div>
           )}
 
           {messages.map((m) => (
             <div key={m.id} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>
               {m.role === "assistant" ? (
-                <div className="max-w-[85%] rounded-2xl rounded-tl-sm border border-border bg-background px-4 py-3">
+                <div className="glass-subtle max-w-[85%] animate-fade-in rounded-2xl rounded-tl-sm px-4 py-3">
                   <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
                     <Sparkles className="h-3 w-3" /> Tutor
                   </div>
                   <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{m.content}</p>
                 </div>
               ) : (
-                <div className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary px-4 py-3 text-sm text-primary-foreground">
+                <div className="max-w-[85%] animate-fade-in rounded-2xl rounded-tr-sm bg-gradient-to-br from-primary to-primary-light px-4 py-3 text-sm text-primary-foreground shadow-[0_8px_22px_-10px_hsl(var(--primary)/0.6)]">
                   {m.content}
                 </div>
               )}
@@ -202,9 +201,9 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
 
           {loading && (
             <div className="flex justify-start">
-              <div className="rounded-2xl rounded-tl-sm border border-border bg-background px-4 py-3">
+              <div className="glass-subtle rounded-2xl rounded-tl-sm px-4 py-3">
                 <div className="flex gap-1">
-                  <Dot /> <Dot delay="150ms" /> <Dot delay="300ms" />
+                  <Dot /> <Dot delay="200ms" /> <Dot delay="400ms" />
                 </div>
               </div>
             </div>
@@ -240,7 +239,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask the tutor…"
+                  placeholder="Ask the tutor..."
                   className="flex-1"
                 />
                 <Button type="submit" size="icon" disabled={!input.trim() || loading} aria-label="Send">
@@ -261,7 +260,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
 function Dot({ delay = "0ms" }: { delay?: string }) {
   return (
     <span
-      className="h-2 w-2 animate-bounce rounded-full bg-muted-foreground/50"
+      className="h-2 w-2 animate-pulse rounded-full bg-muted-foreground/50"
       style={{ animationDelay: delay }}
     />
   );

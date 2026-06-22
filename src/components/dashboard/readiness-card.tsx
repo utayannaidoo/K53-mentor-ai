@@ -1,7 +1,7 @@
 import { TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { ScoreRing } from "@/components/ui/score-ring";
-import { cn } from "@/lib/utils";
+import { cn, glassFloat } from "@/lib/utils";
 
 export function ReadinessCard({
   readiness,
@@ -16,7 +16,7 @@ export function ReadinessCard({
   const deltaTone = delta && delta > 0 ? "text-success" : delta && delta < 0 ? "text-danger" : "text-muted-foreground";
 
   return (
-    <Card className="flex flex-col items-center justify-center p-6 text-center">
+    <Card className={cn(glassFloat, "flex flex-col items-center justify-center p-6 text-center")}>
       <ScoreRing value={readiness} size={172} label="Readiness" />
       <div className="mt-4 flex items-center gap-4 text-sm">
         <span className="text-muted-foreground">

@@ -75,7 +75,7 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className="flex min-h-dvh flex-col bg-background">
+    <div className="flex min-h-dvh flex-col bg-background bg-app">
       <header className="flex items-center justify-between px-6 py-5">
         <Link href="/">
           <Logo />

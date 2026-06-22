@@ -13,7 +13,7 @@ export function Progress({
   tone?: "primary" | "success" | "warning" | "danger" | "accent";
 }) {
   const toneClass = {
-    primary: "bg-primary",
+    primary: "bg-gradient-to-r from-primary to-primary-light",
     success: "bg-success",
     warning: "bg-warning",
     danger: "bg-danger",

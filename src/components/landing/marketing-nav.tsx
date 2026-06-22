@@ -27,60 +27,61 @@ export function MarketingNav() {
   }, []);
 
   return (
-    <header
-      className={cn(
-        "sticky top-0 z-40 w-full transition-colors",
-        scrolled
-          ? "border-b border-border bg-background/80 backdrop-blur-lg"
-          : "border-b border-transparent",
-      )}
-    >
-      <div className="container flex h-16 items-center justify-between">
-        <Link href="/" aria-label="K53 Mentor AI home">
+    <header className="sticky top-0 z-50 px-3 pt-3 sm:px-4 sm:pt-4">
+      <div
+        className={cn(
+          "glass-panel mx-auto flex max-w-5xl items-center justify-between gap-3 rounded-full border py-2 pl-5 pr-2 transition-shadow duration-300",
+          scrolled
+            ? "shadow-[0_18px_44px_-26px_hsl(var(--shadow)/0.7)]"
+            : "shadow-[0_10px_30px_-26px_hsl(var(--shadow)/0.5)]",
+        )}
+      >
+        <Link href="/" aria-label="K53 Mentor AI home" className="shrink-0 rounded-full focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25">
           <Logo />
         </Link>
 
-        <nav className="hidden items-center gap-1 md:flex">
+        <nav className="hidden items-center gap-0.5 md:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+              className="rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
             >
               {l.label}
             </Link>
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-1.5 md:flex">
           <ThemeToggle />
-          <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }))}>
+          <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full")}>
             Log in
           </Link>
-          <Link href="/onboarding" className={cn(buttonVariants({ size: "sm" }))}>
+          <Link href="/onboarding" className={cn(buttonVariants({ size: "sm" }), "rounded-full")}>
             Start free assessment
           </Link>
         </div>
 
         <button
           type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-lg text-foreground md:hidden"
+          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25 md:hidden"
           onClick={() => setOpen((o) => !o)}
           aria-label="Toggle menu"
+          aria-expanded={open}
         >
           {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
       </div>
 
       {open && (
-        <div className="border-t border-border bg-background md:hidden">
-          <div className="container flex flex-col gap-1 py-4">
+        <div className="glass-2 mx-auto mt-2 max-w-5xl overflow-hidden rounded-2xl border p-2 md:hidden animate-fade-in">
+          <div className="flex flex-col gap-0.5">
             {LINKS.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
                 onClick={() => setOpen(false)}
-                className="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="rounded-xl px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               >
                 {l.label}
               </Link>

@@ -7,6 +7,7 @@ import { X, RotateCw, CheckCircle2, Sparkles, PartyPopper } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { SignGlyph } from "@/components/shared/sign-glyph";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -170,25 +171,25 @@ export function FlashcardDeck() {
 function CaughtUp({ categoryParam }: { categoryParam?: CategoryId }) {
   return (
     <div className="mx-auto max-w-md py-10">
-      <Card className="p-8 text-center">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-success/12 text-success">
-          <CheckCircle2 className="h-6 w-6" />
-        </div>
-        <h2 className="mt-5 font-display text-xl font-semibold">All caught up!</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {categoryParam
+      <EmptyState
+        icon={<CheckCircle2 className="h-6 w-6" />}
+        title="All caught up!"
+        description={
+          categoryParam
             ? "No cards due in this category right now. Spaced repetition will resurface them when it's time."
-            : "No flashcards are due right now. Come back later, or drill a specific weak area."}
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link href="/study/questions" className={cn(buttonVariants({ variant: "outline" }))}>
-            Practice questions
-          </Link>
-          <Link href="/dashboard" className={cn(buttonVariants())}>
-            Back to dashboard
-          </Link>
-        </div>
-      </Card>
+            : "No flashcards are due right now. Come back later, or drill a specific weak area."
+        }
+        action={
+          <div className="flex gap-3">
+            <Link href="/study/questions" className={cn(buttonVariants({ variant: "outline" }))}>
+              Practice questions
+            </Link>
+            <Link href="/dashboard" className={cn(buttonVariants())}>
+              Dashboard
+            </Link>
+          </div>
+        }
+      />
     </div>
   );
 }
@@ -196,25 +197,22 @@ function CaughtUp({ categoryParam }: { categoryParam?: CategoryId }) {
 function Completion({ reviewed, seconds }: { reviewed: number; seconds: number }) {
   return (
     <div className="mx-auto max-w-md py-10">
-      <Card className="animate-scale-in p-8 text-center">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
-          <PartyPopper className="h-7 w-7" />
-        </div>
-        <h2 className="mt-5 font-display text-2xl font-semibold">Session complete</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          You reviewed <span className="font-semibold text-foreground">{reviewed}</span>{" "}
-          {reviewed === 1 ? "card" : "cards"} in {formatDuration(seconds)}. Your mastery and readiness
-          just moved.
-        </p>
-        <div className="mt-6 flex justify-center gap-3">
-          <Link href="/study/flashcards" className={cn(buttonVariants({ variant: "outline" }))}>
-            Review more
-          </Link>
-          <Link href="/dashboard" className={cn(buttonVariants())}>
-            Back to dashboard
-          </Link>
-        </div>
-      </Card>
+      <EmptyState
+        icon={<PartyPopper className="h-7 w-7" />}
+        title="Session complete"
+        description={`You reviewed ${reviewed} ${reviewed === 1 ? "card" : "cards"} in ${formatDuration(seconds)}. Your mastery and readiness just moved.`}
+        action={
+          <div className="flex gap-3">
+            <Link href="/study/flashcards" className={cn(buttonVariants({ variant: "outline" }))}>
+              Review more
+            </Link>
+            <Link href="/dashboard" className={cn(buttonVariants())}>
+              Dashboard
+            </Link>
+          </div>
+        }
+        className="animate-scale-in"
+      />
     </div>
   );
 }

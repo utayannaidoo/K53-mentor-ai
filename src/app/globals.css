@@ -4,69 +4,78 @@
 
 @layer base {
   :root {
-    --background: 45 29% 97%;
-    --foreground: 162 25% 10%;
+    /* Cool, soft, Apple-inspired light palette */
+    --background: 210 38% 98%;
+    --foreground: 222 24% 13%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 162 25% 10%;
+    --card: 210 36% 99%;
+    --card-foreground: 222 24% 13%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 162 25% 10%;
+    --popover: 210 40% 100%;
+    --popover-foreground: 222 24% 13%;
 
-    --primary: 162 37% 27%;
-    --primary-light: 156 28% 43%;
-    --primary-foreground: 45 29% 97%;
+    --primary: 216 64% 52%;
+    --primary-light: 216 72% 62%;
+    --primary-foreground: 210 40% 99%;
 
-    --accent: 24 100% 62%;
-    --accent-foreground: 162 25% 10%;
+    --accent: 28 92% 55%;
+    --accent-foreground: 222 24% 13%;
 
-    --secondary: 45 18% 92%;
-    --secondary-foreground: 162 25% 10%;
+    --secondary: 214 26% 95%;
+    --secondary-foreground: 222 24% 18%;
 
-    --muted: 45 18% 93%;
-    --muted-foreground: 158 8% 39%;
+    --muted: 214 26% 95%;
+    --muted-foreground: 216 14% 46%;
 
-    --success: 144 55% 40%;
-    --warning: 41 75% 51%;
-    --danger: 5 61% 53%;
+    --success: 150 56% 40%;
+    --warning: 36 92% 48%;
+    --danger: 4 72% 56%;
 
-    --border: 45 18% 87%;
-    --input: 45 18% 87%;
-    --ring: 162 37% 27%;
+    --border: 214 22% 90%;
+    --input: 214 22% 88%;
+    --ring: 216 64% 52%;
 
-    --radius: 0.875rem;
+    --shadow: 222 45% 24%;
+    --radius: 1rem;
+
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-spring: cubic-bezier(0.34, 1.3, 0.64, 1);
   }
 
   .dark {
-    --background: 165 21% 7%;
-    --foreground: 45 20% 96%;
+    /* Deep, cool, Vision-Pro-leaning dark palette */
+    --background: 222 30% 7%;
+    --foreground: 210 30% 95%;
 
-    --card: 162 16% 13%;
-    --card-foreground: 45 20% 96%;
+    --card: 222 22% 11%;
+    --card-foreground: 210 30% 95%;
 
-    --popover: 162 16% 12%;
-    --popover-foreground: 45 20% 96%;
+    --popover: 222 24% 12%;
+    --popover-foreground: 210 30% 95%;
 
-    --primary: 156 34% 52%;
-    --primary-light: 156 28% 43%;
-    --primary-foreground: 165 21% 7%;
+    --primary: 214 90% 64%;
+    --primary-light: 214 80% 56%;
+    --primary-foreground: 222 35% 8%;
 
-    --accent: 24 100% 62%;
-    --accent-foreground: 162 25% 10%;
+    --accent: 28 92% 60%;
+    --accent-foreground: 222 30% 8%;
 
-    --secondary: 162 12% 18%;
-    --secondary-foreground: 45 20% 96%;
+    --secondary: 220 18% 17%;
+    --secondary-foreground: 210 30% 95%;
 
-    --muted: 162 12% 16%;
-    --muted-foreground: 158 10% 62%;
+    --muted: 220 18% 15%;
+    --muted-foreground: 215 16% 62%;
 
-    --success: 144 50% 52%;
-    --warning: 41 75% 56%;
-    --danger: 5 70% 62%;
+    --success: 150 50% 54%;
+    --warning: 36 90% 58%;
+    --danger: 4 78% 64%;
 
-    --border: 162 12% 20%;
-    --input: 162 12% 22%;
-    --ring: 156 34% 52%;
+    --border: 216 16% 22%;
+    --input: 216 16% 24%;
+    --ring: 214 90% 64%;
+
+    --shadow: 222 70% 2%;
   }
 }
 
@@ -82,14 +91,140 @@
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "cv11", "ss01";
     text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  /* Tailwind v3 preflight doesn't set this; interactive controls should
+     always read as clickable, disabled ones as not. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label[for] {
+    cursor: pointer;
   }
   ::selection {
     @apply bg-primary/20;
   }
-  /* Tabular numerals for stat/score readouts */
+  /* Tighter, Apple-grade tracking on display type */
+  .font-display {
+    letter-spacing: -0.022em;
+  }
   .tabular {
     font-variant-numeric: tabular-nums;
     font-feature-settings: "tnum";
+  }
+  /* Slim, calm scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--foreground) / 0.14);
+    border: 3px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--foreground) / 0.24);
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  /* ── Liquid Glass depth system ──────────────────────────────
+     Three elevation tiers so components sit at visibly different
+     depths. Translucency is real: the atmospheric page background
+     shows through, and a hairline top reflection lights each edge. */
+
+  /* Tier 1 — recessed insets / subtle surfaces */
+  .glass-subtle {
+    background-color: hsl(var(--card) / 0.4);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid hsl(var(--border) / 0.45);
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.4);
+  }
+
+  /* Tier 2 — content cards floating over the atmosphere */
+  .glass {
+    background-color: hsl(var(--card) / 0.55);
+    -webkit-backdrop-filter: blur(22px) saturate(185%);
+    backdrop-filter: blur(22px) saturate(185%);
+    border: 1px solid hsl(var(--border) / 0.5);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.55),
+      0 14px 38px -22px hsl(var(--shadow) / 0.6);
+  }
+
+  /* Tier 3 — hero cards, product shots, modals (most lifted) */
+  .glass-2 {
+    background-color: hsl(var(--card) / 0.68);
+    -webkit-backdrop-filter: blur(34px) saturate(195%);
+    backdrop-filter: blur(34px) saturate(195%);
+    border: 1px solid hsl(var(--border) / 0.6);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.65),
+      0 34px 80px -36px hsl(var(--shadow) / 0.7);
+  }
+
+  /* Navigation chrome — frosted over whatever scrolls beneath */
+  .glass-panel {
+    background-color: hsl(var(--background) / 0.66);
+    -webkit-backdrop-filter: blur(26px) saturate(180%);
+    backdrop-filter: blur(26px) saturate(180%);
+    border-color: hsl(var(--border) / 0.5);
+  }
+
+  .dark .glass-subtle {
+    box-shadow: inset 0 1px 0 hsl(0 0% 100% / 0.05);
+  }
+  .dark .glass {
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.07),
+      0 14px 40px -22px hsl(var(--shadow) / 0.85);
+  }
+  .dark .glass-2 {
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.08),
+      0 34px 90px -36px hsl(var(--shadow) / 0.9);
+  }
+
+  /* ── Glass edge (after Petr Knoll's "Glass Button") ──────────
+     A lit lens edge that layers on top of any surface: a soft
+     top-down sheen, a bright top specular line and a faint
+     full-perimeter rim. Painted in a ::before so it never touches
+     the host's own box-shadow or background. */
+  .glass-edge,
+  .glass,
+  .glass-2,
+  .glass-subtle {
+    position: relative;
+    isolation: isolate;
+  }
+  .glass-edge::before,
+  .glass::before,
+  .glass-2::before,
+  .glass-subtle::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(180deg, hsl(0 0% 100% / 0.1), transparent 64px);
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.4),
+      inset 0 0 0 1px hsl(0 0% 100% / 0.08);
+  }
+  .dark .glass-edge::before,
+  .dark .glass::before,
+  .dark .glass-2::before,
+  .dark .glass-subtle::before {
+    background: linear-gradient(180deg, hsl(0 0% 100% / 0.08), transparent 64px);
+    box-shadow:
+      inset 0 1px 0 0 hsl(0 0% 100% / 0.18),
+      inset 0 0 0 1px hsl(0 0% 100% / 0.06);
   }
 }
 
@@ -97,20 +232,53 @@
   .text-balance {
     text-wrap: balance;
   }
-  .bg-grid {
-    background-image: radial-gradient(
-      hsl(var(--foreground) / 0.05) 1px,
-      transparent 1px
-    );
-    background-size: 22px 22px;
-  }
+
+  /* Calm, cool ambient backgrounds */
   .bg-aurora {
-    background:
-      radial-gradient(60% 60% at 15% 10%, hsl(var(--primary) / 0.10), transparent 60%),
-      radial-gradient(50% 50% at 90% 5%, hsl(var(--accent) / 0.10), transparent 55%);
+    background-image:
+      radial-gradient(46% 42% at 10% -6%, hsl(var(--primary) / 0.18), transparent 62%),
+      radial-gradient(42% 38% at 94% 0%, hsl(258 74% 62% / 0.13), transparent 56%),
+      radial-gradient(48% 44% at 66% 110%, hsl(var(--accent) / 0.08), transparent 60%);
   }
+  .bg-app {
+    background-image:
+      radial-gradient(52% 40% at 8% -4%, hsl(var(--primary) / 0.09), transparent 62%),
+      radial-gradient(44% 38% at 102% 4%, hsl(258 70% 60% / 0.065), transparent 56%),
+      radial-gradient(50% 44% at 60% 108%, hsl(var(--accent) / 0.05), transparent 64%);
+  }
+  .bg-grid {
+    background-image: radial-gradient(hsl(var(--foreground) / 0.045) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  /* Soft, premium hover lift */
+  .hover-elevate {
+    transition:
+      transform 0.28s var(--ease),
+      box-shadow 0.28s var(--ease),
+      border-color 0.28s var(--ease);
+  }
+  .hover-elevate:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 22px 48px -24px hsl(var(--shadow) / 0.5);
+    border-color: hsl(var(--border));
+  }
+  /* Tactile press — spring on transform, gentle ease on the rest, so one
+     class can sit on nav items / option cards without a transition-all clash. */
+  .press {
+    transition:
+      transform 0.42s var(--ease-spring),
+      background-color 0.2s var(--ease-soft),
+      border-color 0.2s var(--ease-soft),
+      color 0.2s var(--ease-soft),
+      box-shadow 0.2s var(--ease-soft);
+  }
+  .press:active {
+    transform: scale(0.97);
+  }
+
   .perspective {
-    perspective: 1200px;
+    perspective: 1400px;
   }
   .preserve-3d {
     transform-style: preserve-3d;
@@ -122,7 +290,6 @@
   .rotate-y-180 {
     transform: rotateY(180deg);
   }
-  /* Hide scrollbars on horizontal chip rows while keeping scroll */
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
@@ -132,12 +299,32 @@
   }
 }
 
-/* Data-saver mode: drop decorative paint + looping animations */
+/* Data-saver mode: drop blur, decorative paint and looping animation */
 .data-saver .bg-aurora,
-.data-saver .bg-grid {
+.data-saver .bg-grid,
+.data-saver .bg-app {
   background-image: none !important;
 }
 .data-saver .animate-ping,
 .data-saver .animate-bounce {
   animation: none !important;
+}
+.data-saver .glass,
+.data-saver .glass-2,
+.data-saver .glass-panel,
+.data-saver .glass-subtle {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+  background-color: hsl(var(--card)) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

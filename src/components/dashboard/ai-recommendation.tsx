@@ -26,7 +26,7 @@ export function AiRecommendation({
   const cta = category ? "Ask the tutor" : "Take a mock exam";
 
   return (
-    <Card className="flex flex-col border-primary/20 bg-primary/[0.04] p-6">
+    <Card className="flex flex-col border-primary/25 bg-primary/[0.06] p-6 shadow-glass backdrop-blur-xl">
       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
         <Sparkles className="h-4 w-4" /> AI recommendation
       </div>

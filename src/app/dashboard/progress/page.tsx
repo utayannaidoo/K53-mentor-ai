@@ -7,13 +7,14 @@ import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MasteryBar } from "@/components/ui/mastery-bar";
+import { EmptyState } from "@/components/ui/empty-state";
 import { TrendChart } from "@/components/dashboard/trend-chart";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
 import { hasFeature } from "@/lib/billing/plans";
-import { formatDuration, formatDate, cn } from "@/lib/utils";
+import { formatDuration, formatDate, cn, glass, glassSubtle } from "@/lib/utils";
 import type { CategoryId } from "@/types";
 
 export default function ProgressPage() {
@@ -44,14 +45,14 @@ export default function ProgressPage() {
         <StatTile icon={<Award className="h-4 w-4" />} label="Streak freezes" value={`${state.streak.freezesRemaining}`} />
       </div>
 
-      <Card className="mt-5 p-6">
+      <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Readiness over time</h2>
         <div className="mt-4">
           <TrendChart data={state.readinessHistory} height={200} />
         </div>
       </Card>
 
-      <Card className="mt-5 p-6">
+      <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Category mastery</h2>
         <p className="mt-1 text-sm text-muted-foreground">Sorted weakest-first — start at the top.</p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -67,7 +68,7 @@ export default function ProgressPage() {
         </div>
       </Card>
 
-      <Card className="mt-5 p-6">
+      <Card className={cn(glass, "mt-5 p-6")}>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Mock exam history</h2>
           <Link href="/study/mock-exam" className="text-xs font-medium text-primary hover:underline">
@@ -75,13 +76,22 @@ export default function ProgressPage() {
           </Link>
         </div>
         {state.mockExams.length === 0 ? (
-          <p className="mt-3 text-sm text-muted-foreground">
-            No mock exams yet. A full 68-question mock is the best test of real readiness.
-          </p>
+          <div className="mt-4">
+            <EmptyState
+              icon={<FileText className="h-6 w-6" />}
+              title="No mock exams yet"
+              description="A full 68-question mock is the best test of real readiness — it mirrors the actual K53 paper."
+              action={
+                <Link href="/study/mock-exam" className={cn(buttonVariants())}>
+                  Take your first mock
+                </Link>
+              }
+            />
+          </div>
         ) : (
-          <ul className="mt-4 space-y-2">
+          <ul className="mt-4 divide-y divide-border/60 overflow-hidden rounded-xl border border-border/60">
             {[...state.mockExams].reverse().map((m) => (
-              <li key={m.id} className="flex items-center justify-between rounded-lg border border-border bg-background/60 px-4 py-3">
+              <li key={m.id} className="flex items-center justify-between bg-background/30 px-4 py-3 transition-colors hover:bg-muted/40">
                 <div className="flex items-center gap-3">
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   <div>
@@ -97,7 +107,7 @@ export default function ProgressPage() {
       </Card>
 
       {/* Advanced analytics — Premium Plus */}
-      <Card className="mt-5 overflow-hidden p-6">
+      <Card className={cn(glass, "mt-5 overflow-hidden p-6")}>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Advanced analytics</h2>
           {!advanced && <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" /> Premium Plus</Badge>}
@@ -136,7 +146,7 @@ function StatTile({
   tone?: string;
 }) {
   return (
-    <Card className="p-4">
+    <Card className={cn(glassSubtle, "p-4")}>
       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
         {icon} {label}
       </div>

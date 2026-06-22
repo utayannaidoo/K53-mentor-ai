@@ -10,7 +10,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
 import { DRIVER_MODULES } from "@/lib/content/driver-modules";
-import { cn } from "@/lib/utils";
+import { cn, glass } from "@/lib/utils";
 
 const DIFFICULTY = { 1: "Easy", 2: "Moderate", 3: "Advanced" } as const;
 
@@ -26,7 +26,7 @@ export default function LicencePrepPage() {
       />
 
       {!unlocked && (
-        <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 border-primary/20 bg-primary/[0.04] p-5">
+        <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 border-primary/25 bg-primary/[0.06] p-5 shadow-glass backdrop-blur-xl">
           <div className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
               <Sparkles className="h-5 w-5" />
@@ -55,7 +55,7 @@ export default function LicencePrepPage() {
               href={unlocked ? `/licence-prep/${m.id}` : "/account/billing"}
               className="group"
             >
-              <Card className="flex h-full flex-col p-5 transition-shadow hover:shadow-soft-lg">
+              <Card className={cn(glass, "hover-elevate flex h-full flex-col p-5")}>
                 <div className="flex items-start justify-between">
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
                     <Car className="h-5 w-5" />

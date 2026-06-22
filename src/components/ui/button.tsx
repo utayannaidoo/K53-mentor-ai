@@ -3,21 +3,23 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 export const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:shrink-0",
+  "relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-all duration-200 ease-spring focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.97] [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-soft hover:bg-primary/90",
-        accent: "bg-accent text-accent-foreground shadow-soft hover:bg-accent/90",
+          "glass-edge bg-primary text-primary-foreground shadow-[0_6px_18px_-6px_hsl(var(--primary)/0.55)] hover:brightness-[1.05] hover:shadow-[0_10px_26px_-8px_hsl(var(--primary)/0.6)]",
+        accent:
+          "glass-edge bg-accent text-accent-foreground shadow-[0_6px_18px_-6px_hsl(var(--accent)/0.5)] hover:brightness-[1.05]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/70",
+          "glass-edge border border-border/60 bg-secondary/70 text-secondary-foreground backdrop-blur-sm hover:bg-secondary",
         outline:
-          "border border-border bg-card text-foreground hover:bg-muted hover:border-border",
-        ghost: "text-foreground hover:bg-muted",
+          "glass-edge border border-border bg-card/50 text-foreground backdrop-blur-sm hover:bg-card hover:border-border/80",
+        ghost: "text-foreground hover:bg-muted/70",
         link: "text-primary underline-offset-4 hover:underline",
-        danger: "bg-danger text-white shadow-soft hover:bg-danger/90",
-        ai: "border border-primary/30 bg-primary/[0.06] text-primary hover:bg-primary/10",
+        danger:
+          "glass-edge bg-danger text-white shadow-[0_6px_18px_-6px_hsl(var(--danger)/0.5)] hover:brightness-[1.05]",
+        ai: "glass-edge border border-primary/25 bg-primary/[0.07] text-primary backdrop-blur-sm hover:bg-primary/[0.12]",
       },
       size: {
         sm: "h-9 rounded-md px-3 text-sm [&_svg]:size-4",
