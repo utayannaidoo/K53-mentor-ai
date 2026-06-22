@@ -12,8 +12,9 @@ import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
+import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
 import { categoryName } from "@/lib/content/categories";
-import { shuffle, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import type { CategoryId, Question } from "@/types";
 
 const LETTERS = ["A", "B", "C", "D"];
@@ -21,7 +22,7 @@ const LETTERS = ["A", "B", "C", "D"];
 export function QuestionPractice() {
   const sp = useSearchParams();
   const categoryParam = (sp.get("category") as CategoryId | null) ?? undefined;
-  const { recordQuestionAttempt, recordSession, usageFor } = useStudyStore();
+  const { state, recordQuestionAttempt, recordSession, usageFor } = useStudyStore();
 
   const cap = usageFor("questions");
   const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : 12;
@@ -29,7 +30,7 @@ export function QuestionPractice() {
 
   const [queue] = React.useState<Question[]>(() => {
     const pool = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
-    return shuffle(pool).slice(0, limit);
+    return orderByFreshness(pool, state.attempts).slice(0, limit).map(withShuffledOptions);
   });
   const startRef = React.useRef(Date.now());
   const [i, setI] = React.useState(0);

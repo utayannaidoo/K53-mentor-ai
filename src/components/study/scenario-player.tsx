@@ -13,11 +13,13 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { categoryName } from "@/lib/content/categories";
-import { cn } from "@/lib/utils";
+import { shuffle, cn } from "@/lib/utils";
 
 export function ScenarioPlayer() {
   const { state, recordScenarioAttempt, recordSession } = useStudyStore();
-  const [queue] = React.useState(() => SCENARIOS);
+  const [queue] = React.useState(() =>
+    shuffle(SCENARIOS).map((s) => ({ ...s, choices: shuffle(s.choices) })),
+  );
   const startRef = React.useRef(Date.now());
   const [i, setI] = React.useState(0);
   const [chosenId, setChosenId] = React.useState<string | null>(null);

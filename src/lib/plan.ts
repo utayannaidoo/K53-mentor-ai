@@ -26,7 +26,7 @@ export function countDueFlashcards(state: UserState, now = new Date()): number {
 }
 
 /**
- * Build the flashcard study queue: due cards first (most overdue first),
+ * Build the flashcard study queue: due cards first (shuffled each session),
  * then unseen cards, optionally filtered to a category.
  */
 export function selectFlashcardQueue(
@@ -37,13 +37,10 @@ export function selectFlashcardQueue(
   let pool = FLASHCARDS;
   if (opts.categoryId) pool = pool.filter((f) => f.categoryId === opts.categoryId);
 
-  const due = pool
-    .filter((f) => state.cardStates[f.id] && isDue(state.cardStates[f.id], now))
-    .sort(
-      (a, b) =>
-        new Date(state.cardStates[a.id]!.due).getTime() -
-        new Date(state.cardStates[b.id]!.due).getTime(),
-    );
+  // due cards (shuffled so the review order varies each session), then unseen
+  const due = shuffle(
+    pool.filter((f) => state.cardStates[f.id] && isDue(state.cardStates[f.id], now)),
+  );
   const unseen = shuffle(pool.filter((f) => !state.cardStates[f.id]));
 
   const queue = [...due, ...unseen];

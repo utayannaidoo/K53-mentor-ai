@@ -16,9 +16,9 @@ const LETTERS = ["A", "B", "C", "D"];
 
 export function DiagnosticRunner() {
   const router = useRouter();
-  const { recordQuestionAttempt, recordDiagnostic } = useStudyStore();
+  const { state, recordQuestionAttempt, recordDiagnostic } = useStudyStore();
 
-  const [questions] = React.useState(() => sampleDiagnostic());
+  const [questions] = React.useState(() => sampleDiagnostic(state.attempts));
   const [index, setIndex] = React.useState(0);
   const [selected, setSelected] = React.useState<number | null>(null);
   const [responses, setResponses] = React.useState<

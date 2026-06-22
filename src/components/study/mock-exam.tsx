@@ -66,7 +66,7 @@ export function MockExam() {
   }, [phase, secondsLeft, submit]);
 
   function start() {
-    const qs = sampleMockExam();
+    const qs = sampleMockExam(state.attempts);
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));
     setI(0);
