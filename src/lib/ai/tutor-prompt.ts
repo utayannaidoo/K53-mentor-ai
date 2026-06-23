@@ -52,6 +52,26 @@ export function resolveContext(ctx?: TutorContextInput): ResolvedContext | null 
   return null;
 }
 
+/**
+ * A natural starter prompt to pre-fill the tutor composer with, based on where
+ * the learner opened the tutor from. Returns "" for no context (menu access),
+ * so the box is left blank.
+ */
+export function defaultTutorPrompt(type: TutorContextType, label?: string | null): string {
+  switch (type) {
+    case "question":
+      return "Why is the correct answer to this question right? Please explain it simply.";
+    case "card":
+      return "Can you explain this flashcard to me in more detail?";
+    case "category": {
+      const topic = label?.replace(/^Topic · /, "").trim();
+      return `Can you help me understand ${topic && topic.length ? topic : "this topic"}?`;
+    }
+    default:
+      return "";
+  }
+}
+
 export function buildSystemPrompt(contextText?: string) {
   return [
     "You are K53 Mentor, a warm, patient and encouraging South African driving instructor.",

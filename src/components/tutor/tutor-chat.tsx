@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate } from "@/lib/utils";
-import type { TutorContextType } from "@/lib/ai/tutor-prompt";
+import { defaultTutorPrompt, type TutorContextType } from "@/lib/ai/tutor-prompt";
 
 export interface InitialContext {
   type: TutorContextType;
@@ -37,7 +37,11 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   const { ready, state, createTutorThread, appendTutorMessage, usageFor } = useStudyStore();
   const [threadId, setThreadId] = React.useState<string | null>(null);
   const [sessionCtx, setSessionCtx] = React.useState<InitialContext | null>(initial);
-  const [input, setInput] = React.useState("");
+  // Pre-fill the composer when the tutor is opened from a question / card / topic,
+  // so the learner has a sensible starting question instead of a blank box.
+  const [input, setInput] = React.useState(() =>
+    initial ? defaultTutorPrompt(initial.type, initial.label) : "",
+  );
   const [loading, setLoading] = React.useState(false);
   const initRef = React.useRef(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -113,6 +117,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   function newConversation() {
     setThreadId(null);
     setSessionCtx(null);
+    setInput("");
   }
 
   function openThread(t: (typeof state.tutorThreads)[number]) {
