@@ -10,7 +10,7 @@ const STOP = new Set([
   "give", "with", "from", "have", "does", "your", "mean", "like",
 ]);
 
-function keywords(text: string): string[] {
+export function keywords(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")

@@ -12,6 +12,8 @@ import { Paywall } from "@/components/app/paywall";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate } from "@/lib/utils";
 import { defaultTutorPrompt, type TutorContextType } from "@/lib/ai/tutor-prompt";
+import { buildLearnerProfile } from "@/lib/ai/learner-profile";
+import { Markdown } from "@/components/tutor/markdown";
 
 export interface InitialContext {
   type: TutorContextType;
@@ -40,9 +42,11 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   // Pre-fill the composer when the tutor is opened from a question / card / topic,
   // so the learner has a sensible starting question instead of a blank box.
   const [input, setInput] = React.useState(() =>
-    initial ? defaultTutorPrompt(initial.type, initial.label) : "",
+    initial ? defaultTutorPrompt(initial.type, initial.id, initial.label) : "",
   );
   const [loading, setLoading] = React.useState(false);
+  // Text of the assistant reply as it streams in, before it's committed to the store.
+  const [streaming, setStreaming] = React.useState<string | null>(null);
   const initRef = React.useRef(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -70,7 +74,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
-  }, [messages.length, loading]);
+  }, [messages.length, loading, streaming]);
 
   async function send(text: string) {
     const content = text.trim();
@@ -90,6 +94,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
     appendTutorMessage(id, { role: "user", content });
     setInput("");
     setLoading(true);
+    setStreaming("");
 
     const history = [...prior, { role: "user" as const, content }].map((m) => ({ role: m.role, content: m.content }));
     try {
@@ -99,10 +104,55 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         body: JSON.stringify({
           messages: history,
           context: sessionCtx ? { type: sessionCtx.type, id: sessionCtx.id } : { type: "none" },
+          profile: buildLearnerProfile(state) ?? undefined,
         }),
       });
-      const data = await res.json();
-      appendTutorMessage(id, { role: "assistant", content: data.reply, model: data.model });
+
+      // Rate limited — surface a friendly cooldown instead of an error.
+      if (res.status === 429) {
+        let wait = Number(res.headers.get("retry-after")) || 60;
+        try {
+          const data = await res.json();
+          if (data?.retryAfter) wait = Number(data.retryAfter);
+        } catch {
+          /* header value already used */
+        }
+        appendTutorMessage(id, {
+          role: "assistant",
+          content: `You're sending messages a little fast for me to keep up. Please try again in about ${formatWait(wait)}.`,
+          model: "local",
+        });
+        return;
+      }
+
+      const model = res.headers.get("x-tutor-model") ?? "local";
+
+      if (!res.body) {
+        const text = await res.text();
+        appendTutorMessage(id, {
+          role: "assistant",
+          content: text.trim() || "Sorry — I had trouble responding just then. Please try again.",
+          model,
+        });
+        return;
+      }
+
+      // Stream the reply in, updating the live bubble as chunks arrive.
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let acc = "";
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        acc += decoder.decode(value, { stream: true });
+        setStreaming(acc);
+      }
+      acc += decoder.decode();
+      appendTutorMessage(id, {
+        role: "assistant",
+        content: acc.trim() || "Sorry — I had trouble responding just then. Please try again.",
+        model,
+      });
     } catch {
       appendTutorMessage(id, {
         role: "assistant",
@@ -110,6 +160,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         model: "local",
       });
     } finally {
+      setStreaming(null);
       setLoading(false);
     }
   }
@@ -194,7 +245,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
                     <Sparkles className="h-3 w-3" /> Tutor
                   </div>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground">{m.content}</p>
+                  <Markdown>{m.content}</Markdown>
                 </div>
               ) : (
                 <div className="max-w-[85%] animate-fade-in rounded-2xl rounded-tr-sm bg-gradient-to-br from-primary to-primary-light px-4 py-3 text-sm text-primary-foreground shadow-[0_8px_22px_-10px_hsl(var(--primary)/0.6)]">
@@ -204,7 +255,20 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
             </div>
           ))}
 
-          {loading && (
+          {/* Live streaming reply */}
+          {streaming !== null && streaming.length > 0 && (
+            <div className="flex justify-start">
+              <div className="glass-subtle max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3">
+                <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
+                  <Sparkles className="h-3 w-3" /> Tutor
+                </div>
+                <Markdown>{streaming}</Markdown>
+              </div>
+            </div>
+          )}
+
+          {/* Thinking dots — only before the first token arrives */}
+          {loading && (streaming === null || streaming.length === 0) && (
             <div className="flex justify-start">
               <div className="glass-subtle rounded-2xl rounded-tl-sm px-4 py-3">
                 <div className="flex gap-1">
@@ -260,6 +324,14 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
       </div>
     </div>
   );
+}
+
+/** Humanise a seconds value for the rate-limit cooldown message. */
+function formatWait(seconds: number): string {
+  const s = Math.max(1, Math.round(seconds));
+  if (s < 60) return `${s} second${s === 1 ? "" : "s"}`;
+  const m = Math.ceil(s / 60);
+  return `${m} minute${m === 1 ? "" : "s"}`;
 }
 
 function Dot({ delay = "0ms" }: { delay?: string }) {

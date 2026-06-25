@@ -1,9 +1,14 @@
 import { z } from "zod";
-import { getOpenAI, chooseModel } from "@/lib/ai/openai";
-import { buildSystemPrompt, resolveContext } from "@/lib/ai/tutor-prompt";
+import { TUTOR_PERSONA, buildGroundingText, resolveContext } from "@/lib/ai/tutor-prompt";
 import { localTutorReply } from "@/lib/ai/fallback";
+import { retrieveRelated } from "@/lib/ai/retrieve";
+import { streamTutorReply } from "@/lib/ai/provider";
+import { limitTutor } from "@/lib/ai/rate-limit";
 
 export const runtime = "nodejs";
+
+/** Keep the last N messages so token cost/latency don't grow with chat length. */
+const MAX_TURNS = 10;
 
 const bodySchema = z.object({
   messages: z
@@ -21,7 +26,15 @@ const bodySchema = z.object({
       id: z.string().optional(),
     })
     .optional(),
+  /** Short, client-built, non-PII learner profile for personalisation. */
+  profile: z.string().max(400).optional(),
 });
+
+function clientIp(req: Request): string {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  return req.headers.get("x-real-ip")?.trim() || "anon";
+}
 
 export async function POST(req: Request) {
   let parsed;
@@ -31,32 +44,46 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const { messages, context } = parsed;
-  const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
-  const resolved = resolveContext(context);
-
-  try {
-    const openai = getOpenAI();
-    if (!openai) {
-      return Response.json({ reply: localTutorReply(lastUser, context), model: "local" });
-    }
-
-    const model = chooseModel(lastUser);
-    const completion = await openai.chat.completions.create({
-      model,
-      temperature: 0.4,
-      max_tokens: 600,
-      messages: [
-        { role: "system", content: buildSystemPrompt(resolved?.text) },
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
-      ],
-    });
-
-    const reply = completion.choices[0]?.message?.content?.trim() || localTutorReply(lastUser, context);
-    return Response.json({ reply, model });
-  } catch (err) {
-    // Any API failure (bad key, rate limit, network) degrades gracefully.
-    console.error("tutor route error", err);
-    return Response.json({ reply: localTutorReply(lastUser, context), model: "local" });
+  // ── Rate limiting (abuse / cost guard) ─────────────────────────────────────
+  const rl = await limitTutor(clientIp(req));
+  if (!rl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
   }
+
+  const { messages, context, profile } = parsed;
+  const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+
+  // ── Grounding: anchored item + retrieved related facts + learner profile ───
+  const resolved = resolveContext(context);
+  const related = retrieveRelated(lastUser, context?.id);
+  const grounding = buildGroundingText({
+    context: resolved?.text ?? null,
+    related,
+    profile: profile ?? null,
+  });
+  const localReply = localTutorReply(lastUser, context);
+
+  // ── History trimming (keep recent turns, ensure it starts with a user msg) ─
+  let trimmed = messages.slice(-MAX_TURNS);
+  while (trimmed.length && trimmed[0].role !== "user") trimmed = trimmed.slice(1);
+  if (trimmed.length === 0) trimmed = [{ role: "user", content: lastUser }];
+
+  const { stream, model } = await streamTutorReply({
+    persona: TUTOR_PERSONA,
+    grounding,
+    messages: trimmed,
+    userText: lastUser,
+    localReply,
+  });
+
+  return new Response(stream, {
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      "cache-control": "no-store",
+      "x-tutor-model": model,
+    },
+  });
 }
