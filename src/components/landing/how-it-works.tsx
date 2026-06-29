@@ -46,6 +46,7 @@ export function HowItWorks() {
         const total = section.offsetHeight - window.innerHeight;
         const prog = Math.min(1, Math.max(0, -rect.top / Math.max(1, total)));
         const idx = Math.min(STEPS.length - 1, Math.floor(prog * STEPS.length + 0.0001));
+
         setActive((cur) => (cur === idx ? cur : idx));
       });
     };
@@ -59,13 +60,9 @@ export function HowItWorks() {
   }, []);
 
   return (
-    <section
-      ref={sectionRef}
-      id="how"
-      className="relative mx-auto h-[380vh] max-w-[1120px] scroll-mt-20 px-6"
-    >
-      <div className="sticky top-0 flex h-screen flex-col justify-center">
-        <div className="mb-6">
+    <>
+      <div className="mx-auto max-w-[1120px] px-6 pt-[12vh] lg:pt-[16vh]">
+        <div className="mb-6 max-w-[560px]">
           <span className="text-[13px] font-medium uppercase tracking-[0.12em] text-primary">
             How it works
           </span>
@@ -73,40 +70,45 @@ export function HowItWorks() {
             A loop that bends study time toward your weak spots.
           </h2>
         </div>
+      </div>
 
-        <div className="flex flex-col items-center gap-6 lg:flex-row lg:gap-14">
-          {/* Step list */}
-          <div className="flex w-full flex-1 flex-col gap-2">
-            {STEPS.map((s, i) => {
-              const on = i === active;
-              return (
-                <div
-                  key={s.n}
-                  className="flex gap-4 rounded-2xl px-4 py-3 transition-[opacity,background,box-shadow] duration-500 ease-soft"
-                  style={{
-                    opacity: on ? 1 : 0.42,
-                    background: on ? "hsl(var(--card)/0.55)" : "transparent",
-                    boxShadow: on
-                      ? "inset 0 0 0 1px hsl(0 0% 100%/0.08), inset 3px 0 0 hsl(var(--primary))"
-                      : "none",
-                  }}
-                >
-                  <span className="pt-1 font-mono text-[13px] font-semibold text-primary">{s.n}</span>
-                  <div>
-                    <h3 className="font-display text-[17px] font-semibold tracking-[-0.01em]">
-                      {s.title}
-                    </h3>
-                    <p className="mt-1 text-[0.9rem] leading-[1.45] text-muted-foreground">
-                      {s.body}
-                    </p>
+      <section
+        ref={sectionRef}
+        id="how"
+        className="relative mx-auto h-[380vh] -mt-10 max-w-[1120px] scroll-mt-20 px-6 lg:-mt-12"
+      >
+        <div className="sticky top-0 flex h-screen flex-col justify-center">
+          <div className="flex flex-col items-center gap-6 lg:flex-row lg:gap-14">
+            <div className="flex w-full flex-1 flex-col gap-2">
+              {STEPS.map((s, i) => {
+                const on = i === active;
+                return (
+                  <div
+                    key={s.n}
+                    className="flex gap-4 rounded-2xl px-4 py-3 transition-[opacity,background,box-shadow] duration-500 ease-soft"
+                    style={{
+                      opacity: on ? 1 : 0.42,
+                      background: on ? "hsl(var(--card)/0.55)" : "transparent",
+                      boxShadow: on
+                        ? "inset 0 0 0 1px hsl(0 0% 100%/0.08), inset 3px 0 0 hsl(var(--primary))"
+                        : "none",
+                    }}
+                  >
+                    <span className="pt-1 font-mono text-[13px] font-semibold text-primary">{s.n}</span>
+                    <div>
+                      <h3 className="font-display text-[17px] font-semibold tracking-[-0.01em]">
+                        {s.title}
+                      </h3>
+                      <p className="mt-1 text-[0.9rem] leading-[1.45] text-muted-foreground">
+                        {s.body}
+                      </p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
 
-          {/* Animated visual panels */}
-          <div className="relative h-[280px] w-full flex-1 lg:h-[320px]">
+            <div className="relative h-[280px] w-full flex-1 lg:h-[320px]">
             {/* 0 — practice question */}
             <div
               className={`${PANEL} rounded-[22px] p-6`}
@@ -221,9 +223,10 @@ export function HowItWorks() {
                 <div className="h-full w-[91%] rounded-full bg-gradient-to-r from-primary to-success" />
               </div>
             </div>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
