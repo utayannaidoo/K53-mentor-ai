@@ -9,7 +9,7 @@ const STATS = [
 
 export function StatsBand() {
   return (
-    <section className="mx-auto max-w-[1120px] px-6 pb-16 pt-5">
+    <section className="mx-auto max-w-[1120px] px-6 py-12">
       <div className="glass-subtle grid gap-[18px] rounded-[22px] px-[30px] py-9 [grid-template-columns:repeat(auto-fit,minmax(150px,1fr))]">
         {STATS.map((s) => (
           <div key={s.label} className="text-center">

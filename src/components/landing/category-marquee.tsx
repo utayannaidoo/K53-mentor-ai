@@ -16,7 +16,7 @@ export function CategoryMarquee() {
   const items = [...CATEGORIES, ...CATEGORIES];
 
   return (
-    <section className="overflow-hidden py-12 pb-[18px]">
+    <section className="overflow-hidden py-12">
       <p className="mb-[22px] text-center text-[13px] font-medium uppercase tracking-[0.12em] text-muted-foreground">
         Every part of the test, covered
       </p>

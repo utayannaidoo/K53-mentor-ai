@@ -65,16 +65,16 @@ export function HowItWorks() {
       className="relative mx-auto h-[380vh] max-w-[1120px] scroll-mt-20 px-6"
     >
       <div className="sticky top-0 flex h-screen flex-col justify-center">
-        <div className="mb-9">
+        <div className="mb-6">
           <span className="text-[13px] font-medium uppercase tracking-[0.12em] text-primary">
             How it works
           </span>
-          <h2 className="mt-3 max-w-[640px] text-balance font-display text-[clamp(2rem,4.4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.025em]">
+          <h2 className="mt-2.5 max-w-[520px] text-balance font-display text-[clamp(1.7rem,3.2vw,2.4rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
             A loop that bends study time toward your weak spots.
           </h2>
         </div>
 
-        <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-14">
+        <div className="flex flex-col items-center gap-6 lg:flex-row lg:gap-14">
           {/* Step list */}
           <div className="flex w-full flex-1 flex-col gap-2">
             {STEPS.map((s, i) => {
@@ -82,7 +82,7 @@ export function HowItWorks() {
               return (
                 <div
                   key={s.n}
-                  className="flex gap-[18px] rounded-2xl px-5 py-[18px] transition-[opacity,background,box-shadow] duration-500 ease-soft"
+                  className="flex gap-4 rounded-2xl px-4 py-3 transition-[opacity,background,box-shadow] duration-500 ease-soft"
                   style={{
                     opacity: on ? 1 : 0.42,
                     background: on ? "hsl(var(--card)/0.55)" : "transparent",
@@ -93,10 +93,10 @@ export function HowItWorks() {
                 >
                   <span className="pt-1 font-mono text-[13px] font-semibold text-primary">{s.n}</span>
                   <div>
-                    <h3 className="font-display text-[19px] font-semibold tracking-[-0.01em]">
+                    <h3 className="font-display text-[17px] font-semibold tracking-[-0.01em]">
                       {s.title}
                     </h3>
-                    <p className="mt-1.5 text-[0.95rem] leading-[1.5] text-muted-foreground">
+                    <p className="mt-1 text-[0.9rem] leading-[1.45] text-muted-foreground">
                       {s.body}
                     </p>
                   </div>
@@ -106,7 +106,7 @@ export function HowItWorks() {
           </div>
 
           {/* Animated visual panels */}
-          <div className="relative h-[300px] w-full flex-1 lg:h-[380px]">
+          <div className="relative h-[280px] w-full flex-1 lg:h-[320px]">
             {/* 0 — practice question */}
             <div
               className={`${PANEL} rounded-[22px] p-6`}

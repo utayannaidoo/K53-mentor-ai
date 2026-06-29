@@ -18,7 +18,7 @@ export function PricingSection({
   return (
     <section
       id="pricing"
-      className={cn("mx-auto max-w-[1120px] scroll-mt-20 px-6 pb-[70px] pt-5", className)}
+      className={cn("mx-auto max-w-[1120px] scroll-mt-20 px-6 py-16", className)}
     >
       {withHeading && (
         <div className="mx-auto mb-8 max-w-[600px] text-center">

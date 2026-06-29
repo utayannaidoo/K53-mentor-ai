@@ -3,7 +3,7 @@ import { ArrowRight } from "lucide-react";
 
 export function CtaBand() {
   return (
-    <section className="mx-auto max-w-[1120px] px-6 pb-20">
+    <section className="mx-auto max-w-[1120px] px-6 py-16">
       <div className="glass-2 relative overflow-hidden rounded-[28px] px-8 py-[60px] text-center">
         <div
           aria-hidden

@@ -61,7 +61,7 @@ const FEATURES: Feature[] = [
 
 export function Features() {
   return (
-    <section id="features" className="mx-auto max-w-[1120px] scroll-mt-20 px-6 pb-16 pt-10">
+    <section id="features" className="mx-auto max-w-[1120px] scroll-mt-20 px-6 py-16">
       <div className="mb-[42px] max-w-[640px]">
         <span className="text-[13px] font-medium uppercase tracking-[0.12em] text-primary">
           Everything you need

@@ -7,7 +7,7 @@ import { CountUp } from "@/components/landing/count-up";
  */
 export function Problem() {
   return (
-    <section className="mx-auto max-w-[1120px] px-6 pb-2.5 pt-[30px]">
+    <section className="mx-auto max-w-[1120px] px-6 py-12">
       <div className="glass-subtle flex flex-wrap items-center justify-center gap-x-10 gap-y-3.5 rounded-[20px] px-[30px] py-[26px] text-center">
         <div className="font-display text-[clamp(1.6rem,4vw,2.4rem)] font-semibold leading-none tracking-[-0.02em] text-danger">
           <CountUp value={4} suffix=" in 10" />

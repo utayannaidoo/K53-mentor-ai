@@ -32,7 +32,7 @@ const TESTIMONIALS: Testimonial[] = [
 
 export function Testimonials() {
   return (
-    <section className="mx-auto max-w-[1120px] px-6 pb-[70px] pt-5">
+    <section className="mx-auto max-w-[1120px] px-6 py-16">
       <div className="mx-auto mb-10 max-w-[560px] text-center">
         <h2 className="text-balance font-display text-[clamp(2rem,4.4vw,2.8rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
           Passed, first time.

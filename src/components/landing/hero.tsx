@@ -23,10 +23,13 @@ export function Hero() {
           Built for the South African K53
         </span>
 
-        <h1 className="mt-5 text-balance font-display text-[clamp(2.5rem,6vw,4.2rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
+        <h1 className="mt-5 font-display text-[clamp(2.5rem,6vw,4.2rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
           Stop guessing on
-          <br />
-          <RotatingWord />.
+          {/* Reserve two lines so the longest rotating phrase never reflows the
+              copy below as it cycles (no added/removed line, no jump). */}
+          <span className="mt-1 block min-h-[2.08em]">
+            <RotatingWord />
+          </span>
         </h1>
 
         <p className="mx-auto mt-5 max-w-[480px] text-pretty text-lg leading-relaxed text-muted-foreground lg:mx-0">
