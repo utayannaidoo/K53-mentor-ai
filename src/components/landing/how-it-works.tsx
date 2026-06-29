@@ -119,10 +119,9 @@ export function HowItWorks() {
             <div className="relative h-[280px] w-full flex-1 lg:h-[320px]">
             {/* 0 — practice question */}
             <div
-              className={`${PANEL} rounded-[22px] p-6`}
+              className={`${PANEL} rounded-[22px] p-6 ${active === 0 ? "translate-y-0 hover:scale-[1.03]" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 0 ? 1 : 0,
-                transform: active === 0 ? "translateY(0)" : "translateY(22px)",
                 pointerEvents: active === 0 ? "auto" : "none",
               }}
             >
@@ -145,10 +144,9 @@ export function HowItWorks() {
 
             {/* 1 — today's plan */}
             <div
-              className={`${PANEL} rounded-[22px] p-6`}
+              className={`${PANEL} rounded-[22px] p-6 ${active === 1 ? "translate-y-0 hover:scale-[1.03]" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 1 ? 1 : 0,
-                transform: active === 1 ? "translateY(0)" : "translateY(22px)",
                 pointerEvents: active === 1 ? "auto" : "none",
               }}
             >
@@ -178,10 +176,9 @@ export function HowItWorks() {
 
             {/* 2 — flashcard */}
             <div
-              className={`${PANEL} items-center gap-4 rounded-[22px] p-7 text-center`}
+              className={`${PANEL} items-center gap-4 rounded-[22px] p-7 text-center ${active === 2 ? "translate-y-0 hover:scale-[1.03]" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 2 ? 1 : 0,
-                transform: active === 2 ? "translateY(0)" : "translateY(22px)",
                 pointerEvents: active === 2 ? "auto" : "none",
               }}
             >
@@ -210,10 +207,9 @@ export function HowItWorks() {
 
             {/* 3 — mock exam passed */}
             <div
-              className={`${PANEL} items-stretch rounded-[22px] p-7 text-center`}
+              className={`${PANEL} items-stretch rounded-[22px] p-7 text-center ${active === 3 ? "translate-y-0 hover:scale-[1.03]" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 3 ? 1 : 0,
-                transform: active === 3 ? "translateY(0)" : "translateY(22px)",
                 pointerEvents: active === 3 ? "auto" : "none",
               }}
             >
@@ -228,7 +224,10 @@ export function HowItWorks() {
                 51 needed to pass · you&apos;re consistently clearing it
               </p>
               <div className="mt-[18px] h-2 overflow-hidden rounded-full bg-muted">
-                <div className="h-full w-[91%] rounded-full bg-gradient-to-r from-primary to-success" />
+                <div
+                  className="h-full w-[91%] origin-left rounded-full bg-gradient-to-r from-primary to-success transition-transform duration-[1100ms] ease-glass"
+                  style={{ transform: active === 3 ? "scaleX(1)" : "scaleX(0)" }}
+                />
               </div>
             </div>
             </div>

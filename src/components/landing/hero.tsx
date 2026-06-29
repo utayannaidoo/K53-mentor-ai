@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 import { RotatingWord } from "@/components/landing/rotating-word";
+import { CountUp } from "@/components/landing/count-up";
 
 /** Gradient "pill" CTA shared across the redesigned landing sections. */
 const PILL =
@@ -102,11 +103,14 @@ export function Hero() {
                   strokeLinecap="round"
                   strokeDasharray="314"
                   strokeDashoffset="69"
+                  className="motion-safe:animate-[k53ring_1.3s_var(--ease)_both]"
                   style={{ filter: "drop-shadow(0 0 10px hsl(var(--primary)/0.6))" }}
                 />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="font-mono text-[30px] font-semibold tracking-[-0.02em]">78</span>
+                <span className="font-mono text-[30px] font-semibold tracking-[-0.02em]">
+                  <CountUp value={78} />
+                </span>
                 <span className="mt-[3px] text-[11px] font-medium text-muted-foreground">Ready</span>
               </div>
             </div>
@@ -115,7 +119,9 @@ export function Hero() {
               <div className="text-xs font-medium text-muted-foreground">
                 Predicted pass probability
               </div>
-              <div className="mt-[5px] font-mono text-[22px] font-semibold text-success">82%</div>
+              <div className="mt-[5px] font-mono text-[22px] font-semibold text-success">
+                <CountUp value={82} suffix="%" />
+              </div>
 
               <div className="mt-3.5 flex flex-col gap-[9px]">
                 {[
@@ -129,7 +135,7 @@ export function Hero() {
                     </div>
                     <div className="h-[7px] overflow-hidden rounded-full bg-muted">
                       <div
-                        className={`h-full rounded-full bg-gradient-to-r ${m.bar}`}
+                        className={`h-full origin-left rounded-full bg-gradient-to-r ${m.bar} motion-safe:animate-[k53bar_1.1s_var(--ease)_both]`}
                         style={{ width: `${m.value}%` }}
                       />
                     </div>

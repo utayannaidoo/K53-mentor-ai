@@ -336,6 +336,23 @@
     transform: translateX(160%) skewX(-16deg);
   }
 }
+/* Readiness card: ring sweeps up to its score and bars grow from empty on load */
+@keyframes k53ring {
+  from {
+    stroke-dashoffset: 314;
+  }
+  to {
+    stroke-dashoffset: 69;
+  }
+}
+@keyframes k53bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
