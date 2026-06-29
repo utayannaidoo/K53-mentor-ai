@@ -58,19 +58,21 @@ export function Comparison() {
               const last = i === ROWS.length - 1;
               const alt = i % 2 === 1 ? "bg-card/30" : "";
               return (
-                <tr key={row.feature}>
-                  <td className={`border-t border-border/40 px-5 py-3.5 text-[0.95rem] font-medium ${alt}`}>
+                <tr key={row.feature} className="group">
+                  <td
+                    className={`border-t border-border/40 px-5 py-3.5 text-[0.95rem] font-medium transition-colors duration-200 group-hover:bg-foreground/[0.035] ${alt}`}
+                  >
                     {row.feature}
                   </td>
                   <td
-                    className={`bg-primary/[0.07] px-5 py-3.5 text-center ${last ? "rounded-b-2xl" : ""}`}
+                    className={`bg-primary/[0.07] px-5 py-3.5 text-center transition-colors duration-200 group-hover:bg-primary/[0.13] ${last ? "rounded-b-2xl" : ""}`}
                   >
                     <Cell value={row.values[0]} />
                   </td>
-                  <td className={`border-t border-border/40 px-5 py-3.5 text-center ${alt}`}>
+                  <td className={`border-t border-border/40 px-5 py-3.5 text-center transition-colors duration-200 group-hover:bg-foreground/[0.035] ${alt}`}>
                     <Cell value={row.values[1]} />
                   </td>
-                  <td className={`border-t border-border/40 px-5 py-3.5 text-center ${alt}`}>
+                  <td className={`border-t border-border/40 px-5 py-3.5 text-center transition-colors duration-200 group-hover:bg-foreground/[0.035] ${alt}`}>
                     <Cell value={row.values[2]} />
                   </td>
                 </tr>

@@ -32,6 +32,7 @@ const PANEL =
 export function HowItWorks() {
   const sectionRef = React.useRef<HTMLElement>(null);
   const [active, setActive] = React.useState(0);
+  const [mockScore, setMockScore] = React.useState(0);
 
   React.useEffect(() => {
     const section = sectionRef.current;
@@ -63,6 +64,33 @@ export function HowItWorks() {
       if (frame) cancelAnimationFrame(frame);
     };
   }, []);
+
+  // Count the mock-exam score up from 0 once the user reaches the Pass step,
+  // synced to the progress bar's 0.55s delay; resets when they scroll away.
+  React.useEffect(() => {
+    if (active !== 3) {
+      setMockScore(0);
+      return;
+    }
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
+      setMockScore(62);
+      return;
+    }
+    let raf = 0;
+    const start = window.setTimeout(() => {
+      const t0 = performance.now();
+      const tick = (now: number) => {
+        const p = Math.min(1, (now - t0) / 1600);
+        setMockScore(Math.round(62 * (1 - Math.pow(1 - p, 3))));
+        if (p < 1) raf = requestAnimationFrame(tick);
+      };
+      raf = requestAnimationFrame(tick);
+    }, 550);
+    return () => {
+      clearTimeout(start);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [active]);
 
   return (
     <>
@@ -218,7 +246,7 @@ export function HowItWorks() {
                 Mock exam passed
               </span>
               <div className="mt-[18px] font-mono text-[56px] font-semibold leading-none tracking-[-0.03em] text-success">
-                62<span className="text-2xl text-muted-foreground">/68</span>
+                {mockScore}<span className="text-2xl text-muted-foreground">/68</span>
               </div>
               <p className="mt-2 text-[0.95rem] text-muted-foreground">
                 51 needed to pass · you&apos;re consistently clearing it

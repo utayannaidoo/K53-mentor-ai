@@ -25,7 +25,7 @@ export function CategoryMarquee() {
           {items.map((cat, i) => (
             <span
               key={`${cat}-${i}`}
-              className="glass inline-flex cursor-default items-center gap-2.5 whitespace-nowrap rounded-full px-[18px] py-[11px] text-[14.5px] font-medium text-foreground transition-transform duration-200 ease-glass hover:scale-110"
+              className="glass inline-flex cursor-default items-center gap-2.5 whitespace-nowrap rounded-full px-[18px] py-[11px] text-[14.5px] font-medium text-foreground transition-transform duration-200 ease-glass hover:scale-105"
             >
               <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               {cat}
