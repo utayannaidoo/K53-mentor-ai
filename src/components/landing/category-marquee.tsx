@@ -21,7 +21,7 @@ export function CategoryMarquee() {
         Every part of the test, covered
       </p>
       <div className="relative [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
-        <div className="flex w-max gap-3.5 motion-safe:animate-[k53marquee_32s_linear_infinite] hover:[animation-play-state:paused]">
+        <div className="flex w-max gap-3.5 motion-safe:animate-[k53marquee_32s_linear_infinite]">
           {items.map((cat, i) => (
             <span
               key={`${cat}-${i}`}

@@ -119,7 +119,7 @@ export function HowItWorks() {
             <div className="relative h-[280px] w-full flex-1 lg:h-[320px]">
             {/* 0 — practice question */}
             <div
-              className={`${PANEL} rounded-[22px] p-6 ${active === 0 ? "translate-y-0 hover:scale-[1.03]" : "translate-y-[22px]"}`}
+              className={`${PANEL} rounded-[22px] p-6 ${active === 0 ? "translate-y-0" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 0 ? 1 : 0,
                 pointerEvents: active === 0 ? "auto" : "none",
@@ -130,13 +130,13 @@ export function HowItWorks() {
                 A flashing red robot at an intersection means you must…
               </p>
               <div className="mt-4 flex flex-col gap-2.5">
-                <div className="rounded-xl bg-muted/60 px-[15px] py-[13px] text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)]">
+                <div className="cursor-pointer rounded-xl bg-muted/60 px-[15px] py-[13px] text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] transition-transform duration-200 ease-soft hover:scale-[1.03]">
                   Slow down and proceed with caution
                 </div>
-                <div className="rounded-xl bg-primary/15 px-[15px] py-[13px] text-[0.92rem] text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.5)]">
+                <div className="cursor-pointer rounded-xl bg-primary/15 px-[15px] py-[13px] text-[0.92rem] text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.5)] transition-transform duration-200 ease-soft hover:scale-[1.03]">
                   Stop, then proceed when safe
                 </div>
-                <div className="rounded-xl bg-muted/60 px-[15px] py-[13px] text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)]">
+                <div className="cursor-pointer rounded-xl bg-muted/60 px-[15px] py-[13px] text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] transition-transform duration-200 ease-soft hover:scale-[1.03]">
                   Maintain your speed
                 </div>
               </div>
@@ -144,7 +144,7 @@ export function HowItWorks() {
 
             {/* 1 — today's plan */}
             <div
-              className={`${PANEL} rounded-[22px] p-6 ${active === 1 ? "translate-y-0 hover:scale-[1.03]" : "translate-y-[22px]"}`}
+              className={`${PANEL} rounded-[22px] p-6 ${active === 1 ? "translate-y-0" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 1 ? 1 : 0,
                 pointerEvents: active === 1 ? "auto" : "none",
@@ -155,7 +155,7 @@ export function HowItWorks() {
                 <span className="font-mono text-xs font-medium text-muted-foreground">10 min</span>
               </div>
               <div className="mt-4 flex flex-col gap-2.5">
-                <div className="flex items-center gap-3 rounded-xl bg-success/12 p-[13px]">
+                <div className="flex cursor-pointer items-center gap-3 rounded-xl bg-success/12 p-[13px] transition-transform duration-200 ease-soft hover:scale-[1.03]">
                   <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-success text-white">
                     <Check className="h-3 w-3" strokeWidth={3} />
                   </span>
@@ -163,11 +163,11 @@ export function HowItWorks() {
                     Review 8 due flashcards
                   </span>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl bg-muted/55 p-[13px]">
+                <div className="flex cursor-pointer items-center gap-3 rounded-xl bg-muted/55 p-[13px] transition-transform duration-200 ease-soft hover:scale-[1.03]">
                   <span className="h-[22px] w-[22px] shrink-0 rounded-full shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.5)]" />
                   <span className="text-[0.92rem]">Practise: Road signs (your weakest)</span>
                 </div>
-                <div className="flex items-center gap-3 rounded-xl bg-muted/55 p-[13px]">
+                <div className="flex cursor-pointer items-center gap-3 rounded-xl bg-muted/55 p-[13px] transition-transform duration-200 ease-soft hover:scale-[1.03]">
                   <span className="h-[22px] w-[22px] shrink-0 rounded-full shadow-[inset_0_0_0_2px_hsl(var(--border))]" />
                   <span className="text-[0.92rem]">1 hazard scenario</span>
                 </div>
@@ -176,7 +176,7 @@ export function HowItWorks() {
 
             {/* 2 — flashcard */}
             <div
-              className={`${PANEL} items-center gap-4 rounded-[22px] p-7 text-center ${active === 2 ? "translate-y-0 hover:scale-[1.03]" : "translate-y-[22px]"}`}
+              className={`${PANEL} items-center gap-4 rounded-[22px] p-7 text-center ${active === 2 ? "translate-y-0" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 2 ? 1 : 0,
                 pointerEvents: active === 2 ? "auto" : "none",
@@ -197,7 +197,7 @@ export function HowItWorks() {
                 ].map((b) => (
                   <span
                     key={b.label}
-                    className={`flex-1 rounded-[10px] py-2.5 text-xs font-semibold ${b.cls}`}
+                    className={`flex-1 cursor-pointer rounded-[10px] py-2.5 text-xs font-semibold transition-transform duration-200 ease-soft hover:scale-110 ${b.cls}`}
                   >
                     {b.label}
                   </span>
@@ -207,7 +207,7 @@ export function HowItWorks() {
 
             {/* 3 — mock exam passed */}
             <div
-              className={`${PANEL} items-stretch rounded-[22px] p-7 text-center ${active === 3 ? "translate-y-0 hover:scale-[1.03]" : "translate-y-[22px]"}`}
+              className={`${PANEL} items-stretch rounded-[22px] p-7 text-center ${active === 3 ? "translate-y-0" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 3 ? 1 : 0,
                 pointerEvents: active === 3 ? "auto" : "none",
@@ -225,8 +225,11 @@ export function HowItWorks() {
               </p>
               <div className="mt-[18px] h-2 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full w-[91%] origin-left rounded-full bg-gradient-to-r from-primary to-success transition-transform duration-[1100ms] ease-glass"
-                  style={{ transform: active === 3 ? "scaleX(1)" : "scaleX(0)" }}
+                  className="h-full w-[91%] origin-left rounded-full bg-gradient-to-r from-primary to-success"
+                  style={{
+                    transform: active === 3 ? "scaleX(1)" : "scaleX(0)",
+                    transition: "transform 1.6s ease-out 0.55s",
+                  }}
                 />
               </div>
             </div>

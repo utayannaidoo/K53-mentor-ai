@@ -6,6 +6,7 @@ import { HowItWorks } from "@/components/landing/how-it-works";
 import { Features } from "@/components/landing/features";
 import { StatsBand } from "@/components/landing/stats-band";
 import { Testimonials } from "@/components/landing/testimonials";
+import { Comparison } from "@/components/landing/comparison";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { Faq } from "@/components/landing/faq";
 import { CtaBand } from "@/components/landing/cta-band";
@@ -36,6 +37,9 @@ export default function HomePage() {
         </Reveal>
         <Reveal>
           <Testimonials />
+        </Reveal>
+        <Reveal>
+          <Comparison />
         </Reveal>
         <Reveal>
           <PricingSection />
