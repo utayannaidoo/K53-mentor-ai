@@ -14,7 +14,7 @@ export function Hero() {
   return (
     <header
       id="top"
-      className="mx-auto grid max-w-[1120px] items-center gap-14 px-6 pb-16 pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:pt-28"
+      className="mx-auto grid max-w-[1120px] items-center gap-14 px-6 pb-16 pt-8 lg:grid-cols-[1.05fr_0.95fr] lg:pt-10"
     >
       {/* ── Copy column ─────────────────────────────────────────── */}
       <div className="animate-blur-in text-center lg:text-left">
