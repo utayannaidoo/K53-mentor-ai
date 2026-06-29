@@ -45,7 +45,12 @@ export function HowItWorks() {
         const rect = section.getBoundingClientRect();
         const total = section.offsetHeight - window.innerHeight;
         const prog = Math.min(1, Math.max(0, -rect.top / Math.max(1, total)));
-        const idx = Math.min(STEPS.length - 1, Math.floor(prog * STEPS.length + 0.0001));
+        // Map the four steps into the first 80% of the scroll; the last 20%
+        // holds on "Pass" so the final step stays centred well before the
+        // section begins to unpin (otherwise it's only centred at the very
+        // edge, where the sticky releases and the block drifts upward).
+        const stepped = Math.min(1, prog / 0.8);
+        const idx = Math.min(STEPS.length - 1, Math.floor(stepped * STEPS.length + 0.0001));
 
         setActive((cur) => (cur === idx ? cur : idx));
       });
