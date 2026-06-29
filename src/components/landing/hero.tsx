@@ -1,103 +1,157 @@
 import Link from "next/link";
-import { ArrowRight, PlayCircle, Star } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ProductPreview } from "@/components/landing/product-preview";
-import { PASS_RATE_NOW } from "@/lib/constants";
-import { cn } from "@/lib/utils";
+import { ArrowRight, ShoppingBag } from "lucide-react";
+import { RotatingWord } from "@/components/landing/rotating-word";
 
-const AVATARS = [
-  { initials: "TM", tint: "bg-gradient-to-br from-primary to-primary-light" },
-  { initials: "NK", tint: "bg-gradient-to-br from-accent to-[hsl(16_85%_55%)]" },
-  { initials: "SP", tint: "bg-gradient-to-br from-[hsl(258_72%_60%)] to-primary" },
-  { initials: "AD", tint: "bg-gradient-to-br from-success to-[hsl(168_60%_42%)]" },
-];
+/** Gradient "pill" CTA shared across the redesigned landing sections. */
+const PILL =
+  "inline-flex items-center justify-center gap-2 rounded-full font-semibold text-white " +
+  "bg-gradient-to-b from-primary-light to-primary " +
+  "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45),0_14px_30px_-12px_hsl(var(--primary)/0.7)] " +
+  "transition-[transform,filter] duration-[400ms] ease-spring hover:brightness-[1.07] active:scale-[0.96] " +
+  "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30";
 
 export function Hero() {
   return (
-    <section className="relative overflow-hidden">
-      <div className="absolute inset-0 -z-10 bg-aurora" />
-      <div className="absolute inset-0 -z-10 bg-grid opacity-60 [mask-image:radial-gradient(70%_50%_at_50%_0%,black,transparent)]" />
+    <header
+      id="top"
+      className="mx-auto grid max-w-[1120px] items-center gap-14 px-6 pb-16 pt-24 lg:grid-cols-[1.05fr_0.95fr] lg:pt-28"
+    >
+      {/* ── Copy column ─────────────────────────────────────────── */}
+      <div className="animate-blur-in text-center lg:text-left">
+        <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-primary/20 bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-[13px] font-medium text-primary">
+          <span className="h-[7px] w-[7px] rounded-full bg-primary shadow-[0_0_0_4px_hsl(var(--primary)/0.18)]" />
+          Built for the South African K53
+        </span>
 
-      <div className="container grid items-center gap-12 py-16 lg:grid-cols-[1.05fr_1fr] lg:py-24">
-        <div className="animate-fade-in">
-          <Badge variant="outline" className="mb-5 gap-1.5 bg-card/60 px-3 py-1">
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-accent" />
-            </span>
-            The test changed in 2026. Your prep should too.
-          </Badge>
+        <h1 className="mt-5 text-balance font-display text-[clamp(2.5rem,6vw,4.2rem)] font-semibold leading-[1.04] tracking-[-0.03em]">
+          Stop guessing on
+          <br />
+          <RotatingWord />.
+        </h1>
 
-          <h1 className="text-balance font-display text-[clamp(2.6rem,6.4vw,4.5rem)] font-semibold leading-[1.03] tracking-[-0.03em] text-foreground">
-            Only {Math.round(PASS_RATE_NOW / 10)} in 10 pass their learner&apos;s on the first try.
-            <span className="bg-gradient-to-br from-primary to-[hsl(258_72%_60%)] bg-clip-text text-transparent">
-              {" "}
-              Find out exactly what you don&apos;t know.
-            </span>
-          </h1>
+        <p className="mx-auto mt-5 max-w-[480px] text-pretty text-lg leading-relaxed text-muted-foreground lg:mx-0">
+          K53 Mentor diagnoses your weak spots, builds a 10-minute daily plan, and coaches you with
+          an AI tutor — until you walk in ready to pass first time.
+        </p>
 
-          <p className="mt-6 max-w-xl text-balance text-lg leading-relaxed text-muted-foreground sm:text-xl">
-            K53 Mentor AI diagnoses your weak spots in 10 minutes and builds you a personalised,
-            spaced-repetition study plan — with an AI tutor that explains, not just answers. Not
-            another question bank.
-          </p>
-
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <Link href="/onboarding" className={cn(buttonVariants({ size: "xl" }), "group")}>
-              Get your free readiness score
-              <ArrowRight className="transition-transform group-hover:translate-x-0.5" />
-            </Link>
-            <Link
-              href="/#preview"
-              className={cn(buttonVariants({ variant: "outline", size: "xl" }))}
-            >
-              <PlayCircle /> View demo
-            </Link>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-3">
-              <div className="flex -space-x-2.5">
-                {AVATARS.map((a) => (
-                  <span
-                    key={a.initials}
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full border-2 border-background text-2xs font-semibold text-white",
-                      a.tint,
-                    )}
-                    aria-hidden
-                  >
-                    {a.initials}
-                  </span>
-                ))}
-              </div>
-              <div className="leading-tight">
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-3.5 w-3.5 fill-accent text-accent" />
-                  ))}
-                  <span className="ml-1 font-medium text-foreground">4.8</span>
-                </div>
-                <span className="text-xs">Learners across all 9 provinces</span>
-              </div>
-            </div>
-            <div className="hidden h-8 w-px bg-border sm:block" />
-            <div className="leading-tight">
-              <span className="font-medium text-foreground">No credit card.</span>
-              <br className="hidden sm:block" /> Takes 5 minutes.
-            </div>
-          </div>
+        <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
+          <Link href="/onboarding" className={`${PILL} px-6 py-[15px] text-base`}>
+            Start free assessment
+            <ArrowRight className="h-[17px] w-[17px]" />
+          </Link>
+          <Link
+            href="#how"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-6 py-[15px] text-base font-semibold text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.3)] backdrop-blur-md transition-[transform,background] duration-[400ms] ease-spring hover:bg-muted/60 active:scale-[0.96]"
+          >
+            See how it works
+          </Link>
         </div>
 
-        <div className="relative animate-scale-in lg:pl-4">
+        <p className="mt-5 text-[13.5px] font-medium text-muted-foreground">
+          No card needed&nbsp;&nbsp;·&nbsp;&nbsp;10 minutes a day&nbsp;&nbsp;·&nbsp;&nbsp;Aligned to
+          the official manual
+        </p>
+      </div>
+
+      {/* ── Readiness mock card ─────────────────────────────────── */}
+      <div className="relative animate-scale-in">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute -inset-x-6 -bottom-6 -top-12 -z-10 bg-[radial-gradient(60%_55%_at_60%_30%,hsl(var(--primary)/0.28),transparent_70%)] blur-[30px]"
+        />
+        <div className="glass-2 relative overflow-hidden rounded-3xl p-[22px]">
+          {/* sheen */}
           <div
             aria-hidden
-            className="pointer-events-none absolute -inset-8 -z-10 rounded-[2.5rem] bg-gradient-to-tr from-primary/20 via-primary/[0.06] to-transparent blur-3xl"
+            className="pointer-events-none absolute left-0 top-0 h-full w-2/5 -translate-x-[130%] bg-[linear-gradient(90deg,transparent,hsl(0_0%_100%/0.16),transparent)] motion-safe:animate-[k53sheen_7s_var(--ease-soft)_infinite]"
           />
-          <ProductPreview />
+
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                Your readiness
+              </div>
+              <div className="mt-1.5 font-display text-[15px] font-semibold">
+                Good progress, Thabo
+              </div>
+            </div>
+            <span className="rounded-full bg-success/15 px-2.5 py-1.5 text-[11px] font-semibold text-success">
+              +6 this week
+            </span>
+          </div>
+
+          <div className="mt-[18px] flex items-center gap-[22px]">
+            <div className="relative h-[118px] w-[118px] shrink-0">
+              <svg
+                width="118"
+                height="118"
+                viewBox="0 0 118 118"
+                className="-rotate-90 overflow-visible"
+              >
+                <circle cx="59" cy="59" r="50" fill="none" stroke="hsl(var(--muted))" strokeWidth="11" />
+                <circle
+                  cx="59"
+                  cy="59"
+                  r="50"
+                  fill="none"
+                  stroke="hsl(var(--primary))"
+                  strokeWidth="11"
+                  strokeLinecap="round"
+                  strokeDasharray="314"
+                  strokeDashoffset="69"
+                  style={{ filter: "drop-shadow(0 0 10px hsl(var(--primary)/0.6))" }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className="font-mono text-[30px] font-semibold tracking-[-0.02em]">78</span>
+                <span className="mt-[3px] text-[11px] font-medium text-muted-foreground">Ready</span>
+              </div>
+            </div>
+
+            <div className="flex-1">
+              <div className="text-xs font-medium text-muted-foreground">
+                Predicted pass probability
+              </div>
+              <div className="mt-[5px] font-mono text-[22px] font-semibold text-success">82%</div>
+
+              <div className="mt-3.5 flex flex-col gap-[9px]">
+                {[
+                  { label: "Road signs", value: 64, bar: "from-warning to-accent" },
+                  { label: "Rules of the road", value: 88, bar: "from-primary to-success" },
+                ].map((m) => (
+                  <div key={m.label}>
+                    <div className="mb-[5px] flex justify-between text-[11.5px] font-medium">
+                      <span>{m.label}</span>
+                      <span className="font-mono text-muted-foreground">{m.value}%</span>
+                    </div>
+                    <div className="h-[7px] overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full bg-gradient-to-r ${m.bar}`}
+                        style={{ width: `${m.value}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-[18px] rounded-2xl bg-card/40 p-3.5 shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                <ShoppingBag className="h-4 w-4" />
+              </span>
+              <div className="flex-1">
+                <div className="text-[13px] font-semibold leading-tight">Today&apos;s plan · 10 min</div>
+                <div className="mt-0.5 text-[11.5px] font-medium leading-tight text-muted-foreground">
+                  8 due cards · Signs drill · 1 scenario
+                </div>
+              </div>
+              <span className="font-mono text-[11px] font-semibold text-primary">Start →</span>
+            </div>
+          </div>
         </div>
       </div>
-    </section>
+    </header>
   );
 }

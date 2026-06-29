@@ -1,81 +1,228 @@
-import { ClipboardCheck, Sparkles, CalendarCheck } from "lucide-react";
-import { ScoreRing } from "@/components/ui/score-ring";
-import { MasteryBar } from "@/components/ui/mastery-bar";
+"use client";
+
+import * as React from "react";
+import { Check } from "lucide-react";
 
 const STEPS = [
   {
-    n: 1,
-    icon: ClipboardCheck,
-    title: "Take the diagnostic",
-    body: "A 15-question adaptive assessment across all 7 K53 categories — no signup needed to see your score.",
+    n: "01",
+    title: "Diagnose",
+    body: "A 15-question adaptive assessment finds exactly where you stand — no more guessing what to study.",
   },
   {
-    n: 2,
-    icon: Sparkles,
-    title: "Get your personalised plan",
-    body: "We pinpoint your weak areas, estimate your pass probability, and build a study plan backward from your test date.",
+    n: "02",
+    title: "Plan",
+    body: "We build a 10-minute daily plan around your weakest categories, refreshed every session.",
   },
   {
-    n: 3,
-    icon: CalendarCheck,
-    title: "Study 10 minutes a day",
-    body: "Spaced-repetition flashcards, targeted practice and scenarios — your readiness score climbs as you go.",
+    n: "03",
+    title: "Practise",
+    body: "Flashcards, scenarios and questions with an AI tutor on call to explain the why.",
+  },
+  {
+    n: "04",
+    title: "Pass",
+    body: "Walk into the 68-question mock, then the real test, consistently clearing the line.",
   },
 ];
 
+const PANEL =
+  "glass-2 absolute inset-0 m-auto flex h-fit max-h-full flex-col justify-center transition-[opacity,transform] duration-500 ease-glass";
+
 export function HowItWorks() {
+  const sectionRef = React.useRef<HTMLElement>(null);
+  const [active, setActive] = React.useState(0);
+
+  React.useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+
+    let frame = 0;
+    const onScroll = () => {
+      if (frame) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        const rect = section.getBoundingClientRect();
+        const total = section.offsetHeight - window.innerHeight;
+        const prog = Math.min(1, Math.max(0, -rect.top / Math.max(1, total)));
+        const idx = Math.min(STEPS.length - 1, Math.floor(prog * STEPS.length + 0.0001));
+        setActive((cur) => (cur === idx ? cur : idx));
+      });
+    };
+
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (frame) cancelAnimationFrame(frame);
+    };
+  }, []);
+
   return (
-    <section id="how" className="container scroll-mt-20 py-16 lg:py-24">
-      <div className="mx-auto max-w-2xl text-center">
-        <p className="text-sm font-semibold uppercase tracking-wide text-primary">How it works</p>
-        <h2 className="mt-2 text-balance font-display text-3xl font-semibold tracking-tight">
-          From “I don&apos;t know what I don&apos;t know” to a clear plan
-        </h2>
-      </div>
+    <section
+      ref={sectionRef}
+      id="how"
+      className="relative mx-auto h-[380vh] max-w-[1120px] scroll-mt-20 px-6"
+    >
+      <div className="sticky top-0 flex h-screen flex-col justify-center">
+        <div className="mb-9">
+          <span className="text-[13px] font-medium uppercase tracking-[0.12em] text-primary">
+            How it works
+          </span>
+          <h2 className="mt-3 max-w-[640px] text-balance font-display text-[clamp(2rem,4.4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.025em]">
+            A loop that bends study time toward your weak spots.
+          </h2>
+        </div>
 
-      <div className="mt-12 grid gap-6 md:grid-cols-3">
-        {STEPS.map((s, i) => (
-          <div key={s.n} className="relative rounded-lg border border-border bg-card p-6 shadow-soft">
-            <div className="flex items-center gap-3">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 font-mono text-sm font-semibold text-primary">
-                {s.n}
-              </span>
-              <s.icon className="h-5 w-5 text-muted-foreground" />
+        <div className="flex flex-col items-center gap-8 lg:flex-row lg:gap-14">
+          {/* Step list */}
+          <div className="flex w-full flex-1 flex-col gap-2">
+            {STEPS.map((s, i) => {
+              const on = i === active;
+              return (
+                <div
+                  key={s.n}
+                  className="flex gap-[18px] rounded-2xl px-5 py-[18px] transition-[opacity,background,box-shadow] duration-500 ease-soft"
+                  style={{
+                    opacity: on ? 1 : 0.42,
+                    background: on ? "hsl(var(--card)/0.55)" : "transparent",
+                    boxShadow: on
+                      ? "inset 0 0 0 1px hsl(0 0% 100%/0.08), inset 3px 0 0 hsl(var(--primary))"
+                      : "none",
+                  }}
+                >
+                  <span className="pt-1 font-mono text-[13px] font-semibold text-primary">{s.n}</span>
+                  <div>
+                    <h3 className="font-display text-[19px] font-semibold tracking-[-0.01em]">
+                      {s.title}
+                    </h3>
+                    <p className="mt-1.5 text-[0.95rem] leading-[1.5] text-muted-foreground">
+                      {s.body}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Animated visual panels */}
+          <div className="relative h-[300px] w-full flex-1 lg:h-[380px]">
+            {/* 0 — practice question */}
+            <div
+              className={`${PANEL} rounded-[22px] p-6`}
+              style={{
+                opacity: active === 0 ? 1 : 0,
+                transform: active === 0 ? "translateY(0)" : "translateY(22px)",
+                pointerEvents: active === 0 ? "auto" : "none",
+              }}
+            >
+              <div className="font-mono text-xs font-medium text-primary">QUESTION 5 / 15</div>
+              <p className="mt-3 font-display text-[17px] font-semibold leading-[1.4]">
+                A flashing red robot at an intersection means you must…
+              </p>
+              <div className="mt-4 flex flex-col gap-2.5">
+                <div className="rounded-xl bg-muted/60 px-[15px] py-[13px] text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)]">
+                  Slow down and proceed with caution
+                </div>
+                <div className="rounded-xl bg-primary/15 px-[15px] py-[13px] text-[0.92rem] text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.5)]">
+                  Stop, then proceed when safe
+                </div>
+                <div className="rounded-xl bg-muted/60 px-[15px] py-[13px] text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)]">
+                  Maintain your speed
+                </div>
+              </div>
             </div>
-            <h3 className="mt-4 font-display text-lg font-semibold">{s.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{s.body}</p>
 
-            <div className="mt-5 rounded-lg border border-border bg-background/60 p-4">
-              {i === 0 && (
-                <div className="flex items-center justify-center py-1">
-                  <ScoreRing value={58} size={104} stroke={9} label="Readiness" animate={false} />
+            {/* 1 — today's plan */}
+            <div
+              className={`${PANEL} rounded-[22px] p-6`}
+              style={{
+                opacity: active === 1 ? 1 : 0,
+                transform: active === 1 ? "translateY(0)" : "translateY(22px)",
+                pointerEvents: active === 1 ? "auto" : "none",
+              }}
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-display text-[15px] font-semibold">Today&apos;s plan</span>
+                <span className="font-mono text-xs font-medium text-muted-foreground">10 min</span>
+              </div>
+              <div className="mt-4 flex flex-col gap-2.5">
+                <div className="flex items-center gap-3 rounded-xl bg-success/12 p-[13px]">
+                  <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-success text-white">
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                  </span>
+                  <span className="text-[0.92rem] text-muted-foreground line-through">
+                    Review 8 due flashcards
+                  </span>
                 </div>
-              )}
-              {i === 1 && (
-                <div className="space-y-3">
-                  <MasteryBar label="Intersections" value={41} />
-                  <MasteryBar label="Following distance" value={48} />
-                  <MasteryBar label="Road signs" value={84} />
+                <div className="flex items-center gap-3 rounded-xl bg-muted/55 p-[13px]">
+                  <span className="h-[22px] w-[22px] shrink-0 rounded-full shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.5)]" />
+                  <span className="text-[0.92rem]">Practise: Road signs (your weakest)</span>
                 </div>
-              )}
-              {i === 2 && (
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Day 1</span>
-                    <span className="font-mono text-foreground">58%</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Day 14</span>
-                    <span className="font-mono text-success">81%</span>
-                  </div>
-                  <div className="h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full w-[81%] rounded-full bg-gradient-to-r from-primary to-success" />
-                  </div>
+                <div className="flex items-center gap-3 rounded-xl bg-muted/55 p-[13px]">
+                  <span className="h-[22px] w-[22px] shrink-0 rounded-full shadow-[inset_0_0_0_2px_hsl(var(--border))]" />
+                  <span className="text-[0.92rem]">1 hazard scenario</span>
                 </div>
-              )}
+              </div>
+            </div>
+
+            {/* 2 — flashcard */}
+            <div
+              className={`${PANEL} items-center gap-4 rounded-[22px] p-7 text-center`}
+              style={{
+                opacity: active === 2 ? 1 : 0,
+                transform: active === 2 ? "translateY(0)" : "translateY(22px)",
+                pointerEvents: active === 2 ? "auto" : "none",
+              }}
+            >
+              <span className="font-mono text-[11px] font-medium uppercase tracking-[0.1em] text-primary">
+                Flashcard · Signs
+              </span>
+              <p className="font-display text-[22px] font-semibold leading-[1.3]">
+                What does a triangular sign with a red border warn of?
+              </p>
+              <div className="flex w-full gap-2">
+                {[
+                  { label: "Again", cls: "bg-danger/15 text-danger" },
+                  { label: "Hard", cls: "bg-warning/15 text-warning" },
+                  { label: "Good", cls: "bg-primary/15 text-primary" },
+                  { label: "Easy", cls: "bg-success/15 text-success" },
+                ].map((b) => (
+                  <span
+                    key={b.label}
+                    className={`flex-1 rounded-[10px] py-2.5 text-xs font-semibold ${b.cls}`}
+                  >
+                    {b.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            {/* 3 — mock exam passed */}
+            <div
+              className={`${PANEL} items-stretch rounded-[22px] p-7 text-center`}
+              style={{
+                opacity: active === 3 ? 1 : 0,
+                transform: active === 3 ? "translateY(0)" : "translateY(22px)",
+                pointerEvents: active === 3 ? "auto" : "none",
+              }}
+            >
+              <span className="mx-auto inline-flex items-center gap-2 rounded-full bg-success/15 px-4 py-2 text-[13px] font-semibold text-success">
+                <Check className="h-[15px] w-[15px]" strokeWidth={3} />
+                Mock exam passed
+              </span>
+              <div className="mt-[18px] font-mono text-[56px] font-semibold leading-none tracking-[-0.03em] text-success">
+                62<span className="text-2xl text-muted-foreground">/68</span>
+              </div>
+              <p className="mt-2 text-[0.95rem] text-muted-foreground">
+                51 needed to pass · you&apos;re consistently clearing it
+              </p>
+              <div className="mt-[18px] h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-full w-[91%] rounded-full bg-gradient-to-r from-primary to-success" />
+              </div>
             </div>
           </div>
-        ))}
+        </div>
       </div>
     </section>
   );

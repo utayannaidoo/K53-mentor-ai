@@ -318,6 +318,25 @@
   background-color: hsl(var(--card)) !important;
 }
 
+/* Landing motion — horizontal category marquee + hero card sheen */
+@keyframes k53marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes k53sheen {
+  0% {
+    transform: translateX(-130%) skewX(-16deg);
+  }
+  60%,
+  100% {
+    transform: translateX(160%) skewX(-16deg);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

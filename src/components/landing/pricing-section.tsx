@@ -2,11 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Check, Sparkles } from "lucide-react";
-import { PLANS, ANNUAL_DISCOUNT } from "@/lib/billing/plans";
-import { buttonVariants } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
+import { Check } from "lucide-react";
+import { PLANS } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
 
 export function PricingSection({
@@ -16,87 +13,110 @@ export function PricingSection({
   withHeading?: boolean;
   className?: string;
 }) {
-  const [annual, setAnnual] = React.useState(true);
+  const [annual, setAnnual] = React.useState(false);
 
   return (
-    <section id="pricing" className={cn("container scroll-mt-20 py-16 lg:py-24", className)}>
+    <section
+      id="pricing"
+      className={cn("mx-auto max-w-[1120px] scroll-mt-20 px-6 pb-[70px] pt-5", className)}
+    >
       {withHeading && (
-        <div className="mx-auto max-w-2xl text-center">
-          <p className="text-sm font-semibold uppercase tracking-wide text-primary">Pricing</p>
-          <h2 className="mt-2 text-balance font-display text-3xl font-semibold tracking-tight">
-            Cheaper than failing the test once
+        <div className="mx-auto mb-8 max-w-[600px] text-center">
+          <span className="text-[13px] font-medium uppercase tracking-[0.12em] text-primary">
+            Pricing
+          </span>
+          <h2 className="mt-3 text-balance font-display text-[clamp(2rem,4.4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.025em]">
+            Start free. Upgrade when you&apos;re hooked.
           </h2>
-          <p className="mt-4 text-muted-foreground">
-            A re-test booking plus the wasted trip costs more than a month of Premium. Start free —
-            upgrade only when you&apos;re ready.
-          </p>
         </div>
       )}
 
-      <div className="mt-8 flex items-center justify-center gap-3">
-        <span className={cn("text-sm", !annual && "font-semibold text-foreground", annual && "text-muted-foreground")}>
-          Monthly
-        </span>
-        <Switch checked={annual} onChange={setAnnual} label="Annual billing" />
-        <span className={cn("text-sm", annual && "font-semibold text-foreground", !annual && "text-muted-foreground")}>
-          Annual <Badge variant="success" className="ml-1">Save ~35%</Badge>
-        </span>
+      {/* Sliding monthly / annual toggle */}
+      <div className="flex justify-center">
+        <div className="relative mt-2 inline-flex items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
+          <span
+            aria-hidden
+            className="absolute left-[5px] top-[5px] z-0 h-[calc(100%-10px)] w-[calc(50%-5px)] rounded-full bg-card/95 shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)] transition-transform duration-[450ms] ease-spring"
+            style={{ transform: annual ? "translateX(100%)" : "translateX(0)" }}
+          />
+          <button
+            type="button"
+            onClick={() => setAnnual(false)}
+            className="relative z-10 rounded-full px-[22px] py-[9px] text-sm font-semibold text-foreground"
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => setAnnual(true)}
+            className="relative z-10 rounded-full px-[22px] py-[9px] text-sm font-semibold text-foreground"
+          >
+            Annual <span className="text-[11px] text-success">−40%</span>
+          </button>
+        </div>
       </div>
 
-      <div className="mx-auto mt-10 grid max-w-5xl gap-5 lg:grid-cols-3">
+      <div className="mt-9 grid items-start gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(270px,1fr))]">
         {PLANS.map((plan) => {
-          const isFree = plan.id === "free";
-          const price = annual ? plan.priceAnnual : plan.priceMonthly;
-          const period = annual ? "/year" : "/month";
-          const discount = ANNUAL_DISCOUNT(plan);
+          const isFree = plan.priceMonthly === 0;
+          const monthlyEquivalent = annual ? Math.round(plan.priceAnnual / 12) : plan.priceMonthly;
+          const cta = isFree
+            ? "Start free"
+            : plan.name === "Premium"
+              ? "Go Premium"
+              : `Go ${plan.name}`;
+
           return (
             <div
               key={plan.id}
               className={cn(
-                "relative flex flex-col rounded-xl border bg-card p-6 shadow-soft",
-                plan.highlighted ? "border-primary ring-1 ring-primary" : "border-border",
+                "glass-2 relative rounded-[20px] p-7",
+                plan.highlighted &&
+                  "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.5),inset_0_0_0_1.5px_hsl(var(--primary)/0.5),0_30px_70px_-36px_hsl(var(--primary)/0.5)]",
               )}
             >
               {plan.highlighted && (
-                <Badge variant="default" className="absolute -top-3 left-1/2 -translate-x-1/2 gap-1 bg-primary text-primary-foreground">
-                  <Sparkles className="h-3 w-3" /> Most popular
-                </Badge>
-              )}
-              <div>
-                <h3 className="font-display text-lg font-semibold">{plan.name}</h3>
-                <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
-              </div>
-              <div className="mt-5 flex items-baseline gap-1">
-                <span className="font-display text-3xl font-semibold tracking-tight">
-                  {isFree ? "Free" : formatZar(price)}
+                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-b from-primary-light to-primary px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.06em] text-white shadow-[0_8px_18px_-8px_hsl(var(--primary)/0.8)]">
+                  Most popular
                 </span>
-                {!isFree && <span className="text-sm text-muted-foreground">{period}</span>}
-              </div>
-              {!isFree && annual && discount > 0 && (
-                <p className="mt-1 text-xs text-success">
-                  {formatZar(Math.round(plan.priceAnnual / 12))}/mo billed annually — save {discount}%
-                </p>
               )}
-              {!isFree && !annual && <p className="mt-1 text-xs text-muted-foreground">billed monthly</p>}
+
+              <h3 className="font-display text-[18px] font-semibold">{plan.name}</h3>
+              <p className="mt-1.5 text-[0.88rem] text-muted-foreground">{plan.tagline}</p>
+
+              <div className="mt-[18px] flex items-baseline gap-1">
+                <span className="font-mono text-[40px] font-semibold leading-none tracking-[-0.03em]">
+                  {isFree ? "R0" : formatZar(monthlyEquivalent)}
+                </span>
+                <span className="text-[0.9rem] text-muted-foreground">{isFree ? "forever" : "/mo"}</span>
+              </div>
+              <div className="mt-1 h-3.5 text-[0.78rem] text-muted-foreground">
+                {isFree ? "No card needed" : annual ? "billed yearly" : "billed monthly"}
+              </div>
 
               <Link
                 href={isFree ? "/onboarding" : "/account/billing"}
                 className={cn(
-                  buttonVariants({ variant: plan.highlighted ? "default" : "outline" }),
-                  "mt-6 w-full",
+                  "mt-5 flex w-full items-center justify-center rounded-xl py-[13px] text-[15px] font-semibold transition-[transform,filter] duration-[400ms] ease-spring hover:brightness-[1.06] active:scale-[0.97]",
+                  plan.highlighted
+                    ? "bg-gradient-to-b from-primary-light to-primary text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45),0_12px_26px_-12px_hsl(var(--primary)/0.7)]"
+                    : "bg-muted/70 text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border))]",
                 )}
               >
-                {isFree ? "Start free" : `Choose ${plan.name}`}
+                {cta}
               </Link>
 
-              <ul className="mt-6 space-y-2.5">
+              <div className="mt-[22px] flex flex-col gap-[11px]">
                 {plan.perks.map((perk) => (
-                  <li key={perk} className="flex items-start gap-2.5 text-sm">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-                    <span className="text-foreground">{perk}</span>
-                  </li>
+                  <div key={perk} className="flex items-start gap-2.5 text-[0.9rem] leading-[1.4]">
+                    <Check
+                      className="mt-0.5 h-[17px] w-[17px] shrink-0 text-success"
+                      strokeWidth={2.6}
+                    />
+                    <span>{perk}</span>
+                  </div>
                 ))}
-              </ul>
+              </div>
             </div>
           );
         })}
