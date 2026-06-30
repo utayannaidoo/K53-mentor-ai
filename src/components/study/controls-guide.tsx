@@ -1,3 +1,5 @@
+"use client";
+
 import * as React from "react";
 import Link from "next/link";
 import {
@@ -40,6 +42,14 @@ import {
   DRIVE_OFF_AUTO,
   type CarControl,
 } from "@/lib/content/controls";
+import { useStudyStore } from "@/hooks/use-study-store";
+import { groupOf } from "@/lib/content/vehicle";
+import {
+  MOTORCYCLE_CONTROLS,
+  HEAVY_CONTROLS,
+  type VehicleControlItem,
+} from "@/lib/content/vehicle-controls";
+import { MotorcycleDiagram, HeavyDiagram } from "@/components/study/vehicle-controls-diagram";
 import { cn, glass } from "@/lib/utils";
 
 const GROUP_ICON: Record<string, LucideIcon> = {
@@ -81,7 +91,80 @@ function ControlIcon({ control }: { control: CarControl }) {
   );
 }
 
+/** A control row for the motorcycle / heavy reference list. */
+function VehicleControlRow({ control }: { control: VehicleControlItem }) {
+  return (
+    <div className="py-4 first:pt-2 last:pb-0">
+      <div className="flex flex-wrap items-center gap-2">
+        <h3 className="font-medium text-foreground">{control.name}</h3>
+        {control.inTest ? (
+          <Badge variant="secondary" className="gap-1">
+            <GraduationCap className="h-3 w-3" /> K53 test
+          </Badge>
+        ) : (
+          <Badge variant="outline">Good to know</Badge>
+        )}
+      </div>
+      <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+        <span className="font-medium text-foreground/80">Where: </span>
+        {control.where}
+      </p>
+      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+        <span className="font-medium text-foreground/80">What it does: </span>
+        {control.does}
+      </p>
+    </div>
+  );
+}
+
 export function ControlsGuide() {
+  const { state } = useStudyStore();
+  const group = state.onboarding ? groupOf(state.onboarding.vehicleCode) : "car";
+
+  if (group !== "car") {
+    const isMoto = group === "motorcycle";
+    const controls = isMoto ? MOTORCYCLE_CONTROLS : HEAVY_CONTROLS;
+    return (
+      <div className="mx-auto max-w-3xl">
+        <Link
+          href="/study"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> Study
+        </Link>
+        <PageHeader
+          title={isMoto ? "Motorcycle controls" : "Heavy-vehicle controls"}
+          description={
+            isMoto
+              ? "Every control on the bike — what it is, where it sits and what it does — including the hand and foot controls examiners check."
+              : "The heavy-vehicle controls — air brakes, coupling and the cab controls — what each one is and how to use it safely."
+          }
+        />
+
+        <Card className={cn(glass, "p-4 sm:p-6")}>
+          <h2 className="font-display text-lg font-semibold">
+            {isMoto ? "The controls of a motorcycle" : "The heavy-vehicle dashboard"}
+          </h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Layouts differ between makes and models, but the function of each control is the same.
+          </p>
+          <div className="mt-4 rounded-xl border border-border bg-background/40 p-3 sm:p-5">
+            {isMoto ? <MotorcycleDiagram /> : <HeavyDiagram />}
+          </div>
+        </Card>
+
+        <Card className={cn(glass, "mt-6 p-6")}>
+          <h2 className="font-display text-lg font-semibold">Every control explained</h2>
+          <div className="mt-4 divide-y divide-border">
+            {controls.map((c) => (
+              <VehicleControlRow key={c.name} control={c} />
+            ))}
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl">
       <Link
