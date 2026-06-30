@@ -66,7 +66,7 @@ export function MockExam() {
   }, [phase, secondsLeft, submit]);
 
   function start() {
-    const qs = sampleMockExam(state.attempts);
+    const qs = sampleMockExam(state.attempts, state.onboarding?.vehicleCode);
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));
     setI(0);

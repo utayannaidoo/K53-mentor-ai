@@ -4,8 +4,8 @@
 // These mirror the Supabase schema in /supabase/migrations.
 // ─────────────────────────────────────────────────────────────
 
-/** SA vehicle / licence codes. */
-export type VehicleCode = "8" | "10" | "14";
+/** SA vehicle / licence codes. A1 = light motorcycle (≤125cc), A = motorcycle. */
+export type VehicleCode = "8" | "10" | "14" | "A1" | "A";
 
 /** What the learner is working toward. */
 export type LicenceGoal = "learners" | "drivers" | "both";
@@ -87,6 +87,8 @@ export interface Question {
   sign?: SignKey;
   /** Real road-sign image path (preferred over `sign` glyph). */
   image?: string;
+  /** Vehicle codes this item is specific to. Omitted = applies to all codes. */
+  codes?: VehicleCode[];
 }
 
 export interface Flashcard {
@@ -98,6 +100,8 @@ export interface Flashcard {
   sign?: SignKey;
   /** Real road-sign image path (preferred over `sign` glyph). */
   image?: string;
+  /** Vehicle codes this item is specific to. Omitted = applies to all codes. */
+  codes?: VehicleCode[];
 }
 
 export interface ScenarioChoice {
@@ -118,6 +122,8 @@ export interface Scenario {
   sign?: SignKey;
   /** Real road-sign image path (preferred over `sign` glyph). */
   image?: string;
+  /** Vehicle codes this item is specific to. Omitted = applies to all codes. */
+  codes?: VehicleCode[];
 }
 
 export interface DriverStep {

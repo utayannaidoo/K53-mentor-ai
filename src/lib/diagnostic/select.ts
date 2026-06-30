@@ -1,5 +1,6 @@
-import type { CategoryId, Question, QuestionAttempt } from "@/types";
+import type { CategoryId, Question, QuestionAttempt, VehicleCode } from "@/types";
 import { QUESTIONS } from "@/lib/content/questions";
+import { forCode } from "@/lib/content/vehicle";
 import { CATEGORIES } from "@/lib/content/categories";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { shuffle } from "@/lib/utils";
@@ -49,10 +50,14 @@ const DIAGNOSTIC_PLAN: Record<CategoryId, number> = {
  * Sample a diagnostic covering every category, preferring fresh questions,
  * with shuffled order and shuffled options.
  */
-export function sampleDiagnostic(attempts: QuestionAttempt[] = []): Question[] {
+export function sampleDiagnostic(
+  attempts: QuestionAttempt[] = [],
+  code?: VehicleCode,
+): Question[] {
+  const bank = forCode(QUESTIONS, code);
   const picked: Question[] = [];
   for (const cat of CATEGORIES) {
-    const pool = orderByFreshness(QUESTIONS.filter((q) => q.categoryId === cat.id), attempts);
+    const pool = orderByFreshness(bank.filter((q) => q.categoryId === cat.id), attempts);
     picked.push(...pool.slice(0, DIAGNOSTIC_PLAN[cat.id] ?? 2));
   }
   return shuffle(picked).map(withShuffledOptions);
@@ -76,13 +81,16 @@ export const SECTION_OF: Record<CategoryId, ExamSection> = {
  * preferring ones the learner has seen least recently; the order is shuffled
  * and every question's options are shuffled.
  */
-export function sampleMockExam(attempts: QuestionAttempt[] = []): Question[] {
+export function sampleMockExam(
+  attempts: QuestionAttempt[] = [],
+  code?: VehicleCode,
+): Question[] {
   const bySection: Record<ExamSection, Question[]> = {
     controls: [],
     signs: [],
     rules: [],
   };
-  for (const q of QUESTIONS) bySection[SECTION_OF[q.categoryId]].push(q);
+  for (const q of forCode(QUESTIONS, code)) bySection[SECTION_OF[q.categoryId]].push(q);
 
   const out: Question[] = [];
   for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {

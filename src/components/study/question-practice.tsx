@@ -12,6 +12,7 @@ import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
+import { forCode } from "@/lib/content/vehicle";
 import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
 import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
@@ -30,7 +31,8 @@ export function QuestionPractice() {
   const limit = Math.max(1, Math.min(remaining, STUDY_SESSION_SIZE));
 
   const [queue] = React.useState<Question[]>(() => {
-    const pool = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
+    const base = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
+    const pool = forCode(base, state.onboarding?.vehicleCode);
     return orderByFreshness(pool, state.attempts).slice(0, limit).map(withShuffledOptions);
   });
   const startRef = React.useRef(Date.now());

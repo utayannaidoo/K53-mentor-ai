@@ -1,7 +1,8 @@
 import type { Scenario } from "@/types";
 import { signImg } from "./signs";
+import { VEHICLE_SCENARIOS } from "./scenarios.vehicle";
 
-export const SCENARIOS: Scenario[] = [
+const CORE_SCENARIOS: Scenario[] = [
   {
     id: "sc_circle",
     categoryId: "intersections",
@@ -506,6 +507,9 @@ export const SCENARIOS: Scenario[] = [
       "Drowsiness impairs you like alcohol. Recognise the signs early — drifting, heavy eyes — and stop to rest. No trick substitutes for sleep.",
   },
 ];
+
+/** Core (universal) scenarios plus the vehicle-code–specific ones. */
+export const SCENARIOS: Scenario[] = [...CORE_SCENARIOS, ...VEHICLE_SCENARIOS];
 
 export const SCENARIOS_BY_ID: Record<string, Scenario> = Object.fromEntries(
   SCENARIOS.map((s) => [s.id, s]),

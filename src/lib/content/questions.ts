@@ -1,5 +1,6 @@
 import type { Question } from "@/types";
 import { signImg } from "./signs";
+import { VEHICLE_QUESTIONS } from "./questions.vehicle";
 
 /**
  * K53-aligned question bank, structured around the official South African K53
@@ -10,7 +11,7 @@ import { signImg } from "./signs";
  * controls 8) can be drawn without repeating a question.
  * Not affiliated with or endorsed by the RTMC.
  */
-export const QUESTIONS: Question[] = [
+const CORE_QUESTIONS: Question[] = [
   // ── ROAD SIGNS, SIGNALS & MARKINGS ─────────────────────────
   {
     id: "q_sign_stop",
@@ -1789,6 +1790,9 @@ export const QUESTIONS: Question[] = [
     scope: "learners",
   },
 ];
+
+/** Core (universal) questions plus the vehicle-code–specific bank. */
+export const QUESTIONS: Question[] = [...CORE_QUESTIONS, ...VEHICLE_QUESTIONS];
 
 export const QUESTIONS_BY_ID: Record<string, Question> = Object.fromEntries(
   QUESTIONS.map((q) => [q.id, q]),

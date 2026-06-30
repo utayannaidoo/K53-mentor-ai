@@ -18,7 +18,9 @@ export function DiagnosticRunner() {
   const router = useRouter();
   const { state, recordQuestionAttempt, recordDiagnostic } = useStudyStore();
 
-  const [questions] = React.useState(() => sampleDiagnostic(state.attempts));
+  const [questions] = React.useState(() =>
+    sampleDiagnostic(state.attempts, state.onboarding?.vehicleCode),
+  );
   const [index, setIndex] = React.useState(0);
   const [selected, setSelected] = React.useState<number | null>(null);
   const [responses, setResponses] = React.useState<

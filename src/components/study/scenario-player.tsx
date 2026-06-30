@@ -21,13 +21,17 @@ import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
 import { SCENARIOS } from "@/lib/content/scenarios";
+import { forCode } from "@/lib/content/vehicle";
 import { categoryName } from "@/lib/content/categories";
 import { shuffle, cn } from "@/lib/utils";
 
 export function ScenarioPlayer() {
   const { state, recordScenarioAttempt, recordSession } = useStudyStore();
   const [queue] = React.useState(() =>
-    shuffle(SCENARIOS).map((s) => ({ ...s, choices: shuffle(s.choices) })),
+    shuffle(forCode(SCENARIOS, state.onboarding?.vehicleCode)).map((s) => ({
+      ...s,
+      choices: shuffle(s.choices),
+    })),
   );
   const startRef = React.useRef(Date.now());
   const [i, setI] = React.useState(0);

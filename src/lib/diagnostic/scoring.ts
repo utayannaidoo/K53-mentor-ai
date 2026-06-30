@@ -6,6 +6,7 @@ import type {
 } from "@/types";
 import { CATEGORIES } from "@/lib/content/categories";
 import { FLASHCARDS } from "@/lib/content/flashcards";
+import { forCode } from "@/lib/content/vehicle";
 import { clamp, uid } from "@/lib/utils";
 
 /**
@@ -96,7 +97,9 @@ export function scoreDiagnostic(
 
 /** Average flashcard mastery for a category, across cards the user has studied. */
 function flashMasteryForCategory(state: UserState, categoryId: CategoryId): number | null {
-  const cards = FLASHCARDS.filter((f) => f.categoryId === categoryId);
+  const cards = forCode(FLASHCARDS, state.onboarding?.vehicleCode).filter(
+    (f) => f.categoryId === categoryId,
+  );
   const studied = cards
     .map((c) => state.cardStates[c.id])
     .filter((s): s is NonNullable<typeof s> => Boolean(s) && s.reps > 0);

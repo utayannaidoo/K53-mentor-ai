@@ -12,6 +12,7 @@ import {
   CalendarClock,
   Sparkles,
   Gauge,
+  Bike,
 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
@@ -140,7 +141,9 @@ export function OnboardingWizard() {
           {step === 2 && (
             <Step title="Which licence code?" subtitle="This decides which rules and limits apply to you.">
               <div className="space-y-3">
-                <OptionCard selected={vehicleCode === "8"} onClick={() => pick(setVehicleCode, "8")} icon={<Gauge className="h-5 w-5" />} title="Code 08 (B)" description="Cars and light vehicles up to 3 500 kg" />
+                <OptionCard selected={vehicleCode === "8"} onClick={() => pick(setVehicleCode, "8")} icon={<Car className="h-5 w-5" />} title="Code 08 (B)" description="Cars and light vehicles up to 3 500 kg" />
+                <OptionCard selected={vehicleCode === "A1"} onClick={() => pick(setVehicleCode, "A1")} icon={<Bike className="h-5 w-5" />} title="Code A1" description="Light motorcycle up to 125 cc" />
+                <OptionCard selected={vehicleCode === "A"} onClick={() => pick(setVehicleCode, "A")} icon={<Bike className="h-5 w-5" />} title="Code A" description="Motorcycle over 125 cc" />
                 <OptionCard selected={vehicleCode === "10"} onClick={() => pick(setVehicleCode, "10")} icon={<Gauge className="h-5 w-5" />} title="Code 10 (C1)" description="Heavy vehicles over 3 500 kg" />
                 <OptionCard selected={vehicleCode === "14"} onClick={() => pick(setVehicleCode, "14")} icon={<Gauge className="h-5 w-5" />} title="Code 14 (EC)" description="Extra-heavy / articulated vehicles" />
               </div>

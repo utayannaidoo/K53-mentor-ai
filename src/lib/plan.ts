@@ -1,6 +1,7 @@
 import type { CategoryId, Flashcard, UserState } from "@/types";
 import { FLASHCARDS } from "@/lib/content/flashcards";
 import { SCENARIOS } from "@/lib/content/scenarios";
+import { forCode } from "@/lib/content/vehicle";
 import { isDue } from "@/lib/srs/sm2";
 import { getTodayUsage } from "@/lib/store/local-store";
 import { categoryName } from "@/lib/content/categories";
@@ -22,7 +23,9 @@ export interface PlanTask {
 }
 
 export function countDueFlashcards(state: UserState, now = new Date()): number {
-  return FLASHCARDS.filter((f) => isDue(state.cardStates[f.id], now)).length;
+  return forCode(FLASHCARDS, state.onboarding?.vehicleCode).filter((f) =>
+    isDue(state.cardStates[f.id], now),
+  ).length;
 }
 
 /**
@@ -34,7 +37,7 @@ export function selectFlashcardQueue(
   opts: { categoryId?: CategoryId; limit?: number } = {},
 ): Flashcard[] {
   const now = new Date();
-  let pool = FLASHCARDS;
+  let pool = forCode(FLASHCARDS, state.onboarding?.vehicleCode);
   if (opts.categoryId) pool = pool.filter((f) => f.categoryId === opts.categoryId);
 
   // due cards (shuffled so the review order varies each session), then unseen
@@ -94,7 +97,8 @@ export function generateTodayPlan(
     });
   }
 
-  const scenario = SCENARIOS.find((s) => !weakest || s.categoryId === weakest) ?? SCENARIOS[0];
+  const scenarioPool = forCode(SCENARIOS, state.onboarding?.vehicleCode);
+  const scenario = scenarioPool.find((s) => !weakest || s.categoryId === weakest) ?? scenarioPool[0];
   tasks.push({
     id: "task-scenario",
     type: "scenario",
