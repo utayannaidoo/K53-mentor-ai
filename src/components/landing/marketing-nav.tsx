@@ -35,10 +35,10 @@ export function MarketingNav() {
     >
       <div
         className={cn(
-          "glass-panel mx-auto flex max-w-5xl items-center justify-between gap-3 rounded-full border pl-5 pr-2 transition-all duration-300 ease-glass",
+          "glass-panel mx-auto flex items-center justify-between gap-3 rounded-full border pl-5 pr-2 transition-all duration-300 ease-glass",
           scrolled
-            ? "py-1 shadow-[0_18px_44px_-26px_hsl(var(--shadow)/0.7)]"
-            : "py-2 shadow-[0_10px_30px_-26px_hsl(var(--shadow)/0.5)]",
+            ? "max-w-[820px] py-1 shadow-[0_18px_44px_-26px_hsl(var(--shadow)/0.7)]"
+            : "max-w-5xl py-2 shadow-[0_10px_30px_-26px_hsl(var(--shadow)/0.5)]",
         )}
       >
         <Link
