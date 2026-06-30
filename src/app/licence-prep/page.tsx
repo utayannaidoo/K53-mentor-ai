@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Car, Bike, Truck, Clock, ArrowRight, Lock, Sparkles, CheckCircle2, Wrench } from "lucide-react";
+import { Car, Bike, Truck, Clock, ArrowRight, Lock, Sparkles, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,8 +15,6 @@ import { cn, glass } from "@/lib/utils";
 
 const DIFFICULTY = { 1: "Easy", 2: "Moderate", 3: "Advanced" } as const;
 
-/** Yard-test modules currently only exist for cars; gate other groups. */
-const GROUP_LABEL = { car: "Car", motorcycle: "Motorcycle", heavy: "Heavy-vehicle" } as const;
 const GROUP_ICON = { car: Car, motorcycle: Bike, heavy: Truck } as const;
 const GROUP_BLURB = {
   car: "Parallel parking, alley docking, three-point turns and more",
@@ -28,6 +26,8 @@ export default function LicencePrepPage() {
   const { state } = useStudyStore();
   const unlocked = hasFeature(state.tier, "licencePrep");
   const group = state.onboarding ? groupOf(state.onboarding.vehicleCode) : "car";
+  const GroupIcon = GROUP_ICON[group];
+  const modules = DRIVER_MODULES.filter((m) => (m.group ?? "car") === group);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -55,31 +55,8 @@ export default function LicencePrepPage() {
         </Card>
       )}
 
-      {group !== "car" ? (
-        (() => {
-          const GroupIcon = GROUP_ICON[group];
-          return (
-            <Card className={cn(glass, "flex flex-col items-center gap-3 p-10 text-center")}>
-              <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                <GroupIcon className="h-6 w-6" />
-              </span>
-              <h3 className="font-display text-lg font-semibold">
-                {GROUP_LABEL[group]} yard-test guides are on the way
-              </h3>
-              <p className="max-w-md text-sm text-muted-foreground">
-                Step-by-step cook-mode modules for {GROUP_LABEL[group].toLowerCase()} —{" "}
-                {GROUP_BLURB[group].toLowerCase()} — are being built for your licence code. Your
-                questions, flashcards and scenarios are already tailored to it.
-              </p>
-              <Badge variant="secondary" className="gap-1">
-                <Wrench className="h-3 w-3" /> Coming soon
-              </Badge>
-            </Card>
-          );
-        })()
-      ) : (
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {DRIVER_MODULES.map((m) => {
+        {modules.map((m) => {
           const done = state.driverProgress[m.id]?.length ?? 0;
           const pct = Math.round((done / m.steps.length) * 100);
           const complete = done === m.steps.length;
@@ -92,7 +69,7 @@ export default function LicencePrepPage() {
               <Card className={cn(glass, "hover-elevate flex h-full flex-col p-5")}>
                 <div className="flex items-start justify-between">
                   <span className="flex h-11 w-11 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Car className="h-5 w-5" />
+                    <GroupIcon className="h-5 w-5" />
                   </span>
                   {unlocked ? (
                     complete ? (
@@ -123,7 +100,6 @@ export default function LicencePrepPage() {
           );
         })}
       </div>
-      )}
     </div>
   );
 }

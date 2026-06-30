@@ -148,6 +148,8 @@ export interface DriverModule {
   estMinutes: number;
   steps: DriverStep[];
   commonFaults: string[];
+  /** Which vehicle group the module is for. Omitted = car. */
+  group?: "car" | "motorcycle" | "heavy";
 }
 
 // ── Spaced repetition ────────────────────────────────────────

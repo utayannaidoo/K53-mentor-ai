@@ -1,11 +1,13 @@
 import type { DriverModule } from "@/types";
+import { VEHICLE_DRIVER_MODULES } from "./driver-modules.vehicle";
 
 /**
  * Driver's-licence yard-test (K53) manoeuvre modules.
  * Designed as step-by-step "cook mode" procedures the learner steps through
- * while physically practising.
+ * while physically practising. These are the car (Code 08) modules; motorcycle
+ * and heavy modules live in ./driver-modules.vehicle and are merged below.
  */
-export const DRIVER_MODULES: DriverModule[] = [
+const CAR_DRIVER_MODULES: DriverModule[] = [
   {
     id: "parallel_parking",
     name: "Parallel parking",
@@ -257,6 +259,9 @@ export const DRIVER_MODULES: DriverModule[] = [
     ],
   },
 ];
+
+/** Car modules plus the motorcycle/heavy yard-test modules. */
+export const DRIVER_MODULES: DriverModule[] = [...CAR_DRIVER_MODULES, ...VEHICLE_DRIVER_MODULES];
 
 export const DRIVER_MODULES_BY_ID: Record<string, DriverModule> = Object.fromEntries(
   DRIVER_MODULES.map((m) => [m.id, m]),
