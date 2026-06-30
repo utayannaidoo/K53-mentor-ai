@@ -28,6 +28,8 @@ import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
 import { uid } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { loadAccount, saveAccount } from "@/lib/supabase/account";
 
 type UsageKind = "flashcards" | "questions" | "tutor" | "scenarios";
 
@@ -94,6 +96,8 @@ function applyStudyEffects(state: UserState, now = new Date()): UserState {
 export function StudyStoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<UserState>(defaultUserState);
   const [ready, setReady] = React.useState(false);
+  // null in demo mode (no Supabase env) — every Supabase effect below no-ops.
+  const [supabase] = React.useState(() => createClient());
 
   // Hydrate from localStorage on the client only (avoids SSR mismatch).
   React.useEffect(() => {
@@ -101,10 +105,53 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     setReady(true);
   }, []);
 
-  // Persist on change once hydrated.
+  // Persist on change once hydrated (local cache; also offline/demo store).
   React.useEffect(() => {
     if (ready) saveState(state);
   }, [state, ready]);
+
+  // ── Supabase: follow the real auth session (prod only) ─────────────────────
+  // Auth state is driven by the Supabase session, not just the local profile:
+  // on sign-in we load the account rows; on sign-out we clear the local profile.
+  React.useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+
+    const hydrate = async (user: import("@supabase/supabase-js").User | null) => {
+      if (!user) {
+        setState((s) => (s.profile ? { ...s, profile: null } : s));
+        return;
+      }
+      try {
+        const account = await loadAccount(supabase, user);
+        if (!cancelled) setState((s) => ({ ...s, ...account }));
+      } catch {
+        // Network/RLS hiccup — keep whatever the local cache holds.
+      }
+    };
+
+    supabase.auth.getUser().then(({ data }) => hydrate(data.user));
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+      hydrate(session?.user ?? null);
+    });
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
+  }, [supabase]);
+
+  // ── Supabase: persist account-tier data back (prod only, debounced) ────────
+  React.useEffect(() => {
+    if (!supabase || !ready || !state.profile) return;
+    const t = setTimeout(() => {
+      saveAccount(supabase, state).catch(() => {
+        // Best-effort; the local cache remains the fallback.
+      });
+    }, 800);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supabase, ready, state.profile, state.onboarding, state.tier, state.streak]);
 
   const readiness = React.useMemo(() => computeReadiness(state), [state]);
 
@@ -138,7 +185,12 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       });
     },
 
-    signOut: () => setState((s) => ({ ...s, profile: null })),
+    signOut: () => {
+      // End the real Supabase session (prod); the auth listener will also clear
+      // the local profile, but we clear it immediately for a snappy redirect.
+      if (supabase) supabase.auth.signOut().catch(() => {});
+      setState((s) => ({ ...s, profile: null }));
+    },
 
     setTier: (tier) => setState((s) => ({ ...s, tier })),
 

@@ -4,6 +4,8 @@ import { localTutorReply } from "@/lib/ai/fallback";
 import { retrieveRelated } from "@/lib/ai/retrieve";
 import { streamTutorReply } from "@/lib/ai/provider";
 import { limitTutor } from "@/lib/ai/rate-limit";
+import { isSupabaseConfigured } from "@/lib/env";
+import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 
@@ -37,6 +39,17 @@ function clientIp(req: Request): string {
 }
 
 export async function POST(req: Request) {
+  // Require a signed-in user (prod only; demo runs without a backend).
+  if (isSupabaseConfigured) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
+
   let parsed;
   try {
     parsed = bodySchema.parse(await req.json());

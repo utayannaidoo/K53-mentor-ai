@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 import { z } from "zod";
-import { isStripeConfigured } from "@/lib/env";
+import { isStripeConfigured, isSupabaseConfigured } from "@/lib/env";
+import { createClient } from "@/lib/supabase/server";
 import { SITE_URL } from "@/lib/constants";
 
 export const runtime = "nodejs";
@@ -27,6 +28,21 @@ export async function POST(req: Request) {
     );
   }
 
+  // Require a signed-in user and bind the checkout to them (prod only).
+  let userId: string | undefined;
+  let userEmail: string | undefined;
+  if (isSupabaseConfigured) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
+    if (!user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    userId = user.id;
+    userEmail = user.email ?? undefined;
+  }
+
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const priceId =
     plan === "premium"
@@ -42,6 +58,11 @@ export async function POST(req: Request) {
     line_items: [{ price: priceId, quantity: 1 }],
     success_url: `${SITE_URL}/account/billing?status=success&plan=${plan}`,
     cancel_url: `${SITE_URL}/account/billing?status=cancelled`,
+    // Tie the subscription to the authenticated user so a webhook can reconcile it.
+    ...(userEmail ? { customer_email: userEmail } : {}),
+    ...(userId ? { client_reference_id: userId } : {}),
+    metadata: { plan, ...(userId ? { user_id: userId } : {}) },
+    ...(userId ? { subscription_data: { metadata: { user_id: userId } } } : {}),
   });
 
   return Response.json({ url: session.url });

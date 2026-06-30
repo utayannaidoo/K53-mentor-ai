@@ -22,7 +22,9 @@ export default function ResetPasswordPage() {
     const supabase = createClient();
     if (supabase) {
       await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${SITE_URL}/login`,
+        // Land on the callback (which establishes the recovery session) then
+        // forward to the page where the user actually sets a new password.
+        redirectTo: `${SITE_URL}/auth/callback?next=/reset-password/update`,
       });
     }
     // Brief delay so the action feels real in demo mode.
