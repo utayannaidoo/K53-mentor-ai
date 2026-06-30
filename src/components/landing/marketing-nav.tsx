@@ -29,15 +29,15 @@ export function MarketingNav() {
   return (
     <header
       className={cn(
-        "sticky top-0 z-50 px-3 sm:px-4 transition-[padding] duration-300 ease-glass",
+        "sticky top-0 z-50 px-3 sm:px-4 transition-[padding] duration-500 ease-glass",
         scrolled ? "pt-1.5 sm:pt-2" : "pt-3 sm:pt-4",
       )}
     >
       <div
         className={cn(
-          "glass-panel mx-auto flex items-center justify-between gap-3 rounded-full border pl-5 pr-2 transition-all duration-300 ease-glass",
+          "glass-panel mx-auto flex items-center justify-between gap-3 rounded-full border pl-5 pr-2 transition-all duration-500 ease-glass",
           scrolled
-            ? "max-w-[820px] py-1 shadow-[0_18px_44px_-26px_hsl(var(--shadow)/0.7)]"
+            ? "max-w-[850px] py-1 shadow-[0_18px_44px_-26px_hsl(var(--shadow)/0.7)]"
             : "max-w-5xl py-2 shadow-[0_10px_30px_-26px_hsl(var(--shadow)/0.5)]",
         )}
       >
@@ -45,7 +45,7 @@ export function MarketingNav() {
           href="/"
           aria-label="K53 Mentor AI home"
           className={cn(
-            "shrink-0 origin-left rounded-full transition-transform duration-300 ease-glass focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25",
+            "shrink-0 origin-left rounded-full transition-transform duration-500 ease-glass focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25",
             scrolled && "scale-90",
           )}
         >
@@ -57,7 +57,7 @@ export function MarketingNav() {
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+              className="whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
             >
               {l.label}
             </Link>
