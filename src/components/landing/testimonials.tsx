@@ -1,3 +1,6 @@
+import { Reveal } from "@/components/shared/reveal";
+import { Stagger } from "@/components/shared/stagger";
+
 interface Testimonial {
   initials: string;
   name: string;
@@ -33,15 +36,18 @@ const TESTIMONIALS: Testimonial[] = [
 export function Testimonials() {
   return (
     <section className="mx-auto max-w-[1120px] px-6 py-16">
-      <div className="mx-auto mb-10 max-w-[560px] text-center">
+      <Reveal className="mx-auto mb-10 max-w-[560px] text-center">
         <h2 className="text-balance font-display text-[clamp(2rem,4.4vw,2.8rem)] font-semibold leading-[1.1] tracking-[-0.025em]">
           Passed, first time.
         </h2>
-      </div>
+      </Reveal>
 
-      <div className="grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]">
+      <Stagger
+        className="grid gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(280px,1fr))]"
+        step={90}
+      >
         {TESTIMONIALS.map((t) => (
-          <figure key={t.name} className="glass m-0 rounded-[18px] p-[26px]">
+          <figure key={t.name} className="glass m-0 h-full rounded-[18px] p-[26px]">
             <blockquote className="text-pretty text-[1.02rem] font-medium leading-[1.55]">
               “{t.quote}”
             </blockquote>
@@ -56,7 +62,7 @@ export function Testimonials() {
             </figcaption>
           </figure>
         ))}
-      </div>
+      </Stagger>
     </section>
   );
 }

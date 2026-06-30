@@ -12,10 +12,12 @@ import { Faq } from "@/components/landing/faq";
 import { CtaBand } from "@/components/landing/cta-band";
 import { Footer } from "@/components/landing/footer";
 import { Reveal } from "@/components/shared/reveal";
+import { SmoothScroll } from "@/components/shared/smooth-scroll";
 
 export default function HomePage() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-x-clip bg-aurora">
+      <SmoothScroll />
       <MarketingNav />
       <main className="flex-1">
         <Hero />
@@ -29,15 +31,12 @@ export default function HomePage() {
 
         <HowItWorks />
 
-        <Reveal>
-          <Features />
-        </Reveal>
+        {/* Features & Testimonials cascade their cards in internally. */}
+        <Features />
         <Reveal>
           <StatsBand />
         </Reveal>
-        <Reveal>
-          <Testimonials />
-        </Reveal>
+        <Testimonials />
         <Reveal>
           <Comparison />
         </Reveal>

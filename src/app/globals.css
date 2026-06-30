@@ -318,6 +318,29 @@
   background-color: hsl(var(--card)) !important;
 }
 
+/* Lenis inertial scroll baseline (marketing). Lenis adds `.lenis`/`.lenis-smooth`
+   to <html>; disabling native smooth here stops it fighting the lerp, and
+   [data-lenis-prevent] keeps nested panes scrolling natively. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+/* Lenis owns the scroll once mounted — turn off native smooth so the two
+   don't fight on anchor jumps / focus scrolls. (`.lenis` is persistent;
+   `.lenis-smooth` is only present mid-animation in Lenis 1.3.) */
+html.lenis {
+  scroll-behavior: auto !important;
+}
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
 /* Landing motion — horizontal category marquee + hero card sheen */
 @keyframes k53marquee {
   from {
