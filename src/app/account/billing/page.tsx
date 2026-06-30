@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { PLANS } from "@/lib/billing/plans";
+import { PLANS, monthlyPrice, vehicleClass, isFreePlan } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
 import type { SubscriptionTier } from "@/types";
 
@@ -21,6 +21,7 @@ function BillingInner() {
     sp.get("status") === "success" ? "Payment complete — your plan is active." : null,
   );
   const [busy, setBusy] = React.useState<SubscriptionTier | null>(null);
+  const userClass = vehicleClass(state.onboarding?.vehicleCode ?? "8");
 
   async function choose(plan: (typeof PLANS)[number]) {
     if (plan.id === state.tier) return;
@@ -79,9 +80,9 @@ function BillingInner() {
               <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="font-display text-2xl font-semibold">
-                  {plan.priceMonthly === 0 ? "Free" : formatZar(plan.priceMonthly)}
+                  {isFreePlan(plan) ? "Free" : formatZar(monthlyPrice(plan, userClass))}
                 </span>
-                {plan.priceMonthly > 0 && <span className="text-sm text-muted-foreground">/month</span>}
+                {!isFreePlan(plan) && <span className="text-sm text-muted-foreground">/month</span>}
               </div>
 
               <Button

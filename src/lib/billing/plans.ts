@@ -1,17 +1,72 @@
-import type { SubscriptionTier } from "@/types";
+import type { SubscriptionTier, VehicleCode } from "@/types";
 
 export type FeatureKey = "tutor" | "scenarios" | "licencePrep" | "advancedAnalytics";
 export type CapKey = "flashcardsPerDay" | "questionsPerDay" | "tutorPerDay";
+
+/**
+ * Two pricing / content buckets. The plan price and the content set both key
+ * off this, not the raw code. Car = code 8; Bike+Heavy bundles the motorcycle
+ * codes (A1, A) with the heavy codes (10, 14).
+ */
+export type VehicleClass = "car" | "bike_heavy";
+
+export function vehicleClass(code: VehicleCode): VehicleClass {
+  return code === "8" ? "car" : "bike_heavy";
+}
+
+export const VEHICLE_CLASS_LABEL: Record<VehicleClass, string> = {
+  car: "Car · Code 8",
+  bike_heavy: "Motorbike & Heavy · A1 / A / 10 / 14",
+};
+
+/** Annual billing takes this many Rand off the monthly price of every paid plan. */
+export const ANNUAL_MONTHLY_SAVING = 20;
+
+/** Items in one full flashcard or question session. */
+export const STUDY_SESSION_SIZE = 12;
+/** Premium gets this many full flashcard + question sessions a day. */
+export const PREMIUM_SESSIONS_PER_DAY = 3;
+const PREMIUM_DAILY_ITEMS = STUDY_SESSION_SIZE * PREMIUM_SESSIONS_PER_DAY; // 36
+
+/** Monthly price (ZAR) per vehicle class. */
+interface ClassPrice {
+  car: number;
+  bike_heavy: number;
+}
+
+/**
+ * The richer per-tier limit model behind the new plan structure. `caps` below
+ * is kept as the legacy numeric view consumed by the study surfaces; `limits`
+ * is the source of truth the new enforcement + UI read from.
+ */
+export interface PlanLimits {
+  /** Free is a one-off onboarding trial; paid plans reset daily. */
+  reset: "trial" | "daily";
+  diagnostic: "full";
+  /** A daily/once-off item count, or unlimited. */
+  flashcards: number | "unlimited";
+  questions: number | "unlimited";
+  /** false = not included, a number = per-day allowance, or unlimited. */
+  scenarios: number | "unlimited" | false;
+  tutorMessages: number | "unlimited";
+  /** Premium Plus: buy extra tutor messages beyond the daily allowance. */
+  tutorTopUp: boolean;
+  mockExams: number | "unlimited";
+  mockLength: "short" | "full";
+  studyPlan: boolean;
+  progressHistory: "7d" | "full";
+}
 
 export interface PlanDef {
   id: SubscriptionTier;
   name: string;
   tagline: string;
-  priceMonthly: number; // ZAR
-  priceAnnual: number; // ZAR
   highlighted?: boolean;
+  /** Monthly price per vehicle class (ZAR). Free is 0 for both. */
+  monthly: ClassPrice;
   features: Record<FeatureKey, boolean>;
-  caps: Record<CapKey, number>; // Infinity = unlimited
+  caps: Record<CapKey, number>; // Infinity = unlimited (legacy view)
+  limits: PlanLimits;
   perks: string[];
 }
 
@@ -19,33 +74,61 @@ export const PLANS: PlanDef[] = [
   {
     id: "free",
     name: "Free",
-    tagline: "Find out exactly where you stand.",
-    priceMonthly: 0,
-    priceAnnual: 0,
+    tagline: "A one-day onboarding — see exactly where you stand.",
+    monthly: { car: 0, bike_heavy: 0 },
     features: { tutor: true, scenarios: false, licencePrep: false, advancedAnalytics: false },
     caps: { flashcardsPerDay: 12, questionsPerDay: 15, tutorPerDay: 3 },
+    limits: {
+      reset: "trial",
+      diagnostic: "full",
+      flashcards: 12,
+      questions: 15,
+      scenarios: false,
+      tutorMessages: 3,
+      tutorTopUp: false,
+      mockExams: 1,
+      mockLength: "short",
+      studyPlan: false,
+      progressHistory: "7d",
+    },
     perks: [
       "Full AI diagnostic + readiness score",
-      "12 flashcards & 15 questions a day",
-      "3 AI tutor messages a day",
-      "1 full mock exam",
+      "12 flashcards & 15 questions (once-off)",
+      "3 AI tutor messages",
+      "One short mock exam",
       "7-day progress history",
     ],
   },
   {
     id: "premium",
     name: "Premium",
-    tagline: "Everything you need to pass your learner's licence.",
-    priceMonthly: 79,
-    priceAnnual: 599,
+    tagline: "Focused daily practice to pass your learner's.",
     highlighted: true,
+    monthly: { car: 60, bike_heavy: 50 },
     features: { tutor: true, scenarios: true, licencePrep: false, advancedAnalytics: false },
-    caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 40 },
+    caps: {
+      flashcardsPerDay: PREMIUM_DAILY_ITEMS,
+      questionsPerDay: PREMIUM_DAILY_ITEMS,
+      tutorPerDay: 15,
+    },
+    limits: {
+      reset: "daily",
+      diagnostic: "full",
+      flashcards: PREMIUM_DAILY_ITEMS,
+      questions: PREMIUM_DAILY_ITEMS,
+      scenarios: 3,
+      tutorMessages: 15,
+      tutorTopUp: false,
+      mockExams: 3,
+      mockLength: "full",
+      studyPlan: true,
+      progressHistory: "full",
+    },
     perks: [
-      "Unlimited flashcards & questions",
-      "Full scenario library",
-      "AI tutor (40 messages/day)",
-      "Unlimited mock exams",
+      "3 full flashcard & question sessions a day",
+      "Full scenarios — a few a day",
+      "AI tutor — 15 messages a day",
+      "Up to 3 mock exams a day",
       "Personalised daily study plan",
       "Full progress history",
     ],
@@ -53,15 +136,28 @@ export const PLANS: PlanDef[] = [
   {
     id: "premium_plus",
     name: "Premium Plus",
-    tagline: "Learner's and driver's licence, end to end.",
-    priceMonthly: 149,
-    priceAnnual: 1199,
+    tagline: "Everything unlimited — learner's and driver's, end to end.",
+    monthly: { car: 70, bike_heavy: 60 },
     features: { tutor: true, scenarios: true, licencePrep: true, advancedAnalytics: true },
-    caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: Infinity },
+    caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 40 },
+    limits: {
+      reset: "daily",
+      diagnostic: "full",
+      flashcards: "unlimited",
+      questions: "unlimited",
+      scenarios: "unlimited",
+      tutorMessages: 40,
+      tutorTopUp: true,
+      mockExams: "unlimited",
+      mockLength: "full",
+      studyPlan: true,
+      progressHistory: "full",
+    },
     perks: [
-      "Everything in Premium",
-      "Driver's licence yard-test modules",
-      "Unlimited AI tutor",
+      "Unlimited flashcards, questions & scenarios",
+      "AI tutor — 40 messages a day (cheap top-ups available)",
+      "Unlimited mock exams",
+      "Driver's-licence yard-test modules",
       "Advanced analytics & trends",
       "Priority new-content access",
     ],
@@ -85,7 +181,22 @@ export function tierForFeature(feature: FeatureKey): SubscriptionTier {
   return (PLANS.find((p) => p.features[feature])?.id ?? "premium") as SubscriptionTier;
 }
 
-export const ANNUAL_DISCOUNT = (plan: PlanDef) =>
-  plan.priceMonthly === 0
-    ? 0
-    : Math.round((1 - plan.priceAnnual / (plan.priceMonthly * 12)) * 100);
+/** Monthly price for a plan in a given vehicle class. */
+export function monthlyPrice(plan: PlanDef, vc: VehicleClass): number {
+  return plan.monthly[vc];
+}
+
+/** Effective monthly price when billed annually (flat −R20/mo on paid plans). */
+export function annualMonthlyPrice(plan: PlanDef, vc: VehicleClass): number {
+  const m = plan.monthly[vc];
+  return m === 0 ? 0 : Math.max(0, m - ANNUAL_MONTHLY_SAVING);
+}
+
+/** Total charged once per year when billed annually. */
+export function annualPrice(plan: PlanDef, vc: VehicleClass): number {
+  return annualMonthlyPrice(plan, vc) * 12;
+}
+
+export function isFreePlan(plan: PlanDef): boolean {
+  return plan.monthly.car === 0 && plan.monthly.bike_heavy === 0;
+}

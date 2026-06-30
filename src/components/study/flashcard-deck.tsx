@@ -13,6 +13,7 @@ import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { selectFlashcardQueue } from "@/lib/plan";
+import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
 import { initialCardState, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
 import { categoryName } from "@/lib/content/categories";
 import { formatDuration, cn } from "@/lib/utils";
@@ -33,11 +34,13 @@ export function FlashcardDeck() {
 
   const cap = usageFor("flashcards");
   const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : Infinity;
+  // One session is at most STUDY_SESSION_SIZE cards; the daily cap allows N sessions.
+  const sessionLimit = Math.min(remaining, STUDY_SESSION_SIZE);
 
   const [queue] = React.useState(() =>
     selectFlashcardQueue(state, {
       categoryId: categoryParam,
-      limit: Number.isFinite(remaining) ? remaining : undefined,
+      limit: sessionLimit,
     }),
   );
   const startRef = React.useRef(Date.now());

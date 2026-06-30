@@ -14,6 +14,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
 import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
 import { categoryName } from "@/lib/content/categories";
+import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
 import { cn } from "@/lib/utils";
 import type { CategoryId, Question } from "@/types";
 
@@ -25,8 +26,8 @@ export function QuestionPractice() {
   const { state, recordQuestionAttempt, recordSession, usageFor } = useStudyStore();
 
   const cap = usageFor("questions");
-  const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : 12;
-  const limit = Math.max(1, Math.min(remaining, 12));
+  const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : STUDY_SESSION_SIZE;
+  const limit = Math.max(1, Math.min(remaining, STUDY_SESSION_SIZE));
 
   const [queue] = React.useState<Question[]>(() => {
     const pool = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
