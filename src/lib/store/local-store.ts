@@ -23,6 +23,7 @@ export function defaultUserState(): UserState {
     profile: null,
     onboarding: null,
     tier: "free",
+    vehicleClass: null,
     diagnostics: [],
     cardStates: {},
     attempts: [],

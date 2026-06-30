@@ -10,21 +10,24 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { PLANS, monthlyPrice, vehicleClass, isFreePlan } from "@/lib/billing/plans";
+import { PLANS, monthlyPrice, isFreePlan, VEHICLE_CLASS_LABEL } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
-import type { SubscriptionTier } from "@/types";
+import type { SubscriptionTier, VehicleClass } from "@/types";
 
 function BillingInner() {
   const sp = useSearchParams();
-  const { state, setTier } = useStudyStore();
+  const { state, setTier, setVehicleClass } = useStudyStore();
   const [banner, setBanner] = React.useState<string | null>(
     sp.get("status") === "success" ? "Payment complete — your plan is active." : null,
   );
   const [busy, setBusy] = React.useState<SubscriptionTier | null>(null);
-  const userClass = vehicleClass(state.onboarding?.vehicleCode ?? "8");
+  // The track (car vs bike+heavy) is chosen here — it sets which codes the
+  // learner can study and drives the per-class price.
+  const [track, setTrack] = React.useState<VehicleClass>(state.vehicleClass ?? "car");
 
   async function choose(plan: (typeof PLANS)[number]) {
-    if (plan.id === state.tier) return;
+    if (plan.id === state.tier && track === state.vehicleClass) return;
+    setVehicleClass(track);
     if (plan.id === "free") {
       setTier("free");
       setBanner("You're now on the Free plan.");
@@ -35,7 +38,7 @@ function BillingInner() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plan: plan.id }),
+        body: JSON.stringify({ plan: plan.id, track }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -65,6 +68,29 @@ function BillingInner() {
         </div>
       )}
 
+      {/* Subscription track — decides which licence codes you can study. */}
+      <div className="mb-6 flex flex-wrap items-center gap-3">
+        <span className="text-sm font-medium text-muted-foreground">Track</span>
+        <div className="inline-flex rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
+          {(["car", "bike_heavy"] as const).map((t) => (
+            <button
+              key={t}
+              type="button"
+              onClick={() => setTrack(t)}
+              className={cn(
+                "rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
+                track === t
+                  ? "bg-card text-foreground shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)]"
+                  : "text-muted-foreground",
+              )}
+            >
+              {t === "car" ? "Car" : "Bike & Heavy"}
+            </button>
+          ))}
+        </div>
+        <span className="text-xs text-muted-foreground">{VEHICLE_CLASS_LABEL[track]}</span>
+      </div>
+
       <div className="grid gap-5 lg:grid-cols-3">
         {PLANS.map((plan) => {
           const current = plan.id === state.tier;
@@ -80,7 +106,7 @@ function BillingInner() {
               <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="font-display text-2xl font-semibold">
-                  {isFreePlan(plan) ? "Free" : formatZar(monthlyPrice(plan, userClass))}
+                  {isFreePlan(plan) ? "Free" : formatZar(monthlyPrice(plan, track))}
                 </span>
                 {!isFreePlan(plan) && <span className="text-sm text-muted-foreground">/month</span>}
               </div>

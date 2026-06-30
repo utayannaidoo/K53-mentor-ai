@@ -1,15 +1,11 @@
-import type { SubscriptionTier, VehicleCode } from "@/types";
+import type { SubscriptionTier, VehicleCode, VehicleClass } from "@/types";
 
 export type FeatureKey = "tutor" | "scenarios" | "licencePrep" | "advancedAnalytics";
 export type CapKey = "flashcardsPerDay" | "questionsPerDay" | "tutorPerDay";
 
-/**
- * Two pricing / content buckets. The plan price and the content set both key
- * off this, not the raw code. Car = code 8; Bike+Heavy bundles the motorcycle
- * codes (A1, A) with the heavy codes (10, 14).
- */
-export type VehicleClass = "car" | "bike_heavy";
+export type { VehicleClass };
 
+/** Derive the subscription track from a raw code. */
 export function vehicleClass(code: VehicleCode): VehicleClass {
   return code === "8" ? "car" : "bike_heavy";
 }

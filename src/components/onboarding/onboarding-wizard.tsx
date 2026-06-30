@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
 import { OptionCard } from "@/components/onboarding/option-card";
 import { useStudyStore } from "@/hooks/use-study-store";
+import { vehicleClass } from "@/lib/billing/plans";
 import { cn } from "@/lib/utils";
 import type {
   ConfidenceLevel,
@@ -41,7 +42,10 @@ const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const { completeOnboarding } = useStudyStore();
+  const { completeOnboarding, state, setVehicleClass } = useStudyStore();
+  // The subscription track decides which codes are offered: car-only, the two
+  // bike+heavy codes, or (no track yet, e.g. free trial) all three.
+  const planClass = state.vehicleClass;
 
   const [step, setStep] = React.useState(0);
   const [goal, setGoal] = React.useState<LicenceGoal | null>(null);
@@ -63,15 +67,18 @@ export function OnboardingWizard() {
   }
 
   function finish() {
+    const code: VehicleCode = vehicleCode ?? (planClass === "bike_heavy" ? "A" : "8");
     completeOnboarding({
       goal: goal ?? "learners",
-      vehicleCode: vehicleCode ?? "8",
+      vehicleCode: code,
       testDate: noDate ? null : testDate || null,
       confidence: confidence ?? 3,
       knowledgeLevel: knowledge ?? "some",
       studyFrequency: frequency ?? "steady",
       priorAttempts,
     });
+    // Free/no-track users set their track from the code they chose here.
+    if (!planClass) setVehicleClass(vehicleClass(code));
     router.push("/diagnostic");
   }
 
@@ -139,13 +146,26 @@ export function OnboardingWizard() {
 
           {/* Step 2 — Vehicle code */}
           {step === 2 && (
-            <Step title="Which licence code?" subtitle="This decides which rules and limits apply to you.">
+            <Step
+              title="Which licence are you after?"
+              subtitle={
+                planClass === "car"
+                  ? "Your Car subscription covers Code 08."
+                  : planClass === "bike_heavy"
+                    ? "Your subscription covers motorcycle and heavy codes — pick the one you're learning."
+                    : "This decides which controls, signs and content you'll get."
+              }
+            >
               <div className="space-y-3">
-                <OptionCard selected={vehicleCode === "8"} onClick={() => pick(setVehicleCode, "8")} icon={<Car className="h-5 w-5" />} title="Code 08 (B)" description="Cars and light vehicles up to 3 500 kg" />
-                <OptionCard selected={vehicleCode === "A1"} onClick={() => pick(setVehicleCode, "A1")} icon={<Bike className="h-5 w-5" />} title="Code A1" description="Light motorcycle up to 125 cc" />
-                <OptionCard selected={vehicleCode === "A"} onClick={() => pick(setVehicleCode, "A")} icon={<Bike className="h-5 w-5" />} title="Code A" description="Motorcycle over 125 cc" />
-                <OptionCard selected={vehicleCode === "10"} onClick={() => pick(setVehicleCode, "10")} icon={<Gauge className="h-5 w-5" />} title="Code 10 (C1)" description="Heavy vehicles over 3 500 kg" />
-                <OptionCard selected={vehicleCode === "14"} onClick={() => pick(setVehicleCode, "14")} icon={<Gauge className="h-5 w-5" />} title="Code 14 (EC)" description="Extra-heavy / articulated vehicles" />
+                {planClass !== "bike_heavy" && (
+                  <OptionCard selected={vehicleCode === "8"} onClick={() => pick(setVehicleCode, "8")} icon={<Car className="h-5 w-5" />} title="Car · Code 08 (B)" description="Cars and light vehicles up to 3 500 kg" />
+                )}
+                {planClass !== "car" && (
+                  <>
+                    <OptionCard selected={vehicleCode === "A"} onClick={() => pick(setVehicleCode, "A")} icon={<Bike className="h-5 w-5" />} title="Motorcycle · Code A / A1" description="Any motorcycle — light (≤125 cc) or larger" />
+                    <OptionCard selected={vehicleCode === "14"} onClick={() => pick(setVehicleCode, "14")} icon={<Gauge className="h-5 w-5" />} title="Heavy · Code 10 / 14" description="Rigid and articulated heavy vehicles over 3 500 kg" />
+                  </>
+                )}
               </div>
             </Step>
           )}

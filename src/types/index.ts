@@ -7,6 +7,13 @@
 /** SA vehicle / licence codes. A1 = light motorcycle (≤125cc), A = motorcycle. */
 export type VehicleCode = "8" | "10" | "14" | "A1" | "A";
 
+/**
+ * The two subscription tracks. Car = code 8; Bike+Heavy bundles the motorcycle
+ * codes (A1/A) with the heavy codes (10/14). Chosen at subscription, it gates
+ * which codes onboarding offers.
+ */
+export type VehicleClass = "car" | "bike_heavy";
+
 /** What the learner is working toward. */
 export type LicenceGoal = "learners" | "drivers" | "both";
 
@@ -288,6 +295,8 @@ export interface UserState {
   profile: Profile | null;
   onboarding: OnboardingData | null;
   tier: SubscriptionTier;
+  /** Subscription track (car vs bike+heavy). null until a plan/track is chosen. */
+  vehicleClass: VehicleClass | null;
   diagnostics: DiagnosticResult[];
   cardStates: Record<string, CardState>;
   attempts: QuestionAttempt[];

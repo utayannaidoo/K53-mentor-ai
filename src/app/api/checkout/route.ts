@@ -6,7 +6,10 @@ import { SITE_URL } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
-const schema = z.object({ plan: z.enum(["premium", "premium_plus"]) });
+const schema = z.object({
+  plan: z.enum(["premium", "premium_plus"]),
+  track: z.enum(["car", "bike_heavy"]).optional(),
+});
 
 /**
  * Stripe-ready subscription checkout. When Stripe env vars are absent (the
@@ -15,8 +18,11 @@ const schema = z.object({ plan: z.enum(["premium", "premium_plus"]) });
  */
 export async function POST(req: Request) {
   let plan: "premium" | "premium_plus";
+  let track: "car" | "bike_heavy" | undefined;
   try {
-    plan = schema.parse(await req.json()).plan;
+    const parsed = schema.parse(await req.json());
+    plan = parsed.plan;
+    track = parsed.track;
   } catch {
     return Response.json({ error: "Invalid plan" }, { status: 400 });
   }
@@ -61,7 +67,7 @@ export async function POST(req: Request) {
     // Tie the subscription to the authenticated user so a webhook can reconcile it.
     ...(userEmail ? { customer_email: userEmail } : {}),
     ...(userId ? { client_reference_id: userId } : {}),
-    metadata: { plan, ...(userId ? { user_id: userId } : {}) },
+    metadata: { plan, ...(track ? { track } : {}), ...(userId ? { user_id: userId } : {}) },
     ...(userId ? { subscription_data: { metadata: { user_id: userId } } } : {}),
   });
 

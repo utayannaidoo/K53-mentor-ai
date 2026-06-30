@@ -14,6 +14,7 @@ import type {
   TutorMessage,
   TutorThread,
   UserState,
+  VehicleClass,
   CategoryId,
 } from "@/types";
 import {
@@ -44,6 +45,7 @@ interface StudyStore {
   signInLocal: (name: string, email: string) => void;
   signOut: () => void;
   setTier: (tier: SubscriptionTier) => void;
+  setVehicleClass: (vc: VehicleClass | null) => void;
   completeOnboarding: (data: Omit<OnboardingData, "completedAt">) => void;
 
   recordDiagnostic: (result: DiagnosticResult) => void;
@@ -193,6 +195,8 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     },
 
     setTier: (tier) => setState((s) => ({ ...s, tier })),
+
+    setVehicleClass: (vehicleClass) => setState((s) => ({ ...s, vehicleClass })),
 
     completeOnboarding: (data) =>
       setState((s) => ({
