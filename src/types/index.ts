@@ -260,6 +260,7 @@ export interface OnboardingData {
   testDate: string | null; // ISO date or null ("not booked") — the learner's test date, or the only test date when goal isn't "both"
   driversTestDate: string | null; // ISO date or null — only meaningful when goal === "both"
   confidence: ConfidenceLevel;
+  worryCategories: CategoryId[]; // self-reported weak spots, asked before any diagnostic data exists
   knowledgeLevel: KnowledgeLevel;
   studyFrequency: StudyFrequency;
   priorAttempts: number;

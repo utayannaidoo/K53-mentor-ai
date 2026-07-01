@@ -73,13 +73,22 @@ export function generateTodayPlan(
     href: "/study/flashcards",
   });
 
-  const weakest = readiness.weakCategories[0];
+  // With no attempts or flashcard reps recorded yet, every category ties at
+  // the same baseline score, so readiness.weakCategories isn't a real signal
+  // — fall back to the category the learner told us worried them most during
+  // onboarding instead. The moment any real signal exists, it always wins.
+  const hasSignal =
+    state.attempts.length > 0 || Object.values(state.cardStates).some((c) => c.reps > 0);
+  const worried = state.onboarding?.worryCategories?.[0];
+  const weakest = hasSignal ? readiness.weakCategories[0] : worried;
   if (weakest) {
     tasks.push({
       id: "task-questions",
       type: "questions",
       title: `Practice: ${categoryName(weakest)}`,
-      subtitle: `Your weakest area at ${readiness.perCategory[weakest]}% — let's close the gap`,
+      subtitle: hasSignal
+        ? `Your weakest area at ${readiness.perCategory[weakest]}% — let's close the gap`
+        : "You told us this one worries you most — let's start here",
       targetCount: 8,
       estMinutes: 5,
       href: `/study/questions?category=${weakest}`,

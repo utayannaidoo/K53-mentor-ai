@@ -15,14 +15,17 @@ import {
   Bike,
 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { CategoryIcon } from "@/components/shared/category-icon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
 import { OptionCard } from "@/components/onboarding/option-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { vehicleClass } from "@/lib/billing/plans";
+import { CATEGORIES } from "@/lib/content/categories";
 import { cn } from "@/lib/utils";
 import type {
+  CategoryId,
   ConfidenceLevel,
   KnowledgeLevel,
   LicenceGoal,
@@ -30,7 +33,7 @@ import type {
   VehicleCode,
 } from "@/types";
 
-const TOTAL_STEPS = 6; // excluding the welcome screen
+const TOTAL_STEPS = 7; // excluding the welcome screen
 
 const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
   1: "Totally lost",
@@ -56,11 +59,16 @@ export function OnboardingWizard() {
   const [noDriversDate, setNoDriversDate] = React.useState(false);
   const [priorAttempts, setPriorAttempts] = React.useState<number>(0);
   const [confidence, setConfidence] = React.useState<ConfidenceLevel | null>(null);
+  const [worryCategories, setWorryCategories] = React.useState<CategoryId[]>([]);
   const [knowledge, setKnowledge] = React.useState<KnowledgeLevel | null>(null);
   const [frequency, setFrequency] = React.useState<StudyFrequency | null>(null);
 
-  const next = () => setStep((s) => Math.min(s + 1, 6));
+  const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const back = () => setStep((s) => Math.max(s - 1, 0));
+
+  function toggleWorry(id: CategoryId) {
+    setWorryCategories((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
+  }
 
   /** Set a value then auto-advance for single-tap steps. */
   function pick<T>(setter: (v: T) => void, value: T) {
@@ -76,6 +84,7 @@ export function OnboardingWizard() {
       testDate: noDate ? null : testDate || null,
       driversTestDate: goal === "both" ? (noDriversDate ? null : driversTestDate || null) : null,
       confidence: confidence ?? 3,
+      worryCategories,
       knowledgeLevel: knowledge ?? "some",
       studyFrequency: frequency ?? "steady",
       priorAttempts,
@@ -287,11 +296,42 @@ export function OnboardingWizard() {
                   <span>{CONFIDENCE_LABELS[5]}</span>
                 </div>
               </div>
+              <button
+                type="button"
+                onClick={next}
+                className="mx-auto mt-4 block text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Skip — not sure yet
+              </button>
             </Step>
           )}
 
-          {/* Step 5 — Habits */}
+          {/* Step 5 — Worry categories */}
           {step === 5 && (
+            <Step
+              title="What worries you most?"
+              subtitle="Pick as many as apply — we'll open with these before your diagnostic even starts."
+            >
+              <div className="flex flex-wrap gap-2">
+                {CATEGORIES.map((c) => (
+                  <Chip
+                    key={c.id}
+                    active={worryCategories.includes(c.id)}
+                    onClick={() => toggleWorry(c.id)}
+                  >
+                    <CategoryIcon id={c.id} className="h-3.5 w-3.5" />
+                    {c.name}
+                  </Chip>
+                ))}
+              </div>
+              <Button size="lg" className="mt-6 w-full" onClick={next}>
+                Continue <ArrowRight />
+              </Button>
+            </Step>
+          )}
+
+          {/* Step 6 — Habits */}
+          {step === 6 && (
             <Step title="How will you study?" subtitle="We'll size your daily plan to match.">
               <div className="space-y-6">
                 <div>
@@ -343,12 +383,19 @@ export function OnboardingWizard() {
                 <Button size="lg" className="w-full" disabled={!knowledge || !frequency} onClick={next}>
                   Continue <ArrowRight />
                 </Button>
+                <button
+                  type="button"
+                  onClick={next}
+                  className="mx-auto block text-sm font-medium text-muted-foreground hover:text-foreground"
+                >
+                  Skip — use defaults
+                </button>
               </div>
             </Step>
           )}
 
-          {/* Step 6 — Ready */}
-          {step === 6 && (
+          {/* Step 7 — Ready */}
+          {step === 7 && (
             <div className="text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <CalendarClock className="h-8 w-8" />
@@ -357,8 +404,9 @@ export function OnboardingWizard() {
                 Let&apos;s find your weak spots
               </h1>
               <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-                15 quick questions across all 7 categories. No pressure — there&apos;s no fail here,
-                just useful signal. You&apos;ll get your readiness score at the end.
+                Most learners who fail K53 say the same thing afterward — they got caught out by
+                something they hadn&apos;t practised. This quick check (15 questions, 7 categories,
+                no pressure) shows you exactly where your gaps are, before test day does.
               </p>
               <Button size="xl" className="mt-8 w-full sm:w-auto" onClick={finish}>
                 Start my diagnostic <ArrowRight />

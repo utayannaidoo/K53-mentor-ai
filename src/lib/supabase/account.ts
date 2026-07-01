@@ -18,6 +18,7 @@ interface ProfileRow {
   test_date: string | null;
   drivers_test_date: string | null;
   confidence: OnboardingData["confidence"] | null;
+  worry_categories: OnboardingData["worryCategories"] | null;
   knowledge_level: OnboardingData["knowledgeLevel"] | null;
   study_frequency: OnboardingData["studyFrequency"] | null;
   prior_attempts: number | null;
@@ -63,6 +64,7 @@ export async function loadAccount(
           testDate: p.test_date,
           driversTestDate: p.drivers_test_date,
           confidence: p.confidence ?? 3,
+          worryCategories: p.worry_categories ?? [],
           knowledgeLevel: p.knowledge_level ?? "some",
           studyFrequency: p.study_frequency ?? "steady",
           priorAttempts: p.prior_attempts ?? 0,
@@ -106,6 +108,7 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
             test_date: o.testDate,
             drivers_test_date: o.driversTestDate,
             confidence: o.confidence,
+            worry_categories: o.worryCategories,
             knowledge_level: o.knowledgeLevel,
             study_frequency: o.studyFrequency,
             prior_attempts: o.priorAttempts,
