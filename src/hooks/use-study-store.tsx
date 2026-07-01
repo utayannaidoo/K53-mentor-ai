@@ -177,14 +177,25 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
     signInLocal: (name, email) => {
       setState((s) => {
+        // A different email is a different person: start from a clean slate
+        // instead of inheriting the previous account's tier, subscription
+        // track and progress from this browser's store.
+        const owner = s.ownerEmail ?? s.profile?.email ?? null;
+        const isNewIdentity =
+          owner !== null && owner.toLowerCase() !== email.toLowerCase();
+        const base = isNewIdentity ? defaultUserState() : s;
         const profile: Profile =
-          s.profile ?? {
+          base.profile ?? {
             id: uid("user"),
             name: name || "Learner",
             email,
             createdAt: new Date().toISOString(),
           };
-        return { ...s, profile: { ...profile, name: name || profile.name, email } };
+        return {
+          ...base,
+          ownerEmail: email,
+          profile: { ...profile, name: name || profile.name, email },
+        };
       });
     },
 

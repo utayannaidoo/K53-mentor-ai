@@ -21,6 +21,7 @@ export function defaultUserState(): UserState {
   return {
     version: STATE_VERSION,
     profile: null,
+    ownerEmail: null,
     onboarding: null,
     tier: "free",
     vehicleClass: null,

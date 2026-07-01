@@ -15,6 +15,27 @@ export const VEHICLE_CLASS_LABEL: Record<VehicleClass, string> = {
   bike_heavy: "Motorbike & Heavy · A1 / A / 10 / 14",
 };
 
+export const VEHICLE_CLASS_SHORT: Record<VehicleClass, string> = {
+  car: "Car",
+  bike_heavy: "Bike & Heavy",
+};
+
+/**
+ * The codes a subscription track unlocks — the single source of truth for
+ * every picker that offers codes. A null track (nothing chosen/paid yet)
+ * offers everything; the first pick then sets the track.
+ */
+export function codesForClass(vc: VehicleClass | null): VehicleCode[] {
+  if (vc === "car") return ["8"];
+  if (vc === "bike_heavy") return ["A", "14"];
+  return ["8", "A", "14"];
+}
+
+/** Whether a track's subscription covers a given code. */
+export function classAllowsCode(vc: VehicleClass | null, code: VehicleCode): boolean {
+  return vc === null || vehicleClass(code) === vc;
+}
+
 /** Annual billing takes this many Rand off the monthly price of every paid plan. */
 export const ANNUAL_MONTHLY_SAVING = 20;
 

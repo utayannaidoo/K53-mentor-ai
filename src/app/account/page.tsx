@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { QuickProfileEdit, GOAL_LABEL } from "@/components/account/quick-profile-edit";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
-import { PLAN_MAP } from "@/lib/billing/plans";
+import { PLAN_MAP, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
 import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
 
 function AccountInner() {
@@ -60,8 +60,11 @@ function AccountInner() {
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-semibold">Subscription</h2>
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               <Badge variant={state.tier === "free" ? "secondary" : "default"}>{plan.name}</Badge>
+              {state.vehicleClass && (
+                <Badge variant="secondary">{VEHICLE_CLASS_SHORT[state.vehicleClass]}</Badge>
+              )}
               <span className="text-sm text-muted-foreground">{plan.tagline}</span>
             </div>
           </div>

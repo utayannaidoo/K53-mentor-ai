@@ -297,6 +297,13 @@ export interface DailyUsage {
 export interface UserState {
   version: number;
   profile: Profile | null;
+  /**
+   * Email of the account this browser-store belongs to (demo mode). Signing in
+   * with a different email starts from a clean slate instead of inheriting the
+   * previous account's tier, track and progress. Survives sign-out (profile is
+   * cleared, this isn't) so the same person logging back in keeps their data.
+   */
+  ownerEmail: string | null;
   onboarding: OnboardingData | null;
   tier: SubscriptionTier;
   /** Subscription track (car vs bike+heavy). null until a plan/track is chosen. */

@@ -1,14 +1,15 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { DateSelect } from "@/components/ui/date-select";
 import { Button } from "@/components/ui/button";
 import { PageLoader } from "@/components/shared/page-loader";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { vehicleClass } from "@/lib/billing/plans";
-import { isSupabaseConfigured } from "@/lib/env";
+import { vehicleClass, codesForClass, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
+import { groupOf } from "@/lib/content/vehicle";
 import { cn } from "@/lib/utils";
 import type { LicenceGoal, VehicleCode } from "@/types";
 
@@ -24,17 +25,18 @@ const CODE_LABEL: Record<"8" | "A" | "14", string> = {
   "14": "Heavy · Code 10 / 14",
 };
 
-/** Which codes this learner is allowed to switch between. */
-function availableCodes(planClass: "car" | "bike_heavy" | null, demoMode: boolean): VehicleCode[] {
-  if (demoMode || !planClass) return ["8", "A", "14"];
-  return planClass === "car" ? ["8"] : ["A", "14"];
+/** The picker's representative code for whatever code the profile holds. */
+function representativeCode(code: VehicleCode): VehicleCode {
+  if (code === "8") return "8";
+  return groupOf(code) === "motorcycle" ? "A" : "14";
 }
 
 export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { state, updateOnboarding, setVehicleClass } = useStudyStore();
   const onboarding = state.onboarding;
-  const demoMode = !isSupabaseConfigured;
-  const codes = availableCodes(state.vehicleClass, demoMode);
+  // Strictly what the subscription track covers — switching tracks is a plan
+  // change and happens on the billing page, never here.
+  const codes = codesForClass(state.vehicleClass);
 
   const [goal, setGoal] = React.useState<LicenceGoal>("learners");
   const [vehicleCode, setVehicleCodeLocal] = React.useState<VehicleCode>("8");
@@ -48,12 +50,16 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
   React.useEffect(() => {
     if (!open || !onboarding) return;
     setGoal(onboarding.goal);
-    setVehicleCodeLocal(onboarding.vehicleCode);
+    // Clamp to the codes the subscription actually covers, in case the stored
+    // code drifted outside the track (e.g. state written before gating).
+    const allowed = codesForClass(state.vehicleClass);
+    const rep = representativeCode(onboarding.vehicleCode);
+    setVehicleCodeLocal(allowed.includes(rep) ? rep : allowed[0]);
     setTestDate(onboarding.testDate ?? "");
     setTestBooked(Boolean(onboarding.testDate));
     setDriversTestDate(onboarding.driversTestDate ?? "");
     setDriversBooked(Boolean(onboarding.driversTestDate));
-  }, [open, onboarding]);
+  }, [open, onboarding, state.vehicleClass]);
 
   if (!onboarding) return null;
 
@@ -64,7 +70,9 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
       testDate: testBooked ? testDate : null,
       driversTestDate: goal === "both" ? (driversBooked ? driversTestDate : null) : null,
     });
-    if (demoMode || !state.vehicleClass) setVehicleClass(vehicleClass(vehicleCode));
+    // Only a track-less (never subscribed / never picked) profile sets its
+    // track here; everyone else's track is owned by their subscription.
+    if (!state.vehicleClass) setVehicleClass(vehicleClass(vehicleCode));
     setSaving(true);
     // A short, deliberate pause so the refresh reads as "applying your change"
     // rather than a jarring reload, and gives the local-store save time to flush.
@@ -99,10 +107,18 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
               onChange={(v) => setVehicleCodeLocal(v as VehicleCode)}
               options={codes.map((c) => ({ value: c, label: CODE_LABEL[c as keyof typeof CODE_LABEL] }))}
             />
-            {!demoMode && state.vehicleClass && (
+            {state.vehicleClass && (
               <p className="mt-1.5 text-xs text-muted-foreground">
-                Your subscription covers {state.vehicleClass === "car" ? "Code 08 only" : "motorcycle & heavy codes"}.{" "}
-                <span className="underline">Change plan</span> to unlock other codes.
+                Your {VEHICLE_CLASS_SHORT[state.vehicleClass]} plan covers{" "}
+                {state.vehicleClass === "car" ? "Code 08 only" : "motorcycle & heavy codes only"}.{" "}
+                <Link
+                  href="/account/billing"
+                  className="font-medium text-primary underline"
+                  onClick={onClose}
+                >
+                  Change plan
+                </Link>{" "}
+                to switch track.
               </p>
             )}
           </div>
