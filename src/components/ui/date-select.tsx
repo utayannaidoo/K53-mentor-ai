@@ -41,34 +41,28 @@ export function DateSelect({
     <div className="grid grid-cols-3 gap-2">
       <Select
         disabled={disabled}
-        value={day}
-        onChange={(e) => set({ day: Number(e.target.value) })}
-        aria-label="Day"
-      >
-        {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => (
-          <option key={d} value={d}>{d}</option>
-        ))}
-      </Select>
+        value={String(day)}
+        onChange={(v) => set({ day: Number(v) })}
+        ariaLabel="Day"
+        options={Array.from({ length: daysInMonth }, (_, i) => i + 1).map((d) => ({
+          value: String(d),
+          label: String(d),
+        }))}
+      />
       <Select
         disabled={disabled}
-        value={month}
-        onChange={(e) => set({ month: Number(e.target.value) })}
-        aria-label="Month"
-      >
-        {MONTHS.map((m, i) => (
-          <option key={m} value={i}>{m}</option>
-        ))}
-      </Select>
+        value={String(month)}
+        onChange={(v) => set({ month: Number(v) })}
+        ariaLabel="Month"
+        options={MONTHS.map((m, i) => ({ value: String(i), label: m }))}
+      />
       <Select
         disabled={disabled}
-        value={year}
-        onChange={(e) => set({ year: Number(e.target.value) })}
-        aria-label="Year"
-      >
-        {years.map((y) => (
-          <option key={y} value={y}>{y}</option>
-        ))}
-      </Select>
+        value={String(year)}
+        onChange={(v) => set({ year: Number(v) })}
+        ariaLabel="Year"
+        options={years.map((y) => ({ value: String(y), label: String(y) }))}
+      />
     </div>
   );
 }

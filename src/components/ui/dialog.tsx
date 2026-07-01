@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +16,9 @@ export function Dialog({
   children: React.ReactNode;
   className?: string;
 }) {
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -26,9 +30,13 @@ export function Dialog({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // Portalled to <body> — rendering this inside a `glass`/backdrop-filter
+  // ancestor would make that ancestor the containing block for our fixed
+  // overlay (a CSS spec quirk), clipping the backdrop and panel to that
+  // ancestor's box instead of the viewport.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
       <div
         className="absolute inset-0 bg-foreground/30 backdrop-blur-md animate-fade-in"
@@ -39,7 +47,7 @@ export function Dialog({
         role="dialog"
         aria-modal="true"
         className={cn(
-          "glass relative w-full max-w-md animate-modal-in rounded-lg p-6",
+          "glass relative flex max-h-[85dvh] w-full max-w-md flex-col animate-modal-in overflow-y-auto rounded-lg p-6",
           className,
         )}
       >
@@ -53,6 +61,7 @@ export function Dialog({
         </button>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

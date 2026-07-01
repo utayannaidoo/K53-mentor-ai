@@ -82,20 +82,23 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
         <div className="mt-5 space-y-5">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Goal</label>
-            <Select value={goal} onChange={(e) => setGoal(e.target.value as LicenceGoal)}>
-              {(Object.keys(GOAL_LABEL) as LicenceGoal[]).map((g) => (
-                <option key={g} value={g}>{GOAL_LABEL[g]}</option>
-              ))}
-            </Select>
+            <Select
+              value={goal}
+              onChange={(v) => setGoal(v as LicenceGoal)}
+              options={(Object.keys(GOAL_LABEL) as LicenceGoal[]).map((g) => ({
+                value: g,
+                label: GOAL_LABEL[g],
+              }))}
+            />
           </div>
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Licence code</label>
-            <Select value={vehicleCode} onChange={(e) => setVehicleCodeLocal(e.target.value as VehicleCode)}>
-              {codes.map((c) => (
-                <option key={c} value={c}>{CODE_LABEL[c as keyof typeof CODE_LABEL]}</option>
-              ))}
-            </Select>
+            <Select
+              value={vehicleCode}
+              onChange={(v) => setVehicleCodeLocal(v as VehicleCode)}
+              options={codes.map((c) => ({ value: c, label: CODE_LABEL[c as keyof typeof CODE_LABEL] }))}
+            />
             {!demoMode && state.vehicleClass && (
               <p className="mt-1.5 text-xs text-muted-foreground">
                 Your subscription covers {state.vehicleClass === "car" ? "Code 08 only" : "motorcycle & heavy codes"}.{" "}
