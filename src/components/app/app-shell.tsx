@@ -8,6 +8,8 @@ import {
   GraduationCap,
   LineChart,
   Car,
+  Bike,
+  Truck,
   MessageSquareText,
   Settings,
   Flame,
@@ -22,7 +24,10 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
+import { groupOf } from "@/lib/content/vehicle";
 import { cn } from "@/lib/utils";
+
+const LICENCE_PREP_ICON = { car: Car, motorcycle: Bike, heavy: Truck } as const;
 
 interface NavItem {
   href: string;
@@ -60,6 +65,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isPlus = state.tier === "premium_plus";
   const firstName = state.profile?.name?.split(" ")[0] ?? "Learner";
+  const vehicleGroup = state.onboarding ? groupOf(state.onboarding.vehicleCode) : "car";
+  const LicencePrepIcon = LICENCE_PREP_ICON[vehicleGroup];
 
   return (
     <div className="flex min-h-dvh bg-background bg-app">
@@ -72,6 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {NAV.map((item) => {
             const active = item.match(pathname);
             const locked = item.lockedForFree && !hasFeature(state.tier, "licencePrep");
+            const ItemIcon = item.href === "/licence-prep" ? LicencePrepIcon : item.icon;
             return (
               <Link
                 key={item.href}
@@ -83,7 +91,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     : "text-muted-foreground hover:bg-muted/70 hover:text-foreground",
                 )}
               >
-                <item.icon className="h-[1.15rem] w-[1.15rem]" />
+                <ItemIcon className="h-[1.15rem] w-[1.15rem]" />
                 <span className="flex-1">{item.label}</span>
                 {locked && <Lock className="h-3.5 w-3.5 opacity-60" />}
               </Link>
