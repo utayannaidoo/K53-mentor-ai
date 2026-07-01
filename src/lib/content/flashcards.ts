@@ -1,6 +1,7 @@
 import type { Flashcard } from "@/types";
 import { signImg } from "./signs";
 import { VEHICLE_FLASHCARDS } from "./flashcards.vehicle";
+import { EXTRA_FLASHCARDS } from "./flashcards.extra";
 
 /**
  * Spaced-repetition flashcards covering the K53 learner's syllabus. Sign cards
@@ -98,8 +99,8 @@ const CORE_FLASHCARDS: Flashcard[] = [
   { id: "fc_skid", categoryId: "hazard_awareness", front: "Rear wheels start to skid?", back: "Ease off the power and steer gently into the slide; avoid harsh braking or steering.", difficulty: 3 },
 ];
 
-/** Core (universal) flashcards plus the vehicle-code–specific cards. */
-export const FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS];
+/** Core (universal) flashcards plus the vehicle-code–specific and extra cards. */
+export const FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS];
 
 export const FLASHCARDS_BY_ID: Record<string, Flashcard> = Object.fromEntries(
   FLASHCARDS.map((f) => [f.id, f]),
