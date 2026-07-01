@@ -53,68 +53,139 @@ function Callout({
   );
 }
 
+/**
+ * Motorcycle diagram — pixel-faithful port of the approved "Motorcycle
+ * controls" design (front 3/4 illustration with realistic metal/lamp/tyre
+ * gradients, leader lines and labels). Fixed manual-style palette, not the
+ * app's theme variables — same treatment as the car diagram's static image.
+ */
 export function MotorcycleDiagram() {
   return (
     <svg
-      viewBox="0 0 680 440"
+      viewBox="0 0 560 270"
       className="mx-auto w-full max-w-2xl"
       role="img"
-      aria-label="Labelled diagram of a motorcycle's controls: clutch, mirror, front brake, handlebars, accelerator, indicator, gear lever and brake pedal"
+      aria-label="Labelled diagram of a motorcycle's controls: clutch, mirror, front brake, handlebars, accelerator, indicator, brake pedal and gear lever"
     >
-      {/* ── Motorcycle (front view) ─────────────────────────────── */}
-      {/* Engine / body block */}
-      <rect x="305" y="226" width="70" height="74" rx="14" fill={MUTED} stroke={BORDER} strokeWidth={2} />
-      {/* Fork legs */}
-      <line x1="322" y1="296" x2="318" y2="216" stroke={FG_SOFT} strokeWidth={8} strokeLinecap="round" />
-      <line x1="358" y1="296" x2="362" y2="216" stroke={FG_SOFT} strokeWidth={8} strokeLinecap="round" />
-      {/* Front wheel */}
-      <ellipse cx="340" cy="346" rx="54" ry="62" fill={FG_DARK} />
-      <ellipse cx="340" cy="346" rx="34" ry="40" fill={MUTED} stroke={BORDER} strokeWidth={2} />
-      <circle cx="340" cy="346" r="8" fill={FG_SOFT} />
-      {/* Front mudguard */}
-      <path d="M292 312 Q340 256 388 312" fill="none" stroke={FG_SOFT} strokeWidth={11} strokeLinecap="round" />
+      <defs>
+        <linearGradient id="mc-metal" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor="#f2f4f7" />
+          <stop offset="0.5" stopColor="#c3c9d2" />
+          <stop offset="1" stopColor="#8f97a3" />
+        </linearGradient>
+        <linearGradient id="mc-metalV" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#eef1f5" />
+          <stop offset="1" stopColor="#9aa2ad" />
+        </linearGradient>
+        <radialGradient id="mc-lamp" cx="0.4" cy="0.35" r="0.8">
+          <stop offset="0" stopColor="#fbfcfe" />
+          <stop offset="0.7" stopColor="#c7ccd4" />
+          <stop offset="1" stopColor="#8b929c" />
+        </radialGradient>
+        <radialGradient id="mc-tyre" cx="0.5" cy="0.4" r="0.7">
+          <stop offset="0" stopColor="#5c6169" />
+          <stop offset="1" stopColor="#1f2226" />
+        </radialGradient>
+      </defs>
 
-      {/* Cowl / fairing */}
-      <rect x="286" y="150" width="108" height="74" rx="26" fill={MUTED} stroke={BORDER} strokeWidth={2} />
-      {/* Windscreen */}
-      <path d="M300 152 Q340 110 380 152 Z" fill={CARD} stroke={BORDER} strokeWidth={2} />
-      {/* Headlight */}
-      <ellipse cx="340" cy="184" rx="38" ry="32" fill={CARD} stroke={BORDER} strokeWidth={2} />
-      <ellipse cx="340" cy="184" rx="24" ry="20" fill={MUTED} />
-      <ellipse cx="331" cy="176" rx="8" ry="6" fill={CARD} />
-      {/* Indicators (amber) */}
-      <ellipse cx="298" cy="214" rx="9" ry="6" fill={WARNING} stroke={BORDER} />
-      <ellipse cx="382" cy="214" rx="9" ry="6" fill={WARNING} stroke={BORDER} />
+      {/* ===== illustration (front 3/4 view) ===== */}
+      <g>
+        {/* rear body / seat receding */}
+        <path d="M243,120 C246,92 250,72 258,58 C264,50 274,50 279,60 C285,74 285,98 280,122 Z" fill="url(#mc-metalV)" stroke="#6f7783" strokeWidth={1} />
+        {/* fuel tank */}
+        <path d="M222,132 C224,110 236,98 255,98 C274,98 285,110 288,132 C288,150 274,158 255,158 C236,158 220,150 222,132 Z" fill="url(#mc-metal)" stroke="#6f7783" strokeWidth={1} />
+        {/* front wheel */}
+        <ellipse cx="252" cy="212" rx="30" ry="34" fill="url(#mc-tyre)" />
+        <ellipse cx="252" cy="212" rx="17" ry="20" fill="#b8bec7" stroke="#7d8590" strokeWidth={1} />
+        <ellipse cx="252" cy="212" rx="6" ry="7" fill="#8b929c" />
+        {/* front mudguard */}
+        <path d="M225,196 C230,168 240,150 252,150 C264,150 275,168 280,196 C272,182 262,176 252,176 C242,176 234,182 225,196 Z" fill="url(#mc-metal)" stroke="#6f7783" strokeWidth={1} />
+        {/* forks */}
+        <path d="M243,158 L237,192 M262,158 L268,192" stroke="#9aa2ad" strokeWidth={5} strokeLinecap="round" />
+        {/* headlight */}
+        <ellipse cx="252" cy="150" rx="20" ry="24" fill="url(#mc-lamp)" stroke="#6f7783" strokeWidth={1} />
+        <ellipse cx="252" cy="150" rx="12" ry="15" fill="#eef2f7" opacity={0.85} />
+        {/* instrument cluster */}
+        <ellipse cx="252" cy="118" rx="9" ry="8" fill="#3a3f47" stroke="#6f7783" strokeWidth={1} />
+        {/* handlebar */}
+        <path d="M252,128 C230,118 214,116 198,120 M252,128 C274,118 290,116 306,120" fill="none" stroke="#7f8791" strokeWidth={5} strokeLinecap="round" />
+        {/* grips */}
+        <rect x="182" y="115" width="20" height="9" rx="4" fill="#2f333a" transform="rotate(-8 192 119)" />
+        <rect x="302" y="115" width="20" height="9" rx="4" fill="#2f333a" transform="rotate(8 312 119)" />
+        {/* levers */}
+        <path d="M200,116 C210,110 220,110 228,114" fill="none" stroke="#8b929c" strokeWidth={2.5} strokeLinecap="round" />
+        <path d="M304,116 C294,110 284,110 276,114" fill="none" stroke="#8b929c" strokeWidth={2.5} strokeLinecap="round" />
+        {/* mirror stalks + heads */}
+        <path d="M196,118 C190,96 186,78 190,66" fill="none" stroke="#8b929c" strokeWidth={3} strokeLinecap="round" />
+        <path d="M308,118 C314,96 318,78 314,66" fill="none" stroke="#8b929c" strokeWidth={3} strokeLinecap="round" />
+        <ellipse cx="188" cy="60" rx="12" ry="9" fill="url(#mc-metalV)" stroke="#6f7783" strokeWidth={1} />
+        <ellipse cx="316" cy="60" rx="12" ry="9" fill="url(#mc-metalV)" stroke="#6f7783" strokeWidth={1} />
+        {/* indicator stalk (front) */}
+        <line x1="285" y1="126" x2="298" y2="150" stroke="#8b929c" strokeWidth={2.5} strokeLinecap="round" />
+        <ellipse cx="300" cy="153" rx="4.5" ry="4" fill="#e8a33d" stroke="#b07c26" strokeWidth={0.8} />
+        {/* gear lever (left foot) */}
+        <path d="M232,158 C224,178 216,196 210,206" fill="none" stroke="#8b929c" strokeWidth={3} strokeLinecap="round" />
+        <rect x="204" y="204" width="12" height="6" rx="3" fill="#2f333a" transform="rotate(-18 210 207)" />
+        {/* brake pedal (right foot) */}
+        <path d="M280,160 C290,180 298,196 304,206" fill="none" stroke="#8b929c" strokeWidth={3} strokeLinecap="round" />
+        <rect x="300" y="203" width="14" height="6" rx="3" fill="#3a3f47" transform="rotate(18 307 206)" />
+      </g>
 
-      {/* Handlebar */}
-      <path d="M165 162 Q260 140 340 152 Q420 140 515 162" fill="none" stroke={FG_SOFT} strokeWidth={9} strokeLinecap="round" />
-      {/* Grips */}
-      <rect x="150" y="150" width="44" height="22" rx="11" fill={FG_SOFT} />
-      <rect x="486" y="150" width="44" height="22" rx="11" fill={FG_SOFT} />
-      {/* Levers */}
-      <path d="M156 152 Q132 140 116 134" fill="none" stroke={FG_SOFT} strokeWidth={6} strokeLinecap="round" />
-      <path d="M524 152 Q548 140 564 134" fill="none" stroke={FG_SOFT} strokeWidth={6} strokeLinecap="round" />
-      {/* Mirrors */}
-      <line x1="168" y1="150" x2="154" y2="112" stroke={BORDER} strokeWidth={4} />
-      <ellipse cx="152" cy="104" rx="18" ry="11" fill={MUTED} stroke={BORDER} strokeWidth={2} />
-      <line x1="512" y1="150" x2="526" y2="112" stroke={BORDER} strokeWidth={4} />
-      <ellipse cx="528" cy="104" rx="18" ry="11" fill={MUTED} stroke={BORDER} strokeWidth={2} />
+      {/* ===== leader lines ===== */}
+      <g stroke="#333" strokeWidth={1} fill="none">
+        <line x1="120" y1="60" x2="196" y2="118" />
+        <line x1="255" y1="34" x2="200" y2="60" />
+        <line x1="440" y1="52" x2="308" y2="112" />
+        <line x1="150" y1="128" x2="205" y2="122" />
+        <line x1="415" y1="150" x2="322" y2="120" />
+        <line x1="245" y1="238" x2="300" y2="156" />
+        <line x1="420" y1="222" x2="310" y2="207" />
+        <line x1="135" y1="238" x2="208" y2="205" />
+      </g>
+      <g fill="#222">
+        <circle cx="196" cy="118" r="1.6" />
+        <circle cx="200" cy="60" r="1.6" />
+        <circle cx="308" cy="112" r="1.6" />
+        <circle cx="205" cy="122" r="1.6" />
+        <circle cx="322" cy="120" r="1.6" />
+        <circle cx="300" cy="156" r="1.6" />
+        <circle cx="310" cy="207" r="1.6" />
+        <circle cx="208" cy="205" r="1.6" />
+      </g>
 
-      {/* Foot pegs + controls */}
-      <rect x="262" y="298" width="22" height="8" rx="4" fill={FG_SOFT} />
-      <path d="M268 304 Q250 312 240 322" fill="none" stroke={FG_SOFT} strokeWidth={5} strokeLinecap="round" />
-      <rect x="396" y="298" width="22" height="8" rx="4" fill={FG_SOFT} />
-      <path d="M412 304 Q430 312 440 322" fill="none" stroke={FG_SOFT} strokeWidth={5} strokeLinecap="round" />
+      {/* ===== labels ===== */}
+      <g fontFamily="Arial, Helvetica, sans-serif" fill="#111">
+        <text x="118" y="42" textAnchor="end" fontSize={11} fontWeight={700}>CLUTCH</text>
+        <text x="118" y="54" textAnchor="end" fontSize={9.5}>To disengage</text>
+        <text x="118" y="65" textAnchor="end" fontSize={9.5}>the engine for</text>
+        <text x="118" y="76" textAnchor="end" fontSize={9.5}>gear change</text>
 
-      {/* ── Callouts ────────────────────────────────────────────── */}
-      <Callout toX={116} toY={134} x={26} y={72} title="CLUTCH" sub="Disengage to change gear" />
-      <Callout toX={205} toY={150} x={26} y={186} title="HANDLEBARS" sub="Steer the bike" />
-      <Callout toX={298} toY={214} x={26} y={300} title="INDICATOR" sub="Signal your turns" />
-      <Callout toX={240} toY={322} x={26} y={392} title="GEAR LEVER" sub="Select gears (foot)" />
-      <Callout toX={528} toY={104} x={420} y={56} title="MIRROR" sub="See behind" />
-      <Callout toX={564} toY={134} x={654} y={72} anchor="end" title="FRONT BRAKE" sub="Slow & stop" />
-      <Callout toX={515} toY={158} x={654} y={186} anchor="end" title="ACCELERATOR" sub="Twist to speed up / slow" />
-      <Callout toX={440} toY={322} x={654} y={392} anchor="end" title="BRAKE PEDAL" sub="Rear brake (foot)" />
+        <text x="255" y="28" textAnchor="middle" fontSize={11} fontWeight={700}>MIRROR</text>
+
+        <text x="452" y="42" fontSize={11} fontWeight={700}>FRONT BRAKE</text>
+        <text x="452" y="54" fontSize={9.5}>To control speed</text>
+        <text x="452" y="65" fontSize={9.5}>and stop</text>
+
+        <text x="118" y="108" textAnchor="end" fontSize={11} fontWeight={700}>HANDLEBARS</text>
+        <text x="118" y="120" textAnchor="end" fontSize={9.5}>To steer in a particular</text>
+        <text x="118" y="131" textAnchor="end" fontSize={9.5}>direction. Keep both hands</text>
+        <text x="118" y="142" textAnchor="end" fontSize={9.5}>on the handlebars except</text>
+        <text x="118" y="153" textAnchor="end" fontSize={9.5}>to give a hand signal</text>
+
+        <text x="430" y="140" fontSize={11} fontWeight={700}>ACCELERATOR</text>
+        <text x="430" y="152" fontSize={9.5}>To increase or</text>
+        <text x="430" y="163" fontSize={9.5}>decrease speed</text>
+
+        <text x="205" y="228" textAnchor="middle" fontSize={11} fontWeight={700}>INDICATOR</text>
+        <text x="205" y="240" textAnchor="middle" fontSize={9.5}>To signal your</text>
+        <text x="205" y="251" textAnchor="middle" fontSize={9.5}>intention to turn</text>
+
+        <text x="430" y="212" fontSize={11} fontWeight={700}>BRAKE PEDAL</text>
+        <text x="430" y="224" fontSize={9.5}>To control speed</text>
+
+        <text x="132" y="228" textAnchor="end" fontSize={11} fontWeight={700}>GEAR LEVER</text>
+        <text x="132" y="240" textAnchor="end" fontSize={9.5}>To select gears</text>
+      </g>
     </svg>
   );
 }

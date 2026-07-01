@@ -148,7 +148,15 @@ export function ControlsGuide() {
           <p className="mt-1 text-sm text-muted-foreground">
             Layouts differ between makes and models, but the function of each control is the same.
           </p>
-          <div className="mt-4 rounded-xl border border-border bg-background/40 p-3 sm:p-5">
+          <div
+            className={cn(
+              "mt-4 rounded-xl border border-border p-3 sm:p-5",
+              // The motorcycle diagram uses a fixed manual-style palette (like
+              // the car diagram's static image), so it needs a light backing
+              // for contrast in dark mode — the heavy diagram tracks theme.
+              isMoto ? "bg-white" : "bg-background/40",
+            )}
+          >
             {isMoto ? <MotorcycleDiagram /> : <HeavyDiagram />}
           </div>
         </Card>
