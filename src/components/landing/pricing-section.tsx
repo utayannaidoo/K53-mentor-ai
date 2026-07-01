@@ -42,7 +42,7 @@ export function PricingSection({
       {/* Toggles: vehicle class + billing cadence */}
       <div className="mt-2 flex flex-col items-center gap-3">
         {/* Vehicle-class toggle — the price depends on which licence you're after */}
-        <div className="relative inline-flex items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
+        <div className="relative inline-grid grid-cols-2 items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
           <span
             aria-hidden
             className="absolute left-[5px] top-[5px] z-0 h-[calc(100%-10px)] w-[calc(50%-5px)] rounded-full bg-card/95 shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)] transition-transform duration-[450ms] ease-spring"
@@ -51,21 +51,21 @@ export function PricingSection({
           <button
             type="button"
             onClick={() => setVc("car")}
-            className="relative z-10 rounded-full px-[22px] py-[9px] text-sm font-semibold text-foreground"
+            className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
           >
             Car
           </button>
           <button
             type="button"
             onClick={() => setVc("bike_heavy")}
-            className="relative z-10 rounded-full px-[22px] py-[9px] text-sm font-semibold text-foreground"
+            className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
           >
             Bike &amp; Heavy
           </button>
         </div>
 
         {/* Sliding monthly / annual toggle */}
-        <div className="relative inline-flex items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
+        <div className="relative inline-grid grid-cols-2 items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
           <span
             aria-hidden
             className="absolute left-[5px] top-[5px] z-0 h-[calc(100%-10px)] w-[calc(50%-5px)] rounded-full bg-card/95 shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)] transition-transform duration-[450ms] ease-spring"
@@ -74,14 +74,14 @@ export function PricingSection({
           <button
             type="button"
             onClick={() => setAnnual(false)}
-            className="relative z-10 rounded-full px-[22px] py-[9px] text-sm font-semibold text-foreground"
+            className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
           >
             Monthly
           </button>
           <button
             type="button"
             onClick={() => setAnnual(true)}
-            className="relative z-10 rounded-full px-[22px] py-[9px] text-sm font-semibold text-foreground"
+            className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
           >
             Annual <span className="text-[11px] text-success">save R20/mo</span>
           </button>
