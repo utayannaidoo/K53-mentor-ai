@@ -16,6 +16,7 @@ interface ProfileRow {
   goal: OnboardingData["goal"] | null;
   vehicle_code: OnboardingData["vehicleCode"] | null;
   test_date: string | null;
+  drivers_test_date: string | null;
   confidence: OnboardingData["confidence"] | null;
   knowledge_level: OnboardingData["knowledgeLevel"] | null;
   study_frequency: OnboardingData["studyFrequency"] | null;
@@ -60,6 +61,7 @@ export async function loadAccount(
           goal: p.goal ?? "learners",
           vehicleCode: p.vehicle_code ?? "8",
           testDate: p.test_date,
+          driversTestDate: p.drivers_test_date,
           confidence: p.confidence ?? 3,
           knowledgeLevel: p.knowledge_level ?? "some",
           studyFrequency: p.study_frequency ?? "steady",
@@ -102,6 +104,7 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
             goal: o.goal,
             vehicle_code: o.vehicleCode,
             test_date: o.testDate,
+            drivers_test_date: o.driversTestDate,
             confidence: o.confidence,
             knowledge_level: o.knowledgeLevel,
             study_frequency: o.studyFrequency,

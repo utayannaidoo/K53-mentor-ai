@@ -47,6 +47,7 @@ interface StudyStore {
   setTier: (tier: SubscriptionTier) => void;
   setVehicleClass: (vc: VehicleClass | null) => void;
   completeOnboarding: (data: Omit<OnboardingData, "completedAt">) => void;
+  updateOnboarding: (patch: Partial<Omit<OnboardingData, "completedAt">>) => void;
 
   recordDiagnostic: (result: DiagnosticResult) => void;
   reviewCard: (cardId: string, rating: SrsRating) => void;
@@ -203,6 +204,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         ...s,
         onboarding: { ...data, completedAt: new Date().toISOString() },
       })),
+
+    updateOnboarding: (patch) =>
+      setState((s) => (s.onboarding ? { ...s, onboarding: { ...s.onboarding, ...patch } } : s)),
 
     recordDiagnostic: (result) =>
       setState((s) => {

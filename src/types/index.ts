@@ -257,7 +257,8 @@ export type StudyFrequency = "casual" | "steady" | "intense";
 export interface OnboardingData {
   goal: LicenceGoal;
   vehicleCode: VehicleCode;
-  testDate: string | null; // ISO date or null ("not booked")
+  testDate: string | null; // ISO date or null ("not booked") — the learner's test date, or the only test date when goal isn't "both"
+  driversTestDate: string | null; // ISO date or null — only meaningful when goal === "both"
   confidence: ConfidenceLevel;
   knowledgeLevel: KnowledgeLevel;
   studyFrequency: StudyFrequency;

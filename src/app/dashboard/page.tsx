@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { CalendarClock, ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -10,10 +10,11 @@ import { TodayPlan } from "@/components/dashboard/today-plan";
 import { WeakAreas } from "@/components/dashboard/weak-areas";
 import { AiRecommendation } from "@/components/dashboard/ai-recommendation";
 import { TrendChart } from "@/components/dashboard/trend-chart";
+import { TestCountdown } from "@/components/dashboard/test-countdown";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { generateTodayPlan, isTaskDone } from "@/lib/plan";
 import { hasFeature } from "@/lib/billing/plans";
-import { daysUntil, cn, glass } from "@/lib/utils";
+import { cn, glass } from "@/lib/utils";
 import type { CategoryId } from "@/types";
 
 export default function DashboardPage() {
@@ -28,7 +29,6 @@ export default function DashboardPage() {
     : 0;
 
   const delta = weekDelta(state.readinessHistory, readiness.readiness);
-  const days = daysUntil(state.onboarding?.testDate);
   const firstName = state.profile?.name?.split(" ")[0] ?? "there";
 
   return (
@@ -38,19 +38,7 @@ export default function DashboardPage() {
         description="Here's exactly what to study today."
       />
 
-      {days !== null && days >= 0 && (
-        <Link
-          href="/study/mock-exam"
-          className="mb-5 flex items-center gap-3 rounded-lg border border-accent/30 bg-accent/[0.08] px-4 py-3 text-sm transition-colors hover:bg-accent/15"
-        >
-          <CalendarClock className="h-4 w-4 text-accent" />
-          <span className="font-medium text-foreground">
-            Your test is in {days} {days === 1 ? "day" : "days"}.
-          </span>
-          <span className="text-muted-foreground">Keep your daily plan going.</span>
-          <ArrowRight className="ml-auto h-4 w-4 text-muted-foreground" />
-        </Link>
-      )}
+      <TestCountdown onboarding={state.onboarding} />
 
       {!hasDiagnostic && (
         <Card className="mb-5 flex flex-wrap items-center justify-between gap-4 border-primary/20 bg-primary/[0.04] p-5">

@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { LogOut, CreditCard, Trash2, Gauge, Target, CalendarClock, Wifi } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
@@ -11,21 +12,18 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Switch } from "@/components/ui/switch";
+import { QuickProfileEdit, GOAL_LABEL } from "@/components/account/quick-profile-edit";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
 import { PLAN_MAP } from "@/lib/billing/plans";
 import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
 
-const GOAL_LABEL = {
-  learners: "Learner's licence",
-  drivers: "Driver's licence",
-  both: "Learner's + driver's",
-} as const;
-
-export default function AccountPage() {
+function AccountInner() {
   const router = useRouter();
+  const sp = useSearchParams();
   const { state, signOut, resetProgress } = useStudyStore();
   const [dataSaver, setDataSaver] = useDataSaver();
+  const [editOpen, setEditOpen] = React.useState(sp.get("edit") === "profile");
   const plan = PLAN_MAP[state.tier];
   const profile = state.profile;
   const onboarding = state.onboarding;
@@ -82,13 +80,25 @@ export default function AccountPage() {
             <Info icon={<Gauge className="h-4 w-4" />} label="Licence code" value={`Code ${onboarding.vehicleCode}`} />
             <Info
               icon={<CalendarClock className="h-4 w-4" />}
-              label="Test date"
+              label={onboarding.goal === "both" ? "Learner's test" : "Test date"}
               value={onboarding.testDate ? formatDate(onboarding.testDate) : "Not booked"}
             />
+            {onboarding.goal === "both" && (
+              <Info
+                icon={<CalendarClock className="h-4 w-4" />}
+                label="Driver's test"
+                value={onboarding.driversTestDate ? formatDate(onboarding.driversTestDate) : "Not booked"}
+              />
+            )}
           </div>
-          <Link href="/onboarding" className="mt-4 inline-block text-sm font-medium text-primary hover:underline">
+          <button
+            type="button"
+            onClick={() => setEditOpen(true)}
+            className="mt-4 text-sm font-medium text-primary hover:underline"
+          >
             Update study profile
-          </Link>
+          </button>
+          <QuickProfileEdit open={editOpen} onClose={() => setEditOpen(false)} />
         </Card>
       )}
 
@@ -127,6 +137,14 @@ export default function AccountPage() {
         </div>
       </Card>
     </div>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={null}>
+      <AccountInner />
+    </Suspense>
   );
 }
 

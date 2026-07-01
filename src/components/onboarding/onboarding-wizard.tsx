@@ -52,6 +52,8 @@ export function OnboardingWizard() {
   const [vehicleCode, setVehicleCode] = React.useState<VehicleCode | null>(null);
   const [testDate, setTestDate] = React.useState<string>("");
   const [noDate, setNoDate] = React.useState(false);
+  const [driversTestDate, setDriversTestDate] = React.useState<string>("");
+  const [noDriversDate, setNoDriversDate] = React.useState(false);
   const [priorAttempts, setPriorAttempts] = React.useState<number>(0);
   const [confidence, setConfidence] = React.useState<ConfidenceLevel | null>(null);
   const [knowledge, setKnowledge] = React.useState<KnowledgeLevel | null>(null);
@@ -72,6 +74,7 @@ export function OnboardingWizard() {
       goal: goal ?? "learners",
       vehicleCode: code,
       testDate: noDate ? null : testDate || null,
+      driversTestDate: goal === "both" ? (noDriversDate ? null : driversTestDate || null) : null,
       confidence: confidence ?? 3,
       knowledgeLevel: knowledge ?? "some",
       studyFrequency: frequency ?? "steady",
@@ -170,32 +173,68 @@ export function OnboardingWizard() {
             </Step>
           )}
 
-          {/* Step 3 — Test date */}
+          {/* Step 3 — Test date(s) */}
           {step === 3 && (
-            <Step title="When's your test?" subtitle="We'll build your plan backward from this date — even a rough guess helps.">
+            <Step
+              title={goal === "both" ? "When are your tests?" : "When's your test?"}
+              subtitle="We'll build your plan backward from this date — even a rough guess helps."
+            >
               <div className="space-y-4">
-                <Input
-                  type="date"
-                  value={testDate}
-                  onChange={(e) => {
-                    setTestDate(e.target.value);
-                    setNoDate(false);
-                  }}
-                  className="h-12 text-base"
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNoDate(true);
-                    setTestDate("");
-                  }}
-                  className={cn(
-                    "w-full rounded-lg border-2 py-3 text-sm font-medium transition-colors",
-                    noDate ? "border-primary bg-primary/[0.04] text-primary" : "border-border text-muted-foreground hover:border-primary/40",
+                <div>
+                  {goal === "both" && (
+                    <p className="mb-1.5 text-sm font-medium text-foreground">Learner&apos;s test date</p>
                   )}
-                >
-                  I haven&apos;t booked yet
-                </button>
+                  <Input
+                    type="date"
+                    value={testDate}
+                    onChange={(e) => {
+                      setTestDate(e.target.value);
+                      setNoDate(false);
+                    }}
+                    className="h-12 text-base"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNoDate(true);
+                      setTestDate("");
+                    }}
+                    className={cn(
+                      "mt-2 w-full rounded-lg border-2 py-3 text-sm font-medium transition-colors",
+                      noDate ? "border-primary bg-primary/[0.04] text-primary" : "border-border text-muted-foreground hover:border-primary/40",
+                    )}
+                  >
+                    I haven&apos;t booked yet
+                  </button>
+                </div>
+
+                {goal === "both" && (
+                  <div>
+                    <p className="mb-1.5 text-sm font-medium text-foreground">Driver&apos;s test date</p>
+                    <Input
+                      type="date"
+                      value={driversTestDate}
+                      onChange={(e) => {
+                        setDriversTestDate(e.target.value);
+                        setNoDriversDate(false);
+                      }}
+                      className="h-12 text-base"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setNoDriversDate(true);
+                        setDriversTestDate("");
+                      }}
+                      className={cn(
+                        "mt-2 w-full rounded-lg border-2 py-3 text-sm font-medium transition-colors",
+                        noDriversDate ? "border-primary bg-primary/[0.04] text-primary" : "border-border text-muted-foreground hover:border-primary/40",
+                      )}
+                    >
+                      I haven&apos;t booked yet
+                    </button>
+                  </div>
+                )}
 
                 <div className="pt-2">
                   <p className="mb-2 text-sm font-medium text-foreground">Have you taken this test before?</p>
@@ -208,7 +247,15 @@ export function OnboardingWizard() {
                   </div>
                 </div>
 
-                <Button size="lg" className="w-full" disabled={!testDate && !noDate} onClick={next}>
+                <Button
+                  size="lg"
+                  className="w-full"
+                  disabled={
+                    (!testDate && !noDate) ||
+                    (goal === "both" && !driversTestDate && !noDriversDate)
+                  }
+                  onClick={next}
+                >
                   Continue <ArrowRight />
                 </Button>
               </div>
