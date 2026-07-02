@@ -24,9 +24,9 @@ const GROUPS = [
   {
     title: "Legal",
     links: [
-      { href: "#", label: "Privacy policy" },
-      { href: "#", label: "Terms of service" },
-      { href: "#", label: "Content sources" },
+      { href: "/privacy", label: "Privacy policy" },
+      { href: "/terms", label: "Terms of service" },
+      { href: "/sources", label: "Content sources" },
     ],
   },
 ];
