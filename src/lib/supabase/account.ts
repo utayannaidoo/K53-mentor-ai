@@ -96,6 +96,9 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
   if (!user) return;
 
   const o = state.onboarding;
+  // Note: the subscription tier is deliberately NOT written here. Tier is
+  // server-managed (Stripe webhook / signup trigger), and RLS blocks client
+  // writes to subscriptions so a user can't self-grant a paid plan.
   await Promise.all([
     supabase.from("profiles").upsert({
       id: user.id,
@@ -117,9 +120,6 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
         : {}),
       last_active_at: new Date().toISOString(),
     }),
-    supabase
-      .from("subscriptions")
-      .upsert({ user_id: user.id, tier: state.tier }, { onConflict: "user_id" }),
     supabase.from("streaks").upsert(
       {
         user_id: user.id,

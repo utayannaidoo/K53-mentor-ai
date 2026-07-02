@@ -2,6 +2,7 @@ import Stripe from "stripe";
 import { z } from "zod";
 import { isStripeConfigured, isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
+import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
 import { SITE_URL } from "@/lib/constants";
 
 export const runtime = "nodejs";
@@ -17,6 +18,14 @@ const schema = z.object({
  * When configured, it creates a real Checkout Session.
  */
 export async function POST(req: Request) {
+  const rl = await limitCheckout(clientIp(req));
+  if (!rl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   let plan: "premium" | "premium_plus";
   let track: "car" | "bike_heavy" | undefined;
   try {

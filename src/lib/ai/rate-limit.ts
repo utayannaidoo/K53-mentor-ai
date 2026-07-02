@@ -24,6 +24,7 @@ const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests 
 
 let burst: Ratelimit | null = null;
 let daily: Ratelimit | null = null;
+let checkout: Ratelimit | null = null;
 
 if (hasUpstash) {
   const redis = Redis.fromEnv();
@@ -37,6 +38,12 @@ if (hasUpstash) {
     redis,
     limiter: Ratelimit.fixedWindow(DAILY_LIMIT, "1 d"),
     prefix: "k53:tutor:day",
+    analytics: false,
+  });
+  checkout = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(10, "60 s"),
+    prefix: "k53:checkout",
     analytics: false,
   });
 }
@@ -70,6 +77,29 @@ export interface LimitResult {
 
 /** Whether real (Redis-backed) limiting is active. Useful for diagnostics. */
 export const rateLimitBackend: "upstash" | "memory" = hasUpstash ? "upstash" : "memory";
+
+/** Best-effort client IP from proxy headers (set by the hosting platform). */
+export function clientIp(req: Request): string {
+  const xff = req.headers.get("x-forwarded-for");
+  if (xff) return xff.split(",")[0].trim();
+  return req.headers.get("x-real-ip")?.trim() || "anon";
+}
+
+/** Modest per-IP limit for checkout-session creation (10/min). */
+export async function limitCheckout(ip: string): Promise<LimitResult> {
+  try {
+    if (checkout) {
+      const r = await checkout.limit(ip);
+      return r.success
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
+    }
+    return memLimit(`checkout:${ip}`, 10, 60_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return { success: true, retryAfter: 0 };
+  }
+}
 
 /** Apply burst + daily limits for a client IP. Fails open on limiter errors. */
 export async function limitTutor(ip: string): Promise<LimitResult> {

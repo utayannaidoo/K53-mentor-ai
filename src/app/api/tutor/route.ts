@@ -3,7 +3,7 @@ import { TUTOR_PERSONA, buildGroundingText, resolveContext } from "@/lib/ai/tuto
 import { localTutorReply } from "@/lib/ai/fallback";
 import { retrieveRelated } from "@/lib/ai/retrieve";
 import { streamTutorReply } from "@/lib/ai/provider";
-import { limitTutor } from "@/lib/ai/rate-limit";
+import { clientIp, limitTutor } from "@/lib/ai/rate-limit";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 
@@ -31,12 +31,6 @@ const bodySchema = z.object({
   /** Short, client-built, non-PII learner profile for personalisation. */
   profile: z.string().max(400).optional(),
 });
-
-function clientIp(req: Request): string {
-  const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  return req.headers.get("x-real-ip")?.trim() || "anon";
-}
 
 export async function POST(req: Request) {
   // Require a signed-in user (prod only; demo runs without a backend).

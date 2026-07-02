@@ -12,8 +12,9 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") ?? "/dashboard";
-  // Only allow same-site relative redirects.
-  const safeNext = next.startsWith("/") ? next : "/dashboard";
+  // Only allow same-site relative redirects: a single leading slash, so
+  // protocol-relative ("//host") and scheme-ish ("/\") values are rejected.
+  const safeNext = /^\/(?![/\\])/.test(next) ? next : "/dashboard";
 
   if (code) {
     const supabase = await createClient();
