@@ -28,6 +28,18 @@ import {
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
+import { countDueFlashcards, generateTodayPlan, isTaskDone } from "@/lib/plan";
+import {
+  computeRankIndex,
+  flashcardCp,
+  isFirstCorrect,
+  questionCp,
+  DIAGNOSTIC_CP,
+  MOCK_COMPLETION_CP,
+  MOCK_PASS_BONUS_CP,
+  PLAN_COMPLETE_CP,
+  SCENARIO_CP,
+} from "@/lib/engagement";
 import { uid } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { loadAccount, saveAccount } from "@/lib/supabase/account";
@@ -59,7 +71,15 @@ interface StudyStore {
     context?: StudyContext;
   }) => void;
   recordScenarioAttempt: (a: Omit<ScenarioAttempt, "id" | "at">) => void;
-  recordMockExam: (m: Omit<MockExamAttempt, "id" | "at">) => void;
+  recordMockExam: (
+    m: Omit<MockExamAttempt, "id" | "at">,
+    responses?: {
+      questionId: string;
+      categoryId: CategoryId;
+      correct: boolean;
+      selectedIndex: number;
+    }[],
+  ) => void;
   recordSession: (type: SessionType, durationSeconds: number) => void;
   toggleDriverStep: (moduleId: string, stepN: number) => void;
 
@@ -72,6 +92,8 @@ interface StudyStore {
 
   bumpUsage: (kind: UsageKind, by?: number) => void;
   usageFor: (kind: UsageKind) => { used: number; cap: number; allowed: boolean };
+  acknowledgeRankUp: () => void;
+  dismissComeback: () => void;
   resetProgress: () => void;
 }
 
@@ -84,16 +106,67 @@ const CAP_KEY: Record<UsageKind, CapKey | null> = {
   scenarios: null, // gated by feature flag, not a daily cap
 };
 
-/** Touch the streak and snapshot today's readiness — shared by all study actions. */
+/**
+ * Shared by all study actions: touch the streak, snapshot today's readiness,
+ * grant the once-a-day plan-complete CP bonus, and promote the Driver Rank
+ * (monotonic — queued as pendingRankUp for the celebration toast).
+ */
 function applyStudyEffects(state: UserState, now = new Date()): UserState {
   const streak = touchStreak(state.streak, now);
-  const withStreak = { ...state, streak };
-  const { readiness } = computeReadiness(withStreak);
+  let s: UserState = { ...state, streak };
+  const breakdown = computeReadiness(s);
   const date = todayKey(now);
-  const history = withStreak.readinessHistory.filter((h) => h.date !== date);
-  history.push({ date, readiness });
+
+  if (s.planBonusDate !== date) {
+    // A due mock retest joins the plan but never gates the daily bonus — a
+    // 60-minute exam shouldn't hold the everyday +15 CP hostage.
+    const tasks = generateTodayPlan(s, breakdown, now).filter((t) => t.type !== "mock");
+    if (tasks.every((t) => isTaskDone(t, s, now))) {
+      s = { ...s, cp: s.cp + PLAN_COMPLETE_CP, planBonusDate: date };
+    }
+  }
+
+  const rankIndex = computeRankIndex({
+    cp: s.cp,
+    readiness: breakdown.readiness,
+    hasPassedMock: s.mockExams.some((m) => m.passed),
+  });
+  if (rankIndex > s.rankAchieved) {
+    s = { ...s, rankAchieved: rankIndex, pendingRankUp: rankIndex };
+  }
+
+  const history = s.readinessHistory.filter((h) => h.date !== date);
+  history.push({ date, readiness: breakdown.readiness });
   history.sort((a, b) => a.date.localeCompare(b.date));
-  return { ...withStreak, readinessHistory: history.slice(-90) };
+  return { ...s, readinessHistory: history.slice(-90) };
+}
+
+/** Gap after which returning gets a "while you were away" summary. */
+const COMEBACK_GAP_DAYS = 3;
+
+/**
+ * Runs once per app open: if the last visit was 3+ days ago, queue the
+ * comeback diff (positively framed — progress held, reviews waiting), then
+ * refresh the lastSeen snapshot.
+ */
+function withArrivalEffects(s: UserState, now = new Date()): UserState {
+  const readinessNow = computeReadiness(s).readiness;
+  let next = s;
+  if (s.lastSeen) {
+    const daysAway = Math.floor((now.getTime() - Date.parse(s.lastSeen.at)) / 86_400_000);
+    if (daysAway >= COMEBACK_GAP_DAYS) {
+      next = {
+        ...next,
+        pendingComeback: {
+          daysAway,
+          readinessThen: s.lastSeen.readiness,
+          readinessNow,
+          dueCards: countDueFlashcards(s, now),
+        },
+      };
+    }
+  }
+  return { ...next, lastSeen: { at: now.toISOString(), readiness: readinessNow } };
 }
 
 export function StudyStoreProvider({ children }: { children: React.ReactNode }) {
@@ -104,7 +177,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
   // Hydrate from localStorage on the client only (avoids SSR mismatch).
   React.useEffect(() => {
-    setState(loadState());
+    setState(withArrivalEffects(loadState()));
     setReady(true);
   }, []);
 
@@ -127,7 +200,13 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       }
       try {
         const account = await loadAccount(supabase, user);
-        if (!cancelled) setState((s) => ({ ...s, ...account }));
+        if (!cancelled)
+          setState((s) => {
+            const next = { ...s, ...account };
+            // CP only ever grows — never let a stale server row roll it back.
+            if (account.cp != null) next.cp = Math.max(s.cp, account.cp);
+            return next;
+          });
       } catch {
         // Network/RLS hiccup — keep whatever the local cache holds.
       }
@@ -225,6 +304,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
           ...s,
           diagnostics: [...s.diagnostics, result],
           attempts: s.attempts, // diagnostic responses are recorded separately as attempts
+          cp: s.cp + DIAGNOSTIC_CP,
         };
         return applyStudyEffects(next);
       }),
@@ -233,7 +313,11 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       setState((s) => {
         const prev = s.cardStates[cardId] ?? initialCardState(cardId);
         const updated = scheduleCard(prev, rating);
-        let next: UserState = { ...s, cardStates: { ...s.cardStates, [cardId]: updated } };
+        let next: UserState = {
+          ...s,
+          cardStates: { ...s.cardStates, [cardId]: updated },
+          cp: s.cp + flashcardCp(prev, rating),
+        };
         next = bumpUsageState(next, "flashcards");
         return applyStudyEffects(next);
       }),
@@ -246,7 +330,11 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
           context: a.context ?? "practice",
           ...a,
         };
-        let next: UserState = { ...s, attempts: [...s.attempts, attempt] };
+        let next: UserState = {
+          ...s,
+          attempts: [...s.attempts, attempt],
+          cp: s.cp + questionCp(a.questionId, a.correct, isFirstCorrect(s.attempts, a.questionId)),
+        };
         if (attempt.context === "practice") next = bumpUsageState(next, "questions");
         return applyStudyEffects(next);
       }),
@@ -254,15 +342,39 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     recordScenarioAttempt: (a) =>
       setState((s) => {
         const attempt: ScenarioAttempt = { id: uid("scn"), at: new Date().toISOString(), ...a };
-        let next: UserState = { ...s, scenarioAttempts: [...s.scenarioAttempts, attempt] };
+        let next: UserState = {
+          ...s,
+          scenarioAttempts: [...s.scenarioAttempts, attempt],
+          cp: s.cp + (a.correct ? SCENARIO_CP : 0),
+        };
         next = bumpUsageState(next, "scenarios");
         return applyStudyEffects(next);
       }),
 
-    recordMockExam: (m) =>
+    recordMockExam: (m, responses = []) =>
       setState((s) => {
-        const exam: MockExamAttempt = { id: uid("mock"), at: new Date().toISOString(), ...m };
-        return applyStudyEffects({ ...s, mockExams: [...s.mockExams, exam] });
+        const at = new Date().toISOString();
+        const exam: MockExamAttempt = { id: uid("mock"), at, ...m };
+        // Per-question answers also land in `attempts` (context "mock") so the
+        // live readiness model and weak-area ranking learn from every mock.
+        const mockAttempts = responses.map((r) => ({
+          id: uid("att"),
+          at,
+          context: "mock" as const,
+          ...r,
+        }));
+        let gained = MOCK_COMPLETION_CP + (m.passed ? MOCK_PASS_BONUS_CP : 0);
+        const seen: { questionId: string; correct: boolean }[] = [...s.attempts];
+        for (const r of responses) {
+          gained += questionCp(r.questionId, r.correct, isFirstCorrect(seen, r.questionId));
+          seen.push({ questionId: r.questionId, correct: r.correct });
+        }
+        return applyStudyEffects({
+          ...s,
+          mockExams: [...s.mockExams, exam],
+          attempts: [...s.attempts, ...mockAttempts],
+          cp: s.cp + gained,
+        });
       }),
 
     recordSession: (type, durationSeconds) =>
@@ -326,6 +438,11 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       const cap = capKey ? dailyCap(state.tier, capKey) : Infinity;
       return { used, cap, allowed: used < cap };
     },
+
+    acknowledgeRankUp: () => setState((s) => (s.pendingRankUp === null ? s : { ...s, pendingRankUp: null })),
+
+    dismissComeback: () =>
+      setState((s) => (s.pendingComeback === null ? s : { ...s, pendingComeback: null })),
 
     resetProgress: () => setState(() => defaultUserState()),
   };

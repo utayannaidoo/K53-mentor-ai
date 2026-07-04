@@ -8,7 +8,7 @@ import type { OnboardingData, Profile, Streak, SubscriptionTier, UserState } fro
  * the local store and is not yet mirrored here — see SESSION notes.
  */
 
-type AccountData = Pick<UserState, "profile" | "onboarding" | "tier" | "streak">;
+type AccountData = Pick<UserState, "profile" | "onboarding" | "tier" | "streak" | "cp">;
 
 interface ProfileRow {
   full_name: string | null;
@@ -32,6 +32,7 @@ interface StreakRow {
   last_study_date: string | null;
   freezes_remaining: number | null;
   freeze_refreshed_week: string | null;
+  cp: number | null;
 }
 
 /** Read the signed-in user's account rows and map them into store shape. */
@@ -84,8 +85,26 @@ export async function loadAccount(
       freezesRemaining: st.freezes_remaining ?? 1,
       freezeRefreshedWeek: st.freeze_refreshed_week,
     } satisfies Streak;
+    if (st.cp != null) result.cp = st.cp;
   }
   return result;
+}
+
+/**
+ * Snapshot of the client-side SM-2 schedule, synced onto the streaks row so
+ * the notification cron can send due-review reminders without the full card
+ * state. Refreshed on every study action (the streak object changes identity,
+ * which re-triggers the debounced sync).
+ */
+function dueSummary(state: UserState, now = new Date()): { due_cards: number; next_due_at: string | null } {
+  const studied = Object.values(state.cardStates).filter((c) => c.reps > 0 || c.lapses > 0);
+  const endOfToday = new Date(now);
+  endOfToday.setHours(23, 59, 59, 999);
+  const dueCards = studied.filter((c) => new Date(c.due) <= endOfToday).length;
+  const nextDue = studied.length
+    ? studied.reduce((min, c) => (c.due < min ? c.due : min), studied[0].due)
+    : null;
+  return { due_cards: dueCards, next_due_at: nextDue };
 }
 
 /** Upsert the store's account-tier data back to Supabase for the signed-in user. */
@@ -128,6 +147,8 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
         last_study_date: state.streak.lastStudyDate,
         freezes_remaining: state.streak.freezesRemaining,
         freeze_refreshed_week: state.streak.freezeRefreshedWeek,
+        cp: state.cp,
+        ...dueSummary(state),
       },
       { onConflict: "user_id" },
     ),

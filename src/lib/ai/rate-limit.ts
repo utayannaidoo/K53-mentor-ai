@@ -22,9 +22,16 @@ const BURST_LIMIT = Number(process.env.TUTOR_BURST_LIMIT ?? 8); // requests
 const BURST_WINDOW_S = Number(process.env.TUTOR_BURST_WINDOW_S ?? 10); // seconds
 const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests / day
 
+const COACH_DAILY_LIMIT = Number(process.env.COACH_DAILY_IP_LIMIT ?? 80); // requests / day
+const VISION_DAILY_LIMIT = Number(process.env.VISION_DAILY_IP_LIMIT ?? 20); // scans / day (priciest calls)
+
 let burst: Ratelimit | null = null;
 let daily: Ratelimit | null = null;
 let checkout: Ratelimit | null = null;
+let coachBurst: Ratelimit | null = null;
+let coachDaily: Ratelimit | null = null;
+let visionBurst: Ratelimit | null = null;
+let visionDaily: Ratelimit | null = null;
 
 if (hasUpstash) {
   const redis = Redis.fromEnv();
@@ -44,6 +51,30 @@ if (hasUpstash) {
     redis,
     limiter: Ratelimit.slidingWindow(10, "60 s"),
     prefix: "k53:checkout",
+    analytics: false,
+  });
+  coachBurst = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(6, "10 s"),
+    prefix: "k53:coach:burst",
+    analytics: false,
+  });
+  coachDaily = new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(COACH_DAILY_LIMIT, "1 d"),
+    prefix: "k53:coach:day",
+    analytics: false,
+  });
+  visionBurst = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(4, "60 s"),
+    prefix: "k53:vision:burst",
+    analytics: false,
+  });
+  visionDaily = new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(VISION_DAILY_LIMIT, "1 d"),
+    prefix: "k53:vision:day",
     analytics: false,
   });
 }
@@ -95,6 +126,52 @@ export async function limitCheckout(ip: string): Promise<LimitResult> {
         : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
     }
     return memLimit(`checkout:${ip}`, 10, 60_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return { success: true, retryAfter: 0 };
+  }
+}
+
+/** Burst + daily limits for the coach route (recaps / plan rationale). */
+export async function limitCoach(ip: string): Promise<LimitResult> {
+  try {
+    if (coachBurst && coachDaily) {
+      const b = await coachBurst.limit(ip);
+      if (!b.success) {
+        return { success: false, retryAfter: Math.max(1, Math.ceil((b.reset - Date.now()) / 1000)) };
+      }
+      const d = await coachDaily.limit(ip);
+      if (!d.success) {
+        return { success: false, retryAfter: Math.max(1, Math.ceil((d.reset - Date.now()) / 1000)) };
+      }
+      return { success: true, retryAfter: 0 };
+    }
+    const b = memLimit(`coach:burst:${ip}`, 6, 10_000);
+    if (!b.success) return b;
+    return memLimit(`coach:day:${ip}`, COACH_DAILY_LIMIT, 86_400_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return { success: true, retryAfter: 0 };
+  }
+}
+
+/** Vision scans: 4/min burst, tight daily cap — these are the priciest calls. */
+export async function limitVision(ip: string): Promise<LimitResult> {
+  try {
+    if (visionBurst && visionDaily) {
+      const b = await visionBurst.limit(ip);
+      if (!b.success) {
+        return { success: false, retryAfter: Math.max(1, Math.ceil((b.reset - Date.now()) / 1000)) };
+      }
+      const d = await visionDaily.limit(ip);
+      if (!d.success) {
+        return { success: false, retryAfter: Math.max(1, Math.ceil((d.reset - Date.now()) / 1000)) };
+      }
+      return { success: true, retryAfter: 0 };
+    }
+    const b = memLimit(`vision:burst:${ip}`, 4, 60_000);
+    if (!b.success) return b;
+    return memLimit(`vision:day:${ip}`, VISION_DAILY_LIMIT, 86_400_000);
   } catch (err) {
     console.error("rate-limit error", err);
     return { success: true, retryAfter: 0 };

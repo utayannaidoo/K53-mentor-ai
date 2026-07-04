@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Sparkles,
+  Zap,
 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -18,9 +19,12 @@ import { Card } from "@/components/ui/card";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
+import { SessionRecap } from "@/components/study/session-recap";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
+import { countDueTomorrow } from "@/lib/plan";
 import { SCENARIOS } from "@/lib/content/scenarios";
+import type { SessionRecapData } from "@/lib/ai/coach";
 import { forCode } from "@/lib/content/vehicle";
 import { categoryName } from "@/lib/content/categories";
 import { shuffle, cn } from "@/lib/utils";
@@ -34,6 +38,7 @@ export function ScenarioPlayer() {
     })),
   );
   const startRef = React.useRef(Date.now());
+  const cpStartRef = React.useRef(state.cp);
   const [i, setI] = React.useState(0);
   const [chosen, setChosen] = React.useState<(string | null)[]>(() =>
     new Array(queue.length).fill(null),
@@ -59,7 +64,26 @@ export function ScenarioPlayer() {
   }, 0);
 
   if (i >= queue.length) {
-    return <Summary correct={correctCount} total={queue.length} />;
+    const wrongCats = queue
+      .filter((sc, idx) => {
+        const c = sc.choices.find((ch) => ch.id === chosen[idx]);
+        return !c?.correct;
+      })
+      .map((sc) => categoryName(sc.categoryId));
+    return (
+      <Summary
+        correct={correctCount}
+        total={queue.length}
+        cpEarned={state.cp - cpStartRef.current}
+        recap={{
+          mode: "scenarios",
+          correct: correctCount,
+          total: queue.length,
+          weakCategories: [...new Set(wrongCats)].slice(0, 2),
+          dueTomorrow: countDueTomorrow(state),
+        }}
+      />
+    );
   }
 
   const sc = queue[i];
@@ -233,7 +257,17 @@ function NavButton({
   );
 }
 
-function Summary({ correct, total }: { correct: number; total: number }) {
+function Summary({
+  correct,
+  total,
+  cpEarned,
+  recap,
+}: {
+  correct: number;
+  total: number;
+  cpEarned: number;
+  recap: SessionRecapData;
+}) {
   return (
     <div className="mx-auto max-w-md py-10">
       <Card className="animate-scale-in p-8 text-center">
@@ -242,12 +276,20 @@ function Summary({ correct, total }: { correct: number; total: number }) {
           <span className="text-muted-foreground">/{total}</span>
         </p>
         <p className="mt-2 text-sm text-muted-foreground">scenarios judged correctly</p>
+        {cpEarned > 0 && (
+          <div className="mt-3 flex justify-center">
+            <Badge variant="default" className="gap-1 font-mono text-sm">
+              <Zap className="h-3.5 w-3.5" /> +{cpEarned} CP
+            </Badge>
+          </div>
+        )}
         <div className="mt-6 flex justify-center gap-3">
           <Link href="/dashboard" className={cn(buttonVariants())}>
             Back to dashboard
           </Link>
         </div>
       </Card>
+      <SessionRecap data={recap} className="mt-5" />
     </div>
   );
 }

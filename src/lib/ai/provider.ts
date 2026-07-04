@@ -65,6 +65,90 @@ export function modelFor(provider: Provider, userText: string): string {
   return "local";
 }
 
+/** Image media types both providers accept as base64/data-URI input. */
+export type VisionMediaType = "image/jpeg" | "image/png" | "image/webp" | "image/gif";
+
+export interface AttachedImage {
+  /** Raw base64 (no data: prefix). */
+  data: string;
+  mediaType: VisionMediaType;
+}
+
+/**
+ * One-shot vision completion (sign scanner). Uses the fast model tier — both
+ * Haiku and gpt-4o-mini are vision-capable. Returns null on any failure or
+ * when only the local provider is available (no offline vision exists).
+ */
+export async function completeVisionText(args: {
+  system: string;
+  userText: string;
+  image: AttachedImage;
+  maxTokens?: number;
+}): Promise<{ text: string; model: string } | null> {
+  const provider = chooseProvider();
+  const maxTokens = args.maxTokens ?? 400;
+
+  try {
+    if (provider === "anthropic") {
+      const client = anthropic()!;
+      const model = process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001";
+      const res = await client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        temperature: 0.3,
+        system: args.system,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: { type: "base64", media_type: args.image.mediaType, data: args.image.data },
+              },
+              { type: "text", text: args.userText },
+            ],
+          },
+        ],
+      });
+      const text = res.content
+        .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
+        .map((b) => b.text)
+        .join("")
+        .trim();
+      return text ? { text, model } : null;
+    }
+
+    if (provider === "openai") {
+      const client = openai()!;
+      const model = process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini";
+      const res = await client.chat.completions.create({
+        model,
+        max_tokens: maxTokens,
+        temperature: 0.3,
+        messages: [
+          { role: "system", content: args.system },
+          {
+            role: "user",
+            content: [
+              {
+                type: "image_url",
+                image_url: { url: `data:${args.image.mediaType};base64,${args.image.data}` },
+              },
+              { type: "text", text: args.userText },
+            ],
+          },
+        ],
+      });
+      const text = res.choices[0]?.message?.content?.trim();
+      return text ? { text, model } : null;
+    }
+  } catch (err) {
+    console.error("vision provider error", err);
+  }
+
+  return null;
+}
+
 export interface StreamArgs {
   /** Stable, cacheable persona block. */
   persona: string;
@@ -76,6 +160,8 @@ export interface StreamArgs {
   userText: string;
   /** Precomputed rule-based reply, used if no key is set or a call fails. */
   localReply: string;
+  /** Optional photo attached to the LAST user message (tutor image input). */
+  image?: AttachedImage;
 }
 
 function localStream(text: string): ReadableStream<Uint8Array> {
@@ -85,6 +171,60 @@ function localStream(text: string): ReadableStream<Uint8Array> {
       controller.close();
     },
   });
+}
+
+/**
+ * One-shot, non-streaming completion for short coach copy (plan rationale,
+ * session recaps). Always uses the fast/cheap model tier. Returns null on any
+ * failure so callers fall back to their local template.
+ */
+export async function completeCoachText(args: {
+  system: string;
+  user: string;
+  maxTokens?: number;
+}): Promise<{ text: string; model: string } | null> {
+  const provider = chooseProvider();
+  const maxTokens = args.maxTokens ?? 160;
+
+  try {
+    if (provider === "anthropic") {
+      const client = anthropic()!;
+      const model = process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001";
+      const res = await client.messages.create({
+        model,
+        max_tokens: maxTokens,
+        temperature: 0.5,
+        system: args.system,
+        messages: [{ role: "user", content: args.user }],
+      });
+      const text = res.content
+        .filter((b): b is Extract<typeof b, { type: "text" }> => b.type === "text")
+        .map((b) => b.text)
+        .join("")
+        .trim();
+      return text ? { text, model } : null;
+    }
+
+    if (provider === "openai") {
+      const client = openai()!;
+      const model = process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini";
+      const res = await client.chat.completions.create({
+        model,
+        max_tokens: maxTokens,
+        temperature: 0.5,
+        messages: [
+          { role: "system", content: args.system },
+          { role: "user", content: args.user },
+        ],
+      });
+      const text = res.choices[0]?.message?.content?.trim();
+      return text ? { text, model } : null;
+    }
+  } catch (err) {
+    console.error("coach provider error", err);
+  }
+
+  return null;
 }
 
 export async function streamTutorReply(
@@ -101,12 +241,30 @@ export async function streamTutorReply(
         { type: "text" as const, text: args.persona, cache_control: { type: "ephemeral" as const } },
         ...(args.grounding ? [{ type: "text" as const, text: args.grounding }] : []),
       ];
+      const lastUserIdx = args.messages.length - 1;
       const events = client.messages.stream({
         model,
         max_tokens: MAX_TOKENS,
         temperature: TEMPERATURE,
         system,
-        messages: args.messages.map((m) => ({ role: m.role, content: m.content })),
+        messages: args.messages.map((m, i) =>
+          args.image && i === lastUserIdx && m.role === "user"
+            ? {
+                role: "user" as const,
+                content: [
+                  {
+                    type: "image" as const,
+                    source: {
+                      type: "base64" as const,
+                      media_type: args.image.mediaType,
+                      data: args.image.data,
+                    },
+                  },
+                  { type: "text" as const, text: m.content },
+                ],
+              }
+            : { role: m.role, content: m.content },
+        ),
       });
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
@@ -130,6 +288,7 @@ export async function streamTutorReply(
     if (provider === "openai") {
       const client = openai()!;
       const system = args.grounding ? `${args.persona}\n\n${args.grounding}` : args.persona;
+      const lastUserIdx = args.messages.length - 1;
       const completion = await client.chat.completions.create({
         model,
         temperature: TEMPERATURE,
@@ -137,7 +296,20 @@ export async function streamTutorReply(
         stream: true,
         messages: [
           { role: "system", content: system },
-          ...args.messages.map((m) => ({ role: m.role, content: m.content })),
+          ...args.messages.map((m, i) =>
+            args.image && i === lastUserIdx && m.role === "user"
+              ? {
+                  role: "user" as const,
+                  content: [
+                    {
+                      type: "image_url" as const,
+                      image_url: { url: `data:${args.image.mediaType};base64,${args.image.data}` },
+                    },
+                    { type: "text" as const, text: m.content },
+                  ],
+                }
+              : { role: m.role, content: m.content },
+          ),
         ],
       });
       const stream = new ReadableStream<Uint8Array>({

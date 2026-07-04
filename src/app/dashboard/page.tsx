@@ -4,18 +4,19 @@ import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
-import { TodayPlan } from "@/components/dashboard/today-plan";
+import { CoachPlan } from "@/components/dashboard/coach-plan";
+import { ComebackCard } from "@/components/dashboard/comeback-card";
+import { RoadProgress } from "@/components/engagement/road-progress";
 import { WeakAreas } from "@/components/dashboard/weak-areas";
-import { AiRecommendation } from "@/components/dashboard/ai-recommendation";
 import { TrendChart } from "@/components/dashboard/trend-chart";
 import { TestCountdown } from "@/components/dashboard/test-countdown";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { generateTodayPlan, isTaskDone } from "@/lib/plan";
+import { countDueFlashcards, generateTodayPlan, isTaskDone, planFocus } from "@/lib/plan";
+import { categoryName } from "@/lib/content/categories";
 import { hasFeature } from "@/lib/billing/plans";
-import { cn, glass } from "@/lib/utils";
-import type { CategoryId } from "@/types";
+import { cn, daysUntil, glass } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { state, readiness, hasDiagnostic } = useStudyStore();
@@ -23,10 +24,17 @@ export default function DashboardPage() {
   const tasks = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(tasks.map((t) => [t.id, isTaskDone(t, state)]));
 
-  const weakest = readiness.weakCategories[0] ?? null;
-  const missCount = weakest
-    ? state.attempts.filter((a) => a.categoryId === weakest && !a.correct).length
-    : 0;
+  const focus = planFocus(state, readiness);
+  const rationaleInput = {
+    firstName: state.profile?.name?.split(" ")[0],
+    weakestCategory: focus.categoryId ? categoryName(focus.categoryId) : undefined,
+    weakestPct:
+      focus.categoryId && !focus.fromWorry ? readiness.perCategory[focus.categoryId] : undefined,
+    fromWorry: focus.fromWorry,
+    dueCards: countDueFlashcards(state),
+    daysToTest: daysUntil(state.onboarding?.testDate ?? null),
+    streak: state.streak.current,
+  };
 
   const delta = weekDelta(state.readinessHistory, readiness.readiness);
   const firstName = state.profile?.name?.split(" ")[0] ?? "there";
@@ -39,6 +47,8 @@ export default function DashboardPage() {
       />
 
       <TestCountdown onboarding={state.onboarding} />
+
+      <ComebackCard />
 
       {!hasDiagnostic && (
         <Card className="mb-5 flex flex-wrap items-center justify-between gap-4 border-primary/20 bg-primary/[0.04] p-5">
@@ -57,22 +67,30 @@ export default function DashboardPage() {
         </Card>
       )}
 
+      <CoachPlan
+        tasks={tasks}
+        doneMap={doneMap}
+        scenariosUnlocked={hasFeature(state.tier, "scenarios")}
+        rationaleInput={rationaleInput}
+      />
+
+      <RoadProgress
+        compact
+        rankAchieved={state.rankAchieved}
+        inputs={{
+          cp: state.cp,
+          readiness: readiness.readiness,
+          hasPassedMock: state.mockExams.some((m) => m.passed),
+        }}
+      />
+
       <div className="grid gap-5 lg:grid-cols-2">
         <ReadinessCard
           readiness={readiness.readiness}
           passProbability={readiness.passProbability}
           delta={delta}
         />
-        <TodayPlan
-          tasks={tasks}
-          doneMap={doneMap}
-          scenariosUnlocked={hasFeature(state.tier, "scenarios")}
-        />
-      </div>
-
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
         <WeakAreas perCategory={readiness.perCategory} />
-        <AiRecommendation category={weakest} missCount={missCount} />
       </div>
 
       <Card className={cn(glass, "mt-5 p-6")}>

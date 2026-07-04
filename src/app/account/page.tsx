@@ -13,6 +13,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Switch } from "@/components/ui/switch";
 import { QuickProfileEdit, GOAL_LABEL } from "@/components/account/quick-profile-edit";
+import { EmailRemindersToggle } from "@/components/account/email-reminders-toggle";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
 import { PLAN_MAP, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
@@ -115,7 +116,7 @@ function AccountInner() {
           </div>
           <ThemeToggle />
         </div>
-        <div className="flex items-center justify-between pt-4">
+        <div className="flex items-center justify-between py-4">
           <div className="flex items-start gap-2">
             <Wifi className="mt-0.5 h-4 w-4 text-muted-foreground" />
             <div>
@@ -125,6 +126,7 @@ function AccountInner() {
           </div>
           <Switch checked={dataSaver} onChange={setDataSaver} label="Data saver" />
         </div>
+        <EmailRemindersToggle />
       </Card>
 
       {/* Danger zone */}

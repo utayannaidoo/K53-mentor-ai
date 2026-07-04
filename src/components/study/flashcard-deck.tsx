@@ -3,16 +3,20 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { X, RotateCw, CheckCircle2, Sparkles, PartyPopper } from "lucide-react";
+import { X, RotateCw, CheckCircle2, Sparkles, PartyPopper, Zap, Mic, MicOff } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { useSpeechInput } from "@/hooks/use-speech-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
+import { SessionRecap } from "@/components/study/session-recap";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { selectFlashcardQueue } from "@/lib/plan";
+import { countDueTomorrow, selectFlashcardQueue } from "@/lib/plan";
+import type { SessionRecapData } from "@/lib/ai/coach";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
 import { initialCardState, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
 import { categoryName } from "@/lib/content/categories";
@@ -44,9 +48,15 @@ export function FlashcardDeck() {
     }),
   );
   const startRef = React.useRef(Date.now());
+  const cpStartRef = React.useRef(state.cp);
   const [i, setI] = React.useState(0);
   const [flipped, setFlipped] = React.useState(false);
   const [reviewed, setReviewed] = React.useState(0);
+  const [againCount, setAgainCount] = React.useState(0);
+  // Active recall: the learner commits to an answer (typed or dictated) before
+  // the reveal, so the self-rating is honest. Always optional — never a gate.
+  const [attempt, setAttempt] = React.useState("");
+  const speech = useSpeechInput((t) => setAttempt((a) => (a ? `${a} ${t}` : t)));
 
   // Daily cap reached (free tier).
   if (Number.isFinite(cap.cap) && cap.used >= cap.cap) {
@@ -66,7 +76,21 @@ export function FlashcardDeck() {
   }
 
   if (i >= queue.length) {
-    return <Completion reviewed={reviewed} seconds={Math.round((Date.now() - startRef.current) / 1000)} />;
+    const seconds = Math.round((Date.now() - startRef.current) / 1000);
+    return (
+      <Completion
+        reviewed={reviewed}
+        seconds={seconds}
+        cpEarned={state.cp - cpStartRef.current}
+        recap={{
+          mode: "flashcards",
+          total: reviewed,
+          seconds,
+          againCount,
+          dueTomorrow: countDueTomorrow(state),
+        }}
+      />
+    );
   }
 
   const card = queue[i];
@@ -76,7 +100,9 @@ export function FlashcardDeck() {
   function rate(rating: SrsRating) {
     reviewCard(card.id, rating);
     setReviewed((r) => r + 1);
+    if (rating === "again") setAgainCount((n) => n + 1);
     setFlipped(false);
+    setAttempt("");
     const nextI = i + 1;
     if (nextI >= queue.length) {
       recordSession("flashcards", Math.round((Date.now() - startRef.current) / 1000));
@@ -129,6 +155,14 @@ export function FlashcardDeck() {
             <Badge variant="secondary" className="w-fit gap-1">
               <CategoryIcon id={card.categoryId} className="h-3 w-3" /> Answer
             </Badge>
+            {attempt.trim() && (
+              <div className="mt-3 rounded-lg bg-muted/60 px-3 py-2">
+                <p className="text-2xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Your answer
+                </p>
+                <p className="mt-0.5 text-sm text-foreground">{attempt}</p>
+              </div>
+            )}
             <p className="mt-4 flex-1 text-lg leading-relaxed text-foreground">{card.back}</p>
             <Link
               href={`/tutor?card=${card.id}`}
@@ -159,9 +193,36 @@ export function FlashcardDeck() {
             ))}
           </div>
         ) : (
-          <Button size="lg" className="w-full" onClick={() => setFlipped(true)}>
-            Reveal answer
-          </Button>
+          <form
+            className="space-y-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              setFlipped(true);
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <Input
+                value={attempt}
+                onChange={(e) => setAttempt(e.target.value)}
+                placeholder="Answer in your own words first (optional)"
+                className="flex-1"
+              />
+              {speech.supported && (
+                <Button
+                  type="button"
+                  variant={speech.listening ? "default" : "outline"}
+                  size="icon"
+                  onClick={speech.toggle}
+                  aria-label={speech.listening ? "Stop listening" : "Say your answer"}
+                >
+                  {speech.listening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                </Button>
+              )}
+            </div>
+            <Button type="submit" size="lg" className="w-full">
+              Reveal answer
+            </Button>
+          </form>
         )}
       </div>
       <p className="mt-3 text-center text-xs text-muted-foreground">
@@ -197,7 +258,17 @@ function CaughtUp({ categoryParam }: { categoryParam?: CategoryId }) {
   );
 }
 
-function Completion({ reviewed, seconds }: { reviewed: number; seconds: number }) {
+function Completion({
+  reviewed,
+  seconds,
+  cpEarned,
+  recap,
+}: {
+  reviewed: number;
+  seconds: number;
+  cpEarned: number;
+  recap: SessionRecapData;
+}) {
   return (
     <div className="mx-auto max-w-md py-10">
       <EmptyState
@@ -216,6 +287,14 @@ function Completion({ reviewed, seconds }: { reviewed: number; seconds: number }
         }
         className="animate-scale-in"
       />
+      {cpEarned > 0 && (
+        <div className="mt-4 flex justify-center">
+          <Badge variant="default" className="gap-1 font-mono text-sm">
+            <Zap className="h-3.5 w-3.5" /> +{cpEarned} CP
+          </Badge>
+        </div>
+      )}
+      <SessionRecap data={recap} className="mt-5" />
     </div>
   );
 }
