@@ -2,17 +2,19 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Flame, Clock, Target, CheckCircle2, Award, Lock, FileText, Sparkles } from "lucide-react";
+import { Flame, Clock, Target, CheckCircle2, Award, Lock, FileText, Sparkles, Zap } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MasteryBar } from "@/components/ui/mastery-bar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { TrendChart } from "@/components/dashboard/trend-chart";
-import { CategoryIcon } from "@/components/shared/category-icon";
+import { RoadProgress } from "@/components/engagement/road-progress";
+import { MasteryMap } from "@/components/engagement/mastery-map";
+import { DrivingPassport } from "@/components/engagement/driving-passport";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { CATEGORIES, categoryName } from "@/lib/content/categories";
+import { categoryName } from "@/lib/content/categories";
+import { bestStudyTime, mostImproved } from "@/lib/insights";
 import { hasFeature } from "@/lib/billing/plans";
 import { formatDuration, formatDate, cn, glass, glassSubtle } from "@/lib/utils";
 import type { CategoryId } from "@/types";
@@ -26,10 +28,6 @@ export default function ProgressPage() {
   const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
   const advanced = hasFeature(state.tier, "advancedAnalytics");
 
-  const ranked = (Object.keys(readiness.perCategory) as CategoryId[]).sort(
-    (a, b) => readiness.perCategory[a] - readiness.perCategory[b],
-  );
-
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title="Progress" description="Your readiness, mastery and study habits over time." />
@@ -42,8 +40,18 @@ export default function ProgressPage() {
         <StatTile icon={<Clock className="h-4 w-4" />} label="Time studied" value={formatDuration(totalSeconds)} />
         <StatTile icon={<Target className="h-4 w-4" />} label="Questions" value={`${answered}`} />
         <StatTile icon={<Sparkles className="h-4 w-4" />} label="Predicted pass" value={`${readiness.passProbability}%`} tone="text-success" />
-        <StatTile icon={<Award className="h-4 w-4" />} label="Streak freezes" value={`${state.streak.freezesRemaining}`} />
+        <StatTile icon={<Zap className="h-4 w-4" />} label="Confidence Points" value={`${state.cp}`} tone="text-primary" />
       </div>
+
+      <RoadProgress
+        className="mt-5"
+        rankAchieved={state.rankAchieved}
+        inputs={{
+          cp: state.cp,
+          readiness: readiness.readiness,
+          hasPassedMock: state.mockExams.some((m) => m.passed),
+        }}
+      />
 
       <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Readiness over time</h2>
@@ -53,20 +61,18 @@ export default function ProgressPage() {
       </Card>
 
       <Card className={cn(glass, "mt-5 p-6")}>
-        <h2 className="font-display text-lg font-semibold">Category mastery</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Sorted weakest-first — start at the top.</p>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2">
-          {ranked.map((cat) => (
-            <Link key={cat} href={`/study/questions?category=${cat}`} className="group block">
-              <MasteryBar
-                label={<span className="group-hover:text-primary">{categoryName(cat)}</span>}
-                value={readiness.perCategory[cat]}
-                icon={<CategoryIcon id={cat} className="h-4 w-4 text-muted-foreground" />}
-              />
-            </Link>
-          ))}
+        <h2 className="font-display text-lg font-semibold">Mastery Map</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Rings track sustained mastery, not one good quiz. 90%+ stamps the category.
+        </p>
+        <div className="mt-5">
+          <MasteryMap perCategory={readiness.perCategory} />
         </div>
       </Card>
+
+      <div className="mt-5">
+        <DrivingPassport perCategory={readiness.perCategory} />
+      </div>
 
       <Card className={cn(glass, "mt-5 p-6")}>
         <div className="flex items-center justify-between">
@@ -114,8 +120,20 @@ export default function ProgressPage() {
         </div>
         {advanced ? (
           <div className="mt-4 grid gap-4 sm:grid-cols-3 text-sm">
-            <Insight label="Most-improved" value={ranked[ranked.length - 1] ? categoryName(ranked[ranked.length - 1]) : "—"} />
-            <Insight label="Best study time" value="Evenings" />
+            <Insight
+              label="Most improved"
+              value={(() => {
+                const m = mostImproved(state.attempts);
+                return m ? `${categoryName(m.categoryId)} +${m.delta}%` : "Not enough data yet";
+              })()}
+            />
+            <Insight
+              label="Sharpest time of day"
+              value={(() => {
+                const t = bestStudyTime(state.attempts);
+                return t ? `${t.label} · ${t.accuracy}%` : "Not enough data yet";
+              })()}
+            />
             <Insight label="Avg. session" value={state.sessions.length ? formatDuration(totalSeconds / state.sessions.length) : "—"} />
           </div>
         ) : (

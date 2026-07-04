@@ -1,7 +1,9 @@
 import type { DailyUsage, Streak, UserState } from "@/types";
+import { computeRankIndex, endowCp } from "@/lib/engagement";
+import { computeReadiness } from "@/lib/diagnostic/scoring";
 
 export const STORAGE_KEY = "k53mentor.state.v1";
-export const STATE_VERSION = 1;
+export const STATE_VERSION = 2;
 
 export function todayKey(now = new Date()): string {
   return now.toISOString().slice(0, 10);
@@ -42,6 +44,12 @@ export function defaultUserState(): UserState {
     tutorThreads: [],
     dailyUsage: {},
     readinessHistory: [],
+    cp: 0,
+    rankAchieved: 0,
+    pendingRankUp: null,
+    planBonusDate: null,
+    lastSeen: null,
+    pendingComeback: null,
   };
 }
 
@@ -52,7 +60,20 @@ export function loadState(): UserState {
     if (!raw) return defaultUserState();
     const parsed = JSON.parse(raw) as UserState;
     // Shallow-merge against defaults so new fields don't break old saves.
-    return { ...defaultUserState(), ...parsed };
+    const merged = { ...defaultUserState(), ...parsed };
+    // v1 → v2: grant Confidence Points for everything already done (endowed
+    // progress — an existing user's first sight of CP is their banked work).
+    if ((parsed.version ?? 1) < 2) {
+      merged.cp = endowCp(merged);
+      merged.rankAchieved = computeRankIndex({
+        cp: merged.cp,
+        readiness: computeReadiness(merged).readiness,
+        hasPassedMock: merged.mockExams.some((m) => m.passed),
+      });
+      merged.pendingRankUp = null;
+      merged.version = STATE_VERSION;
+    }
+    return merged;
   } catch {
     return defaultUserState();
   }
@@ -67,7 +88,8 @@ export function saveState(state: UserState) {
   }
 }
 
-function daysBetween(a: string, b: string): number {
+/** Whole days between two yyyy-mm-dd keys (b - a). */
+export function daysBetween(a: string, b: string): number {
   const da = new Date(a + "T00:00:00Z").getTime();
   const db = new Date(b + "T00:00:00Z").getTime();
   return Math.round((db - da) / 86400000);

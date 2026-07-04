@@ -319,4 +319,21 @@ export interface UserState {
   tutorThreads: TutorThread[];
   dailyUsage: Record<string, DailyUsage>;
   readinessHistory: { date: string; readiness: number }[];
+  /** Confidence Points — difficulty-weighted, retention-proving score (src/lib/engagement.ts). */
+  cp: number;
+  /** Highest Driver Rank index ever reached — monotonic, never regresses. */
+  rankAchieved: number;
+  /** Rank index of an unseen rank-up celebration, cleared on acknowledgement. */
+  pendingRankUp: number | null;
+  /** Day (yyyy-mm-dd) the daily plan-complete CP bonus was last granted. */
+  planBonusDate: string | null;
+  /** Snapshot from the previous app open — powers the "while you were away" diff. */
+  lastSeen: { at: string; readiness: number } | null;
+  /** Unacknowledged comeback summary after a 3+ day gap, cleared on dismiss. */
+  pendingComeback: {
+    daysAway: number;
+    readinessThen: number;
+    readinessNow: number;
+    dueCards: number;
+  } | null;
 }

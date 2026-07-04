@@ -63,6 +63,29 @@ export function sampleDiagnostic(
   return shuffle(picked).map(withShuffledOptions);
 }
 
+/**
+ * Mini mock: a 15-question pressure check with the real test's pass ratio
+ * (12/15 ≈ the official 77%). Weighted toward the learner's weakest
+ * categories so it doubles as targeted revision.
+ */
+export const MINI_MOCK = { total: 15, passMark: 12, seconds: 12 * 60 };
+
+export function sampleMiniMock(
+  attempts: QuestionAttempt[] = [],
+  code?: VehicleCode,
+  weakCategories: CategoryId[] = [],
+): Question[] {
+  const bank = forCode(QUESTIONS, code);
+  const weakSet = new Set(weakCategories.slice(0, 3));
+  const weakPool = bank.filter((q) => weakSet.has(q.categoryId));
+  const restPool = bank.filter((q) => !weakSet.has(q.categoryId));
+  // ~60% weak-category questions, the rest spread across everything else.
+  const targetWeak = weakSet.size > 0 ? Math.min(9, weakPool.length) : 0;
+  const picked = orderByFreshness(weakPool, attempts).slice(0, targetWeak);
+  picked.push(...orderByFreshness(restPool, attempts).slice(0, MINI_MOCK.total - picked.length));
+  return shuffle(picked).map(withShuffledOptions);
+}
+
 /** Maps the seven study categories onto the three official exam sections. */
 export type ExamSection = keyof typeof EXAM_FORMAT.sections;
 export const SECTION_OF: Record<CategoryId, ExamSection> = {

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Send, Plus, Sparkles, MessageSquareText, Lightbulb } from "lucide-react";
+import { Send, Plus, Sparkles, MessageSquareText, Lightbulb, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
@@ -13,6 +13,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate } from "@/lib/utils";
 import { defaultTutorPrompt, type TutorContextType } from "@/lib/ai/tutor-prompt";
 import { buildLearnerProfile } from "@/lib/ai/learner-profile";
+import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
 import { Markdown } from "@/components/tutor/markdown";
 
 export interface InitialContext {
@@ -33,6 +34,7 @@ const OPEN_CHIPS = [
   "How do four-way stops work?",
   "Explain the two-second rule",
   "When must I dip my headlights?",
+  "I'll describe a road situation — tell me what K53 expects",
 ];
 
 export function TutorChat({ initial }: { initial: InitialContext | null }) {
@@ -47,6 +49,13 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   const [loading, setLoading] = React.useState(false);
   // Text of the assistant reply as it streams in, before it's committed to the store.
   const [streaming, setStreaming] = React.useState<string | null>(null);
+  // Photo attached to the next message. Sent to the API but never persisted —
+  // a base64 photo per message would blow out localStorage.
+  const [pendingImage, setPendingImage] = React.useState<{
+    image: EncodedImage;
+    previewUrl: string;
+  } | null>(null);
+  const fileRef = React.useRef<HTMLInputElement>(null);
   const initRef = React.useRef(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
@@ -77,7 +86,8 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   }, [messages.length, loading, streaming]);
 
   async function send(text: string) {
-    const content = text.trim();
+    const attached = pendingImage;
+    const content = text.trim() || (attached ? "What does this show, and what should I do?" : "");
     if (!content || loading) return;
     if (blocked) return;
 
@@ -91,8 +101,10 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
       });
       setThreadId(id);
     }
-    appendTutorMessage(id, { role: "user", content });
+    // The 📷 marker keeps the photo visible in history without persisting it.
+    appendTutorMessage(id, { role: "user", content: attached ? `📷 ${content}` : content });
     setInput("");
+    setPendingImage(null);
     setLoading(true);
     setStreaming("");
 
@@ -105,6 +117,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
           messages: history,
           context: sessionCtx ? { type: sessionCtx.type, id: sessionCtx.id } : { type: "none" },
           profile: buildLearnerProfile(state) ?? undefined,
+          image: attached?.image,
         }),
       });
 
@@ -298,6 +311,25 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   </Chip>
                 ))}
               </div>
+              {pendingImage && (
+                <div className="mb-2.5 flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={pendingImage.previewUrl}
+                    alt="Attached photo"
+                    className="h-14 w-14 rounded-lg border border-border object-cover"
+                  />
+                  <span className="text-xs text-muted-foreground">Photo attached — ask about it</span>
+                  <button
+                    type="button"
+                    onClick={() => setPendingImage(null)}
+                    aria-label="Remove photo"
+                    className="ml-auto text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -305,13 +337,47 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                 }}
                 className="flex items-center gap-2"
               >
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    e.target.value = "";
+                    if (!file) return;
+                    try {
+                      const image = await fileToScaledBase64(file);
+                      setPendingImage({
+                        image,
+                        previewUrl: `data:${image.mediaType};base64,${image.data}`,
+                      });
+                    } catch {
+                      /* unreadable file — leave composer as-is */
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => fileRef.current?.click()}
+                  aria-label="Attach a photo"
+                >
+                  <ImagePlus className="h-4 w-4" />
+                </Button>
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask the tutor..."
+                  placeholder={pendingImage ? "Ask about the photo..." : "Ask the tutor..."}
                   className="flex-1"
                 />
-                <Button type="submit" size="icon" disabled={!input.trim() || loading} aria-label="Send">
+                <Button
+                  type="submit"
+                  size="icon"
+                  disabled={(!input.trim() && !pendingImage) || loading}
+                  aria-label="Send"
+                >
                   <Send className="h-4 w-4" />
                 </Button>
               </form>

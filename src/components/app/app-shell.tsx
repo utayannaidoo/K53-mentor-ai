@@ -15,8 +15,11 @@ import {
   Flame,
   Sparkles,
   Lock,
+  Zap,
 } from "lucide-react";
 import { Logo, LogoMark } from "@/components/shared/logo";
+import { StreakBanner } from "@/components/app/streak-banner";
+import { RankUpToast } from "@/components/engagement/rank-up-toast";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { PageLoader } from "@/components/shared/page-loader";
 import { Avatar } from "@/components/ui/avatar";
@@ -126,6 +129,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             Good to see you, <span className="font-medium text-foreground">{firstName}</span>
           </p>
           <div className="flex items-center gap-2">
+            <Badge variant="default" className="gap-1 font-mono">
+              <Zap className="h-3 w-3" />
+              {state.cp} CP
+            </Badge>
             <Badge variant="accent" className="gap-1">
               <Flame className="h-3 w-3" />
               {state.streak.current} {state.streak.current === 1 ? "day" : "days"}
@@ -137,7 +144,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-10">{children}</main>
+        <main className="flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-10">
+          <StreakBanner />
+          {children}
+        </main>
+        <RankUpToast />
       </div>
 
       {/* Mobile bottom nav */}

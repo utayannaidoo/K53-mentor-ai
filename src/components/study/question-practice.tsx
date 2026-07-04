@@ -3,15 +3,19 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { X, Check, ChevronLeft, ChevronRight, CornerDownRight, Sparkles, Target } from "lucide-react";
+import { X, Check, ChevronLeft, ChevronRight, CornerDownRight, Sparkles, Target, Zap } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
+import { SessionRecap } from "@/components/study/session-recap";
+import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
+import { countDueTomorrow } from "@/lib/plan";
 import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
+import type { SessionRecapData } from "@/lib/ai/coach";
 import { forCode } from "@/lib/content/vehicle";
 import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
 import { categoryName } from "@/lib/content/categories";
@@ -36,6 +40,7 @@ export function QuestionPractice() {
     return orderByFreshness(pool, state.attempts).slice(0, limit).map(withShuffledOptions);
   });
   const startRef = React.useRef(Date.now());
+  const cpStartRef = React.useRef(state.cp);
   const [i, setI] = React.useState(0);
   const [answers, setAnswers] = React.useState<(number | null)[]>(() =>
     new Array(queue.length).fill(null),
@@ -60,11 +65,31 @@ export function QuestionPractice() {
   );
 
   if (i >= queue.length) {
+    const seconds = Math.round((Date.now() - startRef.current) / 1000);
+    const wrongByCat = new Map<CategoryId, number>();
+    queue.forEach((q, idx) => {
+      if (answers[idx] !== q.correctIndex) {
+        wrongByCat.set(q.categoryId, (wrongByCat.get(q.categoryId) ?? 0) + 1);
+      }
+    });
+    const weakCategories = [...wrongByCat.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([c]) => categoryName(c));
     return (
       <Summary
         correct={correctCount}
         total={queue.length}
-        seconds={Math.round((Date.now() - startRef.current) / 1000)}
+        seconds={seconds}
+        cpEarned={state.cp - cpStartRef.current}
+        recap={{
+          mode: "questions",
+          correct: correctCount,
+          total: queue.length,
+          seconds,
+          weakCategories,
+          dueTomorrow: countDueTomorrow(state),
+        }}
       />
     );
   }
@@ -190,12 +215,15 @@ export function QuestionPractice() {
                         </span>
                         {q.explanation}
                         {!isCorrect && (
-                          <Link
-                            href={`/tutor?question=${q.id}`}
-                            className="mt-2 flex items-center gap-1.5 font-medium text-primary hover:underline"
-                          >
-                            <Sparkles className="h-4 w-4" /> Ask the tutor why
-                          </Link>
+                          <>
+                            <Link
+                              href={`/tutor?question=${q.id}`}
+                              className="mt-2 flex items-center gap-1.5 font-medium text-primary hover:underline"
+                            >
+                              <Sparkles className="h-4 w-4" /> Ask the tutor why
+                            </Link>
+                            <SecondOpinion key={q.id} question={q} chosenIndex={selected} />
+                          </>
                         )}
                       </div>
                     </div>
@@ -244,7 +272,19 @@ function NavButton({
   );
 }
 
-function Summary({ correct, total, seconds }: { correct: number; total: number; seconds: number }) {
+function Summary({
+  correct,
+  total,
+  seconds,
+  cpEarned,
+  recap,
+}: {
+  correct: number;
+  total: number;
+  seconds: number;
+  cpEarned: number;
+  recap: SessionRecapData;
+}) {
   const acc = total ? Math.round((correct / total) * 100) : 0;
   return (
     <div className="mx-auto max-w-md py-10">
@@ -254,6 +294,13 @@ function Summary({ correct, total, seconds }: { correct: number; total: number; 
           <span className="text-muted-foreground">/{total}</span>
         </p>
         <p className="mt-2 text-sm text-muted-foreground">{acc}% accuracy this session</p>
+        {cpEarned > 0 && (
+          <div className="mt-3 flex justify-center">
+            <Badge variant="default" className="gap-1 font-mono text-sm">
+              <Zap className="h-3.5 w-3.5" /> +{cpEarned} CP
+            </Badge>
+          </div>
+        )}
         <div className="mt-6 flex justify-center gap-3">
           <Link href="/study/questions" className={cn(buttonVariants({ variant: "outline" }))}>
             Practice more
@@ -263,6 +310,7 @@ function Summary({ correct, total, seconds }: { correct: number; total: number; 
           </Link>
         </div>
       </Card>
+      <SessionRecap data={recap} className="mt-5" />
     </div>
   );
 }

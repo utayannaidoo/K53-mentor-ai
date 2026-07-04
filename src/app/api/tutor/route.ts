@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TUTOR_PERSONA, buildGroundingText, resolveContext } from "@/lib/ai/tutor-prompt";
 import { localTutorReply } from "@/lib/ai/fallback";
 import { retrieveRelated } from "@/lib/ai/retrieve";
-import { streamTutorReply } from "@/lib/ai/provider";
+import { chooseProvider, streamTutorReply } from "@/lib/ai/provider";
 import { clientIp, limitTutor } from "@/lib/ai/rate-limit";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -30,6 +30,13 @@ const bodySchema = z.object({
     .optional(),
   /** Short, client-built, non-PII learner profile for personalisation. */
   profile: z.string().max(400).optional(),
+  /** Photo attached to the latest user message (downscaled client-side). */
+  image: z
+    .object({
+      data: z.string().min(100).max(5_600_000),
+      mediaType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+    })
+    .optional(),
 });
 
 export async function POST(req: Request) {
@@ -60,7 +67,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { messages, context, profile } = parsed;
+  const { messages, context, profile, image } = parsed;
   const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
 
   // ── Grounding: anchored item + retrieved related facts + learner profile ───
@@ -71,7 +78,12 @@ export async function POST(req: Request) {
     related,
     profile: profile ?? null,
   });
-  const localReply = localTutorReply(lastUser, context);
+  // No offline vision exists — if a photo arrives with no provider, be honest
+  // and coach the workaround instead of ignoring the image.
+  const localReply =
+    image && chooseProvider() === "local"
+      ? "I can't look at photos right now — the AI provider is unavailable. Describe what you see (shape, colour, any symbols or words) and I'll identify it from that."
+      : localTutorReply(lastUser, context);
 
   // ── History trimming (keep recent turns, ensure it starts with a user msg) ─
   let trimmed = messages.slice(-MAX_TURNS);
@@ -84,6 +96,7 @@ export async function POST(req: Request) {
     messages: trimmed,
     userText: lastUser,
     localReply,
+    image,
   });
 
   return new Response(stream, {
