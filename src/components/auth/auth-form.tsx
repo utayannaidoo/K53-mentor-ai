@@ -103,18 +103,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         </Button>
       </form>
 
-      <div className="my-5 flex items-center gap-3 text-2xs uppercase tracking-wide text-muted-foreground">
-        <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-      </div>
-
-      <Button type="button" variant="outline" size="lg" className="w-full" onClick={continueAsGuest}>
-        Continue as demo guest
-      </Button>
-
+      {/* Guest access is a demo-only convenience — in production every user
+          signs up, so tier and usage always have a real account behind them. */}
       {!isSupabaseConfigured && (
-        <p className="mt-3 text-center text-2xs text-muted-foreground">
-          Demo mode — any email &amp; password works, and your progress saves to this browser.
-        </p>
+        <>
+          <div className="my-5 flex items-center gap-3 text-2xs uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+          </div>
+
+          <Button type="button" variant="outline" size="lg" className="w-full" onClick={continueAsGuest}>
+            Continue as demo guest
+          </Button>
+
+          <p className="mt-3 text-center text-2xs text-muted-foreground">
+            Demo mode — any email &amp; password works, and your progress saves to this browser.
+          </p>
+        </>
       )}
 
       <p className="mt-6 text-center text-sm text-muted-foreground">

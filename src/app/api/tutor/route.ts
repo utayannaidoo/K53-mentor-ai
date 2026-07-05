@@ -3,9 +3,8 @@ import { TUTOR_PERSONA, buildGroundingText, resolveContext } from "@/lib/ai/tuto
 import { localTutorReply } from "@/lib/ai/fallback";
 import { retrieveRelated } from "@/lib/ai/retrieve";
 import { chooseProvider, streamTutorReply } from "@/lib/ai/provider";
-import { clientIp, limitTutor } from "@/lib/ai/rate-limit";
-import { isSupabaseConfigured } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
+import { clientIp, limitTutor, limitUserDaily } from "@/lib/ai/rate-limit";
+import { resolveEntitlement } from "@/lib/billing/entitlements.server";
 
 export const runtime = "nodejs";
 
@@ -40,16 +39,9 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
-  // Require a signed-in user (prod only; demo runs without a backend).
-  if (isSupabaseConfigured) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-  }
+  // Auth + paid-tier entitlement (server truth; demo mode skips inside).
+  const ent = await resolveEntitlement("tutor");
+  if (ent instanceof Response) return ent;
 
   let parsed;
   try {
@@ -58,13 +50,22 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  // ── Rate limiting (abuse / cost guard) ─────────────────────────────────────
+  // ── Rate limiting: per-IP abuse guard, then the per-user plan allowance ────
   const rl = await limitTutor(clientIp(req));
   if (!rl.success) {
     return Response.json(
       { error: "rate_limited", retryAfter: rl.retryAfter },
       { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
     );
+  }
+  if (ent.userId) {
+    const cap = await limitUserDaily("tutor", ent.userId, ent.allowance);
+    if (!cap.success) {
+      return Response.json(
+        { error: "daily_cap", tier: ent.tier, retryAfter: cap.retryAfter },
+        { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
+      );
+    }
   }
 
   const { messages, context, profile, image } = parsed;

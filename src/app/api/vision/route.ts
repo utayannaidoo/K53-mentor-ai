@@ -1,8 +1,7 @@
 import { z } from "zod";
 import { completeVisionText, chooseProvider } from "@/lib/ai/provider";
-import { clientIp, limitVision } from "@/lib/ai/rate-limit";
-import { isSupabaseConfigured } from "@/lib/env";
-import { createClient } from "@/lib/supabase/server";
+import { clientIp, limitVision, limitUserDaily } from "@/lib/ai/rate-limit";
+import { resolveEntitlement } from "@/lib/billing/entitlements.server";
 
 export const runtime = "nodejs";
 
@@ -61,14 +60,13 @@ function parseScan(text: string): ScanResult | null {
 }
 
 export async function POST(req: Request) {
-  if (isSupabaseConfigured) {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
-    if (!user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+  // Auth + paid-tier entitlement. Vision is a paid feature: the free tier's
+  // allowance is 0, so an untampered client never reaches here on free — and
+  // a tampered one gets 403 regardless of what its localStorage claims.
+  const ent = await resolveEntitlement("vision");
+  if (ent instanceof Response) return ent;
+  if (ent.userId && ent.allowance <= 0) {
+    return Response.json({ error: "upgrade_required", tier: ent.tier }, { status: 403 });
   }
 
   // No offline vision exists — tell the client honestly before burning a scan.
@@ -89,6 +87,15 @@ export async function POST(req: Request) {
       { error: "rate_limited", retryAfter: rl.retryAfter },
       { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
     );
+  }
+  if (ent.userId) {
+    const cap = await limitUserDaily("vision", ent.userId, ent.allowance);
+    if (!cap.success) {
+      return Response.json(
+        { error: "daily_cap", tier: ent.tier, retryAfter: cap.retryAfter },
+        { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
+      );
+    }
   }
 
   const userText = parsed.hint

@@ -45,6 +45,15 @@ function wrap(bodyHtml: string, ctaLabel: string, ctaPath: string): string {
 </html>`;
 }
 
+/** Escape user-controlled values before they land in email HTML. */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 function p(text: string): string {
   return `<p style="font-size:14px;line-height:1.6;color:#33403a;margin:0 0 8px;">${text}</p>`;
 }
@@ -54,8 +63,10 @@ function h(text: string): string {
 }
 
 export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
-  const { firstName, streak, longest, dueCards } = input;
-  const name = firstName || "there";
+  const { streak, longest, dueCards } = input;
+  // The name is profile data the user typed — escape it so a crafted "name"
+  // can't inject markup into the email HTML.
+  const name = esc(input.firstName) || "there";
 
   switch (type) {
     case "streak_risk": {

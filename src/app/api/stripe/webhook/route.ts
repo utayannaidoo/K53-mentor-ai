@@ -49,27 +49,37 @@ export async function POST(req: Request) {
     return Response.json({ error: "Storage not configured" }, { status: 500 });
   }
 
+  /** Grant the tier for a paid checkout session. */
+  async function applyPaidCheckout(session: Stripe.Checkout.Session) {
+    const userId = session.client_reference_id ?? session.metadata?.user_id;
+    const plan = session.metadata?.plan;
+    if (!userId || (plan !== "premium" && plan !== "premium_plus")) return;
+    // Delayed payment methods complete the session before money moves —
+    // only "paid" grants the tier (async_payment_succeeded re-delivers it).
+    if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
+      return;
+    }
+    await admin!.from("subscriptions").upsert(
+      {
+        user_id: userId,
+        tier: plan,
+        status: "active",
+        provider: "stripe",
+        provider_customer_id:
+          typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null),
+        provider_subscription_id:
+          typeof session.subscription === "string"
+            ? session.subscription
+            : (session.subscription?.id ?? null),
+      },
+      { onConflict: "user_id" },
+    );
+  }
+
   switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object;
-      const userId = session.client_reference_id ?? session.metadata?.user_id;
-      const plan = session.metadata?.plan;
-      if (!userId || (plan !== "premium" && plan !== "premium_plus")) break;
-      await admin.from("subscriptions").upsert(
-        {
-          user_id: userId,
-          tier: plan,
-          status: "active",
-          provider: "stripe",
-          provider_customer_id:
-            typeof session.customer === "string" ? session.customer : (session.customer?.id ?? null),
-          provider_subscription_id:
-            typeof session.subscription === "string"
-              ? session.subscription
-              : (session.subscription?.id ?? null),
-        },
-        { onConflict: "user_id" },
-      );
+    case "checkout.session.completed":
+    case "checkout.session.async_payment_succeeded": {
+      await applyPaidCheckout(event.data.object);
       break;
     }
 

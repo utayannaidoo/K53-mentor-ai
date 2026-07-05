@@ -25,6 +25,7 @@ const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests 
 const COACH_DAILY_LIMIT = Number(process.env.COACH_DAILY_IP_LIMIT ?? 80); // requests / day
 const VISION_DAILY_LIMIT = Number(process.env.VISION_DAILY_IP_LIMIT ?? 20); // scans / day (priciest calls)
 
+let redis: Redis | null = null;
 let burst: Ratelimit | null = null;
 let daily: Ratelimit | null = null;
 let checkout: Ratelimit | null = null;
@@ -34,7 +35,7 @@ let visionBurst: Ratelimit | null = null;
 let visionDaily: Ratelimit | null = null;
 
 if (hasUpstash) {
-  const redis = Redis.fromEnv();
+  redis = Redis.fromEnv();
   burst = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(BURST_LIMIT, `${BURST_WINDOW_S} s`),
@@ -114,6 +115,43 @@ export function clientIp(req: Request): string {
   const xff = req.headers.get("x-forwarded-for");
   if (xff) return xff.split(",")[0].trim();
   return req.headers.get("x-real-ip")?.trim() || "anon";
+}
+
+/** Seconds until the daily fixed window (UTC midnight) resets. */
+function secondsToUtcMidnight(): number {
+  const now = new Date();
+  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+  return Math.max(1, Math.ceil((midnight - now.getTime()) / 1000));
+}
+
+/**
+ * Per-user daily allowance for an AI surface — the server-enforced version of
+ * the plan caps (see entitlements.server.ts). Keyed by user id so shared IPs
+ * (campus Wi-Fi, mobile CGNAT) never eat a paying user's quota, and a
+ * tampered client can't exceed its tier. `limit <= 0` means the tier doesn't
+ * include the feature at all.
+ */
+export async function limitUserDaily(
+  surface: string,
+  userId: string,
+  limit: number,
+): Promise<LimitResult> {
+  if (limit <= 0) return { success: false, retryAfter: 0 };
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `k53:u:${surface}:${userId}:${day}`;
+  try {
+    if (redis) {
+      const n = await redis.incr(key);
+      if (n === 1) await redis.expire(key, 90_000); // a day + slack; key is date-scoped anyway
+      return n <= limit
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: secondsToUtcMidnight() };
+    }
+    return memLimit(key, limit, 86_400_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return { success: true, retryAfter: 0 };
+  }
 }
 
 /** Modest per-IP limit for checkout-session creation (10/min). */

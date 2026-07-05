@@ -33,6 +33,7 @@ export default function StudyHubPage() {
   const { state, readiness } = useStudyStore();
   const due = countDueFlashcards(state);
   const scenariosUnlocked = hasFeature(state.tier, "scenarios");
+  const scannerUnlocked = hasFeature(state.tier, "scanner");
 
   const missions = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(missions.map((t) => [t.id, isTaskDone(t, state)]));
@@ -47,7 +48,7 @@ export default function StudyHubPage() {
       tone: "text-primary",
     },
     { href: "/study/questions", icon: HelpCircle, title: "Practice questions", desc: "Drill by category", tone: "text-primary" },
-    { href: "/study/scan", icon: ScanLine, title: "Sign scanner", desc: "Point your camera at any road sign", tone: "text-accent" },
+    { href: "/study/scan", icon: ScanLine, title: "Sign scanner", desc: "Point your camera at any road sign", tone: "text-accent", locked: !scannerUnlocked },
     { href: "/study/signs", icon: Signpost, title: "Road signs", desc: "Browse every official sign", tone: "text-accent" },
     { href: "/study/scenarios", icon: Route, title: "Scenarios", desc: "Real-world judgement", tone: "text-accent", locked: !scenariosUnlocked },
     { href: "/study/mock-exam", icon: FileText, title: "Mock exam", desc: "Full 64-question test", tone: "text-primary" },

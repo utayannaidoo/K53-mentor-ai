@@ -19,15 +19,44 @@ import {
   VEHICLE_CLASS_SHORT,
 } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
+import { isSupabaseConfigured } from "@/lib/env";
 import type { SubscriptionTier, VehicleClass } from "@/types";
 
 function BillingInner() {
   const sp = useSearchParams();
-  const { state, setTier, setVehicleClass, updateOnboarding } = useStudyStore();
+  const { state, setTier, setVehicleClass, updateOnboarding, refreshAccount } = useStudyStore();
   const [banner, setBanner] = React.useState<string | null>(
-    sp.get("status") === "success" ? "Payment complete — your plan is active." : null,
+    sp.get("status") === "success" ? "Payment received — activating your plan…" : null,
   );
+  const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<SubscriptionTier | null>(null);
+
+  // After the Stripe redirect the webhook may still be in flight — poll the
+  // account until the paid tier lands so the page doesn't look paid-but-locked.
+  const paidReturn = sp.get("status") === "success";
+  React.useEffect(() => {
+    if (!paidReturn || !isSupabaseConfigured) return;
+    let cancelled = false;
+    let tries = 0;
+    const poll = async () => {
+      tries += 1;
+      const tier = await refreshAccount().catch(() => null);
+      if (cancelled) return;
+      if (tier && tier !== "free") {
+        setBanner("Payment complete — your plan is active.");
+      } else if (tries < 8) {
+        timer = setTimeout(poll, 2500);
+      } else {
+        setBanner("Payment received. Your plan can take a minute to activate — refresh shortly.");
+      }
+    };
+    let timer = setTimeout(poll, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paidReturn]);
   // The track (car vs bike+heavy) is chosen here — it sets which codes the
   // learner can study and drives the per-class price. A plan covers exactly
   // one track; the other track's plans are a switch, never included.
@@ -48,8 +77,15 @@ function BillingInner() {
   async function choose(plan: (typeof PLANS)[number]) {
     const switchingTrack = state.vehicleClass !== null && state.vehicleClass !== track;
     if (plan.id === state.tier && !switchingTrack) return;
-    applyTrack();
+    setError(null);
     if (plan.id === "free") {
+      if (isSupabaseConfigured && state.tier !== "free") {
+        // A real subscription can't be ended by flipping local state — the
+        // Stripe subscription would keep billing. Point at the real path.
+        setError("To cancel your plan, contact support — we'll end the Stripe subscription for you.");
+        return;
+      }
+      applyTrack();
       setTier("free");
       setBanner(
         switchingTrack && state.tier === "free"
@@ -65,19 +101,28 @@ function BillingInner() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ plan: plan.id, track }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        }
+      const data = await res.json().catch(() => ({}) as { url?: string; demo?: boolean });
+      if (res.ok && data.url) {
+        applyTrack();
+        window.location.href = data.url;
+        return;
       }
-      // Demo mode (Stripe not configured) — unlock locally.
-      setTier(plan.id);
-      setBanner(`You're now on ${plan.name} — ${VEHICLE_CLASS_LABEL[track]}. (Demo — no charge was made.)`);
+      // Local unlock exists ONLY in the pure demo build (no accounts, no
+      // billing backend). Anywhere else, a failed checkout is a failure —
+      // tier is granted exclusively by the Stripe webhook.
+      if (data.demo && !isSupabaseConfigured) {
+        applyTrack();
+        setTier(plan.id);
+        setBanner(`You're now on ${plan.name} — ${VEHICLE_CLASS_LABEL[track]}. (Demo — no charge was made.)`);
+        return;
+      }
+      setError(
+        data.demo
+          ? "Billing isn't available yet on this deployment — no charge was made."
+          : "Checkout couldn't start — please try again in a moment.",
+      );
     } catch {
-      setTier(plan.id);
-      setBanner(`You're now on ${plan.name} — ${VEHICLE_CLASS_LABEL[track]}. (Demo — no charge was made.)`);
+      setError("Network error — check your connection and try again.");
     } finally {
       setBusy(null);
     }
@@ -90,6 +135,11 @@ function BillingInner() {
       {banner && (
         <div className="mb-5 flex items-center gap-2 rounded-lg border border-success/30 bg-success/[0.08] px-4 py-3 text-sm text-success">
           <CheckCircle2 className="h-4 w-4" /> {banner}
+        </div>
+      )}
+      {error && (
+        <div className="mb-5 rounded-lg border border-danger/30 bg-danger/[0.08] px-4 py-3 text-sm text-danger">
+          {error}
         </div>
       )}
 
@@ -185,8 +235,9 @@ function BillingInner() {
       </div>
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
-        Payments are powered by Stripe (payment-ready, not charged in this demo). Choosing a paid
-        plan unlocks its features immediately so you can try them.
+        {isSupabaseConfigured
+          ? "Payments are powered by Stripe. Paid features unlock the moment your payment is confirmed."
+          : "Payments are powered by Stripe (payment-ready, not charged in this demo). Choosing a paid plan unlocks its features immediately so you can try them."}
       </p>
     </div>
   );

@@ -57,6 +57,12 @@ interface StudyStore {
   signInLocal: (name: string, email: string) => void;
   signOut: () => void;
   setTier: (tier: SubscriptionTier) => void;
+  /**
+   * Re-pull the account rows (tier, profile, streak) from Supabase. Returns
+   * the freshly loaded tier, or null in demo mode / signed-out. Used after a
+   * Stripe redirect so the webhook-written tier appears without a reload.
+   */
+  refreshAccount: () => Promise<SubscriptionTier | null>;
   setVehicleClass: (vc: VehicleClass | null) => void;
   completeOnboarding: (data: Omit<OnboardingData, "completedAt">) => void;
   updateOnboarding: (patch: Partial<Omit<OnboardingData, "completedAt">>) => void;
@@ -182,9 +188,31 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
   }, []);
 
   // Persist on change once hydrated (local cache; also offline/demo store).
+  // Debounced: bursts of updates (answer + streak + CP + usage) coalesce into
+  // one JSON.stringify instead of one per intermediate state.
+  const latest = React.useRef<{ state: UserState; ready: boolean }>({ state, ready });
+  latest.current = { state, ready };
   React.useEffect(() => {
-    if (ready) saveState(state);
+    if (!ready) return;
+    const t = setTimeout(() => saveState(state), 250);
+    return () => clearTimeout(t);
   }, [state, ready]);
+
+  // Flush the pending write when the tab hides/closes so nothing is lost.
+  React.useEffect(() => {
+    const flush = () => {
+      if (latest.current.ready) saveState(latest.current.state);
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   // ── Supabase: follow the real auth session (prod only) ─────────────────────
   // Auth state is driven by the Supabase session, not just the local profile:
@@ -286,6 +314,21 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     },
 
     setTier: (tier) => setState((s) => ({ ...s, tier })),
+
+    refreshAccount: async () => {
+      if (!supabase) return null;
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return null;
+      const account = await loadAccount(supabase, user);
+      setState((s) => {
+        const next = { ...s, ...account };
+        if (account.cp != null) next.cp = Math.max(s.cp, account.cp);
+        return next;
+      });
+      return account.tier ?? null;
+    },
 
     setVehicleClass: (vehicleClass) => setState((s) => ({ ...s, vehicleClass })),
 

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildEmail, type NotificationType } from "@/lib/notify/templates";
@@ -49,9 +50,17 @@ interface StreakRow {
   next_due_at: string | null;
 }
 
+/** Constant-time string comparison — a plain !== leaks length/prefix timing. */
+function safeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  return ab.length === bb.length && timingSafeEqual(ab, bb);
+}
+
 export async function GET(req: Request) {
   const secret = process.env.CRON_SECRET;
-  if (!secret || req.headers.get("authorization") !== `Bearer ${secret}`) {
+  const auth = req.headers.get("authorization") ?? "";
+  if (!secret || !safeEqual(auth, `Bearer ${secret}`)) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -79,10 +79,61 @@ export function loadState(): UserState {
   }
 }
 
+/**
+ * History caps for the persisted blob. Without them the state grows without
+ * bound (every answer, tutor message and readiness point forever), and since
+ * the whole blob is JSON-stringified on each save, writes get slower the
+ * longer someone studies. Caps are generous — months of heavy use — and all
+ * analytics (readiness, insights, endowment) work on recent windows anyway.
+ */
+const KEEP = {
+  attempts: 4000,
+  scenarioAttempts: 1000,
+  sessions: 1000,
+  mockExams: 200,
+  readinessHistory: 400,
+  tutorThreads: 30,
+  tutorMessagesPerThread: 100,
+  dailyUsageDays: 60,
+} as const;
+
+function pruneState(state: UserState): UserState {
+  const usageKeys = Object.keys(state.dailyUsage);
+  const withinCaps =
+    state.attempts.length <= KEEP.attempts &&
+    state.scenarioAttempts.length <= KEEP.scenarioAttempts &&
+    state.sessions.length <= KEEP.sessions &&
+    state.mockExams.length <= KEEP.mockExams &&
+    state.readinessHistory.length <= KEEP.readinessHistory &&
+    state.tutorThreads.length <= KEEP.tutorThreads &&
+    state.tutorThreads.every((t) => t.messages.length <= KEEP.tutorMessagesPerThread) &&
+    usageKeys.length <= KEEP.dailyUsageDays;
+  if (withinCaps) return state;
+
+  const recentUsage = usageKeys.sort().slice(-KEEP.dailyUsageDays);
+  return {
+    ...state,
+    attempts: state.attempts.slice(-KEEP.attempts),
+    scenarioAttempts: state.scenarioAttempts.slice(-KEEP.scenarioAttempts),
+    sessions: state.sessions.slice(-KEEP.sessions),
+    mockExams: state.mockExams.slice(-KEEP.mockExams),
+    readinessHistory: state.readinessHistory.slice(-KEEP.readinessHistory),
+    // Threads are newest-first; messages are oldest-first within a thread.
+    tutorThreads: state.tutorThreads
+      .slice(0, KEEP.tutorThreads)
+      .map((t) =>
+        t.messages.length > KEEP.tutorMessagesPerThread
+          ? { ...t, messages: t.messages.slice(-KEEP.tutorMessagesPerThread) }
+          : t,
+      ),
+    dailyUsage: Object.fromEntries(recentUsage.map((k) => [k, state.dailyUsage[k]])),
+  };
+}
+
 export function saveState(state: UserState) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(pruneState(state)));
   } catch {
     /* quota / private mode — ignore */
   }
