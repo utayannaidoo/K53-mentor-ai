@@ -4,38 +4,40 @@
 
 @layer base {
   :root {
-    /* Cool, soft, Apple-inspired light palette */
-    --background: 210 38% 98%;
-    --foreground: 222 24% 13%;
+    /* Road Atlas — paper cream, SA route-marker green, motorway blue.
+       The palette of printed road maps and the N-route signage every
+       South African driver already knows. */
+    --background: 45 40% 96%;
+    --foreground: 150 20% 12%;
 
-    --card: 210 36% 99%;
-    --card-foreground: 222 24% 13%;
+    --card: 48 45% 99%;
+    --card-foreground: 150 20% 12%;
 
-    --popover: 210 40% 100%;
-    --popover-foreground: 222 24% 13%;
+    --popover: 48 45% 100%;
+    --popover-foreground: 150 20% 12%;
 
-    --primary: 216 64% 52%;
-    --primary-light: 216 72% 62%;
-    --primary-foreground: 210 40% 99%;
+    --primary: 152 60% 25%;
+    --primary-light: 152 45% 34%;
+    --primary-foreground: 48 40% 98%;
 
-    --accent: 28 92% 55%;
-    --accent-foreground: 222 24% 13%;
+    --accent: 214 75% 38%;
+    --accent-foreground: 48 40% 98%;
 
-    --secondary: 214 26% 95%;
-    --secondary-foreground: 222 24% 18%;
+    --secondary: 46 30% 91%;
+    --secondary-foreground: 150 20% 15%;
 
-    --muted: 214 26% 95%;
-    --muted-foreground: 216 14% 46%;
+    --muted: 46 30% 90%;
+    --muted-foreground: 44 10% 40%;
 
-    --success: 150 56% 40%;
-    --warning: 36 92% 48%;
-    --danger: 4 72% 56%;
+    --success: 152 60% 30%;
+    --warning: 36 90% 45%;
+    --danger: 8 70% 48%;
 
-    --border: 214 22% 90%;
-    --input: 214 22% 88%;
-    --ring: 216 64% 52%;
+    --border: 45 22% 80%;
+    --input: 45 22% 78%;
+    --ring: 152 60% 25%;
 
-    --shadow: 222 45% 24%;
+    --shadow: 150 30% 20%;
     --radius: 1rem;
 
     --ease: cubic-bezier(0.22, 1, 0.36, 1);
@@ -44,38 +46,39 @@
   }
 
   .dark {
-    /* Deep, cool, Vision-Pro-leaning dark palette */
-    --background: 222 30% 7%;
-    --foreground: 210 30% 95%;
+    /* Night Atlas — the same identity after dark: green-tinted ink,
+       route-marker green brightened for contrast, motorway blue accent. */
+    --background: 160 12% 7%;
+    --foreground: 140 12% 93%;
 
-    --card: 222 22% 11%;
-    --card-foreground: 210 30% 95%;
+    --card: 160 11% 10%;
+    --card-foreground: 140 12% 93%;
 
-    --popover: 222 24% 12%;
-    --popover-foreground: 210 30% 95%;
+    --popover: 160 11% 11%;
+    --popover-foreground: 140 12% 93%;
 
-    --primary: 214 90% 64%;
-    --primary-light: 214 80% 56%;
-    --primary-foreground: 222 35% 8%;
+    --primary: 152 45% 52%;
+    --primary-light: 152 50% 62%;
+    --primary-foreground: 160 20% 7%;
 
-    --accent: 28 92% 60%;
-    --accent-foreground: 222 30% 8%;
+    --accent: 214 80% 62%;
+    --accent-foreground: 220 30% 8%;
 
-    --secondary: 220 18% 17%;
-    --secondary-foreground: 210 30% 95%;
+    --secondary: 158 8% 16%;
+    --secondary-foreground: 140 12% 93%;
 
-    --muted: 220 18% 15%;
-    --muted-foreground: 215 16% 62%;
+    --muted: 158 8% 14%;
+    --muted-foreground: 150 8% 62%;
 
     --success: 150 50% 54%;
     --warning: 36 90% 58%;
     --danger: 4 78% 64%;
 
-    --border: 216 16% 22%;
-    --input: 216 16% 24%;
-    --ring: 214 90% 64%;
+    --border: 158 9% 20%;
+    --input: 158 9% 22%;
+    --ring: 152 45% 52%;
 
-    --shadow: 222 70% 2%;
+    --shadow: 160 60% 2%;
   }
 }
 
@@ -237,13 +240,13 @@
   .bg-aurora {
     background-image:
       radial-gradient(46% 42% at 10% -6%, hsl(var(--primary) / 0.18), transparent 62%),
-      radial-gradient(42% 38% at 94% 0%, hsl(258 74% 62% / 0.13), transparent 56%),
+      radial-gradient(42% 38% at 94% 0%, hsl(var(--accent) / 0.12), transparent 56%),
       radial-gradient(48% 44% at 66% 110%, hsl(var(--accent) / 0.08), transparent 60%);
   }
   .bg-app {
     background-image:
       radial-gradient(52% 40% at 8% -4%, hsl(var(--primary) / 0.09), transparent 62%),
-      radial-gradient(44% 38% at 102% 4%, hsl(258 70% 60% / 0.065), transparent 56%),
+      radial-gradient(44% 38% at 102% 4%, hsl(var(--accent) / 0.06), transparent 56%),
       radial-gradient(50% 44% at 60% 108%, hsl(var(--accent) / 0.05), transparent 64%);
   }
   .bg-grid {

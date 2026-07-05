@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Sora, JetBrains_Mono } from "next/font/google";
+import { Inter, Overpass, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { StudyStoreProvider } from "@/hooks/use-study-store";
@@ -11,9 +11,11 @@ const inter = Inter({
   variable: "--font-inter",
   display: "swap",
 });
-const sora = Sora({
+// Overpass is digitised from highway signage — headings read like road signs,
+// the Road Atlas theme's typographic signature.
+const overpass = Overpass({
   subsets: ["latin"],
-  variable: "--font-sora",
+  variable: "--font-display",
   display: "swap",
 });
 const mono = JetBrains_Mono({
@@ -53,8 +55,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#F6F8FB" },
-    { media: "(prefers-color-scheme: dark)", color: "#0D1117" },
+    { media: "(prefers-color-scheme: light)", color: "#F8F5EC" },
+    { media: "(prefers-color-scheme: dark)", color: "#0F1412" },
   ],
   width: "device-width",
   initialScale: 1,
@@ -67,7 +69,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${sora.variable} ${mono.variable}`}
+      className={`${inter.variable} ${overpass.variable} ${mono.variable}`}
     >
       <body className="min-h-dvh font-sans">
         <ThemeProvider>
