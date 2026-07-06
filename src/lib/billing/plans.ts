@@ -1,6 +1,6 @@
 import type { SubscriptionTier, VehicleCode, VehicleClass } from "@/types";
 
-export type FeatureKey = "tutor" | "scenarios" | "licencePrep" | "advancedAnalytics";
+export type FeatureKey = "tutor" | "scenarios" | "licencePrep" | "advancedAnalytics" | "scanner";
 export type CapKey = "flashcardsPerDay" | "questionsPerDay" | "tutorPerDay";
 
 export type { VehicleClass };
@@ -93,7 +93,7 @@ export const PLANS: PlanDef[] = [
     name: "Free",
     tagline: "A one-day onboarding — see exactly where you stand.",
     monthly: { car: 0, bike_heavy: 0 },
-    features: { tutor: true, scenarios: false, licencePrep: false, advancedAnalytics: false },
+    features: { tutor: true, scenarios: false, licencePrep: false, advancedAnalytics: false, scanner: false },
     caps: { flashcardsPerDay: 12, questionsPerDay: 15, tutorPerDay: 3 },
     limits: {
       reset: "trial",
@@ -122,7 +122,7 @@ export const PLANS: PlanDef[] = [
     tagline: "Focused daily practice to pass your learner's.",
     highlighted: true,
     monthly: { car: 60, bike_heavy: 50 },
-    features: { tutor: true, scenarios: true, licencePrep: false, advancedAnalytics: false },
+    features: { tutor: true, scenarios: true, licencePrep: false, advancedAnalytics: false, scanner: true },
     caps: {
       flashcardsPerDay: PREMIUM_DAILY_ITEMS,
       questionsPerDay: PREMIUM_DAILY_ITEMS,
@@ -155,7 +155,7 @@ export const PLANS: PlanDef[] = [
     name: "Premium Plus",
     tagline: "Everything unlimited — learner's and driver's, end to end.",
     monthly: { car: 70, bike_heavy: 60 },
-    features: { tutor: true, scenarios: true, licencePrep: true, advancedAnalytics: true },
+    features: { tutor: true, scenarios: true, licencePrep: true, advancedAnalytics: true, scanner: true },
     caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 40 },
     limits: {
       reset: "daily",

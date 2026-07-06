@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
 import { cn, glass, glassFloat } from "@/lib/utils";
+import { useStudyStore } from "@/hooks/use-study-store";
+import { hasFeature } from "@/lib/billing/plans";
+import { Paywall } from "@/components/app/paywall";
 
 interface ScanResult {
   isSign: boolean;
@@ -36,10 +39,24 @@ const CATEGORY_BADGE: Record<string, "danger" | "warning" | "default" | "seconda
 };
 
 export function SignScanner() {
+  const { state } = useStudyStore();
   const [phase, setPhase] = React.useState<Phase>({ kind: "idle" });
   const [hint, setHint] = React.useState("");
   const cameraRef = React.useRef<HTMLInputElement>(null);
   const uploadRef = React.useRef<HTMLInputElement>(null);
+
+  // Vision calls are the priciest AI in the app — paid plans only. The server
+  // enforces the same rule (/api/vision → 403 for free), this is just the UX.
+  if (!hasFeature(state.tier, "scanner")) {
+    return (
+      <Paywall
+        icon={<Camera className="h-6 w-6" />}
+        title="Scanner is a Premium tool"
+        description="Photograph any road sign and the AI identifies it, explains what it means, and tells you what K53 expects you to do. Included in Premium and Premium Plus."
+        cta="Upgrade to unlock"
+      />
+    );
+  }
 
   async function onFile(file: File | undefined) {
     if (!file) return;
