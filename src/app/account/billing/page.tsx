@@ -33,7 +33,7 @@ function BillingInner() {
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<SubscriptionTier | null>(null);
 
-  // After the Stripe redirect the webhook may still be in flight — poll the
+  // After the Paystack redirect the webhook may still be in flight — poll the
   // account until the paid tier lands so the page doesn't look paid-but-locked.
   const paidReturn = sp.get("status") === "success";
   React.useEffect(() => {
@@ -64,28 +64,31 @@ function BillingInner() {
   // one track; the other track's plans are a switch, never included.
   const [track, setTrack] = React.useState<VehicleClass>(state.vehicleClass ?? "car");
   const [cycle, setCycle] = React.useState<"monthly" | "annual">("monthly");
-  const [portalBusy, setPortalBusy] = React.useState(false);
+  const [cancelBusy, setCancelBusy] = React.useState(false);
+  const [confirmingCancel, setConfirmingCancel] = React.useState(false);
 
-  /** Open the Stripe Customer Portal (cancel, change plan, update card). */
-  async function openPortal() {
+  /** Cancel the active Paystack subscription — Paystack has no hosted portal. */
+  async function doCancel() {
     setError(null);
-    setPortalBusy(true);
+    setCancelBusy(true);
     try {
-      const res = await fetch("/api/billing/portal", { method: "POST" });
-      const data = await res.json().catch(() => ({}) as { url?: string });
-      if (res.ok && data.url) {
-        window.location.href = data.url;
+      const res = await fetch("/api/billing/cancel", { method: "POST" });
+      const data = await res.json().catch(() => ({}) as { error?: string });
+      if (res.ok) {
+        setTier("free");
+        setConfirmingCancel(false);
+        setBanner("Your plan is cancelled — you're back on Free.");
         return;
       }
       setError(
-        res.status === 404
-          ? "No billing account found yet — if you just paid, give it a minute and refresh."
-          : "The billing portal couldn't open — please try again shortly.",
+        data.error === "no_billing_account" || data.error === "no_active_subscription"
+          ? "No active subscription found — if you just paid, give it a minute and refresh."
+          : "Cancellation couldn't complete — please try again shortly.",
       );
     } catch {
       setError("Network error — check your connection and try again.");
     } finally {
-      setPortalBusy(false);
+      setCancelBusy(false);
     }
   }
 
@@ -108,8 +111,8 @@ function BillingInner() {
     if (plan.id === "free") {
       if (isSupabaseConfigured && state.tier !== "free") {
         // A real subscription can't be ended by flipping local state — the
-        // Stripe subscription would keep billing. Cancel via the portal.
-        await openPortal();
+        // Paystack subscription would keep billing. Confirm, then cancel.
+        setConfirmingCancel(true);
         return;
       }
       applyTrack();
@@ -136,7 +139,7 @@ function BillingInner() {
       }
       // Local unlock exists ONLY in the pure demo build (no accounts, no
       // billing backend). Anywhere else, a failed checkout is a failure —
-      // tier is granted exclusively by the Stripe webhook.
+      // tier is granted exclusively by the Paystack webhook.
       if (data.demo && !isSupabaseConfigured) {
         applyTrack();
         setTier(plan.id);
@@ -223,14 +226,30 @@ function BillingInner() {
           )}
         </div>
 
-        {isSupabaseConfigured && state.tier !== "free" && (
+        {isSupabaseConfigured && state.tier !== "free" && !confirmingCancel && (
           <div className="mt-4">
-            <Button variant="outline" size="sm" onClick={openPortal} disabled={portalBusy}>
-              {portalBusy ? "Opening…" : "Manage billing"}
+            <Button variant="outline" size="sm" onClick={() => setConfirmingCancel(true)}>
+              Cancel plan
             </Button>
             <span className="ml-2.5 align-middle text-xs text-muted-foreground">
-              Cancel, switch plans or update your card — secure Stripe portal.
+              To change card details, cancel and resubscribe with the new card.
             </span>
+          </div>
+        )}
+        {confirmingCancel && (
+          <div className="mt-4 rounded-lg border border-warning/30 bg-warning/[0.08] p-4">
+            <p className="text-sm font-medium text-foreground">Cancel your plan?</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              You&apos;ll drop to Free immediately — your progress, streak and readiness all carry over.
+            </p>
+            <div className="mt-3 flex gap-2">
+              <Button size="sm" variant="danger" onClick={doCancel} disabled={cancelBusy}>
+                {cancelBusy ? "Cancelling…" : "Yes, cancel"}
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setConfirmingCancel(false)} disabled={cancelBusy}>
+                Keep my plan
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -306,8 +325,8 @@ function BillingInner() {
 
       <p className="mt-6 text-center text-xs text-muted-foreground">
         {isSupabaseConfigured
-          ? "Payments are powered by Stripe. Paid features unlock the moment your payment is confirmed."
-          : "Payments are powered by Stripe (payment-ready, not charged in this demo). Choosing a paid plan unlocks its features immediately so you can try them."}
+          ? "Payments are powered by Paystack. Paid features unlock the moment your payment is confirmed."
+          : "Payments are powered by Paystack (payment-ready, not charged in this demo). Choosing a paid plan unlocks its features immediately so you can try them."}
       </p>
     </div>
   );

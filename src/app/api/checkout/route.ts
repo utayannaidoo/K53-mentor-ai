@@ -1,10 +1,10 @@
-import Stripe from "stripe";
 import { z } from "zod";
-import { isStripeConfigured, isSupabaseConfigured } from "@/lib/env";
+import { isPaystackConfigured, isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
 import { SITE_URL } from "@/lib/constants";
-import { TUTOR_TOPUP_CREDITS } from "@/lib/billing/plans";
+import { TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
+import { initializeTransaction } from "@/lib/paystack/client";
 
 export const runtime = "nodejs";
 
@@ -14,22 +14,23 @@ const schema = z.object({
   cycle: z.enum(["monthly", "annual"]).optional(),
 });
 
-/** Stripe price id for a plan + billing cycle, from env. */
-function priceFor(plan: "premium" | "premium_plus", cycle: "monthly" | "annual"): string | undefined {
+/** Paystack Plan code for a plan + billing cycle, from env. */
+function planCodeFor(plan: "premium" | "premium_plus", cycle: "monthly" | "annual"): string | undefined {
   if (plan === "premium") {
     return cycle === "annual"
-      ? process.env.STRIPE_PRICE_PREMIUM_ANNUAL
-      : process.env.STRIPE_PRICE_PREMIUM_MONTHLY;
+      ? process.env.PAYSTACK_PLAN_PREMIUM_ANNUAL
+      : process.env.PAYSTACK_PLAN_PREMIUM_MONTHLY;
   }
   return cycle === "annual"
-    ? process.env.STRIPE_PRICE_PREMIUM_PLUS_ANNUAL
-    : process.env.STRIPE_PRICE_PREMIUM_PLUS_MONTHLY;
+    ? process.env.PAYSTACK_PLAN_PREMIUM_PLUS_ANNUAL
+    : process.env.PAYSTACK_PLAN_PREMIUM_PLUS_MONTHLY;
 }
 
 /**
- * Stripe checkout: subscriptions (monthly or annual) and one-off tutor
- * top-up packs. When Stripe env vars are absent (the local demo) it returns
- * 501 and the client may unlock the tier locally — demo builds only.
+ * Paystack hosted checkout: subscriptions (monthly or annual, via a Plan
+ * code) and one-off tutor top-up packs (a plain amount, no Plan). When
+ * Paystack env vars are absent (the local demo) it returns 501 and the
+ * client may unlock the tier locally — demo builds only.
  */
 export async function POST(req: Request) {
   const rl = await limitCheckout(clientIp(req));
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid plan" }, { status: 400 });
   }
 
-  if (!isStripeConfigured) {
+  if (!isPaystackConfigured) {
     return Response.json(
       { error: "Billing is not configured in this demo.", demo: true },
       { status: 501 },
@@ -77,57 +78,50 @@ export async function POST(req: Request) {
       tier = data && (data.status === "active" || data.status === "trialing") ? data.tier : "free";
     }
   }
+  // Paystack needs an email even in demo-without-auth; it's never charged.
+  const email = userEmail ?? "guest@k53mentor.ai";
 
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+  try {
+    // ── One-off tutor top-up (Premium Plus perk) ─────────────────────────────
+    if (parsed.plan === "tutor_topup") {
+      if (tier !== "premium_plus") {
+        return Response.json({ error: "upgrade_required" }, { status: 403 });
+      }
+      const { authorization_url } = await initializeTransaction({
+        email,
+        amount: TUTOR_TOPUP_PRICE * 100, // ZAR → cents
+        callback_url: `${SITE_URL}/tutor?topup=success`,
+        metadata: {
+          kind: "tutor_topup",
+          credits: String(TUTOR_TOPUP_CREDITS),
+          ...(userId ? { user_id: userId } : {}),
+        },
+      });
+      return Response.json({ url: authorization_url });
+    }
 
-  // ── One-off tutor top-up (Premium Plus perk) ───────────────────────────────
-  if (parsed.plan === "tutor_topup") {
-    if (tier !== "premium_plus") {
-      return Response.json({ error: "upgrade_required" }, { status: 403 });
+    // ── Subscription checkout ────────────────────────────────────────────────
+    const cycle = parsed.cycle ?? "monthly";
+    const planCode = planCodeFor(parsed.plan, cycle);
+    if (!planCode) {
+      return Response.json({ error: "Price not configured for this plan." }, { status: 500 });
     }
-    const priceId = process.env.STRIPE_PRICE_TUTOR_TOPUP;
-    if (!priceId) {
-      return Response.json({ error: "Top-ups not configured." }, { status: 500 });
-    }
-    const session = await stripe.checkout.sessions.create({
-      mode: "payment",
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${SITE_URL}/tutor?topup=success`,
-      cancel_url: `${SITE_URL}/tutor?topup=cancelled`,
-      ...(userEmail ? { customer_email: userEmail } : {}),
-      ...(userId ? { client_reference_id: userId } : {}),
+
+    const { authorization_url } = await initializeTransaction({
+      email,
+      plan: planCode,
+      callback_url: `${SITE_URL}/account/billing?status=success&plan=${parsed.plan}`,
       metadata: {
-        kind: "tutor_topup",
-        credits: String(TUTOR_TOPUP_CREDITS),
+        kind: "subscription",
+        plan: parsed.plan,
+        cycle,
+        ...(parsed.track ? { track: parsed.track } : {}),
         ...(userId ? { user_id: userId } : {}),
       },
     });
-    return Response.json({ url: session.url });
+    return Response.json({ url: authorization_url });
+  } catch (err) {
+    console.error("checkout: paystack error", err);
+    return Response.json({ error: "Checkout could not start." }, { status: 502 });
   }
-
-  // ── Subscription checkout ──────────────────────────────────────────────────
-  const cycle = parsed.cycle ?? "monthly";
-  const priceId = priceFor(parsed.plan, cycle);
-  if (!priceId) {
-    return Response.json({ error: "Price not configured for this plan." }, { status: 500 });
-  }
-
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    line_items: [{ price: priceId, quantity: 1 }],
-    success_url: `${SITE_URL}/account/billing?status=success&plan=${parsed.plan}`,
-    cancel_url: `${SITE_URL}/account/billing?status=cancelled`,
-    // Tie the subscription to the authenticated user so a webhook can reconcile it.
-    ...(userEmail ? { customer_email: userEmail } : {}),
-    ...(userId ? { client_reference_id: userId } : {}),
-    metadata: {
-      plan: parsed.plan,
-      cycle,
-      ...(parsed.track ? { track: parsed.track } : {}),
-      ...(userId ? { user_id: userId } : {}),
-    },
-    ...(userId ? { subscription_data: { metadata: { user_id: userId } } } : {}),
-  });
-
-  return Response.json({ url: session.url });
 }

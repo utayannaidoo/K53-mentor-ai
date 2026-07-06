@@ -63,7 +63,7 @@ interface StudyStore {
   /**
    * Re-pull the account rows (tier, profile, streak) from Supabase. Returns
    * the freshly loaded tier, or null in demo mode / signed-out. Used after a
-   * Stripe redirect so the webhook-written tier appears without a reload.
+   * Paystack redirect so the webhook-written tier appears without a reload.
    */
   refreshAccount: () => Promise<SubscriptionTier | null>;
   setVehicleClass: (vc: VehicleClass | null) => void;

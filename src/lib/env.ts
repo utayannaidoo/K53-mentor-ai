@@ -12,7 +12,7 @@ export const isSupabaseConfigured = Boolean(
 /** Server-only — do not read NEXT_PUBLIC here. */
 export const isOpenAIConfigured = Boolean(process.env.OPENAI_API_KEY);
 
-export const isStripeConfigured = Boolean(process.env.STRIPE_SECRET_KEY);
+export const isPaystackConfigured = Boolean(process.env.PAYSTACK_SECRET_KEY);
 
 export const OPENAI_MODELS = {
   fast: process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini",

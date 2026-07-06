@@ -116,7 +116,7 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
 
   const o = state.onboarding;
   // Note: the subscription tier is deliberately NOT written here. Tier is
-  // server-managed (Stripe webhook / signup trigger), and RLS blocks client
+  // server-managed (Paystack webhook / signup trigger), and RLS blocks client
   // writes to subscriptions so a user can't self-grant a paid plan.
   await Promise.all([
     supabase.from("profiles").upsert({
