@@ -9,7 +9,7 @@ import type { SubscriptionTier } from "@/types";
  *
  * The client's tier (localStorage / study store) is display state only — a
  * tampered browser can change what the UI shows, never what these routes
- * serve. Tier truth is the `subscriptions` row, which only the Stripe
+ * serve. Tier truth is the `subscriptions` row, which only the Paystack
  * webhook writes (RLS blocks client writes), and every AI call resolves it
  * fresh here.
  */
@@ -78,7 +78,7 @@ export async function resolveEntitlement(surface: AiSurface): Promise<Entitlemen
 
 /**
  * Spend one purchased tutor top-up credit. Credits are granted only by the
- * Stripe webhook and decremented atomically by an RPC the client roles can't
+ * Paystack webhook and decremented atomically by an RPC the client roles can't
  * execute — returns false when the balance is zero or anything fails.
  */
 export async function spendTutorCredit(userId: string): Promise<boolean> {

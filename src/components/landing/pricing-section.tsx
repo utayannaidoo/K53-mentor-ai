@@ -157,7 +157,7 @@ export function PricingSection({
       </div>
 
       <p className="mx-auto mt-8 max-w-xl text-center text-xs text-muted-foreground">
-        Prices in ZAR. Billing is payment-ready (Stripe) but not charged in this demo — choosing a
+        Prices in ZAR. Billing is payment-ready (Paystack) but not charged in this demo — choosing a
         paid plan simply unlocks the features so you can try them.
       </p>
     </section>

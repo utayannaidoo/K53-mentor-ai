@@ -65,7 +65,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   const [topUpBusy, setTopUpBusy] = React.useState(false);
   const [topUpBanner, setTopUpBanner] = React.useState<string | null>(null);
 
-  // Stripe redirects back with ?topup=success after buying a pack.
+  // Paystack redirects back with ?topup=success after buying a pack.
   React.useEffect(() => {
     const q = new URLSearchParams(window.location.search).get("topup");
     if (q === "success") {

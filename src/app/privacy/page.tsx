@@ -49,7 +49,7 @@ export default function PrivacyPage() {
       <section>
         <h2>Payments</h2>
         <p>
-          Payments are processed by Stripe. Your card number never touches our servers — we receive
+          Payments are processed by Paystack. Your card number never touches our servers — we receive
           only confirmation of payment and the subscription status needed to unlock your plan.
         </p>
       </section>

@@ -3,7 +3,7 @@ import { createClient as createSupabaseClient, type SupabaseClient } from "@supa
 import { supabaseConfig } from "@/lib/env";
 
 /**
- * Service-role Supabase client for trusted server code (Stripe webhook).
+ * Service-role Supabase client for trusted server code (Paystack webhook).
  * Bypasses RLS — never import from client components; the "server-only"
  * package makes any client-bundle import a build error.
  */
