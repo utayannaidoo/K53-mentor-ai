@@ -17,6 +17,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { sampleMockExam, sampleMiniMock, MINI_MOCK, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
+import { sourceFor } from "@/lib/content/provenance";
 import { cn } from "@/lib/utils";
 import type { CategoryId, CategoryScore, Question } from "@/types";
 
@@ -316,6 +317,7 @@ export function MockExam() {
                     </p>
                   )}
                   <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{q.explanation}</p>
+                  <p className="mt-1 text-2xs text-muted-foreground/80">Based on: {sourceFor(q)}</p>
                   <SecondOpinion key={q.id} question={q} chosenIndex={answers[idx]} />
                 </li>
               ))}

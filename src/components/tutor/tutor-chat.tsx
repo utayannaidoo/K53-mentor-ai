@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { cn, formatDate } from "@/lib/utils";
+import { cn, formatDate, formatZar } from "@/lib/utils";
+import { TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
 import { defaultTutorPrompt, type TutorContextType } from "@/lib/ai/tutor-prompt";
 import { buildLearnerProfile } from "@/lib/ai/learner-profile";
 import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
@@ -58,6 +59,42 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   const fileRef = React.useRef<HTMLInputElement>(null);
   const initRef = React.useRef(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+  // Server said the plan's daily messages are used up. canTopUp = Premium
+  // Plus, whose top-up pack applies automatically once purchased.
+  const [capNotice, setCapNotice] = React.useState<{ canTopUp: boolean } | null>(null);
+  const [topUpBusy, setTopUpBusy] = React.useState(false);
+  const [topUpBanner, setTopUpBanner] = React.useState<string | null>(null);
+
+  // Stripe redirects back with ?topup=success after buying a pack.
+  React.useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get("topup");
+    if (q === "success") {
+      setTopUpBanner("Top-up added — your extra messages apply automatically. Carry on!");
+      setCapNotice(null);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, []);
+
+  async function buyTopUp() {
+    setTopUpBusy(true);
+    try {
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ plan: "tutor_topup" }),
+      });
+      const data = await res.json().catch(() => ({}) as { url?: string });
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setTopUpBanner("Top-ups aren't available right now — please try again later.");
+    } catch {
+      setTopUpBanner("Network error — please try again.");
+    } finally {
+      setTopUpBusy(false);
+    }
+  }
 
   // One-time init: open a context thread, or resume the latest.
   React.useEffect(() => {
@@ -121,14 +158,27 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         }),
       });
 
-      // Rate limited — surface a friendly cooldown instead of an error.
+      // Rate limited / daily plan cap — friendly guidance instead of an error.
       if (res.status === 429) {
         let wait = Number(res.headers.get("retry-after")) || 60;
+        let payload: { retryAfter?: number; error?: string; canTopUp?: boolean } | null = null;
         try {
-          const data = await res.json();
-          if (data?.retryAfter) wait = Number(data.retryAfter);
+          payload = await res.json();
+          if (payload?.retryAfter) wait = Number(payload.retryAfter);
         } catch {
           /* header value already used */
+        }
+        if (payload?.error === "daily_cap") {
+          const canTopUp = Boolean(payload.canTopUp);
+          setCapNotice({ canTopUp });
+          appendTutorMessage(id, {
+            role: "assistant",
+            content: canTopUp
+              ? "You've used all of today's messages. Grab a top-up pack below and we can keep going right away — otherwise I'm back tomorrow."
+              : "You've used all of today's tutor messages on your plan. Upgrade for a bigger daily allowance, or come back tomorrow — your questions will keep.",
+            model: "local",
+          });
+          return;
         }
         appendTutorMessage(id, {
           role: "assistant",
@@ -304,6 +354,29 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
             </div>
           ) : (
             <>
+              {topUpBanner && (
+                <div className="mb-2.5 rounded-lg border border-success/30 bg-success/[0.08] px-3 py-2 text-xs text-success">
+                  {topUpBanner}
+                </div>
+              )}
+              {capNotice && (
+                <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-lg border border-warning/30 bg-warning/[0.08] px-3 py-2.5">
+                  <span className="text-xs text-foreground">
+                    {capNotice.canTopUp
+                      ? `Daily messages used — top up ${TUTOR_TOPUP_CREDITS} more for ${formatZar(TUTOR_TOPUP_PRICE)}.`
+                      : "Daily tutor messages used for your plan."}
+                  </span>
+                  {capNotice.canTopUp ? (
+                    <Button size="sm" onClick={buyTopUp} disabled={topUpBusy}>
+                      {topUpBusy ? "Opening checkout…" : "Buy top-up"}
+                    </Button>
+                  ) : (
+                    <Link href="/account/billing" className="text-xs font-semibold text-primary hover:underline">
+                      See plans
+                    </Link>
+                  )}
+                </div>
+              )}
               <div className="no-scrollbar mb-2.5 flex gap-2 overflow-x-auto">
                 {chips.map((c) => (
                   <Chip key={c} onClick={() => send(c)} className="shrink-0">

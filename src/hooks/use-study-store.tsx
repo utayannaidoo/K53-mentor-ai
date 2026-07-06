@@ -18,16 +18,18 @@ import type {
   CategoryId,
 } from "@/types";
 import {
+  STORAGE_KEY,
   defaultUserState,
   getTodayUsage,
   loadState,
   saveState,
   todayKey,
+  totalUsage,
   touchStreak,
 } from "@/lib/store/local-store";
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
-import { dailyCap, type CapKey } from "@/lib/billing/plans";
+import { PLAN_MAP, dailyCap, type CapKey } from "@/lib/billing/plans";
 import { countDueFlashcards, generateTodayPlan, isTaskDone } from "@/lib/plan";
 import {
   computeRankIndex,
@@ -43,6 +45,7 @@ import {
 import { uid } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { loadAccount, saveAccount } from "@/lib/supabase/account";
+import { mergeProgress, pullProgress, pushProgress } from "@/lib/supabase/progress";
 
 type UsageKind = "flashcards" | "questions" | "tutor" | "scenarios";
 
@@ -198,6 +201,22 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     return () => clearTimeout(t);
   }, [state, ready]);
 
+  // Another tab wrote the store — adopt its state so tabs converge instead
+  // of silently overwriting each other (the event never fires in the writer).
+  React.useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== STORAGE_KEY || e.newValue == null) return;
+      try {
+        const incoming = JSON.parse(e.newValue) as UserState;
+        setState({ ...defaultUserState(), ...incoming });
+      } catch {
+        /* unreadable write — ignore */
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   // Flush the pending write when the tab hides/closes so nothing is lost.
   React.useEffect(() => {
     const flush = () => {
@@ -227,12 +246,19 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         return;
       }
       try {
-        const account = await loadAccount(supabase, user);
+        // Account rows + the server's copy of study history in one round.
+        const [account, progress] = await Promise.all([
+          loadAccount(supabase, user),
+          pullProgress(supabase, user.id).catch(() => null),
+        ]);
         if (!cancelled)
           setState((s) => {
-            const next = { ...s, ...account };
+            let next = { ...s, ...account };
             // CP only ever grows — never let a stale server row roll it back.
             if (account.cp != null) next.cp = Math.max(s.cp, account.cp);
+            // Merge, never replace: a new device gets its history back, an
+            // existing one keeps anything the server hasn't seen yet.
+            if (progress) next = mergeProgress(next, progress);
             return next;
           });
       } catch {
@@ -251,17 +277,35 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     };
   }, [supabase]);
 
-  // ── Supabase: persist account-tier data back (prod only, debounced) ────────
+  // ── Supabase: persist account + study progress back (prod only, debounced) ─
   React.useEffect(() => {
     if (!supabase || !ready || !state.profile) return;
     const t = setTimeout(() => {
       saveAccount(supabase, state).catch(() => {
         // Best-effort; the local cache remains the fallback.
       });
+      supabase.auth
+        .getUser()
+        .then(({ data: { user } }) => (user ? pushProgress(supabase, user.id, state) : undefined))
+        .catch(() => {
+          // Watermark unchanged — the next flush retries the same window.
+        });
     }, 800);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [supabase, ready, state.profile, state.onboarding, state.tier, state.streak]);
+  }, [
+    supabase,
+    ready,
+    state.profile,
+    state.onboarding,
+    state.tier,
+    state.streak,
+    state.attempts,
+    state.cardStates,
+    state.scenarioAttempts,
+    state.mockExams,
+    state.diagnostics,
+  ]);
 
   const readiness = React.useMemo(() => computeReadiness(state), [state]);
 
@@ -477,7 +521,10 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
     usageFor: (kind) => {
       const capKey = CAP_KEY[kind];
-      const used = getTodayUsage(state)[kind];
+      // Free is a once-off trial: its caps count lifetime usage, not a daily
+      // window (paid plans reset daily). Matches PlanLimits.reset.
+      const lifetime = PLAN_MAP[state.tier].limits.reset === "trial";
+      const used = lifetime ? totalUsage(state)[kind] : getTodayUsage(state)[kind];
       const cap = capKey ? dailyCap(state.tier, capKey) : Infinity;
       return { used, cap, allowed: used < cap };
     },

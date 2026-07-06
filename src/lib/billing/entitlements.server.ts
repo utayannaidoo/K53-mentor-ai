@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isSupabaseConfigured } from "@/lib/env";
 import type { SubscriptionTier } from "@/types";
 
@@ -73,4 +74,20 @@ export async function resolveEntitlement(surface: AiSurface): Promise<Entitlemen
   }
 
   return { userId: user.id, tier, allowance: DAILY_ALLOWANCE[surface][tier] };
+}
+
+/**
+ * Spend one purchased tutor top-up credit. Credits are granted only by the
+ * Stripe webhook and decremented atomically by an RPC the client roles can't
+ * execute — returns false when the balance is zero or anything fails.
+ */
+export async function spendTutorCredit(userId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  if (!admin) return false;
+  try {
+    const { data, error } = await admin.rpc("use_tutor_credit", { p_user: userId });
+    return !error && data === true;
+  } catch {
+    return false;
+  }
 }

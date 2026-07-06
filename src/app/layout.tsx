@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/shared/theme-provider";
 import { StudyStoreProvider } from "@/hooks/use-study-store";
 import { DataSaverInit } from "@/components/shared/data-saver-init";
+import { ErrorReporter } from "@/components/shared/error-reporter";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/lib/constants";
 
 const inter = Inter({
@@ -75,6 +76,7 @@ export default function RootLayout({
         <ThemeProvider>
           <StudyStoreProvider>
             <DataSaverInit />
+            <ErrorReporter />
             {children}
           </StudyStoreProvider>
         </ThemeProvider>

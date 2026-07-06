@@ -4,7 +4,7 @@ import { localTutorReply } from "@/lib/ai/fallback";
 import { retrieveRelated } from "@/lib/ai/retrieve";
 import { chooseProvider, streamTutorReply } from "@/lib/ai/provider";
 import { clientIp, limitTutor, limitUserDaily } from "@/lib/ai/rate-limit";
-import { resolveEntitlement } from "@/lib/billing/entitlements.server";
+import { resolveEntitlement, spendTutorCredit } from "@/lib/billing/entitlements.server";
 
 export const runtime = "nodejs";
 
@@ -61,10 +61,15 @@ export async function POST(req: Request) {
   if (ent.userId) {
     const cap = await limitUserDaily("tutor", ent.userId, ent.allowance);
     if (!cap.success) {
-      return Response.json(
-        { error: "daily_cap", tier: ent.tier, retryAfter: cap.retryAfter },
-        { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
-      );
+      // Premium Plus may spend a purchased top-up credit past the daily cap.
+      const canTopUp = ent.tier === "premium_plus";
+      const usedCredit = canTopUp && (await spendTutorCredit(ent.userId));
+      if (!usedCredit) {
+        return Response.json(
+          { error: "daily_cap", tier: ent.tier, canTopUp, retryAfter: cap.retryAfter },
+          { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
+        );
+      }
     }
   }
 

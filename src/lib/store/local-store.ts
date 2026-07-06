@@ -130,10 +130,18 @@ function pruneState(state: UserState): UserState {
   };
 }
 
+// Last JSON this tab wrote. Skipping identical writes keeps two tabs from
+// ping-ponging storage events at each other after one adopts the other's
+// state (the storage event only fires in OTHER tabs, and only on change).
+let lastWritten: string | null = null;
+
 export function saveState(state: UserState) {
   if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(pruneState(state)));
+    const json = JSON.stringify(pruneState(state));
+    if (json === lastWritten) return;
+    window.localStorage.setItem(STORAGE_KEY, json);
+    lastWritten = json;
   } catch {
     /* quota / private mode — ignore */
   }
@@ -188,6 +196,22 @@ export function touchStreak(streak: Streak, now = new Date()): Streak {
     freezesRemaining,
     freezeRefreshedWeek,
   };
+}
+
+/**
+ * Lifetime usage across every recorded day. The free plan is a once-off
+ * trial (`reset: "trial"` in plans.ts), so its caps count against this, not
+ * against a single day.
+ */
+export function totalUsage(state: UserState): Omit<DailyUsage, "date"> {
+  const sum = { flashcards: 0, questions: 0, tutor: 0, scenarios: 0 };
+  for (const day of Object.values(state.dailyUsage)) {
+    sum.flashcards += day.flashcards;
+    sum.questions += day.questions;
+    sum.tutor += day.tutor;
+    sum.scenarios += day.scenarios;
+  }
+  return sum;
 }
 
 export function getTodayUsage(state: UserState, now = new Date()): DailyUsage {

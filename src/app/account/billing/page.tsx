@@ -13,6 +13,8 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import {
   PLANS,
   monthlyPrice,
+  annualMonthlyPrice,
+  annualPrice,
   isFreePlan,
   vehicleClass as classOfCode,
   VEHICLE_CLASS_LABEL,
@@ -61,6 +63,31 @@ function BillingInner() {
   // learner can study and drives the per-class price. A plan covers exactly
   // one track; the other track's plans are a switch, never included.
   const [track, setTrack] = React.useState<VehicleClass>(state.vehicleClass ?? "car");
+  const [cycle, setCycle] = React.useState<"monthly" | "annual">("monthly");
+  const [portalBusy, setPortalBusy] = React.useState(false);
+
+  /** Open the Stripe Customer Portal (cancel, change plan, update card). */
+  async function openPortal() {
+    setError(null);
+    setPortalBusy(true);
+    try {
+      const res = await fetch("/api/billing/portal", { method: "POST" });
+      const data = await res.json().catch(() => ({}) as { url?: string });
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError(
+        res.status === 404
+          ? "No billing account found yet — if you just paid, give it a minute and refresh."
+          : "The billing portal couldn't open — please try again shortly.",
+      );
+    } catch {
+      setError("Network error — check your connection and try again.");
+    } finally {
+      setPortalBusy(false);
+    }
+  }
 
   /** Move the subscription (and the study content with it) onto `track`. */
   function applyTrack() {
@@ -81,8 +108,8 @@ function BillingInner() {
     if (plan.id === "free") {
       if (isSupabaseConfigured && state.tier !== "free") {
         // A real subscription can't be ended by flipping local state — the
-        // Stripe subscription would keep billing. Point at the real path.
-        setError("To cancel your plan, contact support — we'll end the Stripe subscription for you.");
+        // Stripe subscription would keep billing. Cancel via the portal.
+        await openPortal();
         return;
       }
       applyTrack();
@@ -99,7 +126,7 @@ function BillingInner() {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plan: plan.id, track }),
+        body: JSON.stringify({ plan: plan.id, track, cycle }),
       });
       const data = await res.json().catch(() => ({}) as { url?: string; demo?: boolean });
       if (res.ok && data.url) {
@@ -170,6 +197,42 @@ function BillingInner() {
           A plan covers one track only. Switching track moves your subscription and study
           content to the other vehicle class — it doesn&apos;t add it.
         </p>
+
+        {/* Billing cycle — annual takes R20/mo off every paid plan. */}
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium text-muted-foreground">Billing</span>
+          <div className="inline-flex rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
+            {(["monthly", "annual"] as const).map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCycle(c)}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
+                  cycle === c
+                    ? "bg-card text-foreground shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)]"
+                    : "text-muted-foreground",
+                )}
+              >
+                {c === "monthly" ? "Monthly" : "Annual"}
+              </button>
+            ))}
+          </div>
+          {cycle === "annual" && (
+            <span className="text-xs font-medium text-success">Save R20/mo — one payment covers the year</span>
+          )}
+        </div>
+
+        {isSupabaseConfigured && state.tier !== "free" && (
+          <div className="mt-4">
+            <Button variant="outline" size="sm" onClick={openPortal} disabled={portalBusy}>
+              {portalBusy ? "Opening…" : "Manage billing"}
+            </Button>
+            <span className="ml-2.5 align-middle text-xs text-muted-foreground">
+              Cancel, switch plans or update your card — secure Stripe portal.
+            </span>
+          </div>
+        )}
       </div>
 
       <div className="grid gap-5 lg:grid-cols-3">
@@ -195,10 +258,17 @@ function BillingInner() {
               <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="font-display text-2xl font-semibold">
-                  {isFreePlan(plan) ? "Free" : formatZar(monthlyPrice(plan, track))}
+                  {isFreePlan(plan)
+                    ? "Free"
+                    : formatZar(cycle === "annual" ? annualMonthlyPrice(plan, track) : monthlyPrice(plan, track))}
                 </span>
                 {!isFreePlan(plan) && <span className="text-sm text-muted-foreground">/month</span>}
               </div>
+              {!isFreePlan(plan) && cycle === "annual" && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {formatZar(annualPrice(plan, track))} billed once a year
+                </p>
+              )}
 
               <Button
                 className="mt-5 w-full"
