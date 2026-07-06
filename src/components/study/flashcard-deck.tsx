@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useSpeechInput } from "@/hooks/use-speech-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
+import { TrialEndCard } from "@/components/app/trial-end-card";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
@@ -58,15 +59,19 @@ export function FlashcardDeck() {
   const [attempt, setAttempt] = React.useState("");
   const speech = useSpeechInput((t) => setAttempt((a) => (a ? `${a} ${t}` : t)));
 
-  // Daily cap reached (free tier).
+  // Trial (free) or daily (paid) allowance used up — the conversion moment.
   if (Number.isFinite(cap.cap) && cap.used >= cap.cap) {
     return (
       <div className="mx-auto max-w-md py-10">
-        <Paywall
-          title="You've hit today's free flashcards"
-          description={`The free plan includes ${cap.cap} flashcards a day. Upgrade to Premium for unlimited spaced-repetition review.`}
-          cta="Go unlimited"
-        />
+        {state.tier === "free" ? (
+          <TrialEndCard />
+        ) : (
+          <Paywall
+            title="You've hit today's flashcards"
+            description="Your plan's daily flashcard sessions are done — they reset tomorrow. Premium Plus removes the limit entirely."
+            cta="See plans"
+          />
+        )}
       </div>
     );
   }

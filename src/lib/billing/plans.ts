@@ -39,6 +39,11 @@ export function classAllowsCode(vc: VehicleClass | null, code: VehicleCode): boo
 /** Annual billing takes this many Rand off the monthly price of every paid plan. */
 export const ANNUAL_MONTHLY_SAVING = 20;
 
+/** Messages in one tutor top-up pack (Premium Plus, one-off purchase). */
+export const TUTOR_TOPUP_CREDITS = 20;
+/** Display price of a top-up pack (ZAR) — the Stripe price is the truth. */
+export const TUTOR_TOPUP_PRICE = 10;
+
 /** Items in one full flashcard or question session. */
 export const STUDY_SESSION_SIZE = 12;
 /** Premium gets this many full flashcard + question sessions a day. */

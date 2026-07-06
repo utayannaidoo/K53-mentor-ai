@@ -8,6 +8,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Paywall } from "@/components/app/paywall";
+import { TrialEndCard } from "@/components/app/trial-end-card";
+import { sourceFor } from "@/lib/content/provenance";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
@@ -50,11 +52,15 @@ export function QuestionPractice() {
   if (Number.isFinite(cap.cap) && cap.used >= cap.cap) {
     return (
       <div className="mx-auto max-w-md py-10">
-        <Paywall
-          title="You've hit today's free questions"
-          description={`The free plan includes ${cap.cap} practice questions a day. Premium unlocks unlimited practice across every category.`}
-          cta="Go unlimited"
-        />
+        {state.tier === "free" ? (
+          <TrialEndCard />
+        ) : (
+          <Paywall
+            title="You've hit today's questions"
+            description="Your plan's daily question sessions are done — they reset tomorrow. Premium Plus removes the limit entirely."
+            cta="See plans"
+          />
+        )}
       </div>
     );
   }
@@ -225,6 +231,12 @@ export function QuestionPractice() {
                             <SecondOpinion key={q.id} question={q} chosenIndex={selected} />
                           </>
                         )}
+                        <p className="mt-2 text-2xs text-muted-foreground">
+                          Based on: {sourceFor(q)} ·{" "}
+                          <Link href="/sources" className="underline hover:text-foreground">
+                            our sources
+                          </Link>
+                        </p>
                       </div>
                     </div>
                   )}

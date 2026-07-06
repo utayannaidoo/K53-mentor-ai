@@ -14,8 +14,18 @@ export const runtime = "nodejs";
 /** Map a Stripe price id back to our tier via the configured env prices. */
 function tierForPrice(priceId: string | undefined): "premium" | "premium_plus" | null {
   if (!priceId) return null;
-  if (priceId === process.env.STRIPE_PRICE_PREMIUM_MONTHLY) return "premium";
-  if (priceId === process.env.STRIPE_PRICE_PREMIUM_PLUS_MONTHLY) return "premium_plus";
+  if (
+    priceId === process.env.STRIPE_PRICE_PREMIUM_MONTHLY ||
+    priceId === process.env.STRIPE_PRICE_PREMIUM_ANNUAL
+  ) {
+    return "premium";
+  }
+  if (
+    priceId === process.env.STRIPE_PRICE_PREMIUM_PLUS_MONTHLY ||
+    priceId === process.env.STRIPE_PRICE_PREMIUM_PLUS_ANNUAL
+  ) {
+    return "premium_plus";
+  }
   return null;
 }
 
@@ -49,16 +59,35 @@ export async function POST(req: Request) {
     return Response.json({ error: "Storage not configured" }, { status: 500 });
   }
 
+  // Stripe redelivers events. Subscription upserts are idempotent but credit
+  // grants are not — the ledger makes every event apply exactly once. A
+  // ledger failure (e.g. migration not yet run) degrades to processing.
+  const { error: ledgerError } = await admin
+    .from("stripe_events")
+    .insert({ id: event.id, type: event.type });
+  if (ledgerError?.code === "23505") {
+    return Response.json({ received: true, duplicate: true });
+  }
+
   /** Grant the tier for a paid checkout session. */
   async function applyPaidCheckout(session: Stripe.Checkout.Session) {
     const userId = session.client_reference_id ?? session.metadata?.user_id;
-    const plan = session.metadata?.plan;
-    if (!userId || (plan !== "premium" && plan !== "premium_plus")) return;
+    if (!userId) return;
     // Delayed payment methods complete the session before money moves —
-    // only "paid" grants the tier (async_payment_succeeded re-delivers it).
+    // only "paid" grants anything (async_payment_succeeded re-delivers it).
     if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
       return;
     }
+    // One-off tutor top-up pack: bank the credits and stop.
+    if (session.metadata?.kind === "tutor_topup") {
+      const credits = Math.min(500, Math.max(0, Number(session.metadata.credits) || 0));
+      if (credits > 0) {
+        await admin!.rpc("grant_tutor_credits", { p_user: userId, p_credits: credits });
+      }
+      return;
+    }
+    const plan = session.metadata?.plan;
+    if (plan !== "premium" && plan !== "premium_plus") return;
     await admin!.from("subscriptions").upsert(
       {
         user_id: userId,

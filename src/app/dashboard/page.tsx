@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { CoachPlan } from "@/components/dashboard/coach-plan";
 import { ComebackCard } from "@/components/dashboard/comeback-card";
+import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
 import { RoadProgress } from "@/components/engagement/road-progress";
 import { WeakAreas } from "@/components/dashboard/weak-areas";
 import { TrendChart } from "@/components/dashboard/trend-chart";
@@ -49,6 +50,8 @@ export default function DashboardPage() {
       <TestCountdown onboarding={state.onboarding} />
 
       <ComebackCard />
+
+      {trialExhausted(state) && <TrialEndCard compact />}
 
       {!hasDiagnostic && (
         <Card className="mb-5 flex flex-wrap items-center justify-between gap-4 border-primary/20 bg-primary/[0.04] p-5">

@@ -96,6 +96,11 @@ export interface Question {
   image?: string;
   /** Vehicle codes this item is specific to. Omitted = applies to all codes. */
   codes?: VehicleCode[];
+  /**
+   * Item-level provenance override (e.g. an exact regulation). When absent,
+   * the category-level source from lib/content/provenance.ts applies.
+   */
+  source?: string;
 }
 
 export interface Flashcard {

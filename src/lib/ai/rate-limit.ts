@@ -154,6 +154,11 @@ export async function limitUserDaily(
   }
 }
 
+/** Client error reports: tight per-IP cap so the log can't be flooded. */
+export async function limitLog(ip: string): Promise<LimitResult> {
+  return memLimit(`log:${ip}`, 10, 60_000);
+}
+
 /** Modest per-IP limit for checkout-session creation (10/min). */
 export async function limitCheckout(ip: string): Promise<LimitResult> {
   try {
