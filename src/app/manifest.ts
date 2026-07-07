@@ -13,9 +13,12 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: "portrait",
     categories: ["education"],
     icons: [
-      // SVG scales to every size; Chrome accepts it for installability.
-      // TODO: add maskable 192/512 PNGs for best Android home-screen results.
       { src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
+      // Maskable PNGs (route-green, generated to match theme_color) for the
+      // best Android home-screen result — the OS masks them into any shape.
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "maskable" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
     ],
   };
 }

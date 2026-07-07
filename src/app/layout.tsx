@@ -53,7 +53,10 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: { card: "summary_large_image", title: APP_NAME, description: APP_DESCRIPTION },
-  icons: { icon: "/favicon.svg" },
+  icons: {
+    icon: "/favicon.svg",
+    apple: "/apple-icon.png", // iOS home-screen (needs a real PNG, not SVG)
+  },
 };
 
 export const viewport: Viewport = {
