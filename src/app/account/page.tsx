@@ -93,7 +93,9 @@ function AccountInner() {
             <h2 className="font-display text-lg font-semibold">Subscription</h2>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Badge variant={state.tier === "free" ? "secondary" : "default"}>{plan.name}</Badge>
-              {state.vehicleClass && (
+              {/* The track badge is a paid-plan concept — a free learner isn't
+                  scoped to one, so showing it would imply a plan they don't have. */}
+              {state.tier !== "free" && state.vehicleClass && (
                 <Badge variant="secondary">{VEHICLE_CLASS_SHORT[state.vehicleClass]}</Badge>
               )}
               <span className="text-sm text-muted-foreground">{plan.tagline}</span>
@@ -105,36 +107,53 @@ function AccountInner() {
         </div>
       </Card>
 
-      {/* Study profile */}
-      {onboarding && (
-        <Card className={cn(glass, "mt-5 p-6")}>
-          <h2 className="font-display text-lg font-semibold">Study profile</h2>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
-            <Info icon={<Target className="h-4 w-4" />} label="Goal" value={GOAL_LABEL[onboarding.goal]} />
-            <Info icon={<Gauge className="h-4 w-4" />} label="Licence code" value={`Code ${onboarding.vehicleCode}`} />
-            <Info
-              icon={<CalendarClock className="h-4 w-4" />}
-              label={onboarding.goal === "both" ? "Learner's test" : "Test date"}
-              value={onboarding.testDate ? formatDate(onboarding.testDate) : "Not booked"}
-            />
-            {onboarding.goal === "both" && (
+      {/* Study profile — always available so the licence code can be set/changed
+          even if onboarding was skipped (e.g. a Google sign-in). */}
+      <Card className={cn(glass, "mt-5 p-6")}>
+        <h2 className="font-display text-lg font-semibold">Study profile</h2>
+        {onboarding ? (
+          <>
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Info icon={<Target className="h-4 w-4" />} label="Goal" value={GOAL_LABEL[onboarding.goal]} />
+              <Info icon={<Gauge className="h-4 w-4" />} label="Licence code" value={`Code ${onboarding.vehicleCode}`} />
               <Info
                 icon={<CalendarClock className="h-4 w-4" />}
-                label="Driver's test"
-                value={onboarding.driversTestDate ? formatDate(onboarding.driversTestDate) : "Not booked"}
+                label={onboarding.goal === "both" ? "Learner's test" : "Test date"}
+                value={onboarding.testDate ? formatDate(onboarding.testDate) : "Not booked"}
               />
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={() => setEditOpen(true)}
-            className="mt-4 text-sm font-medium text-primary hover:underline"
-          >
-            Update study profile
-          </button>
-          <QuickProfileEdit open={editOpen} onClose={() => setEditOpen(false)} />
-        </Card>
-      )}
+              {onboarding.goal === "both" && (
+                <Info
+                  icon={<CalendarClock className="h-4 w-4" />}
+                  label="Driver's test"
+                  value={onboarding.driversTestDate ? formatDate(onboarding.driversTestDate) : "Not booked"}
+                />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="mt-4 text-sm font-medium text-primary hover:underline"
+            >
+              Update study profile
+            </button>
+          </>
+        ) : (
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Tell us which licence you&apos;re studying for so your questions, signs and mock
+              exams match — car, motorcycle or heavy vehicle.
+            </p>
+            <button
+              type="button"
+              onClick={() => setEditOpen(true)}
+              className="mt-4 text-sm font-medium text-primary hover:underline"
+            >
+              Choose my licence code
+            </button>
+          </>
+        )}
+        <QuickProfileEdit open={editOpen} onClose={() => setEditOpen(false)} />
+      </Card>
 
       {/* Preferences */}
       <Card className={cn(glass, "mt-5 p-6")}>
