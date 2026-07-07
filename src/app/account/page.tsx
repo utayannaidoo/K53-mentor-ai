@@ -14,6 +14,7 @@ import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { Switch } from "@/components/ui/switch";
 import { QuickProfileEdit, GOAL_LABEL } from "@/components/account/quick-profile-edit";
 import { EmailRemindersToggle } from "@/components/account/email-reminders-toggle";
+import { InviteCard } from "@/components/account/invite-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
 import { PLAN_MAP, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
@@ -25,6 +26,10 @@ function AccountInner() {
   const { state, signOut, resetProgress } = useStudyStore();
   const [dataSaver, setDataSaver] = useDataSaver();
   const [editOpen, setEditOpen] = React.useState(sp.get("edit") === "profile");
+  const [showDelete, setShowDelete] = React.useState(false);
+  const [confirmDelete, setConfirmDelete] = React.useState("");
+  const [deleting, setDeleting] = React.useState(false);
+  const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const plan = PLAN_MAP[state.tier];
   const profile = state.profile;
   const onboarding = state.onboarding;
@@ -38,6 +43,31 @@ function AccountInner() {
     if (window.confirm("Reset all progress? This permanently clears your readiness, streak, reviews and history.")) {
       resetProgress();
       router.push("/login");
+    }
+  }
+
+  async function handleDelete() {
+    setDeleteError(null);
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      const data = await res.json().catch(() => ({}) as { error?: string });
+      if (res.ok) {
+        // Server account is gone (or demo mode) — clear this browser too.
+        resetProgress();
+        signOut();
+        router.push("/");
+        return;
+      }
+      setDeleteError(
+        data.error === "cancel_subscription_first"
+          ? "Cancel your paid plan first (Billing & plan), then delete your account."
+          : "Deletion failed — please try again shortly.",
+      );
+    } catch {
+      setDeleteError("Network error — check your connection and try again.");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -129,6 +159,8 @@ function AccountInner() {
         <EmailRemindersToggle />
       </Card>
 
+      <InviteCard />
+
       {/* Danger zone */}
       <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Account actions</h2>
@@ -139,7 +171,59 @@ function AccountInner() {
           <Button variant="ghost" className="gap-2 text-danger hover:bg-danger/10" onClick={handleReset}>
             <Trash2 className="h-4 w-4" /> Reset all progress
           </Button>
+          {!showDelete && (
+            <Button
+              variant="ghost"
+              className="gap-2 text-danger hover:bg-danger/10"
+              onClick={() => setShowDelete(true)}
+            >
+              <Trash2 className="h-4 w-4" /> Delete account
+            </Button>
+          )}
         </div>
+
+        {showDelete && (
+          <div className="mt-4 rounded-lg border border-danger/30 bg-danger/[0.06] p-4">
+            <p className="text-sm font-semibold text-foreground">Delete your account permanently?</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              This erases your profile, progress, streak and all study history everywhere —
+              it cannot be undone. If you have a paid plan, cancel it first on the billing page.
+            </p>
+            <p className="mt-3 text-xs font-medium text-foreground">
+              Type <span className="font-mono font-bold">DELETE</span> to confirm:
+            </p>
+            <input
+              value={confirmDelete}
+              onChange={(e) => setConfirmDelete(e.target.value)}
+              className="mt-1.5 h-9 w-40 rounded-md border border-border bg-card px-3 text-sm font-mono"
+              placeholder="DELETE"
+              autoComplete="off"
+            />
+            {deleteError && <p className="mt-2 text-xs text-danger">{deleteError}</p>}
+            <div className="mt-3 flex gap-2">
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={handleDelete}
+                disabled={confirmDelete !== "DELETE" || deleting}
+              >
+                {deleting ? "Deleting…" : "Delete forever"}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  setShowDelete(false);
+                  setConfirmDelete("");
+                  setDeleteError(null);
+                }}
+                disabled={deleting}
+              >
+                Keep my account
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
     </div>
   );

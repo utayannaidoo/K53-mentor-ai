@@ -1,5 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyPaystackSignature } from "@/lib/paystack/client";
+import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
+import { buildPaymentFailedEmail, buildPaymentReceiptEmail } from "@/lib/notify/templates";
+import { PLAN_MAP } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
 
@@ -19,7 +22,9 @@ export const runtime = "nodejs";
 interface ChargeSuccessData {
   id: number;
   reference: string;
-  customer: { customer_code: string; email: string };
+  /** Amount in the currency's smallest unit (ZAR cents). */
+  amount?: number;
+  customer: { customer_code: string; email: string; first_name?: string | null };
   metadata?: Record<string, string> | null;
   plan?: { plan_code?: string } | null;
 }
@@ -72,7 +77,18 @@ export async function POST(req: Request) {
       const data = payload.data as ChargeSuccessData;
       const meta = data.metadata ?? {};
       const userId = meta.user_id;
-      if (!userId) break;
+      if (!userId) {
+        // Renewal charges don't carry our checkout metadata. A successful
+        // plan charge for a known customer clears any past_due grace state.
+        if (data.plan?.plan_code && data.customer?.customer_code) {
+          await admin
+            .from("subscriptions")
+            .update({ status: "active" })
+            .eq("provider_customer_id", data.customer.customer_code)
+            .neq("tier", "free");
+        }
+        break;
+      }
 
       // One-off tutor top-up: bank the credits and stop.
       if (meta.kind === "tutor_topup") {
@@ -97,6 +113,42 @@ export async function POST(req: Request) {
         },
         { onConflict: "user_id" },
       );
+      // Receipt + welcome (best-effort; the ledger already made this once-only).
+      if (isEmailConfigured && data.customer.email) {
+        const receipt = buildPaymentReceiptEmail({
+          firstName: data.customer.first_name ?? "",
+          planName: PLAN_MAP[plan].name,
+          amountZar: (data.amount ?? 0) / 100,
+        });
+        await sendEmail({ to: data.customer.email, ...receipt }).catch(() => {});
+      }
+      break;
+    }
+
+    case "invoice.payment_failed": {
+      // A renewal charge failed. Paystack keeps retrying — mark the row
+      // past_due (a grace state the entitlement check still honours) and
+      // nudge the learner. The hard cutoff is subscription.disable, which
+      // Paystack sends when it gives up.
+      const data = payload.data as {
+        customer?: { customer_code?: string; email?: string; first_name?: string | null };
+      };
+      const customerCode = data.customer?.customer_code;
+      if (!customerCode) break;
+      const { data: row } = await admin
+        .from("subscriptions")
+        .update({ status: "past_due" })
+        .eq("provider_customer_id", customerCode)
+        .select("tier")
+        .maybeSingle();
+      const tier = (row as { tier?: string } | null)?.tier;
+      if (isEmailConfigured && data.customer?.email && (tier === "premium" || tier === "premium_plus")) {
+        const nudge = buildPaymentFailedEmail({
+          firstName: data.customer.first_name ?? "",
+          planName: PLAN_MAP[tier].name,
+        });
+        await sendEmail({ to: data.customer.email, ...nudge }).catch(() => {});
+      }
       break;
     }
 

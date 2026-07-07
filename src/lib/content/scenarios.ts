@@ -2,6 +2,7 @@ import type { Scenario } from "@/types";
 import { signImg } from "./signs";
 import { VEHICLE_SCENARIOS } from "./scenarios.vehicle";
 import { EXTRA_SCENARIOS } from "./scenarios.extra";
+import { VEHICLE_EXTRA_SCENARIOS } from "./vehicle-extra";
 
 const CORE_SCENARIOS: Scenario[] = [
   {
@@ -510,7 +511,7 @@ const CORE_SCENARIOS: Scenario[] = [
 ];
 
 /** Core (universal) scenarios plus the vehicle-code–specific ones. */
-export const SCENARIOS: Scenario[] = [...CORE_SCENARIOS, ...VEHICLE_SCENARIOS, ...EXTRA_SCENARIOS];
+export const SCENARIOS: Scenario[] = [...CORE_SCENARIOS, ...VEHICLE_SCENARIOS, ...EXTRA_SCENARIOS, ...VEHICLE_EXTRA_SCENARIOS];
 
 export const SCENARIOS_BY_ID: Record<string, Scenario> = Object.fromEntries(
   SCENARIOS.map((s) => [s.id, s]),

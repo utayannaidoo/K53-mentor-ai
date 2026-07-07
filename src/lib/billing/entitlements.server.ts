@@ -66,7 +66,9 @@ export async function resolveEntitlement(surface: AiSurface): Promise<Entitlemen
       .eq("user_id", user.id)
       .maybeSingle();
     const row = data as { tier: SubscriptionTier; status: string } | null;
-    if (row && (row.status === "active" || row.status === "trialing")) {
+    // past_due = failed renewal inside Paystack's retry window — a grace
+    // state. The hard cutoff is subscription.disable → tier back to free.
+    if (row && (row.status === "active" || row.status === "trialing" || row.status === "past_due")) {
       tier = row.tier;
     }
   } catch {

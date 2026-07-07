@@ -245,6 +245,21 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         setState((s) => (s.profile ? { ...s, profile: null } : s));
         return;
       }
+      // A parked referral code from /signup?ref=… — claim it exactly once,
+      // now that a real account exists (covers password and OAuth signups).
+      try {
+        const ref = window.localStorage.getItem("k53.ref");
+        if (ref) {
+          window.localStorage.removeItem("k53.ref");
+          fetch("/api/referral", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ code: ref }),
+          }).catch(() => {});
+        }
+      } catch {
+        /* private mode */
+      }
       try {
         // Account rows + the server's copy of study history in one round.
         const [account, progress] = await Promise.all([

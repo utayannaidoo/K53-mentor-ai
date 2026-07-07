@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Sparkles, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -8,6 +9,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { totalUsage } from "@/lib/store/local-store";
 import { PLAN_MAP } from "@/lib/billing/plans";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 import type { UserState } from "@/types";
 
 /** Whether the free once-off trial has been used up. */
@@ -29,6 +31,11 @@ export function trialExhausted(state: UserState): boolean {
 export function TrialEndCard({ compact = false }: { compact?: boolean }) {
   const { state, readiness } = useStudyStore();
   const r = readiness.readiness;
+
+  React.useEffect(() => {
+    track("trial_end_shown", { compact, readiness: r });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const testDate = state.onboarding?.testDate;
   const daysToTest = testDate
