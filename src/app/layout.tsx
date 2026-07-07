@@ -5,6 +5,8 @@ import { ThemeProvider } from "@/components/shared/theme-provider";
 import { StudyStoreProvider } from "@/hooks/use-study-store";
 import { DataSaverInit } from "@/components/shared/data-saver-init";
 import { ErrorReporter } from "@/components/shared/error-reporter";
+import { AnalyticsProvider } from "@/components/shared/analytics-provider";
+import { SwRegister } from "@/components/shared/sw-register";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/lib/constants";
 
 const inter = Inter({
@@ -77,6 +79,8 @@ export default function RootLayout({
           <StudyStoreProvider>
             <DataSaverInit />
             <ErrorReporter />
+            <AnalyticsProvider />
+            <SwRegister />
             {children}
           </StudyStoreProvider>
         </ThemeProvider>

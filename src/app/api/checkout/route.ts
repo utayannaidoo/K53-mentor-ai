@@ -14,16 +14,31 @@ const schema = z.object({
   cycle: z.enum(["monthly", "annual"]).optional(),
 });
 
-/** Paystack Plan code for a plan + billing cycle, from env. */
-function planCodeFor(plan: "premium" | "premium_plus", cycle: "monthly" | "annual"): string | undefined {
-  if (plan === "premium") {
-    return cycle === "annual"
-      ? process.env.PAYSTACK_PLAN_PREMIUM_ANNUAL
-      : process.env.PAYSTACK_PLAN_PREMIUM_MONTHLY;
-  }
-  return cycle === "annual"
-    ? process.env.PAYSTACK_PLAN_PREMIUM_PLUS_ANNUAL
-    : process.env.PAYSTACK_PLAN_PREMIUM_PLUS_MONTHLY;
+/**
+ * Paystack Plan code for a plan + cycle + track, from env. Prices differ per
+ * vehicle class (Premium: R60 car / R50 bike+heavy) and a Paystack Plan has
+ * exactly one fixed price — so each tier × cycle × track is its own Plan.
+ * The BIKE vars fall back to the car Plan so a half-configured deploy sells
+ * at the (higher) car price rather than failing or undercharging.
+ */
+function planCodeFor(
+  plan: "premium" | "premium_plus",
+  cycle: "monthly" | "annual",
+  track: "car" | "bike_heavy",
+): string | undefined {
+  const e = process.env;
+  const car =
+    plan === "premium"
+      ? { monthly: e.PAYSTACK_PLAN_PREMIUM_MONTHLY, annual: e.PAYSTACK_PLAN_PREMIUM_ANNUAL }
+      : { monthly: e.PAYSTACK_PLAN_PREMIUM_PLUS_MONTHLY, annual: e.PAYSTACK_PLAN_PREMIUM_PLUS_ANNUAL };
+  const bike =
+    plan === "premium"
+      ? { monthly: e.PAYSTACK_PLAN_PREMIUM_BIKE_MONTHLY, annual: e.PAYSTACK_PLAN_PREMIUM_BIKE_ANNUAL }
+      : {
+          monthly: e.PAYSTACK_PLAN_PREMIUM_PLUS_BIKE_MONTHLY,
+          annual: e.PAYSTACK_PLAN_PREMIUM_PLUS_BIKE_ANNUAL,
+        };
+  return track === "bike_heavy" ? (bike[cycle] ?? car[cycle]) : car[cycle];
 }
 
 /**
@@ -75,7 +90,10 @@ export async function POST(req: Request) {
         .select("tier,status")
         .eq("user_id", user.id)
         .maybeSingle();
-      tier = data && (data.status === "active" || data.status === "trialing") ? data.tier : "free";
+      tier =
+        data && (data.status === "active" || data.status === "trialing" || data.status === "past_due")
+          ? data.tier
+          : "free";
     }
   }
   // Paystack needs an email even in demo-without-auth; it's never charged.
@@ -102,7 +120,7 @@ export async function POST(req: Request) {
 
     // ── Subscription checkout ────────────────────────────────────────────────
     const cycle = parsed.cycle ?? "monthly";
-    const planCode = planCodeFor(parsed.plan, cycle);
+    const planCode = planCodeFor(parsed.plan, cycle, parsed.track ?? "car");
     if (!planCode) {
       return Response.json({ error: "Price not configured for this plan." }, { status: 500 });
     }

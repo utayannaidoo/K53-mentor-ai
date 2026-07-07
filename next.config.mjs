@@ -14,7 +14,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://images.unsplash.com https://avatars.githubusercontent.com",
   "font-src 'self' data:",
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isProd ? "" : " ws:"}`,
+  // PostHog ingestion hosts (us/eu); harmless when analytics is unconfigured.
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.i.posthog.com https://*.posthog.com${isProd ? "" : " ws:"}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

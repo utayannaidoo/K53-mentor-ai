@@ -22,6 +22,7 @@ import {
 } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
+import { track as trackEvent } from "@/lib/analytics";
 import type { SubscriptionTier, VehicleClass } from "@/types";
 
 function BillingInner() {
@@ -46,6 +47,7 @@ function BillingInner() {
       if (cancelled) return;
       if (tier && tier !== "free") {
         setBanner("Payment complete — your plan is active.");
+        trackEvent("plan_activated", { tier });
       } else if (tries < 8) {
         timer = setTimeout(poll, 2500);
       } else {
@@ -125,6 +127,7 @@ function BillingInner() {
       return;
     }
     setBusy(plan.id);
+    trackEvent("checkout_started", { plan: plan.id, cycle, track });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",

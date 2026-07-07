@@ -11,6 +11,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/env";
+import { track } from "@/lib/analytics";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -24,6 +25,19 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   React.useEffect(() => {
     if (ready && isAuthed) router.replace(hasDiagnostic ? "/dashboard" : "/onboarding");
   }, [ready, isAuthed, hasDiagnostic, router]);
+
+  // A referral link (/signup?ref=CODE) parks the code until the account
+  // exists; the study store claims it right after the first sign-in.
+  React.useEffect(() => {
+    const ref = new URLSearchParams(window.location.search).get("ref");
+    if (ref && /^[a-z0-9]{4,16}$/i.test(ref)) {
+      try {
+        window.localStorage.setItem("k53.ref", ref.toLowerCase());
+      } catch {
+        /* private mode */
+      }
+    }
+  }, []);
 
   const destination = () =>
     mode === "signup" || !hasDiagnostic ? "/onboarding" : "/dashboard";
@@ -48,6 +62,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
 
     // Demo path / mirror profile into the local store.
+    if (mode === "signup") track("signup_completed", { method: "password" });
     signInLocal(name || email.split("@")[0] || "Learner", email || "demo@k53mentor.ai");
     router.push(destination());
   }
@@ -55,6 +70,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   function continueAsGuest() {
     signInLocal("Demo learner", "demo@k53mentor.ai");
     router.push(hasDiagnostic ? "/dashboard" : "/onboarding");
+  }
+
+  async function continueWithGoogle() {
+    const supabase = createClient();
+    if (!supabase) return;
+    setError(null);
+    const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        // The callback route exchanges the code and forwards to `next`.
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
+          hasDiagnostic ? "/dashboard" : "/onboarding",
+        )}`,
+      },
+    });
+    if (oauthError) setError(oauthError.message);
   }
 
   return (
@@ -102,6 +133,25 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           )}
         </Button>
       </form>
+
+      {/* Google OAuth — production only (needs the Supabase Google provider
+          enabled). The callback route lands the session and forwards on. */}
+      {isSupabaseConfigured && (
+        <>
+          <div className="my-5 flex items-center gap-3 text-2xs uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
+          </div>
+          <Button type="button" variant="outline" size="lg" className="w-full gap-2.5" onClick={continueWithGoogle}>
+            <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.02.15 3.5 2.7.24.03c2.2-2.1 3.5-5.1 3.5-8.6z" />
+              <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2a7.2 7.2 0 0 1-6.8-5l-.14.01-3.7 2.8-.05.13A12 12 0 0 0 12 24z" />
+              <path fill="#FBBC05" d="M5.2 14.4a7.4 7.4 0 0 1 0-4.7l-.01-.16-3.7-2.9-.12.06a12 12 0 0 0 0 10.7l3.9-3z" />
+              <path fill="#EB4335" d="M12 4.7c2.3 0 3.9 1 4.8 1.8l3.5-3.4C18 1.2 15.2 0 12 0A12 12 0 0 0 1.3 6.7l3.9 3a7.2 7.2 0 0 1 6.8-5z" />
+            </svg>
+            Continue with Google
+          </Button>
+        </>
+      )}
 
       {/* Guest access is a demo-only convenience — in production every user
           signs up, so tier and usage always have a real account behind them. */}

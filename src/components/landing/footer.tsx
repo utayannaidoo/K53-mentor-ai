@@ -16,6 +16,7 @@ const GROUPS = [
   {
     title: "Company",
     links: [
+      { href: "/guides", label: "Guides" },
       { href: "/#faq", label: "FAQ" },
       { href: "/#how", label: "How it works" },
       { href: "/login", label: "Log in" },

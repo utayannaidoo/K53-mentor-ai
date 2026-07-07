@@ -11,6 +11,7 @@ import { TrendChart } from "@/components/dashboard/trend-chart";
 import { RoadProgress } from "@/components/engagement/road-progress";
 import { MasteryMap } from "@/components/engagement/mastery-map";
 import { DrivingPassport } from "@/components/engagement/driving-passport";
+import { ShareCard } from "@/components/engagement/share-card";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { categoryName } from "@/lib/content/categories";
@@ -73,6 +74,17 @@ export default function ProgressPage() {
       <div className="mt-5">
         <DrivingPassport perCategory={readiness.perCategory} />
       </div>
+
+      {/* Shareable progress card — the WhatsApp brag surface */}
+      <Card className={cn(glass, "mt-5 p-6")}>
+        <h2 className="font-display text-lg font-semibold">Share your progress</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Send your card to the group chat — a study buddy makes the streak easier to keep.
+        </p>
+        <div className="mt-4 max-w-xl">
+          <ShareCard />
+        </div>
+      </Card>
 
       <Card className={cn(glass, "mt-5 p-6")}>
         <div className="flex items-center justify-between">

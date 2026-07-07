@@ -62,6 +62,50 @@ function h(text: string): string {
   return `<p style="font-size:18px;font-weight:700;color:#1d2724;margin:0 0 12px;">${text}</p>`;
 }
 
+/** Receipt + welcome, sent by the Paystack webhook on a successful charge. */
+export function buildPaymentReceiptEmail(input: {
+  firstName: string;
+  planName: string;
+  amountZar: number;
+}): EmailContent {
+  const name = esc(input.firstName) || "there";
+  const plan = esc(input.planName);
+  const amount = `R ${input.amountZar.toFixed(2).replace(/\.00$/, "")}`;
+  const subject = `Payment received — ${input.planName} is active`;
+  const text =
+    `Hi ${input.firstName || "there"} — we've received your ${amount} payment and your ${input.planName} plan is now active. ` +
+    `Your study plan, mock exams and AI tutor are unlocked.\n\nStart studying: ${SITE_URL}/dashboard\n\n` +
+    `Manage or cancel any time: ${SITE_URL}/account/billing`;
+  const html = wrap(
+    h("Payment received — you're all set") +
+      p(`Hi ${name} — we've received your <strong>${amount}</strong> payment and your <strong>${plan}</strong> plan is now active.`) +
+      p("Your personalised study plan, full mock exams and AI tutor are unlocked. See you on the road.") +
+      p(`<span style="color:#8a938e;font-size:12px;">Manage or cancel any time from your <a href="${SITE_URL}/account/billing" style="color:#8a938e;">billing page</a>.</span>`),
+    "Start studying",
+    "/dashboard",
+  );
+  return { subject, html, text };
+}
+
+/** Dunning nudge, sent when a subscription renewal charge fails. */
+export function buildPaymentFailedEmail(input: { firstName: string; planName: string }): EmailContent {
+  const name = esc(input.firstName) || "there";
+  const plan = esc(input.planName);
+  const subject = "Your K53 Mentor payment didn't go through";
+  const text =
+    `Hi ${input.firstName || "there"} — the renewal payment for your ${input.planName} plan didn't go through. ` +
+    `No stress: your plan is still active while we retry. If your card details changed, cancel and resubscribe with the new card.\n\n` +
+    `Billing: ${SITE_URL}/account/billing`;
+  const html = wrap(
+    h("Your renewal payment didn't go through") +
+      p(`Hi ${name} — the renewal for your <strong>${plan}</strong> plan failed, usually a card that expired or changed.`) +
+      p("Your plan stays active while the payment is retried. If your card details changed, the quickest fix is to cancel and resubscribe with the new card."),
+    "Fix my billing",
+    "/account/billing",
+  );
+  return { subject, html, text };
+}
+
 export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
   const { streak, longest, dueCards } = input;
   // The name is profile data the user typed — escape it so a crafted "name"

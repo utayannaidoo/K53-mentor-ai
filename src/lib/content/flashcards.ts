@@ -2,6 +2,7 @@ import type { Flashcard } from "@/types";
 import { signImg } from "./signs";
 import { VEHICLE_FLASHCARDS } from "./flashcards.vehicle";
 import { EXTRA_FLASHCARDS } from "./flashcards.extra";
+import { VEHICLE_EXTRA_FLASHCARDS } from "./vehicle-extra";
 
 /**
  * Spaced-repetition flashcards covering the K53 learner's syllabus. Sign cards
@@ -100,7 +101,7 @@ const CORE_FLASHCARDS: Flashcard[] = [
 ];
 
 /** Core (universal) flashcards plus the vehicle-code–specific and extra cards. */
-export const FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS];
+export const FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS, ...VEHICLE_EXTRA_FLASHCARDS];
 
 export const FLASHCARDS_BY_ID: Record<string, Flashcard> = Object.fromEntries(
   FLASHCARDS.map((f) => [f.id, f]),
