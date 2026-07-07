@@ -8,7 +8,7 @@ import { DateSelect } from "@/components/ui/date-select";
 import { Button } from "@/components/ui/button";
 import { PageLoader } from "@/components/shared/page-loader";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { vehicleClass, codesForClass, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
+import { vehicleClass, selectableCodes, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn } from "@/lib/utils";
 import type { LicenceGoal, VehicleCode } from "@/types";
@@ -32,11 +32,11 @@ function representativeCode(code: VehicleCode): VehicleCode {
 }
 
 export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { state, updateOnboarding, setVehicleClass } = useStudyStore();
+  const { state, updateOnboarding, completeOnboarding, setVehicleClass } = useStudyStore();
   const onboarding = state.onboarding;
-  // Strictly what the subscription track covers — switching tracks is a plan
-  // change and happens on the billing page, never here.
-  const codes = codesForClass(state.vehicleClass);
+  // Free learners can study any code; paid subscribers are scoped to the track
+  // they bought (switching track is a plan change on the billing page).
+  const codes = selectableCodes(state.tier, state.vehicleClass);
 
   const [goal, setGoal] = React.useState<LicenceGoal>("learners");
   const [vehicleCode, setVehicleCodeLocal] = React.useState<VehicleCode>("8");
@@ -47,32 +47,54 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
   const [saving, setSaving] = React.useState(false);
 
   // Re-seed local state from the current profile whenever the sheet opens.
+  // Works even with no onboarding yet (e.g. a Google sign-in that skipped the
+  // wizard) so the licence code is always changeable.
   React.useEffect(() => {
-    if (!open || !onboarding) return;
-    setGoal(onboarding.goal);
-    // Clamp to the codes the subscription actually covers, in case the stored
-    // code drifted outside the track (e.g. state written before gating).
-    const allowed = codesForClass(state.vehicleClass);
-    const rep = representativeCode(onboarding.vehicleCode);
-    setVehicleCodeLocal(allowed.includes(rep) ? rep : allowed[0]);
-    setTestDate(onboarding.testDate ?? "");
-    setTestBooked(Boolean(onboarding.testDate));
-    setDriversTestDate(onboarding.driversTestDate ?? "");
-    setDriversBooked(Boolean(onboarding.driversTestDate));
-  }, [open, onboarding, state.vehicleClass]);
-
-  if (!onboarding) return null;
+    if (!open) return;
+    const allowed = selectableCodes(state.tier, state.vehicleClass);
+    if (onboarding) {
+      setGoal(onboarding.goal);
+      const rep = representativeCode(onboarding.vehicleCode);
+      setVehicleCodeLocal(allowed.includes(rep) ? rep : allowed[0]);
+      setTestDate(onboarding.testDate ?? "");
+      setTestBooked(Boolean(onboarding.testDate));
+      setDriversTestDate(onboarding.driversTestDate ?? "");
+      setDriversBooked(Boolean(onboarding.driversTestDate));
+    } else {
+      setGoal("learners");
+      setVehicleCodeLocal(allowed[0]);
+      setTestDate("");
+      setTestBooked(false);
+      setDriversTestDate("");
+      setDriversBooked(false);
+    }
+  }, [open, onboarding, state.vehicleClass, state.tier]);
 
   function save() {
-    updateOnboarding({
+    const patch = {
       goal,
       vehicleCode,
       testDate: testBooked ? testDate : null,
       driversTestDate: goal === "both" ? (driversBooked ? driversTestDate : null) : null,
-    });
-    // Only a track-less (never subscribed / never picked) profile sets its
-    // track here; everyone else's track is owned by their subscription.
-    if (!state.vehicleClass) setVehicleClass(vehicleClass(vehicleCode));
+    };
+    if (onboarding) {
+      updateOnboarding(patch);
+    } else {
+      // No onboarding yet — scaffold a minimal profile around the chosen code.
+      completeOnboarding({
+        ...patch,
+        confidence: 3,
+        worryCategories: [],
+        knowledgeLevel: "some",
+        studyFrequency: "steady",
+        priorAttempts: 0,
+      });
+    }
+    // A free learner's studied code owns their track; a paid subscriber's track
+    // is set on billing and left untouched here.
+    if (state.tier === "free" || !state.vehicleClass) {
+      setVehicleClass(vehicleClass(vehicleCode));
+    }
     setSaving(true);
     // A short, deliberate pause so the refresh reads as "applying your change"
     // rather than a jarring reload, and gives the local-store save time to flush.
@@ -107,7 +129,7 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
               onChange={(v) => setVehicleCodeLocal(v as VehicleCode)}
               options={codes.map((c) => ({ value: c, label: CODE_LABEL[c as keyof typeof CODE_LABEL] }))}
             />
-            {state.vehicleClass && (
+            {state.tier !== "free" && state.vehicleClass ? (
               <p className="mt-1.5 text-xs text-muted-foreground">
                 Your {VEHICLE_CLASS_SHORT[state.vehicleClass]} plan covers{" "}
                 {state.vehicleClass === "car" ? "Code 08 only" : "motorcycle & heavy codes only"}.{" "}
@@ -119,6 +141,10 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
                   Change plan
                 </Link>{" "}
                 to switch track.
+              </p>
+            ) : (
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Switch anytime — pick the licence you&apos;re actually studying for.
               </p>
             )}
           </div>

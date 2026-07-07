@@ -36,6 +36,19 @@ export function classAllowsCode(vc: VehicleClass | null, code: VehicleCode): boo
   return vc === null || vehicleClass(code) === vc;
 }
 
+/**
+ * The codes a user may switch between in-app. A free learner isn't scoped to
+ * any paid track, so they can freely study any code; a paid subscriber is
+ * scoped to the track they bought (switching track is a plan change on the
+ * billing page, never a silent profile edit).
+ */
+export function selectableCodes(
+  tier: SubscriptionTier,
+  vc: VehicleClass | null,
+): VehicleCode[] {
+  return tier === "free" ? ["8", "A", "14"] : codesForClass(vc);
+}
+
 /** Annual billing takes this many Rand off the monthly price of every paid plan. */
 export const ANNUAL_MONTHLY_SAVING = 20;
 
