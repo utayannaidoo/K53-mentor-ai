@@ -45,7 +45,8 @@ import {
 import { uid } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { loadAccount, saveAccount } from "@/lib/supabase/account";
-import { mergeProgress, pullProgress, pushProgress } from "@/lib/supabase/progress";
+import { pullProgress, pushProgress } from "@/lib/supabase/progress";
+import { hydrateAccountState } from "@/lib/store/account-hydrate";
 
 type UsageKind = "flashcards" | "questions" | "tutor" | "scenarios";
 
@@ -267,15 +268,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
           pullProgress(supabase, user.id).catch(() => null),
         ]);
         if (!cancelled)
-          setState((s) => {
-            let next = { ...s, ...account };
-            // CP only ever grows — never let a stale server row roll it back.
-            if (account.cp != null) next.cp = Math.max(s.cp, account.cp);
-            // Merge, never replace: a new device gets its history back, an
-            // existing one keeps anything the server hasn't seen yet.
-            if (progress) next = mergeProgress(next, progress);
-            return next;
-          });
+          setState((s) => hydrateAccountState(s, account, progress, user.email ?? null));
       } catch {
         // Network/RLS hiccup — keep whatever the local cache holds.
       }
@@ -301,7 +294,14 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       });
       supabase.auth
         .getUser()
-        .then(({ data: { user } }) => (user ? pushProgress(supabase, user.id, state) : undefined))
+        .then(({ data: { user } }) =>
+          // Only push when the local state actually belongs to the signed-in
+          // user — never write one account's progress into another's rows
+          // during the brief switch window before hydrate re-seeds.
+          user && user.id === state.profile?.id
+            ? pushProgress(supabase, user.id, state)
+            : undefined,
+        )
         .catch(() => {
           // Watermark unchanged — the next flush retries the same window.
         });
@@ -366,10 +366,16 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     },
 
     signOut: () => {
-      // End the real Supabase session (prod); the auth listener will also clear
-      // the local profile, but we clear it immediately for a snappy redirect.
-      if (supabase) supabase.auth.signOut().catch(() => {});
-      setState((s) => ({ ...s, profile: null }));
+      if (supabase) {
+        // Prod: the server holds the durable copy, so wipe local progress on
+        // sign-out — nothing lingers on a shared device, and the same person's
+        // history restores from the server on their next sign-in.
+        supabase.auth.signOut().catch(() => {});
+        setState(() => defaultUserState());
+      } else {
+        // Demo (no backend): keep local data; ownerEmail guards re-sign-in.
+        setState((s) => ({ ...s, profile: null }));
+      }
     },
 
     setTier: (tier) => setState((s) => ({ ...s, tier })),
