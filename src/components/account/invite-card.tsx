@@ -41,7 +41,7 @@ export function InviteCard() {
   }
 
   return (
-    <Card className={cn(glass, "mt-5 p-6")}>
+    <Card className={cn(glass, "p-6")}>
       <div className="flex items-center gap-2.5">
         <Gift className="h-5 w-5 text-primary" />
         <h2 className="font-display text-lg font-semibold">Invite a friend</h2>

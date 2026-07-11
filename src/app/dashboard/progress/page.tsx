@@ -67,7 +67,9 @@ export default function ProgressPage() {
         }}
       />
 
-      <Card className={cn(glass, "mt-5 p-6")}>
+      {/* Desktop pairs cards two-up to cut the scroll; mobile keeps the stack. */}
+      <div className="mt-5 grid gap-5 lg:grid-cols-2 lg:items-start">
+      <Card className={cn(glass, "h-full p-6")}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg font-semibold">Readiness over time</h2>
           {!fullHistory && (
@@ -96,7 +98,7 @@ export default function ProgressPage() {
         )}
       </Card>
 
-      <Card className={cn(glass, "mt-5 p-6")}>
+      <Card className={cn(glass, "h-full p-6")}>
         <h2 className="font-display text-lg font-semibold">Mastery Map</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Rings track sustained mastery, not one good quiz. 90%+ stamps the category.
@@ -106,12 +108,12 @@ export default function ProgressPage() {
         </div>
       </Card>
 
-      <div className="mt-5">
+      <div className="h-full">
         <DrivingPassport perCategory={readiness.perCategory} />
       </div>
 
       {/* Shareable progress card — the WhatsApp brag surface */}
-      <Card className={cn(glass, "mt-5 p-6")}>
+      <Card className={cn(glass, "h-full p-6")}>
         <h2 className="font-display text-lg font-semibold">Share your progress</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Send your card to the group chat — a study buddy makes the streak easier to keep.
@@ -121,7 +123,7 @@ export default function ProgressPage() {
         </div>
       </Card>
 
-      <Card className={cn(glass, "mt-5 p-6")}>
+      <Card className={cn(glass, "h-full p-6")}>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Mock exam history</h2>
           <Link href="/study/mock-exam" className="text-xs font-medium text-primary hover:underline">
@@ -163,7 +165,7 @@ export default function ProgressPage() {
       </Card>
 
       {/* Advanced analytics — Premium Plus */}
-      <Card className={cn(glass, "mt-5 overflow-hidden p-6")}>
+      <Card className={cn(glass, "h-full overflow-hidden p-6")}>
         <div className="flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Advanced analytics</h2>
           {!advanced && <Badge variant="secondary" className="gap-1"><Lock className="h-3 w-3" /> Premium Plus</Badge>}
@@ -198,6 +200,7 @@ export default function ProgressPage() {
           </div>
         )}
       </Card>
+      </div>
     </div>
   );
 }

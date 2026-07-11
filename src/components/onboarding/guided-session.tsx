@@ -77,7 +77,7 @@ export function GuidedSession() {
       </header>
 
       {/* Progress */}
-      <div className="mx-auto w-full max-w-lg px-6">
+      <div className="mx-auto w-full max-w-lg px-6 lg:max-w-2xl">
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-[width] duration-500"
@@ -87,7 +87,7 @@ export function GuidedSession() {
       </div>
 
       <div className="flex flex-1 items-start justify-center px-6 py-8">
-        <div key={step} className="w-full max-w-lg animate-fade-in">
+        <div key={step} className="w-full max-w-lg animate-fade-in lg:max-w-2xl">
           {step === 0 && (
             <div className="text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -314,6 +314,9 @@ function GuidedQuestions({
           {q.prompt}
         </h2>
 
+        {/* Desktop: options left, feedback + Next right, so nothing needs a scroll
+            after answering. Mobile keeps the stacked flow. */}
+        <div className="lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-start lg:gap-6">
         <div className="mt-4 space-y-2.5">
           {q.options.map((opt, idx) => {
             const showCorrect = answered && idx === q.correctIndex;
@@ -349,8 +352,9 @@ function GuidedQuestions({
           })}
         </div>
 
+        <div className="lg:mt-4">
         {answered && isCorrect && (
-          <div className="mt-3 flex gap-2 animate-fade-in">
+          <div className="mt-3 flex gap-2 animate-fade-in lg:mt-0">
             <CornerDownRight className="mt-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
             <div className="flex-1 rounded-lg border border-success/30 bg-success/[0.05] p-3 text-sm leading-relaxed">
               <span className="font-semibold text-success">Correct. </span>
@@ -361,7 +365,7 @@ function GuidedQuestions({
 
         {/* Wrong answer → the tutor introduces itself */}
         {answered && !isCorrect && (
-          <div className="mt-3 animate-fade-in">
+          <div className="mt-3 animate-fade-in lg:mt-0">
             <div className="flex items-center gap-2">
               <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
                 <Sparkles className="h-3.5 w-3.5" />
@@ -384,6 +388,8 @@ function GuidedQuestions({
             {i + 1 >= questions.length ? "Finish the tour" : "Next question"} <ArrowRight />
           </Button>
         )}
+        </div>
+        </div>
       </div>
     </div>
   );
