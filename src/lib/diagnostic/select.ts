@@ -47,20 +47,53 @@ const DIAGNOSTIC_PLAN: Record<CategoryId, number> = {
 };
 
 /**
+ * Per-category counts for a diagnostic, tilted toward what the learner said
+ * worries them (onboarding step 5): +1 question for each of the top two worry
+ * categories, taken from the largest non-worry categories so the total stays
+ * the same. Exported for unit tests.
+ */
+export function diagnosticPlanFor(worryCategories: CategoryId[] = []): Record<CategoryId, number> {
+  const plan = { ...DIAGNOSTIC_PLAN };
+  const worries = worryCategories.slice(0, 2).filter((c) => c in plan);
+  for (const worry of worries) {
+    // Donor: the non-worry category with the most questions and at least 2,
+    // so no category drops to zero coverage.
+    const donor = (Object.keys(plan) as CategoryId[])
+      .filter((c) => !worries.includes(c) && plan[c] >= 2)
+      .sort((a, b) => plan[b] - plan[a])[0];
+    if (!donor) break;
+    plan[donor] -= 1;
+    plan[worry] += 1;
+  }
+  return plan;
+}
+
+/**
  * Sample a diagnostic covering every category, preferring fresh questions,
- * with shuffled order and shuffled options.
+ * with shuffled order and shuffled options. If the learner told us what
+ * worries them, those categories get extra weight.
  */
 export function sampleDiagnostic(
   attempts: QuestionAttempt[] = [],
   code?: VehicleCode,
+  worryCategories: CategoryId[] = [],
 ): Question[] {
   const bank = forCode(QUESTIONS, code);
+  const plan = diagnosticPlanFor(worryCategories);
   const picked: Question[] = [];
   for (const cat of CATEGORIES) {
     const pool = orderByFreshness(bank.filter((q) => q.categoryId === cat.id), attempts);
-    picked.push(...pool.slice(0, DIAGNOSTIC_PLAN[cat.id] ?? 2));
+    picked.push(...pool.slice(0, plan[cat.id] ?? 2));
   }
   return shuffle(picked).map(withShuffledOptions);
+}
+
+/**
+ * For self-declared beginners' very first session: easy questions first so the
+ * opening minutes build confidence instead of bruising it. Stable within tiers.
+ */
+export function easyFirst(pool: Question[]): Question[] {
+  return [...pool].sort((a, b) => a.difficulty - b.difficulty);
 }
 
 /**

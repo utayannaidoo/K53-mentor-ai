@@ -61,7 +61,11 @@ export function TrialEndCard({ compact = false }: { compact?: boolean }) {
             <p className="mt-0.5 text-xs text-muted-foreground">{promise}</p>
           </div>
         </div>
-        <Link href="/account/billing" className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}>
+        <Link
+          href="/account/billing"
+          onClick={() => track("paywall_cta_clicked", { feature: "trial_end" })}
+          className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
+        >
           <Sparkles className="h-3.5 w-3.5" /> Keep studying
         </Link>
       </Card>
@@ -80,6 +84,7 @@ export function TrialEndCard({ compact = false }: { compact?: boolean }) {
       <p className="mt-2 text-sm text-muted-foreground">{promise}</p>
       <Link
         href="/account/billing"
+        onClick={() => track("paywall_cta_clicked", { feature: "trial_end" })}
         className={cn(buttonVariants({ size: "lg" }), "mt-6 w-full gap-2")}
       >
         <Sparkles className="h-4 w-4" /> See plans

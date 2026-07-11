@@ -19,7 +19,8 @@ import { countDueTomorrow } from "@/lib/plan";
 import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { forCode } from "@/lib/content/vehicle";
-import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
+import { easyFirst, orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
+import { TrialMeter } from "@/components/app/trial-meter";
 import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
 import { cn } from "@/lib/utils";
@@ -39,7 +40,12 @@ export function QuestionPractice() {
   const [queue] = React.useState<Question[]>(() => {
     const base = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
     const pool = forCode(base, state.onboarding?.vehicleCode);
-    return orderByFreshness(pool, state.attempts).slice(0, limit).map(withShuffledOptions);
+    let ordered = orderByFreshness(pool, state.attempts);
+    // Self-declared beginners open their first-ever session with easy questions.
+    if (state.onboarding?.knowledgeLevel === "beginner" && state.attempts.length === 0) {
+      ordered = easyFirst(ordered);
+    }
+    return ordered.slice(0, limit).map(withShuffledOptions);
   });
   const startRef = React.useRef(Date.now());
   const cpStartRef = React.useRef(state.cp);
@@ -56,6 +62,7 @@ export function QuestionPractice() {
           <TrialEndCard />
         ) : (
           <Paywall
+            feature="questions"
             title="You've hit today's questions"
             description="Your plan's daily question sessions are done — they reset tomorrow. Premium Plus removes the limit entirely."
             cta="See plans"
@@ -88,6 +95,7 @@ export function QuestionPractice() {
         total={queue.length}
         seconds={seconds}
         cpEarned={state.cp - cpStartRef.current}
+        trialNearEnd={state.tier === "free" && Number.isFinite(cap.cap) && cap.cap - cap.used <= 2}
         recap={{
           mode: "questions",
           correct: correctCount,
@@ -156,6 +164,8 @@ export function QuestionPractice() {
           {i + 1}/{queue.length}
         </span>
       </div>
+
+      <TrialMeter feature="questions" className="mx-auto mt-3 max-w-xl" />
 
       {runningAcc !== null && (
         <div className="mx-auto mt-3 flex max-w-xl items-center justify-end gap-1 text-xs text-muted-foreground">
@@ -290,12 +300,14 @@ function Summary({
   seconds,
   cpEarned,
   recap,
+  trialNearEnd,
 }: {
   correct: number;
   total: number;
   seconds: number;
   cpEarned: number;
   recap: SessionRecapData;
+  trialNearEnd?: boolean;
 }) {
   const acc = total ? Math.round((correct / total) * 100) : 0;
   return (
@@ -323,6 +335,13 @@ function Summary({
         </div>
       </Card>
       <SessionRecap data={recap} className="mt-5" />
+      {/* Conversion moment lands right here, while the session result is fresh,
+          instead of ambushing the learner on their next visit. */}
+      {trialNearEnd && (
+        <div className="mt-5">
+          <TrialEndCard compact />
+        </div>
+      )}
     </div>
   );
 }

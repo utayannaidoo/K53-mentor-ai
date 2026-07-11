@@ -22,6 +22,7 @@ import { Chip } from "@/components/ui/chip";
 import { OptionCard } from "@/components/onboarding/option-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { vehicleClass } from "@/lib/billing/plans";
+import { SIZE_BY_FREQUENCY } from "@/lib/plan";
 import { CATEGORIES } from "@/lib/content/categories";
 import { cn } from "@/lib/utils";
 import type {
@@ -43,12 +44,28 @@ const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
   5: "Pretty confident",
 };
 
+const CODE_LABEL: Record<VehicleCode, string> = {
+  "8": "Car (Code 08)",
+  A: "Motorcycle (Code A)",
+  A1: "Motorcycle (Code A1)",
+  "10": "Heavy (Code 10)",
+  "14": "Heavy (Code 14)",
+};
+
+function weeksAway(dateStr: string): number | null {
+  const days = Math.ceil((Date.parse(dateStr) - Date.now()) / 86_400_000);
+  if (!Number.isFinite(days) || days < 0) return null;
+  return Math.max(1, Math.round(days / 7));
+}
+
 export function OnboardingWizard() {
   const router = useRouter();
   const { completeOnboarding, state, setVehicleClass } = useStudyStore();
   // The subscription track decides which codes are offered: car-only, the two
   // bike+heavy codes, or (no track yet, e.g. free trial) all three.
   const planClass = state.vehicleClass;
+
+  const firstName = state.profile?.name?.split(" ")[0] ?? null;
 
   const [step, setStep] = React.useState(0);
   const [goal, setGoal] = React.useState<LicenceGoal | null>(null);
@@ -186,7 +203,7 @@ export function OnboardingWizard() {
           {step === 3 && (
             <Step
               title={goal === "both" ? "When are your tests?" : "When's your test?"}
-              subtitle="We'll build your plan backward from this date — even a rough guess helps."
+              subtitle={`${vehicleCode ? `${CODE_LABEL[vehicleCode]} it is. ` : ""}We'll build your plan backward from this date — even a rough guess helps.`}
             >
               <div className="space-y-4">
                 <div>
@@ -310,7 +327,12 @@ export function OnboardingWizard() {
           {step === 5 && (
             <Step
               title="What worries you most?"
-              subtitle="Pick as many as apply — we'll open with these before your diagnostic even starts."
+              subtitle={(() => {
+                const wks = testDate ? weeksAway(testDate) : null;
+                return wks !== null
+                  ? `Your test is in ${wks} ${wks === 1 ? "week" : "weeks"} — let's spend them on what actually worries you. Your diagnostic will lean into these.`
+                  : "Pick as many as apply — your diagnostic will lean into these.";
+              })()}
             >
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map((c) => (
@@ -332,7 +354,14 @@ export function OnboardingWizard() {
 
           {/* Step 6 — Habits */}
           {step === 6 && (
-            <Step title="How will you study?" subtitle="We'll size your daily plan to match.">
+            <Step
+              title="How will you study?"
+              subtitle={
+                confidence
+                  ? `You said you're feeling "${CONFIDENCE_LABELS[confidence].toLowerCase()}" — we'll size your daily plan to match.`
+                  : "We'll size your daily plan to match."
+              }
+            >
               <div className="space-y-6">
                 <div>
                   <p className="mb-2 text-sm font-medium text-foreground">Your starting knowledge</p>
@@ -394,27 +423,80 @@ export function OnboardingWizard() {
             </Step>
           )}
 
-          {/* Step 7 — Ready */}
+          {/* Step 7 — Personalised summary: proof the answers mattered. */}
           {step === 7 && (
             <div className="text-center">
               <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
                 <CalendarClock className="h-8 w-8" />
               </div>
               <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">
-                Let&apos;s find your weak spots
+                {firstName ? `${firstName}, your plan is ready` : "Your plan is ready"}
               </h1>
-              <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-                Most learners who fail K53 say the same thing afterward — they got caught out by
-                something they hadn&apos;t practised. This quick check (15 questions, 7 categories,
-                no pressure) shows you exactly where your gaps are, before test day does.
+
+              <div className="mx-auto mt-6 max-w-md space-y-3 rounded-xl border border-border bg-card p-5 text-left">
+                <SummaryRow
+                  label="Studying for"
+                  value={CODE_LABEL[vehicleCode ?? (planClass === "bike_heavy" ? "A" : "8")]}
+                />
+                <SummaryRow
+                  label="Test date"
+                  value={(() => {
+                    if (!testDate) return "Not booked yet — we'll pace you steadily";
+                    const wks = weeksAway(testDate);
+                    return wks !== null
+                      ? `In ${wks} ${wks === 1 ? "week" : "weeks"} — your plan counts down to it`
+                      : "Booked";
+                  })()}
+                />
+                <SummaryRow
+                  label="Daily session"
+                  value={(() => {
+                    const s = SIZE_BY_FREQUENCY[frequency ?? "steady"];
+                    return `~${frequency === "intense" ? 20 : frequency === "casual" ? 7 : 10} min · up to ${s.flashMax} flashcards + ${s.questions} questions`;
+                  })()}
+                />
+                {worryCategories.length > 0 && (
+                  <div>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                      Your diagnostic leans into
+                    </p>
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {worryCategories.map((id) => {
+                        const c = CATEGORIES.find((x) => x.id === id);
+                        return c ? (
+                          <span
+                            key={id}
+                            className="flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
+                          >
+                            <CategoryIcon id={id} className="h-3 w-3" /> {c.name}
+                          </span>
+                        ) : null;
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
+                First, a quick 15-question check across all 7 categories — no pressure, no fail —
+                so your plan targets your real gaps, not guesses.
               </p>
-              <Button size="xl" className="mt-8 w-full sm:w-auto" onClick={finish}>
+              <Button size="xl" className="mt-6 w-full sm:w-auto" onClick={finish}>
                 Start my diagnostic <ArrowRight />
               </Button>
             </div>
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function SummaryRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-0.5 text-sm font-medium text-foreground">{value}</p>
     </div>
   );
 }

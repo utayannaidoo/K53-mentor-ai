@@ -9,6 +9,7 @@ import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { CoachPlan } from "@/components/dashboard/coach-plan";
 import { ComebackCard } from "@/components/dashboard/comeback-card";
 import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
+import { TrialPoolsCard } from "@/components/app/trial-meter";
 import { RoadProgress } from "@/components/engagement/road-progress";
 import { WeakAreas } from "@/components/dashboard/weak-areas";
 import { TrendChart } from "@/components/dashboard/trend-chart";
@@ -16,7 +17,7 @@ import { TestCountdown } from "@/components/dashboard/test-countdown";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueFlashcards, generateTodayPlan, isTaskDone, planFocus } from "@/lib/plan";
 import { categoryName } from "@/lib/content/categories";
-import { hasFeature } from "@/lib/billing/plans";
+import { hasFeature, PLAN_MAP } from "@/lib/billing/plans";
 import { cn, daysUntil, glass } from "@/lib/utils";
 
 export default function DashboardPage() {
@@ -51,7 +52,7 @@ export default function DashboardPage() {
 
       <ComebackCard />
 
-      {trialExhausted(state) && <TrialEndCard compact />}
+      {trialExhausted(state) ? <TrialEndCard compact /> : <TrialPoolsCard />}
 
       {!hasDiagnostic && (
         <Card className="mb-5 flex flex-wrap items-center justify-between gap-4 border-primary/20 bg-primary/[0.04] p-5">
@@ -74,6 +75,7 @@ export default function DashboardPage() {
         tasks={tasks}
         doneMap={doneMap}
         scenariosUnlocked={hasFeature(state.tier, "scenarios")}
+        planLocked={!PLAN_MAP[state.tier].limits.studyPlan}
         rationaleInput={rationaleInput}
       />
 

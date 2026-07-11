@@ -49,6 +49,7 @@ export function ScenarioPlayer() {
     return (
       <div className="mx-auto max-w-md py-10">
         <Paywall
+          feature="scenarios"
           title="Scenarios are a Premium feature"
           description="Branching, real-world situational practice — traffic circles, hazards, dead robots — is where the rules click. Unlock the full scenario library with Premium."
           cta="Unlock scenarios"

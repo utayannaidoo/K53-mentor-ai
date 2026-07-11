@@ -9,6 +9,7 @@ import { Chip } from "@/components/ui/chip";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
+import { TrialMeter } from "@/components/app/trial-meter";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate, formatZar } from "@/lib/utils";
 import { TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
@@ -347,6 +348,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
           {blocked ? (
             <div className="px-1 py-2">
               <Paywall
+                feature="tutor"
                 title="You've used today's free tutor messages"
                 description={`The free plan includes ${cap.cap} tutor messages a day. Upgrade for more coaching whenever you're stuck.`}
                 cta="Upgrade for more"
@@ -354,6 +356,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
             </div>
           ) : (
             <>
+              <TrialMeter feature="tutor" className="mb-2.5" />
               {topUpBanner && (
                 <div className="mb-2.5 rounded-lg border border-success/30 bg-success/[0.08] px-3 py-2 text-xs text-success">
                   {topUpBanner}

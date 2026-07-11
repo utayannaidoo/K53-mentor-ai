@@ -16,7 +16,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { categoryName } from "@/lib/content/categories";
 import { bestStudyTime, mostImproved } from "@/lib/insights";
-import { hasFeature } from "@/lib/billing/plans";
+import { hasFeature, PLAN_MAP } from "@/lib/billing/plans";
 import { formatDuration, formatDate, cn, glass, glassSubtle } from "@/lib/utils";
 import type { CategoryId } from "@/types";
 
@@ -28,6 +28,19 @@ export default function ProgressPage() {
   const correct = state.attempts.filter((a) => a.correct).length;
   const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
   const advanced = hasFeature(state.tier, "advancedAnalytics");
+
+  // Free plan sees the last 7 days; the older history stays visible as a
+  // blurred teaser rather than silently vanishing.
+  const fullHistory = PLAN_MAP[state.tier].limits.progressHistory === "full";
+  const cutoffKey = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().slice(0, 10);
+  })();
+  const visibleHistory = fullHistory
+    ? state.readinessHistory
+    : state.readinessHistory.filter((h) => h.date >= cutoffKey);
+  const hiddenPoints = state.readinessHistory.length - visibleHistory.length;
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -55,10 +68,32 @@ export default function ProgressPage() {
       />
 
       <Card className={cn(glass, "mt-5 p-6")}>
-        <h2 className="font-display text-lg font-semibold">Readiness over time</h2>
-        <div className="mt-4">
-          <TrendChart data={state.readinessHistory} height={200} />
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-display text-lg font-semibold">Readiness over time</h2>
+          {!fullHistory && (
+            <Badge variant="secondary" className="gap-1">
+              <Lock className="h-3 w-3" /> Last 7 days on Free
+            </Badge>
+          )}
         </div>
+        <div className="mt-4">
+          <TrendChart data={visibleHistory} height={200} />
+        </div>
+        {!fullHistory && hiddenPoints > 0 && (
+          <div className="relative mt-4 overflow-hidden rounded-lg border border-border/60">
+            <div className="pointer-events-none select-none blur-[5px]" aria-hidden>
+              <TrendChart data={state.readinessHistory} height={90} />
+            </div>
+            <div className="absolute inset-0 flex items-center justify-center bg-background/40">
+              <Link
+                href="/account/billing"
+                className="flex items-center gap-1.5 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs font-semibold text-primary shadow-sm hover:underline"
+              >
+                <Lock className="h-3 w-3" /> See your full history with Premium
+              </Link>
+            </div>
+          </div>
+        )}
       </Card>
 
       <Card className={cn(glass, "mt-5 p-6")}>

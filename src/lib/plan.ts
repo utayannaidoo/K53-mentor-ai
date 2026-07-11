@@ -1,4 +1,4 @@
-import type { CategoryId, Flashcard, UserState } from "@/types";
+import type { CategoryId, Flashcard, StudyFrequency, UserState } from "@/types";
 import { FLASHCARDS } from "@/lib/content/flashcards";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { forCode } from "@/lib/content/vehicle";
@@ -108,15 +108,29 @@ export function planFocus(
  * Generate today's personalised plan. Anchored to a "10 minutes a day" feel:
  * due flashcards, targeted practice on the weakest category, and a scenario.
  */
+/**
+ * Session sizing per self-reported study rhythm (onboarding step 6). "Casual"
+ * keeps sessions genuinely short; "intense" fills the tank. Exported for tests.
+ */
+export const SIZE_BY_FREQUENCY: Record<
+  StudyFrequency,
+  { flashMin: number; flashMax: number; questions: number }
+> = {
+  casual: { flashMin: 4, flashMax: 10, questions: 6 },
+  steady: { flashMin: 6, flashMax: 15, questions: 8 },
+  intense: { flashMin: 8, flashMax: 20, questions: 12 },
+};
+
 export function generateTodayPlan(
   state: UserState,
   readiness: ReadinessBreakdown,
   now = new Date(),
 ): PlanTask[] {
   const tasks: PlanTask[] = [];
+  const size = SIZE_BY_FREQUENCY[state.onboarding?.studyFrequency ?? "steady"];
 
   const due = countDueFlashcards(state, now);
-  const flashTarget = Math.min(Math.max(due, 6), 15);
+  const flashTarget = Math.min(Math.max(due, size.flashMin), size.flashMax);
   tasks.push({
     id: "task-flashcards",
     type: "flashcards",
@@ -138,7 +152,7 @@ export function generateTodayPlan(
       subtitle: hasSignal
         ? `Your weakest area at ${readiness.perCategory[weakest]}% — let's close the gap`
         : "You told us this one worries you most — let's start here",
-      targetCount: 8,
+      targetCount: size.questions,
       estMinutes: 5,
       href: `/study/questions?category=${weakest}`,
       categoryId: weakest,
@@ -149,7 +163,7 @@ export function generateTodayPlan(
       type: "questions",
       title: "Practice questions",
       subtitle: "Mixed practice across all categories",
-      targetCount: 8,
+      targetCount: size.questions,
       estMinutes: 5,
       href: "/study/questions",
     });

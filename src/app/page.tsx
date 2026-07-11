@@ -3,6 +3,7 @@ import { Hero } from "@/components/landing/hero";
 import { Problem } from "@/components/landing/problem";
 import { CategoryMarquee } from "@/components/landing/category-marquee";
 import { HowItWorks } from "@/components/landing/how-it-works";
+import { ProductPreview } from "@/components/landing/product-preview";
 import { Features } from "@/components/landing/features";
 import { StatsBand } from "@/components/landing/stats-band";
 import { Testimonials } from "@/components/landing/testimonials";
@@ -30,6 +31,10 @@ export default function HomePage() {
         </Reveal>
 
         <HowItWorks />
+
+        <Reveal>
+          <ProductPreview />
+        </Reveal>
 
         {/* Features & Testimonials cascade their cards in internally. */}
         <Features />

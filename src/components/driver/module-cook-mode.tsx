@@ -21,6 +21,7 @@ export function ModuleCookMode({ moduleId }: { moduleId: string }) {
     return (
       <div className="mx-auto max-w-md py-10">
         <Paywall
+          feature="licence_prep"
           title="Driver's-licence prep is Premium Plus"
           description="Step-by-step yard-test guidance — parallel parking, alley docking, three-point turns and more. Unlock it all with Premium Plus."
           cta="Unlock with Premium Plus"
