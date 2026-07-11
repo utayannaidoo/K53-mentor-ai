@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { X, ArrowRight, Clock, FileText, Timer, CheckCircle2, XCircle, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { X, ArrowRight, Check, ChevronLeft, ChevronRight, Clock, FileText, Timer, CheckCircle2, XCircle, TrendingUp, TrendingDown, Zap } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -232,9 +232,7 @@ export function MockExam() {
       .slice(0, 2)
       .map(categoryName);
     return (
-      <div className="mx-auto max-w-4xl">
-        {/* Desktop: score beside the recap, next actions immediately visible. */}
-        <div className="lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-5">
+      <div className="mx-auto max-w-2xl">
         <Card className="p-8 text-center">
           <ScoreRing
             value={Math.round((last.score / last.total) * 100)}
@@ -271,12 +269,6 @@ export function MockExam() {
           )}
         </Card>
 
-        <div>
-        <div className="mt-5 flex justify-center gap-3 lg:mt-0 lg:justify-start">
-          <Button variant="outline" onClick={() => setPhase("intro")}>Take another</Button>
-          <Link href="/dashboard" className={cn(buttonVariants())}>Back to dashboard</Link>
-        </div>
-
         <SessionRecap
           className="mt-5"
           data={{
@@ -290,10 +282,7 @@ export function MockExam() {
             passProbabilityAfter: postProb,
           }}
         />
-        </div>
-        </div>
 
-        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
         {!mini && (
         <Card className="mt-5 p-6">
           <h2 className="font-display text-lg font-semibold">By section</h2>
@@ -322,7 +311,7 @@ export function MockExam() {
         </Card>
         )}
 
-        <Card className={cn("mt-5 p-6", mini && "lg:col-span-2")}>
+        <Card className="mt-5 p-6">
           <h2 className="font-display text-lg font-semibold">By category</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {(Object.keys(last.perCategory) as CategoryId[]).map((cat) => (
@@ -335,7 +324,6 @@ export function MockExam() {
             ))}
           </div>
         </Card>
-        </div>
 
         {wrong.length > 0 && (
           <Card className="mt-5 p-6">
@@ -361,6 +349,10 @@ export function MockExam() {
           </Card>
         )}
 
+        <div className="mt-6 flex justify-center gap-3">
+          <Button variant="outline" onClick={() => setPhase("intro")}>Take another</Button>
+          <Link href="/dashboard" className={cn(buttonVariants())}>Back to dashboard</Link>
+        </div>
       </div>
     );
   }
@@ -379,9 +371,11 @@ export function MockExam() {
     });
   }
 
+  // Exam UI mirrors the practice screen: progress on top, the question in a
+  // centered column, round prev/next arrows flanking it (finish = submit).
   return (
-    <div className="mx-auto flex max-w-xl flex-col lg:max-w-2xl">
-      <div className="flex items-center gap-3">
+    <div className="mx-auto max-w-3xl">
+      <div className="mx-auto flex max-w-xl items-center gap-3">
         <button onClick={submit} className="text-muted-foreground hover:text-foreground" aria-label="Submit and exit">
           <X className="h-5 w-5" />
         </button>
@@ -393,55 +387,81 @@ export function MockExam() {
         </span>
       </div>
 
-      <div className="mt-3 flex items-center justify-between">
+      <div className="mx-auto mt-3 flex max-w-xl items-center justify-between">
         <span className="font-mono text-xs text-muted-foreground">Question {i + 1} of {questions.length}</span>
         <button onClick={submit} className="text-xs font-medium text-primary hover:underline">Submit now</button>
       </div>
 
-      <div key={i} className="mt-5 animate-fade-in">
-        {(q.image || q.sign) && (
-          <div className="mb-4">
-            <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" />
+      <div className="mt-5 flex items-center gap-2 sm:gap-3">
+        <ExamNavButton dir="prev" onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0} />
+
+        <div key={i} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in">
+          {(q.image || q.sign) && (
+            <div className="mb-4">
+              <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" />
+            </div>
+          )}
+          <h1 className="text-balance font-display text-xl font-semibold leading-snug tracking-tight">{q.prompt}</h1>
+          <div className="mt-5 space-y-3">
+            {q.options.map((opt, idx) => (
+              <button
+                key={idx}
+                onClick={() => choose(idx)}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-xl border-2 bg-card p-4 text-left transition-all",
+                  answers[i] === idx ? "border-primary bg-primary/[0.04]" : "border-border hover:border-primary/40",
+                )}
+              >
+                <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border font-mono text-sm font-semibold", answers[i] === idx ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>
+                  {LETTERS[idx]}
+                </span>
+                <span className="text-foreground">{opt}</span>
+              </button>
+            ))}
           </div>
-        )}
-        <h1 className="text-balance font-display text-xl font-semibold leading-snug tracking-tight">{q.prompt}</h1>
-        {/* Desktop: options in a 2×2 grid so all four fit above the fold. */}
-        <div className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
-          {q.options.map((opt, idx) => (
-            <button
-              key={idx}
-              onClick={() => choose(idx)}
-              className={cn(
-                "flex w-full items-center gap-3 rounded-xl border-2 bg-card p-4 text-left transition-all",
-                answers[i] === idx ? "border-primary bg-primary/[0.04]" : "border-border hover:border-primary/40",
-              )}
-            >
-              <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border font-mono text-sm font-semibold", answers[i] === idx ? "border-primary bg-primary text-primary-foreground" : "border-border text-muted-foreground")}>
-                {LETTERS[idx]}
-              </span>
-              <span className="text-foreground">{opt}</span>
-            </button>
-          ))}
         </div>
 
-        <div className="mt-6 flex gap-3">
-          {i > 0 && (
-            <Button variant="outline" size="lg" onClick={() => setI((x) => x - 1)}>
-              Back
-            </Button>
-          )}
-          {i + 1 < questions.length ? (
-            <Button size="lg" className="flex-1" disabled={!answered} onClick={() => setI((x) => x + 1)}>
-              Next <ArrowRight />
-            </Button>
-          ) : (
-            <Button size="lg" className="flex-1" onClick={submit}>
-              Submit exam
-            </Button>
-          )}
-        </div>
+        <ExamNavButton
+          dir="next"
+          onClick={() => (i + 1 >= questions.length ? submit() : setI((x) => x + 1))}
+          disabled={!answered}
+          finish={i + 1 >= questions.length}
+        />
       </div>
     </div>
+  );
+}
+
+/** Round side-arrow controls — same interaction pattern as question practice. */
+function ExamNavButton({
+  dir,
+  onClick,
+  disabled,
+  finish,
+}: {
+  dir: "prev" | "next";
+  onClick: () => void;
+  disabled?: boolean;
+  finish?: boolean;
+}) {
+  const Icon = dir === "prev" ? ChevronLeft : finish ? Check : ChevronRight;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-label={dir === "prev" ? "Previous question" : finish ? "Submit exam" : "Next question"}
+      className={cn(
+        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        disabled
+          ? "cursor-not-allowed border-border/40 text-muted-foreground/30"
+          : dir === "next"
+            ? "press border-primary bg-primary text-primary-foreground hover:brightness-110"
+            : "press border-border text-muted-foreground hover:border-primary/40 hover:text-foreground",
+      )}
+    >
+      <Icon className="h-5 w-5" />
+    </button>
   );
 }
 

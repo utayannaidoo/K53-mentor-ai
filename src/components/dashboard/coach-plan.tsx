@@ -71,9 +71,7 @@ export function CoachPlan({
   scenariosUnlocked,
   planLocked = false,
   rationaleInput,
-  className,
 }: {
-  className?: string;
   tasks: PlanTask[];
   doneMap: Record<string, boolean>;
   scenariosUnlocked: boolean;
@@ -88,7 +86,7 @@ export function CoachPlan({
   const allDone = !firstIncomplete;
 
   return (
-    <Card className={cn(glassFloat, "p-6", className)}>
+    <Card className={cn(glassFloat, "mb-5 p-6")}>
       <div className="flex items-center justify-between">
         <span className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-primary">
           <Sparkles className="h-4 w-4" /> Coach&apos;s plan

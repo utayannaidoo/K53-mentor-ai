@@ -110,7 +110,7 @@ export function DiagnosticRunner() {
         </span>
       </header>
 
-      <div className="mx-auto w-full max-w-xl px-6 lg:max-w-2xl">
+      <div className="mx-auto w-full max-w-xl px-6">
         <div className="h-1.5 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-[width] duration-300"
@@ -120,7 +120,7 @@ export function DiagnosticRunner() {
       </div>
 
       <div className="flex flex-1 items-center justify-center px-6 py-8">
-        <div key={current.id} className="w-full max-w-xl animate-fade-in lg:max-w-2xl">
+        <div key={current.id} className="w-full max-w-xl animate-fade-in">
           <p className="text-sm font-medium uppercase tracking-wide text-primary">
             Question {index + 1}
           </p>
@@ -133,8 +133,7 @@ export function DiagnosticRunner() {
             {current.prompt}
           </h1>
 
-          {/* Desktop: 2×2 options so the whole question fits without scrolling. */}
-          <div className="mt-6 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
+          <div className="mt-6 space-y-3">
             {current.options.map((opt, i) => (
               <button
                 key={i}

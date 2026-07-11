@@ -22,7 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { MasteryBar } from "@/components/ui/mastery-bar";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { countDueFlashcards, generateTodayPlan, isTaskDone } from "@/lib/plan";
+import { countDueFlashcards, generateTodayPlan, isTaskDone, mocksRemaining } from "@/lib/plan";
 import { PLAN_COMPLETE_CP } from "@/lib/engagement";
 import { hasFeature } from "@/lib/billing/plans";
 import { categoryName } from "@/lib/content/categories";
@@ -30,10 +30,16 @@ import { cn, glass } from "@/lib/utils";
 import type { CategoryId } from "@/types";
 
 export default function StudyHubPage() {
-  const { state, readiness } = useStudyStore();
+  const { state, readiness, usageFor } = useStudyStore();
   const due = countDueFlashcards(state);
   const scenariosUnlocked = hasFeature(state.tier, "scenarios");
   const scannerUnlocked = hasFeature(state.tier, "scanner");
+  // A mode also locks once its allowance is spent (free pools are lifetime,
+  // paid limits reset daily) — the lock tells the learner before they tap.
+  const questionsLocked = !usageFor("questions").allowed;
+  const flashcardsLocked = !usageFor("flashcards").allowed;
+  const mockLocked = mocksRemaining(state, "full") <= 0;
+  const miniLocked = mocksRemaining(state, "mini") <= 0;
 
   const missions = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(missions.map((t) => [t.id, isTaskDone(t, state)]));
@@ -46,13 +52,14 @@ export default function StudyHubPage() {
       title: "Flashcards",
       desc: due > 0 ? "Your review deck is ready" : "Spaced-repetition review",
       tone: "text-primary",
+      locked: flashcardsLocked,
     },
-    { href: "/study/questions", icon: HelpCircle, title: "Practice questions", desc: "Drill by category", tone: "text-primary" },
+    { href: "/study/questions", icon: HelpCircle, title: "Practice questions", desc: "Drill by category", tone: "text-primary", locked: questionsLocked },
     { href: "/study/scan", icon: ScanLine, title: "Sign scanner", desc: "Point your camera at any road sign", tone: "text-accent", locked: !scannerUnlocked },
     { href: "/study/signs", icon: Signpost, title: "Road signs", desc: "Browse every official sign", tone: "text-accent" },
     { href: "/study/scenarios", icon: Route, title: "Scenarios", desc: "Real-world judgement", tone: "text-accent", locked: !scenariosUnlocked },
-    { href: "/study/mock-exam", icon: FileText, title: "Mock exam", desc: "Full 64-question test", tone: "text-primary" },
-    { href: "/study/mock-exam?mode=mini", icon: Timer, title: "Mini mock", desc: "15 questions · 12 minutes", tone: "text-primary" },
+    { href: "/study/mock-exam", icon: FileText, title: "Mock exam", desc: "Full 64-question test", tone: "text-primary", locked: mockLocked },
+    { href: "/study/mock-exam?mode=mini", icon: Timer, title: "Mini mock", desc: "15 questions · 12 minutes", tone: "text-primary", locked: miniLocked },
     { href: "/study/controls", icon: Car, title: "Car controls", desc: "Know every control + how to drive off", tone: "text-primary" },
   ];
 

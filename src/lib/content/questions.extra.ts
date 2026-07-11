@@ -1674,4 +1674,633 @@ export const EXTRA_QUESTIONS: Question[] = [
     difficulty: 1,
     scope: "learners",
   },
+
+  // ═══ BATCH 3 — thin-category expansion (parking, following distance,
+  // intersections, rules with hard numbers + AARTO). Universal items;
+  // facts per docs/content/expansion-roadmap.md sources. ═══
+
+  // ── PARKING ─────────────────────────────────────────────────
+  {
+    id: "q3_park_kerb_distance",
+    categoryId: "parking",
+    prompt: "When you parallel park on a public road, your wheels must finish:",
+    options: [
+      "Within 1 metre of the kerb",
+      "Within 450 mm of the edge of the roadway or kerb",
+      "Touching the kerb",
+      "Anywhere, as long as other traffic can pass",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The rule (and the K53 yard-test standard) is to park parallel and within 450 mm of the kerb or roadway edge, facing the direction of traffic.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_direction",
+    categoryId: "parking",
+    prompt: "On a two-way road, you may park:",
+    options: [
+      "On either side, whichever is closer",
+      "Only on the left, facing the same direction as the traffic flow",
+      "On the right if you switch your hazards on",
+      "Facing either direction as long as you're close to the kerb",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Parking against the flow (on the right of a two-way road) is prohibited — at night your reflectors face the wrong way and pulling off means driving into oncoming traffic.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_intersection",
+    categoryId: "parking",
+    prompt: "How close to an intersection may you park?",
+    options: [
+      "Right up to the corner if no sign forbids it",
+      "No closer than 5 metres from the intersection",
+      "No closer than 1 metre",
+      "Parking near intersections is always allowed outside towns",
+    ],
+    correctIndex: 1,
+    explanation:
+      "You may not park within 5 m of an intersection — a parked car there hides pedestrians and crossing traffic from turning drivers.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_freeway",
+    categoryId: "parking",
+    prompt: "Stopping or parking on a freeway is:",
+    options: [
+      "Allowed on the shoulder for short rests",
+      "Prohibited except in an emergency (or where an authorised sign permits it)",
+      "Allowed if your hazards are on",
+      "Allowed only at night",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Freeways are for moving traffic. Stop on one only for a genuine emergency, get as far off the roadway as possible and switch on your hazards.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_engine",
+    categoryId: "parking",
+    prompt: "Before leaving your parked vehicle unattended, the law requires you to:",
+    options: [
+      "Leave it in neutral so it can be pushed if needed",
+      "Stop the engine, set the parking brake and take reasonable steps so it can't move",
+      "Leave the engine idling if you'll be quick",
+      "Only lock the doors",
+    ],
+    correctIndex: 1,
+    explanation:
+      "An unattended vehicle must not be able to move or be driven off: engine off, handbrake up, and secured. A running unattended engine is an offence.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_crossing",
+    categoryId: "parking",
+    prompt: "You may NOT stop your vehicle:",
+    options: [
+      "Alongside a park",
+      "On or over a pedestrian crossing",
+      "Within 100 m of a school",
+      "Anywhere on a gravel road",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Stopping on a pedestrian crossing blocks the protected path and forces people into live traffic. Stop behind the line, never on the crossing.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_driveway",
+    categoryId: "parking",
+    prompt: "Parking in front of a private driveway or entrance is:",
+    options: [
+      "Fine if you leave a note with your number",
+      "Not allowed — you may not obstruct any entrance or exit",
+      "Allowed for less than 15 minutes",
+      "Allowed on weekends",
+    ],
+    correctIndex: 1,
+    explanation:
+      "You may not park where your vehicle obstructs an entrance or exit — the owner must be able to leave at any time, including in an emergency.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_hill_kerb",
+    categoryId: "parking",
+    prompt: "Parking downhill next to a kerb, you should turn your front wheels:",
+    options: [
+      "Straight ahead",
+      "Towards the kerb, with the parking brake set and a low gear engaged",
+      "Away from the kerb",
+      "It makes no difference with a handbrake",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Facing downhill, wheels turned into the kerb means a rolling car is stopped by the kerb instead of running into the road. Handbrake plus gear is the backup.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_night_rural",
+    categoryId: "parking",
+    prompt: "Parked on the roadway outside an urban area at night, your vehicle must:",
+    options: [
+      "Have its hazard lights flashing at all times",
+      "Be visible — show the required lamps/reflectors so approaching drivers can see it in time",
+      "Display a white flag",
+      "Nothing extra is required",
+    ],
+    correctIndex: 1,
+    explanation:
+      "An unlit parked car on a dark rural road is invisible until far too late. If you must park where it's dark, your vehicle must remain visible to approaching traffic.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_disabled_bay",
+    categoryId: "parking",
+    prompt: "Using a bay reserved for disabled persons without a permit is:",
+    options: [
+      "Acceptable for a quick stop",
+      "An offence — reserved bays may only be used by permit holders",
+      "Allowed after business hours",
+      "Allowed if all other bays are full",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Reserved-bay signs are regulatory. The wider bay and short walking distance exist because the permit holder needs them — every time.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_yellow_line",
+    categoryId: "parking",
+    prompt: "A solid yellow line painted along the edge of the roadway means:",
+    options: [
+      "Free parking",
+      "No stopping alongside it, except in an emergency or where a sign allows",
+      "Loading zone for trucks only",
+      "Bus lane",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A yellow edge line is a no-stopping line. Treat it like a continuous 'keep moving' instruction for that stretch of road.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_park_reverse_bay",
+    categoryId: "parking",
+    prompt: "Why does the K53 system favour reversing INTO a parking bay over reversing out of one?",
+    options: [
+      "It looks more professional",
+      "You drive out forwards with a clear view, instead of reversing blind into moving traffic",
+      "It saves fuel",
+      "It is required by law",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Reversing into the bay happens in a space you've just seen. Leaving forwards gives you full vision of pedestrians and traffic — the risky move is done in the safe area.",
+    difficulty: 2,
+    scope: "learners",
+  },
+
+  // ── FOLLOWING DISTANCE ──────────────────────────────────────
+  {
+    id: "q3_fd_two_second_how",
+    categoryId: "following_distance",
+    prompt: "How do you actually measure a 2-second following distance?",
+    options: [
+      "Stay two car-lengths behind at any speed",
+      "When the vehicle ahead passes a fixed point, count 'one-thousand-and-one, one-thousand-and-two' — you must not reach that point before you finish",
+      "Keep the vehicle's tyres visible in your windscreen",
+      "Stay 20 metres behind",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The 2-second rule self-adjusts to speed: pick a pole or mark, and count from when the car ahead passes it. Reaching it early means you're too close.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_wet",
+    categoryId: "following_distance",
+    prompt: "In rain or poor visibility, your following distance should become:",
+    options: [
+      "2 seconds — the rule never changes",
+      "At least 4 seconds — braking distances roughly double on a wet road",
+      "1 second, to see past the spray",
+      "Whatever the car behind you allows",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Wet tar gives less grip and spray hides hazards. Doubling the gap to 4 seconds buys back the braking distance the water took away.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_stopping_parts",
+    categoryId: "following_distance",
+    prompt: "Total stopping distance is made up of:",
+    options: [
+      "Braking distance only",
+      "Reaction distance (while you perceive and move to the brake) plus braking distance",
+      "Reaction distance only",
+      "The length of your vehicle plus braking distance",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Before the brakes do anything you travel a full reaction distance — about a second of unslowed travel. Fatigue, phones and alcohol stretch that first part badly.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_speed_square",
+    categoryId: "following_distance",
+    prompt: "If you double your speed, your braking distance becomes roughly:",
+    options: ["Double", "Four times as long", "Half", "The same — brakes are brakes"],
+    correctIndex: 1,
+    explanation:
+      "Braking distance grows with the square of speed: 120 km/h needs about four times the braking distance of 60 km/h, not twice.",
+    difficulty: 3,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_tailgater",
+    categoryId: "following_distance",
+    prompt: "A vehicle is tailgating you. The defensive response is to:",
+    options: [
+      "Brake sharply to warn them off",
+      "Increase YOUR following distance ahead and let them pass when safe",
+      "Speed up to restore their gap",
+      "Ignore it — their gap is their problem",
+    ],
+    correctIndex: 1,
+    explanation:
+      "You can't control their gap, only yours. More space ahead lets you brake gently and early, protecting both of you; then let the tailgater by.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_stopped_tyres",
+    categoryId: "following_distance",
+    prompt: "Stopped in a queue, the K53 guideline is to stay back far enough to:",
+    options: [
+      "Read the bumper stickers ahead",
+      "See where the rear tyres of the vehicle ahead meet the road",
+      "Fit a pedestrian between the cars",
+      "Stay within one metre for compactness",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Tyres-on-tar visibility leaves enough room to steer out of the queue without reversing — your escape route if the vehicle ahead stalls or you're about to be rear-ended.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_heavy_ahead",
+    categoryId: "following_distance",
+    prompt: "Following a large truck too closely is especially dangerous because:",
+    options: [
+      "Trucks brake better than cars, so you'll be out-braked",
+      "It blocks your view ahead and hides you in the driver's blind spot",
+      "Trucks reverse without warning",
+      "Truck tyres burst frequently",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Behind a truck you can't see brake lights two cars up, hazards or road signs — and if you can't see the truck's mirrors, its driver can't see you. Drop back.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_night",
+    categoryId: "following_distance",
+    prompt: "At night your safe speed and following distance should let you stop:",
+    options: [
+      "Within the distance lit by your headlights",
+      "Within 10 metres",
+      "Anywhere — brake lights ahead give enough warning",
+      "Within the length of two cars",
+    ],
+    correctIndex: 0,
+    explanation:
+      "You can only avoid what you can see. Driving so fast that your stopping distance exceeds your headlights' reach means overdriving your lights.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_being_overtaken",
+    categoryId: "following_distance",
+    prompt: "A car overtakes you and pulls back in closely ahead. You should:",
+    options: [
+      "Close the gap so nobody else pushes in",
+      "Ease off to rebuild your 2-second gap behind them",
+      "Flash your lights and hoot",
+      "Overtake them back immediately",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The overtaker stole your safety margin — the only fix is to re-create it. Lifting off for two seconds costs nothing; a rear-end collision costs everything.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_fd_motorcycle_gap",
+    categoryId: "following_distance",
+    prompt: "When following a motorcycle, your gap should be:",
+    options: [
+      "Shorter — motorcycles are small and easy to see past",
+      "At least the normal 2 seconds, and more in the wet — bikes can stop quickly and fall in a slide",
+      "Exactly one car length",
+      "Irrelevant — motorcycles must give way to cars",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A motorcycle can brake hard and, if it falls, stops almost instantly. Following one closely turns their small mistake into your collision.",
+    difficulty: 2,
+    scope: "learners",
+  },
+
+  // ── INTERSECTIONS ───────────────────────────────────────────
+  {
+    id: "q3_int_four_way",
+    categoryId: "intersections",
+    prompt: "At a 4-way stop, who proceeds first?",
+    options: [
+      "The vehicle on the widest road",
+      "Vehicles proceed in the order they arrived and stopped",
+      "The vehicle turning left",
+      "Whoever hoots first",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A 4-way stop works on first-to-stop, first-to-go. If two vehicles stop at the same moment, be ready to yield — never force the sequence.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_dead_robot",
+    categoryId: "intersections",
+    prompt: "The traffic lights at an intersection are out of order. You must:",
+    options: [
+      "Proceed at normal speed — lights out means no rules apply",
+      "Treat the intersection as a 4-way stop: stop fully, then proceed in turn",
+      "Yield only to traffic from the left",
+      "Wait for a traffic officer before crossing",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A dead robot legally becomes a stop for every direction. Stop completely, take your turn in order of arrival, and watch for drivers who don't.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_turn_right",
+    categoryId: "intersections",
+    prompt: "Turning right at an intersection, you must yield to:",
+    options: [
+      "Nobody — right turns have priority",
+      "Oncoming traffic going straight or turning left, and pedestrians crossing the road you're entering",
+      "Traffic behind you only",
+      "Only trucks and buses",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A right turn crosses the oncoming stream — they have right of way, and so do pedestrians already crossing where you want to go.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_blocked",
+    categoryId: "intersections",
+    prompt: "Your light is green but traffic is backed up across the intersection. You should:",
+    options: [
+      "Enter — green means go",
+      "Wait before the line until your exit is clear, even if the light cycles",
+      "Enter halfway and wait in the middle",
+      "Hoot until the queue moves",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Green gives you permission, not a guarantee of space. Blocking the box traps cross-traffic when their light changes — only enter when you can fully exit.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_circle_yield",
+    categoryId: "intersections",
+    prompt: "Approaching a roundabout (traffic circle with yield signs), you give way to:",
+    options: [
+      "Traffic approaching from your right / already in the circle",
+      "Traffic approaching from your left",
+      "Nobody if you're going straight",
+      "Only buses and taxis",
+    ],
+    correctIndex: 0,
+    explanation:
+      "At a roundabout the circulating traffic — coming from your right — has right of way. Enter only into a safe gap, travelling clockwise.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_mini_circle",
+    categoryId: "intersections",
+    prompt: "At a mini-circle, right of way belongs to:",
+    options: [
+      "The vehicle that reaches the circle first",
+      "The largest vehicle",
+      "The vehicle turning right",
+      "Whoever is on the main road",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Mini-circles work like courtesy crossings: first to arrive crosses first. That's different from a roundabout, where the circulating traffic from your right has priority.",
+    difficulty: 3,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_emergency",
+    categoryId: "intersections",
+    prompt: "You're inside an intersection when an ambulance with siren approaches from behind. You should:",
+    options: [
+      "Stop immediately where you are",
+      "Clear the intersection first, then pull over to the left and stop",
+      "Speed up to outrun it",
+      "Reverse out of the intersection",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Stopping inside the intersection blocks the emergency vehicle's path. Clear the junction, then move left and stop so it can pass.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_lane_choice",
+    categoryId: "intersections",
+    prompt: "Painted lane arrows at an intersection are:",
+    options: [
+      "Suggestions for smoother traffic flow",
+      "Compulsory — in an arrow-marked lane you must travel in the direction shown",
+      "Only enforceable in peak hours",
+      "For heavy vehicles only",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Lane-direction arrows are regulatory road markings. In a left-turn lane you must turn left — if you're there by mistake, make the turn and re-route.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_amber",
+    categoryId: "intersections",
+    prompt: "The light turns amber as you approach. The correct action is to:",
+    options: [
+      "Accelerate to beat the red",
+      "Stop before the line if you can do so safely; continue only if stopping would be dangerous",
+      "Always continue — amber means the same as green",
+      "Stop in the middle of the intersection",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Amber means stop unless you're so close that safe stopping is impossible. 'Beating the robot' is how right-angle collisions happen.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_int_scholar_patrol",
+    categoryId: "intersections",
+    prompt: "A scholar patrol lowers its banners across the road ahead. You must:",
+    options: [
+      "Slow down and weave through carefully",
+      "Come to a complete stop and remain stopped until the banners are lifted off the roadway",
+      "Hoot to warn the children",
+      "Proceed if no children are on your side",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Scholar-patrol banners carry the force of a stop instruction. Stay stopped until the banners — not just the children — are out of the road.",
+    difficulty: 1,
+    scope: "learners",
+  },
+
+  // ── RULES — hard numbers & AARTO ────────────────────────────
+  {
+    id: "q3_rule_speed_urban",
+    categoryId: "rules",
+    prompt: "Unless a sign says otherwise, the general speed limit in an urban area is:",
+    options: ["40 km/h", "60 km/h", "80 km/h", "100 km/h"],
+    correctIndex: 1,
+    explanation:
+      "The default limits are 60 km/h in urban areas, 100 km/h on public roads outside urban areas, and 120 km/h on freeways — signs can lower any of them.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_rule_speed_freeway",
+    categoryId: "rules",
+    prompt: "The general speed limit on a South African freeway is:",
+    options: ["100 km/h", "110 km/h", "120 km/h", "140 km/h"],
+    correctIndex: 2,
+    explanation:
+      "120 km/h is the freeway maximum for light vehicles — a limit, not a target. Posted signs, conditions and your vehicle can all demand less.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_rule_bac",
+    categoryId: "rules",
+    prompt: "The legal blood-alcohol limit for an ordinary driver is less than:",
+    options: [
+      "0,08 g per 100 ml of blood",
+      "0,05 g per 100 ml of blood (0,02 g for professional drivers)",
+      "0,10 g per 100 ml of blood",
+      "There is no limit if you drive slowly",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The limit is under 0,05 g/100 ml (professional drivers 0,02 g). Impairment starts well below the limit — the only safe amount before driving is none.",
+    difficulty: 2,
+    scope: "learners",
+  },
+  {
+    id: "q3_rule_learner_age",
+    categoryId: "rules",
+    prompt: "The minimum age to obtain a learner's licence for a light motor vehicle (Code 8) is:",
+    options: ["16", "17", "18", "21"],
+    correctIndex: 1,
+    explanation:
+      "You can hold a Code 8 learner's licence from 17, and a full light-vehicle driving licence from 18.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_rule_learner_supervision",
+    categoryId: "rules",
+    prompt: "Driving on a learner's licence, you must:",
+    options: [
+      "Drive alone until you're confident",
+      "Be accompanied by (and under the supervision of) a licensed driver seated in the vehicle",
+      "Only drive after dark when roads are quiet",
+      "Display L-plates but may drive alone",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A learner may only drive with a validly licensed driver supervising from inside the vehicle — driving alone on a learner's is an offence.",
+    difficulty: 1,
+    scope: "learners",
+  },
+  {
+    id: "q3_rule_demerit_learner",
+    categoryId: "rules",
+    source: "AARTO Act demerit-point system (national rollout 2025–2026)",
+    prompt: "Under the AARTO demerit system, a learner driver's licence is suspended once they exceed:",
+    options: ["15 points", "12 points", "6 points", "3 points"],
+    correctIndex: 2,
+    explanation:
+      "Learners have a stricter threshold: exceeding 6 demerit points (vs 15 for fully licensed drivers) triggers suspension — 3 months for every point over the limit.",
+    difficulty: 3,
+    scope: "learners",
+  },
+  {
+    id: "q3_rule_demerit_expiry",
+    categoryId: "rules",
+    source: "AARTO Act demerit-point system (national rollout 2025–2026)",
+    prompt: "How do AARTO demerit points come off your record?",
+    options: [
+      "They never expire",
+      "One point falls away every 3 months, provided you earn no new points",
+      "All points reset every January",
+      "Points are removed when fines are paid",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Points expire at one per 3 months of clean driving. Paying the fine settles the money — only time (or an approved rehabilitation programme) reduces the points.",
+    difficulty: 3,
+    scope: "learners",
+  },
+  {
+    id: "q3_rule_cellphone",
+    categoryId: "rules",
+    prompt: "While driving, holding a cellphone in your hand or against your head is:",
+    options: [
+      "Allowed for calls under a minute",
+      "An offence — a phone may only be used completely hands-free",
+      "Allowed at red traffic lights",
+      "Allowed for navigation only",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Holding or supporting a phone with any part of your body while driving is prohibited. Even hands-free, a conversation stretches your reaction distance.",
+    difficulty: 1,
+    scope: "learners",
+  },
 ];

@@ -16,7 +16,6 @@ import { CategoryIcon } from "@/components/shared/category-icon";
 import { categoryName, CATEGORIES } from "@/lib/content/categories";
 import { generateTodayPlan } from "@/lib/plan";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { cn } from "@/lib/utils";
 
 export function DiagnosticResults() {
   const router = useRouter();
@@ -51,10 +50,8 @@ export function DiagnosticResults() {
         <ThemeToggle />
       </header>
 
-      <main className="mx-auto max-w-4xl px-6 pb-20">
-        {/* Reward moment. Desktop: score left, focus + primary action right —
-            everything a learner needs is on one screen. Mobile: stacked. */}
-        <div className="lg:grid lg:grid-cols-[auto_1fr] lg:items-center lg:gap-10">
+      <main className="mx-auto max-w-2xl px-6 pb-20">
+        {/* Reward moment */}
         <div className="flex flex-col items-center text-center">
           <Badge variant="default" className="mb-4 gap-1">
             <Sparkles className="h-3 w-3" /> Your diagnostic is ready
@@ -75,9 +72,8 @@ export function DiagnosticResults() {
           )}
         </div>
 
-        <div>
         {/* Focus areas (always visible) */}
-        <Card className="mt-10 p-6 lg:mt-0">
+        <Card className="mt-10 p-6">
           <h2 className="font-display text-lg font-semibold">Here&apos;s what to focus on</h2>
           {strongest && (
             <p className="mt-1 text-sm text-muted-foreground">
@@ -98,32 +94,9 @@ export function DiagnosticResults() {
           </div>
         </Card>
 
-        {/* Desktop: the primary action sits beside the score, above the fold.
-            Mobile keeps the bottom CTA instead. */}
-        {isAuthed && (
-          <div className="hidden lg:mt-5 lg:block">
-            {state.tier === "free" && !state.guidedDone && state.sessions.length === 0 ? (
-              <Button size="lg" onClick={() => router.push("/welcome")}>
-                Start my guided first session <ArrowRight />
-              </Button>
-            ) : (
-              <Button size="lg" onClick={() => router.push("/dashboard")}>
-                Start my plan <ArrowRight />
-              </Button>
-            )}
-          </div>
-        )}
-        </div>
-        </div>
-
         {/* Full breakdown + plan (gated until signup) */}
         <div className="relative mt-6">
-          <div
-            className={cn(
-              "lg:grid lg:grid-cols-2 lg:items-start lg:gap-5",
-              !isAuthed && "pointer-events-none select-none blur-[6px]",
-            )}
-          >
+          <div className={isAuthed ? "" : "pointer-events-none select-none blur-[6px]"}>
             <Card className="p-6">
               <h2 className="font-display text-lg font-semibold">Full category breakdown</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -138,7 +111,7 @@ export function DiagnosticResults() {
               </div>
             </Card>
 
-            <Card className="mt-6 p-6 lg:mt-0">
+            <Card className="mt-6 p-6">
               <h2 className="font-display text-lg font-semibold">Your first study session</h2>
               <ul className="mt-4 space-y-3">
                 {plan.map((task) => (
@@ -176,11 +149,11 @@ export function DiagnosticResults() {
 
         {isAuthed &&
           (state.tier === "free" && !state.guidedDone && state.sessions.length === 0 ? (
-            <Button size="xl" className="mt-8 w-full lg:hidden" onClick={() => router.push("/welcome")}>
+            <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/welcome")}>
               Start my guided first session <ArrowRight />
             </Button>
           ) : (
-            <Button size="xl" className="mt-8 w-full lg:hidden" onClick={() => router.push("/dashboard")}>
+            <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/dashboard")}>
               Start my plan <ArrowRight />
             </Button>
           ))}

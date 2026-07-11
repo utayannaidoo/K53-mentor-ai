@@ -72,7 +72,7 @@ function AccountInner() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl">
+    <div className="mx-auto max-w-3xl">
       <PageHeader title="Account" description="Your profile, plan and preferences." />
 
       <Card className={cn(glassFloat, "flex items-center gap-4 p-6")}>
@@ -86,11 +86,8 @@ function AccountInner() {
         </div>
       </Card>
 
-      {/* Desktop: two columns halve the scroll; mobile keeps the stacked order. */}
-      <div className="mt-5 grid gap-5 lg:grid-cols-2 lg:items-start">
-      <div className="space-y-5">
       {/* Subscription */}
-      <Card className={cn(glass, "p-6")}>
+      <Card className={cn(glass, "mt-5 p-6")}>
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-display text-lg font-semibold">Subscription</h2>
@@ -112,7 +109,7 @@ function AccountInner() {
 
       {/* Study profile — always available so the licence code can be set/changed
           even if onboarding was skipped (e.g. a Google sign-in). */}
-      <Card className={cn(glass, "p-6")}>
+      <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Study profile</h2>
         {onboarding ? (
           <>
@@ -158,11 +155,8 @@ function AccountInner() {
         <QuickProfileEdit open={editOpen} onClose={() => setEditOpen(false)} />
       </Card>
 
-      </div>
-
-      <div className="space-y-5">
       {/* Preferences */}
-      <Card className={cn(glass, "p-6")}>
+      <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Preferences</h2>
         <div className="mt-4 flex items-center justify-between border-b border-border pb-4">
           <div>
@@ -185,10 +179,9 @@ function AccountInner() {
       </Card>
 
       <InviteCard />
-      </div>
 
       {/* Danger zone */}
-      <Card className={cn(glass, "lg:col-span-2 p-6")}>
+      <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Account actions</h2>
         <div className="mt-4 flex flex-wrap gap-3">
           <Button variant="outline" className="gap-2" onClick={handleSignOut}>
@@ -251,7 +244,6 @@ function AccountInner() {
           </div>
         )}
       </Card>
-      </div>
     </div>
   );
 }
