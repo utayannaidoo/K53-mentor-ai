@@ -65,7 +65,7 @@ export function FlashcardDeck() {
     return (
       <div className="mx-auto max-w-md py-10">
         {state.tier === "free" ? (
-          <TrialEndCard />
+          <TrialEndCard feature="flashcards" />
         ) : (
           <Paywall
             feature="flashcards"
@@ -310,7 +310,7 @@ function Completion({
       {/* Conversion moment lands right here, while the session result is fresh. */}
       {trialNearEnd && (
         <div className="mt-5">
-          <TrialEndCard compact />
+          <TrialEndCard compact feature="flashcards" />
         </div>
       )}
     </div>

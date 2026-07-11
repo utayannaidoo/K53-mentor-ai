@@ -24,6 +24,10 @@ export default function HomePage() {
         <Hero />
 
         <Reveal>
+          <ProductPreview />
+        </Reveal>
+
+        <Reveal>
           <Problem />
         </Reveal>
         <Reveal>
@@ -31,10 +35,6 @@ export default function HomePage() {
         </Reveal>
 
         <HowItWorks />
-
-        <Reveal>
-          <ProductPreview />
-        </Reveal>
 
         {/* Features & Testimonials cascade their cards in internally. */}
         <Features />

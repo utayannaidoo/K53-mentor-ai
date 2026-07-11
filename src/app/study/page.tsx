@@ -44,7 +44,7 @@ export default function StudyHubPage() {
       href: "/study/flashcards",
       icon: Layers,
       title: "Flashcards",
-      desc: due > 0 ? `${due} due now` : "Spaced-repetition review",
+      desc: due > 0 ? "Your review deck is ready" : "Spaced-repetition review",
       tone: "text-primary",
     },
     { href: "/study/questions", icon: HelpCircle, title: "Practice questions", desc: "Drill by category", tone: "text-primary" },

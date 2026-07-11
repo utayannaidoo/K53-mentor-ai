@@ -63,7 +63,7 @@ export default function ProgressPage() {
         inputs={{
           cp: state.cp,
           readiness: readiness.readiness,
-          hasPassedMock: state.mockExams.some((m) => m.passed),
+          hasPassedMock: state.mockExams.some((m) => m.passed && !m.mini),
         }}
       />
 
@@ -148,7 +148,10 @@ export default function ProgressPage() {
                 <div className="flex items-center gap-3">
                   <FileText className="h-4 w-4 text-muted-foreground" />
                   <div>
-                    <p className="text-sm font-medium">{m.score}/{m.total}</p>
+                    <p className="text-sm font-medium">
+                      {m.score}/{m.total}
+                      {m.mini && <span className="ml-1.5 text-2xs font-normal text-muted-foreground">Mini</span>}
+                    </p>
                     <p className="text-xs text-muted-foreground">{formatDate(m.at)}</p>
                   </div>
                 </div>

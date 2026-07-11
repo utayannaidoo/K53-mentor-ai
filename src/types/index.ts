@@ -221,6 +221,8 @@ export interface MockExamAttempt {
   passed: boolean;
   perCategory: Partial<Record<CategoryId, CategoryScore>>;
   durationSeconds: number;
+  /** True for the 15-question mini mock — counted separately from full mocks. */
+  mini?: boolean;
 }
 
 export type SessionType =
@@ -332,6 +334,8 @@ export interface UserState {
   pendingRankUp: number | null;
   /** Day (yyyy-mm-dd) the daily plan-complete CP bonus was last granted. */
   planBonusDate: string | null;
+  /** Whether the post-signup guided first session has been completed/skipped. */
+  guidedDone: boolean;
   /** Snapshot from the previous app open — powers the "while you were away" diff. */
   lastSeen: { at: string; readiness: number } | null;
   /** Unacknowledged comeback summary after a 3+ day gap, cleared on dismiss. */

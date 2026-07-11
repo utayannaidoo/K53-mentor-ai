@@ -4,6 +4,7 @@ import { SCENARIOS } from "@/lib/content/scenarios";
 import { forCode } from "@/lib/content/vehicle";
 import { isDue } from "@/lib/srs/sm2";
 import { getTodayUsage, todayKey } from "@/lib/store/local-store";
+import { PLAN_MAP } from "@/lib/billing/plans";
 import { categoryName } from "@/lib/content/categories";
 import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { shuffle } from "@/lib/utils";
@@ -62,6 +63,26 @@ export function selectFlashcardQueue(
 
   const queue = [...due, ...unseen];
   return opts.limit ? queue.slice(0, opts.limit) : queue;
+}
+
+/**
+ * How many full or mini mocks the learner has left: free counts lifetime
+ * (the trial never resets), paid plans count today only.
+ */
+export function mocksRemaining(
+  state: UserState,
+  kind: "full" | "mini",
+  now = new Date(),
+): number {
+  const limits = PLAN_MAP[state.tier].limits;
+  const cap = kind === "full" ? limits.mockExams : limits.miniMocks;
+  if (cap === "unlimited") return Infinity;
+  const pool = state.mockExams.filter((m) => Boolean(m.mini) === (kind === "mini"));
+  const used =
+    limits.reset === "trial"
+      ? pool.length
+      : pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
+  return Math.max(0, cap - used);
 }
 
 /** Days between mocks before the predictor is considered stale. */

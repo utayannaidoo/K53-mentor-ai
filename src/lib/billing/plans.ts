@@ -87,6 +87,8 @@ export interface PlanLimits {
   /** Premium Plus: buy extra tutor messages beyond the daily allowance. */
   tutorTopUp: boolean;
   mockExams: number | "unlimited";
+  /** 15-question mini mocks (free: lifetime, paid: per day). */
+  miniMocks: number | "unlimited";
   mockLength: "short" | "full";
   studyPlan: boolean;
   progressHistory: "7d" | "full";
@@ -121,7 +123,8 @@ export const PLANS: PlanDef[] = [
       scenarios: false,
       tutorMessages: 3,
       tutorTopUp: false,
-      mockExams: 1,
+      mockExams: 0, // full mock is a paid feature
+      miniMocks: 1, // one lifetime mini mock to taste the pressure
       mockLength: "short",
       studyPlan: false,
       progressHistory: "7d",
@@ -130,7 +133,7 @@ export const PLANS: PlanDef[] = [
       "Full AI diagnostic + readiness score",
       "12 flashcards & 15 questions (once-off)",
       "3 AI tutor messages",
-      "One short mock exam",
+      "One 15-question mini mock",
       "7-day progress history",
     ],
   },
@@ -155,6 +158,7 @@ export const PLANS: PlanDef[] = [
       tutorMessages: 15,
       tutorTopUp: false,
       mockExams: 3,
+      miniMocks: 5,
       mockLength: "full",
       studyPlan: true,
       progressHistory: "full",
@@ -163,7 +167,7 @@ export const PLANS: PlanDef[] = [
       "3 full flashcard & question sessions a day",
       "Full scenarios — a few a day",
       "AI tutor — 15 messages a day",
-      "Up to 3 mock exams a day",
+      "3 full mocks + 5 mini mocks a day",
       "Personalised daily study plan",
       "Full progress history",
     ],
@@ -184,6 +188,7 @@ export const PLANS: PlanDef[] = [
       tutorMessages: 40,
       tutorTopUp: true,
       mockExams: "unlimited",
+      miniMocks: "unlimited",
       mockLength: "full",
       studyPlan: true,
       progressHistory: "full",

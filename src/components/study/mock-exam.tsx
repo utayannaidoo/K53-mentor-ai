@@ -16,6 +16,7 @@ import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { sampleMockExam, sampleMiniMock, MINI_MOCK, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { EXAM_FORMAT } from "@/lib/constants";
+import { mocksRemaining } from "@/lib/plan";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
 import { sourceFor } from "@/lib/content/provenance";
 import { cn } from "@/lib/utils";
@@ -39,7 +40,7 @@ interface ExamResult {
 }
 
 export function MockExam() {
-  const { state, readiness, recordMockExam, recordQuestionAttempt, recordSession } = useStudyStore();
+  const { state, readiness, recordMockExam, recordSession } = useStudyStore();
   const sp = useSearchParams();
   // Mini mode: 15 questions at the real pass ratio, weighted to weak areas.
   const mini = sp.get("mode") === "mini";
@@ -58,7 +59,7 @@ export function MockExam() {
   const preProbRef = React.useRef<number | null>(null);
   const cpStartRef = React.useRef<number | null>(null);
 
-  const freeUsedUp = state.tier === "free" && state.mockExams.length >= 1;
+  const remainingMocks = mocksRemaining(state, mini ? "mini" : "full");
 
   const submit = React.useCallback(() => {
     const correct = questions.reduce((n, q, idx) => n + (answers[idx] === q.correctIndex ? 1 : 0), 0);
@@ -79,7 +80,12 @@ export function MockExam() {
       selectedIndex: answers[idx],
     }));
     if (mini) {
-      for (const r of responses) recordQuestionAttempt({ ...r, context: "mock" });
+      // Minis are recorded with a `mini` flag so the plan's per-day/lifetime
+      // mock limits can count them; readiness still learns from every answer.
+      recordMockExam(
+        { score: correct, total: questions.length, passed, perCategory, durationSeconds, mini: true },
+        responses,
+      );
       setMiniResult({ score: correct, total: questions.length, passed, perCategory });
     } else {
       recordMockExam(
@@ -89,7 +95,7 @@ export function MockExam() {
     }
     recordSession("mock", durationSeconds);
     setPhase("results");
-  }, [answers, questions, mini, recordMockExam, recordQuestionAttempt, recordSession]);
+  }, [answers, questions, mini, recordMockExam, recordSession]);
 
   // Countdown timer.
   React.useEffect(() => {
@@ -116,15 +122,32 @@ export function MockExam() {
     setPhase("exam");
   }
 
-  if (!mini && freeUsedUp && phase === "intro") {
+  if (remainingMocks <= 0 && phase === "intro") {
+    const free = state.tier === "free";
     return (
       <div className="mx-auto max-w-md py-10">
-        <Paywall
-          feature="mock_exam"
-          title="You've used your free mock exam"
-          description="The free plan includes one full mock exam. Premium gives you unlimited 64-question mock exams to test your readiness as often as you like."
-          cta="Unlock unlimited mocks"
-        />
+        {free && !mini ? (
+          <Paywall
+            feature="mock_exam"
+            title="Full mock exams are a Premium feature"
+            description="The real 64-question exam experience — timed, scored and mapped to your weak areas. Your free trial includes one 15-question mini mock instead."
+            cta="Unlock full mocks"
+          />
+        ) : free ? (
+          <Paywall
+            feature="mini_mock"
+            title="You've used your free mini mock"
+            description="That pressure-check was a one-off on the free plan. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
+            cta="Keep testing yourself"
+          />
+        ) : (
+          <Paywall
+            feature={mini ? "mini_mock" : "mock_exam"}
+            title={mini ? "You've done today's 5 mini mocks" : "You've done today's 3 full mocks"}
+            description="Your daily allowance resets tomorrow. Premium Plus removes mock limits entirely."
+            cta="See Premium Plus"
+          />
+        )}
       </div>
     );
   }

@@ -147,11 +147,16 @@ export function DiagnosticResults() {
           )}
         </div>
 
-        {isAuthed && (
-          <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/dashboard")}>
-            Start my plan <ArrowRight />
-          </Button>
-        )}
+        {isAuthed &&
+          (state.tier === "free" && !state.guidedDone && state.sessions.length === 0 ? (
+            <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/welcome")}>
+              Start my guided first session <ArrowRight />
+            </Button>
+          ) : (
+            <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/dashboard")}>
+              Start my plan <ArrowRight />
+            </Button>
+          ))}
       </main>
     </div>
   );
