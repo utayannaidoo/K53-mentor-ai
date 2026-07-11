@@ -119,7 +119,7 @@ export function FlashcardDeck() {
   }
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col">
+    <div className="mx-auto flex max-w-xl flex-col lg:max-w-2xl">
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link href="/study" className="text-muted-foreground hover:text-foreground" aria-label="Close">

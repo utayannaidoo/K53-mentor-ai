@@ -57,41 +57,56 @@ export function ProductPreview() {
 
   return (
     <section className="px-6 py-20 sm:py-24">
-      <div className="mx-auto max-w-2xl text-center">
-        <p className="text-sm font-semibold uppercase tracking-wider text-primary">Try it now</p>
-        <h2 className="mt-2 text-balance font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-          This is what studying feels like
-        </h2>
-        <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-          No signup needed — answer a real K53 question, flip a flashcard, ask the AI tutor.
-        </p>
+      {/* Mobile: centered stack. Desktop: copy + controls left, live demo right,
+          so the whole moment fits one screen instead of a tall column. */}
+      <div className="mx-auto max-w-[1120px] text-center lg:grid lg:grid-cols-[0.9fr_1.1fr] lg:items-center lg:gap-12 lg:text-left">
+        <div className="lg:flex lg:flex-col lg:items-start">
+          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Try it now</p>
+          <h2 className="mt-2 text-balance font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+            This is what studying feels like
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-muted-foreground lg:mx-0">
+            No signup needed — answer a real K53 question, flip a flashcard, ask the AI tutor.
+          </p>
 
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
-          <Chip active={tab === "practice"} onClick={() => setTab("practice")}>
-            Practice question
-          </Chip>
-          <Chip active={tab === "flashcard"} onClick={() => setTab("flashcard")}>
-            Flashcard
-          </Chip>
-          <Chip active={tab === "tutor"} onClick={() => setTab("tutor")}>
-            AI tutor
-          </Chip>
+          <div className="mt-6 flex flex-wrap justify-center gap-2 lg:justify-start">
+            <Chip active={tab === "practice"} onClick={() => setTab("practice")}>
+              Practice question
+            </Chip>
+            <Chip active={tab === "flashcard"} onClick={() => setTab("flashcard")}>
+              Flashcard
+            </Chip>
+            <Chip active={tab === "tutor"} onClick={() => setTab("tutor")}>
+              AI tutor
+            </Chip>
+          </div>
+
+          <div className="hidden lg:mt-10 lg:block">
+            <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "gap-2")}>
+              Start free assessment <ArrowRight className="h-4 w-4" />
+            </Link>
+            <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · 5 minutes</p>
+          </div>
         </div>
 
-        {/* Device-ish frame */}
-        <div
-          key={tab}
-          className="glass-2 mx-auto mt-6 w-full max-w-md animate-fade-in rounded-2xl border border-border p-5 text-left shadow-[0_24px_60px_-24px_hsl(var(--shadow)/0.4)] sm:p-6"
-        >
-          {tab === "practice" && <DemoQuestion onInteract={() => noteInteraction("practice")} />}
-          {tab === "flashcard" && <DemoFlashcard onInteract={() => noteInteraction("flashcard")} />}
-          {tab === "tutor" && <DemoTutor onInteract={() => noteInteraction("tutor")} />}
-        </div>
+        <div>
+          {/* Device-ish frame */}
+          <div
+            key={tab}
+            className="glass-2 mx-auto mt-6 w-full max-w-md animate-fade-in rounded-2xl border border-border p-5 text-left shadow-[0_24px_60px_-24px_hsl(var(--shadow)/0.4)] sm:p-6 lg:mt-0 lg:ml-auto lg:mr-0"
+          >
+            {tab === "practice" && <DemoQuestion onInteract={() => noteInteraction("practice")} />}
+            {tab === "flashcard" && <DemoFlashcard onInteract={() => noteInteraction("flashcard")} />}
+            {tab === "tutor" && <DemoTutor onInteract={() => noteInteraction("tutor")} />}
+          </div>
 
-        <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "mt-8 gap-2")}>
-          Start free assessment <ArrowRight className="h-4 w-4" />
-        </Link>
-        <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · 5 minutes</p>
+          <div className="lg:hidden">
+            <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "mt-8 gap-2")}>
+              Start free assessment <ArrowRight className="h-4 w-4" />
+            </Link>
+            <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · 5 minutes</p>
+          </div>
+        </div>
       </div>
     </section>
   );

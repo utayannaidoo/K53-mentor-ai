@@ -232,7 +232,9 @@ export function MockExam() {
       .slice(0, 2)
       .map(categoryName);
     return (
-      <div className="mx-auto max-w-2xl">
+      <div className="mx-auto max-w-4xl">
+        {/* Desktop: score beside the recap, next actions immediately visible. */}
+        <div className="lg:grid lg:grid-cols-[1fr_1fr] lg:items-start lg:gap-5">
         <Card className="p-8 text-center">
           <ScoreRing
             value={Math.round((last.score / last.total) * 100)}
@@ -269,6 +271,12 @@ export function MockExam() {
           )}
         </Card>
 
+        <div>
+        <div className="mt-5 flex justify-center gap-3 lg:mt-0 lg:justify-start">
+          <Button variant="outline" onClick={() => setPhase("intro")}>Take another</Button>
+          <Link href="/dashboard" className={cn(buttonVariants())}>Back to dashboard</Link>
+        </div>
+
         <SessionRecap
           className="mt-5"
           data={{
@@ -282,7 +290,10 @@ export function MockExam() {
             passProbabilityAfter: postProb,
           }}
         />
+        </div>
+        </div>
 
+        <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-5">
         {!mini && (
         <Card className="mt-5 p-6">
           <h2 className="font-display text-lg font-semibold">By section</h2>
@@ -311,7 +322,7 @@ export function MockExam() {
         </Card>
         )}
 
-        <Card className="mt-5 p-6">
+        <Card className={cn("mt-5 p-6", mini && "lg:col-span-2")}>
           <h2 className="font-display text-lg font-semibold">By category</h2>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {(Object.keys(last.perCategory) as CategoryId[]).map((cat) => (
@@ -324,6 +335,7 @@ export function MockExam() {
             ))}
           </div>
         </Card>
+        </div>
 
         {wrong.length > 0 && (
           <Card className="mt-5 p-6">
@@ -349,10 +361,6 @@ export function MockExam() {
           </Card>
         )}
 
-        <div className="mt-6 flex justify-center gap-3">
-          <Button variant="outline" onClick={() => setPhase("intro")}>Take another</Button>
-          <Link href="/dashboard" className={cn(buttonVariants())}>Back to dashboard</Link>
-        </div>
       </div>
     );
   }
@@ -372,7 +380,7 @@ export function MockExam() {
   }
 
   return (
-    <div className="mx-auto flex max-w-xl flex-col">
+    <div className="mx-auto flex max-w-xl flex-col lg:max-w-2xl">
       <div className="flex items-center gap-3">
         <button onClick={submit} className="text-muted-foreground hover:text-foreground" aria-label="Submit and exit">
           <X className="h-5 w-5" />
@@ -397,7 +405,8 @@ export function MockExam() {
           </div>
         )}
         <h1 className="text-balance font-display text-xl font-semibold leading-snug tracking-tight">{q.prompt}</h1>
-        <div className="mt-5 space-y-3">
+        {/* Desktop: options in a 2×2 grid so all four fit above the fold. */}
+        <div className="mt-5 space-y-3 lg:grid lg:grid-cols-2 lg:gap-3 lg:space-y-0">
           {q.options.map((opt, idx) => (
             <button
               key={idx}

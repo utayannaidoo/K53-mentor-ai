@@ -123,7 +123,7 @@ export function OnboardingWizard() {
       </header>
 
       {step > 0 && (
-        <div className="mx-auto w-full max-w-lg px-6">
+        <div className="mx-auto w-full max-w-lg px-6 lg:max-w-2xl">
           <div className="flex items-center gap-3">
             <button onClick={back} className="text-muted-foreground transition-colors hover:text-foreground" aria-label="Back">
               <ArrowLeft className="h-5 w-5" />
@@ -142,7 +142,7 @@ export function OnboardingWizard() {
       )}
 
       <div className="flex flex-1 items-center justify-center px-6 py-8">
-        <div key={step} className="w-full max-w-lg animate-fade-in">
+        <div key={step} className="w-full max-w-lg animate-fade-in lg:max-w-2xl">
           {/* Step 0 — Welcome */}
           {step === 0 && (
             <div className="text-center">
@@ -165,7 +165,8 @@ export function OnboardingWizard() {
           {/* Step 1 — Goal */}
           {step === 1 && (
             <Step title="What are you working toward?" subtitle="We'll tailor your plan to the right test.">
-              <div className="space-y-3">
+              {/* Desktop: the three choices sit in one row — one glance, one click. */}
+              <div className="space-y-3 lg:grid lg:grid-cols-3 lg:gap-3 lg:space-y-0">
                 <OptionCard selected={goal === "learners"} onClick={() => pick(setGoal, "learners")} icon={<GraduationCap className="h-5 w-5" />} title="Learner's licence" description="Rules of the road, signs and vehicle controls" />
                 <OptionCard selected={goal === "drivers"} onClick={() => pick(setGoal, "drivers")} icon={<Car className="h-5 w-5" />} title="Driver's licence" description="Parking, manoeuvres and the yard test" />
                 <OptionCard selected={goal === "both"} onClick={() => pick(setGoal, "both")} icon={<Layers className="h-5 w-5" />} title="Both" description="The full journey, learner's to licensed" />
@@ -185,7 +186,7 @@ export function OnboardingWizard() {
                     : "This decides which controls, signs and content you'll get."
               }
             >
-              <div className="space-y-3">
+              <div className="space-y-3 lg:grid lg:grid-cols-3 lg:gap-3 lg:space-y-0">
                 {planClass !== "bike_heavy" && (
                   <OptionCard selected={vehicleCode === "8"} onClick={() => pick(setVehicleCode, "8")} icon={<Car className="h-5 w-5" />} title="Car · Code 08 (B)" description="Cars and light vehicles up to 3 500 kg" />
                 )}
@@ -206,6 +207,7 @@ export function OnboardingWizard() {
               subtitle={`${vehicleCode ? `${CODE_LABEL[vehicleCode]} it is. ` : ""}We'll build your plan backward from this date — even a rough guess helps.`}
             >
               <div className="space-y-4">
+                <div className={goal === "both" ? "space-y-4 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0" : undefined}>
                 <div>
                   {goal === "both" && (
                     <p className="mb-1.5 text-sm font-medium text-foreground">Learner&apos;s test date</p>
@@ -261,6 +263,7 @@ export function OnboardingWizard() {
                     </button>
                   </div>
                 )}
+                </div>
 
                 <div className="pt-2">
                   <p className="mb-2 text-sm font-medium text-foreground">Have you taken this test before?</p>
@@ -363,6 +366,8 @@ export function OnboardingWizard() {
               }
             >
               <div className="space-y-6">
+                {/* Desktop: both habit questions side by side, Continue in view. */}
+                <div className="space-y-6 lg:grid lg:grid-cols-2 lg:gap-6 lg:space-y-0">
                 <div>
                   <p className="mb-2 text-sm font-medium text-foreground">Your starting knowledge</p>
                   <div className="grid grid-cols-3 gap-2">
@@ -408,6 +413,7 @@ export function OnboardingWizard() {
                       </button>
                     ))}
                   </div>
+                </div>
                 </div>
                 <Button size="lg" className="w-full" disabled={!knowledge || !frequency} onClick={next}>
                   Continue <ArrowRight />

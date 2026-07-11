@@ -24,14 +24,14 @@ export default function HomePage() {
         <Hero />
 
         <Reveal>
-          <ProductPreview />
-        </Reveal>
-
-        <Reveal>
           <Problem />
         </Reveal>
         <Reveal>
           <CategoryMarquee />
+        </Reveal>
+
+        <Reveal>
+          <ProductPreview />
         </Reveal>
 
         <HowItWorks />

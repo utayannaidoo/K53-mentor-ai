@@ -200,6 +200,8 @@ function BillingInner() {
 
       {/* Subscription track — decides which licence codes you can study. */}
       <div className="mb-6">
+        {/* Desktop: both toggles share one row so the plan cards start higher. */}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium text-muted-foreground">Track</span>
           <div className="inline-flex rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
@@ -221,13 +223,8 @@ function BillingInner() {
           </div>
           <span className="text-xs text-muted-foreground">{VEHICLE_CLASS_LABEL[track]}</span>
         </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          A plan covers one track only. Switching track moves your subscription and study
-          content to the other vehicle class — it doesn&apos;t add it.
-        </p>
-
         {/* Billing cycle — annual takes R20/mo off every paid plan. */}
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium text-muted-foreground">Billing</span>
           <div className="inline-flex rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
             {(["monthly", "annual"] as const).map((c) => (
@@ -250,6 +247,12 @@ function BillingInner() {
             <span className="text-xs font-medium text-success">Save R20/mo — one payment covers the year</span>
           )}
         </div>
+        </div>
+
+        <p className="mt-2 text-xs text-muted-foreground">
+          A plan covers one track only. Switching track moves your subscription and study
+          content to the other vehicle class — it doesn&apos;t add it.
+        </p>
 
         {isSupabaseConfigured && state.tier !== "free" && !confirmingCancel && (
           <div className="mt-4">
