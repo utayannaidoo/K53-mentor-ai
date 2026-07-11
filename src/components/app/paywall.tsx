@@ -49,16 +49,14 @@ export function Paywall({
 
   return (
     <Card className={cn("mx-auto max-w-md overflow-hidden p-0", className)}>
-      {/* Road-sign plate header */}
-      <div className="bg-primary p-2.5">
-        <div className="rounded-xl border-2 border-primary-foreground/80 px-6 py-7 text-center">
-          <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full border-2 border-primary-foreground/80 text-primary-foreground">
-            {icon ?? <Lock className="h-5 w-5" />}
-          </div>
-          <h2 className="mt-4 font-display text-xl font-semibold tracking-tight text-primary-foreground">
-            {title}
-          </h2>
+      {/* Soft-tinted header in the app's own glass language. */}
+      <div className="border-b border-border/60 bg-primary/[0.07] px-6 py-7 text-center">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+          {icon ?? <Lock className="h-5 w-5" />}
         </div>
+        <h2 className="mt-4 font-display text-xl font-semibold tracking-tight text-foreground">
+          {title}
+        </h2>
       </div>
 
       <div className="p-6">

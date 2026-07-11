@@ -95,4 +95,33 @@ export const EXTRA_FLASHCARDS: Flashcard[] = [
   { id: "fc2_hv_tail_swing", categoryId: "hazard_awareness", codes: ["14"], front: "Tail swing?", back: "Rear overhang swings OUT opposite to your turn — check the outside mirror before committing.", difficulty: 3 },
   { id: "fc2_hv_height", categoryId: "rules", codes: ["14"], front: "Max legal vehicle height?", back: "4,3 m general. Know your real travelling height and route around lower clearances.", difficulty: 3 },
   { id: "fc2_hv_load_recheck", categoryId: "rules", codes: ["14"], front: "Load lashings after departure?", back: "Re-check a short distance into the trip — loads settle and straps loosen.", difficulty: 2 },
+
+  // ═══ Batch 3 — thin-category expansion (universal) ═══
+  // ── Parking ────────────────────────────────────────────────
+  { id: "fc3_park_450", categoryId: "parking", front: "Parallel parking — how close to the kerb?", back: "Within 450 mm of the kerb/roadway edge, facing the direction of traffic flow.", difficulty: 2 },
+  { id: "fc3_park_5m", categoryId: "parking", front: "Parking near an intersection — the limit?", back: "No parking within 5 m of an intersection: a parked car there hides crossing traffic and pedestrians.", difficulty: 2 },
+  { id: "fc3_park_two_way", categoryId: "parking", front: "Which side may you park on a two-way road?", back: "Left side only, facing with the traffic. Parking against the flow is prohibited.", difficulty: 1 },
+  { id: "fc3_park_unattended", categoryId: "parking", front: "Leaving the car unattended?", back: "Engine off, handbrake set, vehicle secured so it can't move or be driven away.", difficulty: 1 },
+  { id: "fc3_park_downhill", categoryId: "parking", front: "Wheels when parked downhill at a kerb?", back: "Turned INTO the kerb (plus handbrake and gear) — the kerb catches a rolling car.", difficulty: 2 },
+  { id: "fc3_park_yellow_edge", categoryId: "parking", front: "Solid yellow line along the road edge?", back: "No stopping — except a genuine emergency or where a sign allows it.", difficulty: 2 },
+
+  // ── Following distance ─────────────────────────────────────
+  { id: "fc3_fd_count", categoryId: "following_distance", front: "Counting the 2-second rule?", back: "Car ahead passes a fixed point → 'one-thousand-and-one, one-thousand-and-two'. Reach the point early = too close.", difficulty: 1 },
+  { id: "fc3_fd_wet4", categoryId: "following_distance", front: "Following distance in rain?", back: "At least 4 seconds — wet braking distances roughly double.", difficulty: 1 },
+  { id: "fc3_fd_stopping", categoryId: "following_distance", front: "Total stopping distance =", back: "Reaction distance + braking distance. A tired or distracted brain stretches the first part badly.", difficulty: 2 },
+  { id: "fc3_fd_square", categoryId: "following_distance", front: "Double your speed → braking distance?", back: "About 4× longer, not 2× — braking distance grows with the square of speed.", difficulty: 3 },
+  { id: "fc3_fd_queue", categoryId: "following_distance", front: "Gap when stopped in a queue?", back: "See the rear tyres of the car ahead touching the tar — enough room to steer out without reversing.", difficulty: 2 },
+
+  // ── Intersections ──────────────────────────────────────────
+  { id: "fc3_int_4way", categoryId: "intersections", front: "4-way stop order?", back: "First to stop, first to go. Simultaneous arrival: be ready to yield — never force it.", difficulty: 1 },
+  { id: "fc3_int_dead_robot", categoryId: "intersections", front: "Traffic lights out of order?", back: "Treat as a 4-way stop: full stop, proceed in order of arrival, expect others not to.", difficulty: 1 },
+  { id: "fc3_int_right_turn", categoryId: "intersections", front: "Turning right — yield to whom?", back: "Oncoming traffic (straight or turning left) and pedestrians crossing the road you're entering.", difficulty: 2 },
+  { id: "fc3_int_circle_vs_mini", categoryId: "intersections", front: "Roundabout vs mini-circle priority?", back: "Roundabout: yield to circulating traffic from your right. Mini-circle: first to arrive goes first.", difficulty: 3 },
+  { id: "fc3_int_blocked_box", categoryId: "intersections", front: "Green light, blocked intersection?", back: "Wait behind the line until your exit is clear — never trap yourself in the box.", difficulty: 2 },
+
+  // ── Rules — numbers & AARTO ────────────────────────────────
+  { id: "fc3_rule_speeds", categoryId: "rules", front: "Default speed limits?", back: "60 km/h urban · 100 km/h rural public roads · 120 km/h freeway. Signs can lower each.", difficulty: 1 },
+  { id: "fc3_rule_bac", categoryId: "rules", front: "Blood-alcohol limit?", back: "Under 0,05 g/100 ml (professional drivers 0,02 g). Breath: under 0,24 mg/1000 ml.", difficulty: 2 },
+  { id: "fc3_rule_demerits", categoryId: "rules", front: "AARTO demerit thresholds?", back: "Learner: suspension over 6 points. Licensed: over 15. Each point over = 3-month suspension; 1 point expires per clean 3 months.", difficulty: 3 },
+  { id: "fc3_rule_ages", categoryId: "rules", front: "Learner's vs driving licence ages (Code 8)?", back: "Learner's licence from 17; full light-vehicle licence from 18. Learners must be supervised by a licensed driver in the car.", difficulty: 1 },
 ];

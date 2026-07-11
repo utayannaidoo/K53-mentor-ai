@@ -150,7 +150,7 @@ export function QuestionPractice() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mx-auto flex max-w-xl items-center gap-3 lg:max-w-2xl">
+      <div className="mx-auto flex max-w-xl items-center gap-3">
         <Link href="/study" className="text-muted-foreground hover:text-foreground" aria-label="Close">
           <X className="h-5 w-5" />
         </Link>
@@ -165,7 +165,7 @@ export function QuestionPractice() {
         </span>
       </div>
 
-      <TrialMeter feature="questions" className="mx-auto mt-3 max-w-xl lg:max-w-2xl" />
+      <TrialMeter feature="questions" className="mx-auto mt-3 max-w-xl" />
 
       {runningAcc !== null && (
         <div className="mx-auto mt-3 flex max-w-xl items-center justify-end gap-1 text-xs text-muted-foreground">
@@ -176,7 +176,7 @@ export function QuestionPractice() {
       <div className="mt-5 flex items-center gap-2 sm:gap-3">
         <NavButton dir="prev" onClick={goPrev} disabled={i === 0} />
 
-        <div key={q.id} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in lg:max-w-2xl">
+        <div key={q.id} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in">
           <Badge variant="secondary" className="gap-1">
             <CategoryIcon id={q.categoryId} className="h-3 w-3" /> {categoryName(q.categoryId)}
           </Badge>

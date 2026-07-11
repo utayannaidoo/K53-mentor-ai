@@ -70,23 +70,13 @@ export default function DashboardPage() {
         </Card>
       )}
 
-      {/* Desktop: plan + readiness side-by-side so the primary action and the
-          score are both above the fold; mobile keeps the stacked order. */}
-      <div className="mb-5 grid gap-5 lg:grid-cols-[1.55fr_1fr] lg:items-stretch">
-        <CoachPlan
-          className="h-full"
-          tasks={tasks}
-          doneMap={doneMap}
-          scenariosUnlocked={hasFeature(state.tier, "scenarios")}
-          planLocked={!PLAN_MAP[state.tier].limits.studyPlan}
-          rationaleInput={rationaleInput}
-        />
-        <ReadinessCard
-          readiness={readiness.readiness}
-          passProbability={readiness.passProbability}
-          delta={delta}
-        />
-      </div>
+      <CoachPlan
+        tasks={tasks}
+        doneMap={doneMap}
+        scenariosUnlocked={hasFeature(state.tier, "scenarios")}
+        planLocked={!PLAN_MAP[state.tier].limits.studyPlan}
+        rationaleInput={rationaleInput}
+      />
 
       <RoadProgress
         compact
@@ -99,19 +89,25 @@ export default function DashboardPage() {
       />
 
       <div className="grid gap-5 lg:grid-cols-2">
+        <ReadinessCard
+          readiness={readiness.readiness}
+          passProbability={readiness.passProbability}
+          delta={delta}
+        />
         <WeakAreas perCategory={readiness.perCategory} />
-        <Card className={cn(glass, "p-6")}>
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Readiness trend</h2>
-            <Link href="/dashboard/progress" className="text-xs font-medium text-primary hover:underline">
-              Detailed progress
-            </Link>
-          </div>
-          <div className="mt-4">
-            <TrendChart data={state.readinessHistory} />
-          </div>
-        </Card>
       </div>
+
+      <Card className={cn(glass, "mt-5 p-6")}>
+        <div className="flex items-center justify-between">
+          <h2 className="font-display text-lg font-semibold">Readiness trend</h2>
+          <Link href="/dashboard/progress" className="text-xs font-medium text-primary hover:underline">
+            Detailed progress
+          </Link>
+        </div>
+        <div className="mt-4">
+          <TrendChart data={state.readinessHistory} />
+        </div>
+      </Card>
     </div>
   );
 }
