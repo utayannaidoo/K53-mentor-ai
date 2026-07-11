@@ -52,6 +52,13 @@ type UsageKind = "flashcards" | "questions" | "tutor" | "scenarios";
 
 interface StudyStore {
   ready: boolean;
+  /**
+   * True once the signed-in user's server account + progress have been folded
+   * into local state (immediately true in demo mode / signed-out). Post-login
+   * routing MUST wait for this — before it flips, hasOnboarded/hasDiagnostic
+   * reflect an empty local store, not the account.
+   */
+  accountHydrated: boolean;
   state: UserState;
   isAuthed: boolean;
   hasOnboarded: boolean;
@@ -100,6 +107,8 @@ interface StudyStore {
   }) => string;
   appendTutorMessage: (threadId: string, m: Omit<TutorMessage, "id" | "createdAt">) => void;
 
+  /** Mark the post-signup guided first session as completed/skipped. */
+  completeGuided: () => void;
   bumpUsage: (kind: UsageKind, by?: number) => void;
   usageFor: (kind: UsageKind) => { used: number; cap: number; allowed: boolean };
   acknowledgeRankUp: () => void;
@@ -139,7 +148,7 @@ function applyStudyEffects(state: UserState, now = new Date()): UserState {
   const rankIndex = computeRankIndex({
     cp: s.cp,
     readiness: breakdown.readiness,
-    hasPassedMock: s.mockExams.some((m) => m.passed),
+    hasPassedMock: s.mockExams.some((m) => m.passed && !m.mini),
   });
   if (rankIndex > s.rankAchieved) {
     s = { ...s, rankAchieved: rankIndex, pendingRankUp: rankIndex };
@@ -182,8 +191,14 @@ function withArrivalEffects(s: UserState, now = new Date()): UserState {
 export function StudyStoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<UserState>(defaultUserState);
   const [ready, setReady] = React.useState(false);
+  const [accountHydrated, setAccountHydrated] = React.useState(false);
   // null in demo mode (no Supabase env) — every Supabase effect below no-ops.
   const [supabase] = React.useState(() => createClient());
+
+  // Demo mode has no server account to wait for.
+  React.useEffect(() => {
+    if (!supabase) setAccountHydrated(true);
+  }, [supabase]);
 
   // Hydrate from localStorage on the client only (avoids SSR mismatch).
   React.useEffect(() => {
@@ -244,8 +259,11 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     const hydrate = async (user: import("@supabase/supabase-js").User | null) => {
       if (!user) {
         setState((s) => (s.profile ? { ...s, profile: null } : s));
+        setAccountHydrated(true); // signed out — nothing to wait for
         return;
       }
+      // A (re)sign-in is in flight: hold routing until the account lands.
+      setAccountHydrated(false);
       // A parked referral code from /signup?ref=… — claim it exactly once,
       // now that a real account exists (covers password and OAuth signups).
       try {
@@ -271,6 +289,8 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
           setState((s) => hydrateAccountState(s, account, progress, user.email ?? null));
       } catch {
         // Network/RLS hiccup — keep whatever the local cache holds.
+      } finally {
+        if (!cancelled) setAccountHydrated(true);
       }
     };
 
@@ -335,6 +355,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
   const store: StudyStore = {
     ready,
+    accountHydrated,
     state,
     isAuthed: Boolean(state.profile),
     hasOnboarded: Boolean(state.onboarding),
@@ -537,6 +558,8 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         if (m.role === "user") next = applyStudyEffects(bumpUsageState(next, "tutor"));
         return next;
       }),
+
+    completeGuided: () => setState((s) => (s.guidedDone ? s : { ...s, guidedDone: true })),
 
     bumpUsage: (kind, by = 1) => setState((s) => bumpUsageState(s, kind, by)),
 

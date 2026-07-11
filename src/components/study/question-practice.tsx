@@ -59,7 +59,7 @@ export function QuestionPractice() {
     return (
       <div className="mx-auto max-w-md py-10">
         {state.tier === "free" ? (
-          <TrialEndCard />
+          <TrialEndCard feature="questions" />
         ) : (
           <Paywall
             feature="questions"
@@ -339,7 +339,7 @@ function Summary({
           instead of ambushing the learner on their next visit. */}
       {trialNearEnd && (
         <div className="mt-5">
-          <TrialEndCard compact />
+          <TrialEndCard compact feature="questions" />
         </div>
       )}
     </div>

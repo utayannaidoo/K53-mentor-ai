@@ -39,6 +39,8 @@ export type AnalyticsEvent =
   | "plan_activated"
   | "mock_completed"
   | "referral_link_copied"
+  | "guided_step_completed"
+  | "guided_paywall_shown"
   | "paywall_viewed"
   | "paywall_cta_clicked"
   | "landing_preview_interacted";

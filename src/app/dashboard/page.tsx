@@ -9,7 +9,6 @@ import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { CoachPlan } from "@/components/dashboard/coach-plan";
 import { ComebackCard } from "@/components/dashboard/comeback-card";
 import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
-import { TrialPoolsCard } from "@/components/app/trial-meter";
 import { RoadProgress } from "@/components/engagement/road-progress";
 import { WeakAreas } from "@/components/dashboard/weak-areas";
 import { TrendChart } from "@/components/dashboard/trend-chart";
@@ -52,7 +51,7 @@ export default function DashboardPage() {
 
       <ComebackCard />
 
-      {trialExhausted(state) ? <TrialEndCard compact /> : <TrialPoolsCard />}
+      {trialExhausted(state) && <TrialEndCard compact />}
 
       {!hasDiagnostic && (
         <Card className="mb-5 flex flex-wrap items-center justify-between gap-4 border-primary/20 bg-primary/[0.04] p-5">
@@ -85,7 +84,7 @@ export default function DashboardPage() {
         inputs={{
           cp: state.cp,
           readiness: readiness.readiness,
-          hasPassedMock: state.mockExams.some((m) => m.passed),
+          hasPassedMock: state.mockExams.some((m) => m.passed && !m.mini),
         }}
       />
 

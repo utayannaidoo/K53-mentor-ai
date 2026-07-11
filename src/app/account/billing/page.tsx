@@ -12,6 +12,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { useStudyStore } from "@/hooks/use-study-store";
 import {
   PLANS,
+  PLAN_MAP,
   monthlyPrice,
   annualMonthlyPrice,
   annualPrice,
@@ -151,7 +152,7 @@ function BillingInner() {
       }
       setError(
         data.demo
-          ? "Billing isn't available yet on this deployment — no charge was made."
+          ? "Payments aren't configured on this environment yet (Paystack keys are missing), so no charge was made and your plan is unchanged."
           : "Checkout couldn't start — please try again in a moment.",
       );
     } catch {
@@ -173,6 +174,27 @@ function BillingInner() {
       {error && (
         <div className="mb-5 rounded-lg border border-danger/30 bg-danger/[0.08] px-4 py-3 text-sm text-danger">
           {error}
+        </div>
+      )}
+
+      {/* The tier is written by the payment webhook — if a payment just went
+          through, this pulls the fresh status without a full reload. */}
+      {isSupabaseConfigured && (
+        <div className="-mt-2 mb-5">
+          <button
+            type="button"
+            className="text-xs font-medium text-primary hover:underline"
+            onClick={async () => {
+              const tier = await refreshAccount().catch(() => null);
+              setBanner(
+                tier && tier !== "free"
+                  ? `Plan status refreshed — you're on ${PLAN_MAP[tier].name}.`
+                  : "Plan status refreshed — no active paid plan found yet.",
+              );
+            }}
+          >
+            Refresh plan status
+          </button>
         </div>
       )}
 

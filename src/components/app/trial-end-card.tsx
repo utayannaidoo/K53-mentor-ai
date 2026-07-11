@@ -6,34 +6,37 @@ import { Sparkles, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { totalUsage } from "@/lib/store/local-store";
-import { PLAN_MAP } from "@/lib/billing/plans";
+import {
+  trialExhausted,
+  poolRemaining,
+  POOL_NOUN,
+  POOL_HREF,
+  type TrialPool,
+} from "@/lib/billing/trial";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import type { UserState } from "@/types";
 
-/** Whether the free once-off trial has been used up. */
-export function trialExhausted(state: UserState): boolean {
-  if (state.tier !== "free") return false;
-  const used = totalUsage(state);
-  const caps = PLAN_MAP.free.limits;
-  return (
-    (typeof caps.questions === "number" && used.questions >= caps.questions) ||
-    (typeof caps.flashcards === "number" && used.flashcards >= caps.flashcards)
-  );
-}
+export { trialExhausted, poolRemaining } from "@/lib/billing/trial";
 
 /**
  * The conversion moment when the free trial runs out: not a generic paywall
  * but the learner's own numbers — where they stand, how long until their
  * test, and what Premium's daily volume does about the gap.
  */
-export function TrialEndCard({ compact = false }: { compact?: boolean }) {
+export function TrialEndCard({
+  compact = false,
+  feature,
+}: {
+  compact?: boolean;
+  /** Which pool just ran out. When other pools remain, the copy is honest
+   * about it ("you still have flashcards left") instead of "trial is done". */
+  feature?: TrialPool;
+}) {
   const { state, readiness } = useStudyStore();
   const r = readiness.readiness;
 
   React.useEffect(() => {
-    track("trial_end_shown", { compact, readiness: r });
+    track("trial_end_shown", { compact, readiness: r, feature: feature ?? "all" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -41,6 +44,19 @@ export function TrialEndCard({ compact = false }: { compact?: boolean }) {
   const daysToTest = testDate
     ? Math.max(0, Math.ceil((Date.parse(testDate) - Date.now()) / 86_400_000))
     : null;
+
+  const allDone = trialExhausted(state);
+  const remainingPools = (["questions", "flashcards", "tutor"] as TrialPool[]).filter(
+    (p) => p !== feature && poolRemaining(state, p) > 0,
+  );
+  const headline =
+    allDone || !feature ? "Your free trial is done" : `You've used your free ${POOL_NOUN[feature]}`;
+  const remainingLine =
+    !allDone && remainingPools.length > 0
+      ? `Still free to use: ${remainingPools
+          .map((p) => `${poolRemaining(state, p)} ${POOL_NOUN[p]}`)
+          .join(" and ")}.`
+      : null;
 
   const situation =
     daysToTest !== null
@@ -57,8 +73,10 @@ export function TrialEndCard({ compact = false }: { compact?: boolean }) {
         <div className="flex items-start gap-3">
           <TrendingUp className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
           <div>
-            <p className="text-sm font-semibold text-foreground">Your free trial is done — {situation}</p>
-            <p className="mt-0.5 text-xs text-muted-foreground">{promise}</p>
+            <p className="text-sm font-semibold text-foreground">{headline} — {situation}</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {remainingLine ? `${remainingLine} ` : ""}{promise}
+            </p>
           </div>
         </div>
         <Link
@@ -77,10 +95,18 @@ export function TrialEndCard({ compact = false }: { compact?: boolean }) {
       <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
         <TrendingUp className="h-6 w-6" />
       </div>
-      <h2 className="mt-5 font-display text-xl font-semibold tracking-tight">
-        Your free trial is done
-      </h2>
+      <h2 className="mt-5 font-display text-xl font-semibold tracking-tight">{headline}</h2>
       <p className="mt-2 text-sm text-foreground">{situation}</p>
+      {remainingLine && (
+        <p className="mt-2 text-sm font-medium text-primary">
+          {remainingLine}{" "}
+          {feature && remainingPools[0] && (
+            <Link href={POOL_HREF[remainingPools[0]]} className="underline hover:no-underline">
+              Keep going free
+            </Link>
+          )}
+        </p>
+      )}
       <p className="mt-2 text-sm text-muted-foreground">{promise}</p>
       <Link
         href="/account/billing"

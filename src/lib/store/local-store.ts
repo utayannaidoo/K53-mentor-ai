@@ -47,6 +47,7 @@ export function defaultUserState(): UserState {
     cp: 0,
     rankAchieved: 0,
     pendingRankUp: null,
+    guidedDone: false,
     planBonusDate: null,
     lastSeen: null,
     pendingComeback: null,
@@ -68,7 +69,7 @@ export function loadState(): UserState {
       merged.rankAchieved = computeRankIndex({
         cp: merged.cp,
         readiness: computeReadiness(merged).readiness,
-        hasPassedMock: merged.mockExams.some((m) => m.passed),
+        hasPassedMock: merged.mockExams.some((m) => m.passed && !m.mini),
       });
       merged.pendingRankUp = null;
       merged.version = STATE_VERSION;

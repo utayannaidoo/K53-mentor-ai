@@ -15,16 +15,18 @@ import { track } from "@/lib/analytics";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
-  const { signInLocal, isAuthed, hasDiagnostic, ready } = useStudyStore();
+  const { signInLocal, isAuthed, ready } = useStudyStore();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Already signed in — hand off to the post-auth router, which waits for the
+  // server account to hydrate before deciding where the user belongs.
   React.useEffect(() => {
-    if (ready && isAuthed) router.replace(hasDiagnostic ? "/dashboard" : "/onboarding");
-  }, [ready, isAuthed, hasDiagnostic, router]);
+    if (ready && isAuthed) router.replace("/continue");
+  }, [ready, isAuthed, router]);
 
   // A referral link (/signup?ref=CODE) parks the code until the account
   // exists; the study store claims it right after the first sign-in.
@@ -38,9 +40,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       }
     }
   }, []);
-
-  const destination = () =>
-    mode === "signup" || !hasDiagnostic ? "/onboarding" : "/dashboard";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -64,12 +63,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     // Demo path / mirror profile into the local store.
     if (mode === "signup") track("signup_completed", { method: "password" });
     signInLocal(name || email.split("@")[0] || "Learner", email || "demo@k53mentor.ai");
-    router.push(destination());
+    router.push("/continue");
   }
 
   function continueAsGuest() {
     signInLocal("Demo learner", "demo@k53mentor.ai");
-    router.push(hasDiagnostic ? "/dashboard" : "/onboarding");
+    router.push("/continue");
   }
 
   async function continueWithGoogle() {
@@ -79,10 +78,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        // The callback route exchanges the code and forwards to `next`.
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(
-          hasDiagnostic ? "/dashboard" : "/onboarding",
-        )}`,
+        // The callback route exchanges the code and forwards to the post-auth
+        // router, which waits for the account to hydrate before routing.
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/continue")}`,
       },
     });
     if (oauthError) setError(oauthError.message);
