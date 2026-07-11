@@ -37,6 +37,7 @@ export function DiagnosticResults() {
   const confidence = state.onboarding?.confidence ?? null;
   const feltScore = confidence !== null ? ((confidence - 1) / 4) * 100 : null;
   const contrast = buildContrast(feltScore, latest.readiness);
+  const retakerLine = buildRetakerLine(state.onboarding?.priorAttempts ?? 0);
   const plan = generateTodayPlan(state, readiness);
 
   const strongest = latest.strongCategories[0];
@@ -63,6 +64,11 @@ export function DiagnosticResults() {
           </div>
           {contrast && (
             <p className="mt-6 max-w-md text-balance text-muted-foreground">{contrast}</p>
+          )}
+          {retakerLine && (
+            <p className="mt-2 max-w-md text-balance text-sm font-medium text-primary">
+              {retakerLine}
+            </p>
           )}
         </div>
 
@@ -160,6 +166,15 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
       <span className="tabular mt-0.5 font-mono text-xl font-semibold">{value}</span>
     </div>
   );
+}
+
+/** A different opening for learners who've sat this test before — the plan
+ * exists precisely so the next attempt isn't a guess. */
+function buildRetakerLine(priorAttempts: number): string | null {
+  if (priorAttempts <= 0) return null;
+  if (priorAttempts === 1)
+    return "Last time you walked in blind. This time you'll walk in knowing exactly where your gaps are.";
+  return "You've been here before — the difference now is a plan built on your actual weak spots.";
 }
 
 function buildContrast(felt: number | null, readiness: number): string | null {

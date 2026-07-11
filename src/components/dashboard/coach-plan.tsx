@@ -69,11 +69,15 @@ export function CoachPlan({
   tasks,
   doneMap,
   scenariosUnlocked,
+  planLocked = false,
   rationaleInput,
 }: {
   tasks: PlanTask[];
   doneMap: Record<string, boolean>;
   scenariosUnlocked: boolean;
+  /** Free tier: the multi-task daily plan is a paid feature — only the first
+   * task stays actionable, the rest show as a locked preview. */
+  planLocked?: boolean;
   rationaleInput: PlanRationaleData;
 }) {
   const rationale = useCoachRationale(rationaleInput);
@@ -102,9 +106,9 @@ export function CoachPlan({
       )}
 
       <ul className="mt-5 grid gap-2.5 sm:grid-cols-3">
-        {tasks.map((task) => {
+        {tasks.map((task, idx) => {
           const done = doneMap[task.id];
-          const locked = task.premium && !scenariosUnlocked;
+          const locked = (task.premium && !scenariosUnlocked) || (planLocked && idx > 0);
           const href = locked ? "/account/billing" : task.href;
           return (
             <li key={task.id}>
@@ -138,6 +142,15 @@ export function CoachPlan({
           );
         })}
       </ul>
+
+      {planLocked && (
+        <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Lock className="h-3 w-3" /> The full multi-step daily plan is a Premium feature —{" "}
+          <Link href="/account/billing" className="font-medium text-primary hover:underline">
+            unlock it
+          </Link>
+        </p>
+      )}
 
       {allDone ? (
         <div className="mt-4 rounded-lg bg-success/10 px-4 py-3 text-center text-sm font-medium text-success">

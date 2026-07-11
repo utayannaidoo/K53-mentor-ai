@@ -12,6 +12,7 @@ import { useSpeechInput } from "@/hooks/use-speech-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
+import { TrialMeter } from "@/components/app/trial-meter";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
@@ -67,6 +68,7 @@ export function FlashcardDeck() {
           <TrialEndCard />
         ) : (
           <Paywall
+            feature="flashcards"
             title="You've hit today's flashcards"
             description="Your plan's daily flashcard sessions are done — they reset tomorrow. Premium Plus removes the limit entirely."
             cta="See plans"
@@ -87,6 +89,7 @@ export function FlashcardDeck() {
         reviewed={reviewed}
         seconds={seconds}
         cpEarned={state.cp - cpStartRef.current}
+        trialNearEnd={state.tier === "free" && Number.isFinite(cap.cap) && cap.cap - cap.used <= 2}
         recap={{
           mode: "flashcards",
           total: reviewed,
@@ -127,6 +130,8 @@ export function FlashcardDeck() {
         </div>
         <span className="font-mono text-xs text-muted-foreground">{i + 1}/{queue.length}</span>
       </div>
+
+      <TrialMeter feature="flashcards" className="mt-3" />
 
       {/* Card */}
       <div className="perspective mt-8">
@@ -268,11 +273,13 @@ function Completion({
   seconds,
   cpEarned,
   recap,
+  trialNearEnd,
 }: {
   reviewed: number;
   seconds: number;
   cpEarned: number;
   recap: SessionRecapData;
+  trialNearEnd?: boolean;
 }) {
   return (
     <div className="mx-auto max-w-md py-10">
@@ -300,6 +307,12 @@ function Completion({
         </div>
       )}
       <SessionRecap data={recap} className="mt-5" />
+      {/* Conversion moment lands right here, while the session result is fresh. */}
+      {trialNearEnd && (
+        <div className="mt-5">
+          <TrialEndCard compact />
+        </div>
+      )}
     </div>
   );
 }

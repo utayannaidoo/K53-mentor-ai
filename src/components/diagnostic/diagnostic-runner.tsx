@@ -19,7 +19,11 @@ export function DiagnosticRunner() {
   const { state, recordQuestionAttempt, recordDiagnostic } = useStudyStore();
 
   const [questions] = React.useState(() =>
-    sampleDiagnostic(state.attempts, state.onboarding?.vehicleCode),
+    sampleDiagnostic(
+      state.attempts,
+      state.onboarding?.vehicleCode,
+      state.onboarding?.worryCategories ?? [],
+    ),
   );
   const [index, setIndex] = React.useState(0);
   const [selected, setSelected] = React.useState<number | null>(null);

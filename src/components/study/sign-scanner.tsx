@@ -50,6 +50,7 @@ export function SignScanner() {
   if (!hasFeature(state.tier, "scanner")) {
     return (
       <Paywall
+        feature="scanner"
         icon={<Camera className="h-6 w-6" />}
         title="Scanner is a Premium tool"
         description="Photograph any road sign and the AI identifies it, explains what it means, and tells you what K53 expects you to do. Included in Premium and Premium Plus."

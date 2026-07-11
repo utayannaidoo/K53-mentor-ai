@@ -38,7 +38,10 @@ export type AnalyticsEvent =
   | "checkout_started"
   | "plan_activated"
   | "mock_completed"
-  | "referral_link_copied";
+  | "referral_link_copied"
+  | "paywall_viewed"
+  | "paywall_cta_clicked"
+  | "landing_preview_interacted";
 
 export function track(event: AnalyticsEvent, props?: Record<string, string | number | boolean>): void {
   if (!KEY || !initialized) return;

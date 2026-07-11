@@ -120,6 +120,7 @@ export function MockExam() {
     return (
       <div className="mx-auto max-w-md py-10">
         <Paywall
+          feature="mock_exam"
           title="You've used your free mock exam"
           description="The free plan includes one full mock exam. Premium gives you unlimited 64-question mock exams to test your readiness as often as you like."
           cta="Unlock unlimited mocks"
