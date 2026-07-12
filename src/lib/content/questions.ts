@@ -4,6 +4,7 @@ import { VEHICLE_QUESTIONS } from "./questions.vehicle";
 import { EXTRA_QUESTIONS } from "./questions.extra";
 import { VEHICLE_EXTRA_QUESTIONS } from "./vehicle-extra";
 import { SIGNS_PACK_QUESTIONS } from "./signs-pack";
+import { RULES_PACK_QUESTIONS } from "./rules-pack";
 
 /**
  * K53-aligned question bank, structured around the official South African K53
@@ -1795,7 +1796,7 @@ const CORE_QUESTIONS: Question[] = [
 ];
 
 /** Core (universal) questions plus the vehicle-code–specific and extra banks. */
-export const QUESTIONS: Question[] = [...CORE_QUESTIONS, ...VEHICLE_QUESTIONS, ...EXTRA_QUESTIONS, ...VEHICLE_EXTRA_QUESTIONS, ...SIGNS_PACK_QUESTIONS];
+export const QUESTIONS: Question[] = [...CORE_QUESTIONS, ...VEHICLE_QUESTIONS, ...EXTRA_QUESTIONS, ...VEHICLE_EXTRA_QUESTIONS, ...SIGNS_PACK_QUESTIONS, ...RULES_PACK_QUESTIONS];
 
 export const QUESTIONS_BY_ID: Record<string, Question> = Object.fromEntries(
   QUESTIONS.map((q) => [q.id, q]),
