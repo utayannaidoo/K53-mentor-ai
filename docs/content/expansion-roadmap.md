@@ -74,7 +74,7 @@ Sprint = pick category → verify/refresh its fact file (WebSearch for changes) 
 | controls | 52 | 120 | following_distance | 28 | 60 |
 | hazard_awareness | 39 | 120 | **Total** | **352 Q / 240 FC** | **~900 / ~500** |
 
-_Sprint 1 (signs) shipped: +33 questions / +30 flashcards (`signs-pack.ts`). Sprint 2 (rules) shipped: +23 questions / +20 flashcards (`rules-pack.ts`) — freeway prohibitions, lamp/150 m rule, seatbelt & child-restraint duties, overtaking-left conditions, officer hierarchy, hand signals, coasting/reversing/hooter. Bank: **375 Q / 260 FC**. Next sprint: road markings + temporary signs pack, then intersections._
+_Sprint 1 (signs) shipped: +33 questions / +30 flashcards (`signs-pack.ts`). Sprint 2 (rules) shipped: +23 questions / +20 flashcards (`rules-pack.ts`). Sprint 3 (road markings + temporary signs) shipped: +21 questions / +20 flashcards (`markings-pack.ts`) — double/barrier lines, edge lines & road studs, box junctions, keep-clear, lane-reduction arrows, speed-hump & kerb markings, and a full temporary-sign set (yellow = enforceable, flag person STOP/GO, temporary speed zones, cones/detours, temporary-overrides-permanent). Bank: **396 Q / 280 FC**. Next sprint: intersections (31→100), then controls/yard, then bike/heavy depth._
 
 ## 6. Content quality rules (standing)
 - Every item states a verifiable K53/NRTA fact; no invented regulation numbers.
