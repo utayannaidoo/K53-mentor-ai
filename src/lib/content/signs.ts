@@ -183,6 +183,16 @@ const SIGN_KEY_TO_ID = {
   children: "warning-037-03",
   cyclists: "warning-037-04",
   railway: "warning-040-07",
+  // Batch 4 — meanings hand-verified against the manual text in the catalogue.
+  headlights_on: "regulatory-009-01",
+  pass_side: "regulatory-009-04",
+  proceed_direction: "regulatory-009-05",
+  circle_clockwise: "regulatory-009-07",
+  no_left_intersection: "regulatory-011-03",
+  no_right_intersection: "regulatory-011-04",
+  no_overtaking_trucks: "regulatory-012-02",
+  no_hooter: "regulatory-012-03",
+  reserved_lane_bus: "regulatory-013-01",
 } as const;
 
 export type SignImgKey = keyof typeof SIGN_KEY_TO_ID;
