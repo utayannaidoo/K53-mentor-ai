@@ -46,7 +46,37 @@ What users praise elsewhere: questions "very similar to the real test", per-sect
 8. **Voice-read questions** (accessibility + studying in taxis; Web Speech API already used for flashcard recall).
 9. Driver's-side expansion: per-manoeuvre penalty-point tables and observation-sequence checklists in the yard-test modules.
 
-## 5. Content quality rules (standing)
+## 5. Content pipeline — how we out-volume competitors (target: 900+ questions, 500+ flashcards, 60+ scenarios)
+
+Competitors advertise "1000+ questions" but they're shallow rewrites of each other. Our edge: generate from **primary sources**, which are structured and enumerable.
+
+### Step 1 — Build fact bases from primary sources (one-time deep research, ~1 session each)
+For each category, produce a cited fact file at `docs/content/facts/<category>.md`. All items are then written ONLY from these files — no fact enters the bank without a source line.
+1. **Signs (biggest win)**: the SARTSM volumes on transport.gov.za are a *catalogue* — every regulatory (R-series), warning (W-series), guidance and temporary sign has a code, name and meaning. Fetch the chapter PDFs, extract the sign inventory into a table. Each sign mechanically yields 1 flashcard + 1–2 questions (meaning, action required, common confusion pair). ~200 signs → ~350 items from one source.
+2. **Rules**: National Road Traffic Act + Regulations (full text online) — enumerate the testable clauses (speeds, distances, loads, lights, licences, towing, pedestrians). Cross-check against the SA Learner Driver Manual "Rules of the Road" module.
+3. **Controls / yard test**: the official K53 practical-test documents on arrivealive.co.za specify every pre-trip inspection item, manoeuvre and penalty — enumerable into controls questions and driver-module content.
+4. **AARTO**: the schedule of offences with fine amounts and demerit points is a published table — a unique, current-events pack no competitor has.
+
+### Step 2 — Category sprints (repeatable, ~1 per session)
+Sprint = pick category → verify/refresh its fact file (WebSearch for changes) → write 60–100 items with difficulty spread and per-code variants → run gates → merge. Order by gap: signs → rules → road markings (new sub-pack) → temporary signs → intersections → controls → hazard/parking/following top-ups → bike/heavy depth (competitors are car-only — our A/10/14 tracks can be a moat).
+
+### Step 3 — Quality gates (automate once, reuse every sprint)
+- CI test asserting per-category minimum counts (prevents regressions, tracks growth).
+- ID-uniqueness + near-duplicate prompt check (string-similarity script) so volume never becomes repetition.
+- Every numeric fact carries `source`; batch review = grep all numbers, check against fact file.
+- Sign images: extend the existing manual-extraction script to the full R/W/temporary sets so new sign items ship with real images (competitors' pixelated images are a top complaint).
+
+### Targets (runtime counts; enforced as minimums by tests/content-coverage.test.ts)
+| Category | Now (Q) | Target | Category | Now (Q) | Target |
+|---|---|---|---|---|---|
+| signs | 98 | 220 | intersections | 31 | 100 |
+| rules | 75 | 200 | parking | 29 | 80 |
+| controls | 52 | 120 | following_distance | 28 | 60 |
+| hazard_awareness | 39 | 120 | **Total** | **352 Q / 240 FC** | **~900 / ~500** |
+
+_Sprint 1 (signs) shipped: +33 sign questions / +30 flashcards from `docs/content/facts/signs.md` (sign-system grammar, verified catalogue commands/prohibitions, signals, road markings) in `src/lib/content/signs-pack.ts`. Fact bases created: signs, rules, controls-yard, aarto. Next sprint: rules (75→120+)._
+
+## 6. Content quality rules (standing)
 - Every item states a verifiable K53/NRTA fact; no invented regulation numbers.
 - Numbers (speeds, BAC, distances, demerits) must match the sources below; re-verify before each content batch.
 - Explanations teach the *why*, provenance via the existing `sourceFor` line.
