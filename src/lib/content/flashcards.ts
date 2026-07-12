@@ -8,6 +8,7 @@ import { RULES_PACK_FLASHCARDS } from "./rules-pack";
 import { MARKINGS_PACK_FLASHCARDS } from "./markings-pack";
 import { INTERSECTIONS_PACK_FLASHCARDS } from "./intersections-pack";
 import { CONTROLS_PACK_FLASHCARDS } from "./controls-pack";
+import { HPF_PACK_FLASHCARDS } from "./hpf-pack";
 
 /**
  * Spaced-repetition flashcards covering the K53 learner's syllabus. Sign cards
@@ -106,7 +107,7 @@ const CORE_FLASHCARDS: Flashcard[] = [
 ];
 
 /** Core (universal) flashcards plus the vehicle-code–specific and extra cards. */
-export const FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS, ...VEHICLE_EXTRA_FLASHCARDS, ...SIGNS_PACK_FLASHCARDS, ...RULES_PACK_FLASHCARDS, ...MARKINGS_PACK_FLASHCARDS, ...INTERSECTIONS_PACK_FLASHCARDS, ...CONTROLS_PACK_FLASHCARDS];
+export const FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS, ...VEHICLE_EXTRA_FLASHCARDS, ...SIGNS_PACK_FLASHCARDS, ...RULES_PACK_FLASHCARDS, ...MARKINGS_PACK_FLASHCARDS, ...INTERSECTIONS_PACK_FLASHCARDS, ...CONTROLS_PACK_FLASHCARDS, ...HPF_PACK_FLASHCARDS];
 
 export const FLASHCARDS_BY_ID: Record<string, Flashcard> = Object.fromEntries(
   FLASHCARDS.map((f) => [f.id, f]),
