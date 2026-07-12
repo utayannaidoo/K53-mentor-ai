@@ -12,20 +12,20 @@ const MIN_QUESTIONS: Record<CategoryId, number> = {
   signs: 119,
   rules: 98,
   controls: 72,
-  hazard_awareness: 39,
+  hazard_awareness: 48,
   intersections: 51,
-  parking: 29,
-  following_distance: 28,
+  parking: 37,
+  following_distance: 36,
 };
 
 const MIN_FLASHCARDS: Record<CategoryId, number> = {
   signs: 93,
   rules: 69,
   controls: 59,
-  hazard_awareness: 26,
+  hazard_awareness: 35,
   intersections: 38,
-  parking: 18,
-  following_distance: 17,
+  parking: 25,
+  following_distance: 23,
 };
 
 function countBy(items: { categoryId: CategoryId }[]): Record<string, number> {
