@@ -13,7 +13,7 @@ const MIN_QUESTIONS: Record<CategoryId, number> = {
   rules: 98,
   controls: 52,
   hazard_awareness: 39,
-  intersections: 31,
+  intersections: 51,
   parking: 29,
   following_distance: 28,
 };
@@ -23,7 +23,7 @@ const MIN_FLASHCARDS: Record<CategoryId, number> = {
   rules: 69,
   controls: 39,
   hazard_awareness: 26,
-  intersections: 18,
+  intersections: 38,
   parking: 18,
   following_distance: 17,
 };
