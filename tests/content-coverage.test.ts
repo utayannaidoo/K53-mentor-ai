@@ -9,7 +9,7 @@ import type { CategoryId } from "@/types";
  * can't silently drop a batch. (Targets live in docs/content/expansion-roadmap.md.)
  */
 const MIN_QUESTIONS: Record<CategoryId, number> = {
-  signs: 98,
+  signs: 119,
   rules: 98,
   controls: 52,
   hazard_awareness: 39,
@@ -19,7 +19,7 @@ const MIN_QUESTIONS: Record<CategoryId, number> = {
 };
 
 const MIN_FLASHCARDS: Record<CategoryId, number> = {
-  signs: 73,
+  signs: 93,
   rules: 69,
   controls: 39,
   hazard_awareness: 26,
