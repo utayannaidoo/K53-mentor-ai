@@ -10,9 +10,9 @@ import type { CategoryId } from "@/types";
  */
 const MIN_QUESTIONS: Record<CategoryId, number> = {
   signs: 119,
-  rules: 98,
-  controls: 72,
-  hazard_awareness: 48,
+  rules: 99,
+  controls: 86,
+  hazard_awareness: 55,
   intersections: 51,
   parking: 37,
   following_distance: 36,
@@ -20,9 +20,9 @@ const MIN_QUESTIONS: Record<CategoryId, number> = {
 
 const MIN_FLASHCARDS: Record<CategoryId, number> = {
   signs: 93,
-  rules: 69,
-  controls: 59,
-  hazard_awareness: 35,
+  rules: 70,
+  controls: 73,
+  hazard_awareness: 41,
   intersections: 38,
   parking: 25,
   following_distance: 23,
