@@ -3,6 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildPaymentReceiptEmail } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
+import { fetchCustomer, disableSubscription } from "@/lib/paystack/client";
 
 /**
  * The shape of a successful charge, as it arrives either on the `charge.success`
@@ -93,6 +94,22 @@ export async function applyChargeSuccess(
         .eq("id", userId);
     }
   }
+
+  // A track switch starts a new Paystack subscription; cancel any *other* active
+  // subscription for this customer so they're never billed for two tracks at
+  // once. A no-op on a first purchase (only the new subscription is active).
+  try {
+    const customer = await fetchCustomer(data.customer.customer_code);
+    const stale = customer.subscriptions.filter(
+      (s) => s.status === "active" && s.plan.plan_code !== data.plan!.plan_code,
+    );
+    for (const s of stale) {
+      await disableSubscription(s.subscription_code, s.email_token);
+    }
+  } catch (err) {
+    console.error("applyChargeSuccess: could not reconcile old subscriptions", err);
+  }
+
   // Receipt + welcome (best-effort; the ledger already made this once-only).
   if (isEmailConfigured && data.customer.email) {
     const receipt = buildPaymentReceiptEmail({
