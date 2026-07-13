@@ -148,7 +148,7 @@ function applyStudyEffects(state: UserState, now = new Date()): UserState {
   const rankIndex = computeRankIndex({
     cp: s.cp,
     readiness: breakdown.readiness,
-    hasPassedMock: s.mockExams.some((m) => m.passed && !m.mini),
+    hasPassedMock: s.mockExams.some((m) => m.passed && !m.mini && !m.drill),
   });
   if (rankIndex > s.rankAchieved) {
     s = { ...s, rankAchieved: rankIndex, pendingRankUp: rankIndex };

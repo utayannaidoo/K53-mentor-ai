@@ -89,6 +89,8 @@ export interface PlanLimits {
   mockExams: number | "unlimited";
   /** 15-question mini mocks (free: lifetime, paid: per day). */
   miniMocks: number | "unlimited";
+  /** Single-section timed drills at real pass marks (free: lifetime, paid: per day). */
+  sectionDrills: number | "unlimited";
   mockLength: "short" | "full";
   studyPlan: boolean;
   progressHistory: "7d" | "full";
@@ -125,6 +127,7 @@ export const PLANS: PlanDef[] = [
       tutorTopUp: false,
       mockExams: 0, // full mock is a paid feature
       miniMocks: 1, // one lifetime mini mock to taste the pressure
+      sectionDrills: 1, // one lifetime section drill, same taste-then-pay pattern
       mockLength: "short",
       studyPlan: false,
       progressHistory: "7d",
@@ -159,6 +162,7 @@ export const PLANS: PlanDef[] = [
       tutorTopUp: false,
       mockExams: 3,
       miniMocks: 5,
+      sectionDrills: 5,
       mockLength: "full",
       studyPlan: true,
       progressHistory: "full",
@@ -167,7 +171,7 @@ export const PLANS: PlanDef[] = [
       "3 full flashcard & question sessions a day",
       "Full scenarios — a few a day",
       "AI tutor — 15 messages a day",
-      "3 full mocks + 5 mini mocks a day",
+      "3 full mocks + 5 mini mocks & section drills a day",
       "Personalised daily study plan",
       "Full progress history",
     ],
@@ -189,6 +193,7 @@ export const PLANS: PlanDef[] = [
       tutorTopUp: true,
       mockExams: "unlimited",
       miniMocks: "unlimited",
+      sectionDrills: "unlimited",
       mockLength: "full",
       studyPlan: true,
       progressHistory: "full",

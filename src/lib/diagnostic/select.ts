@@ -132,6 +132,41 @@ export const SECTION_OF: Record<CategoryId, ExamSection> = {
 };
 
 /**
+ * Section drills: one exam section on its own, at the real section size, pass
+ * mark and a proportional share of the real 60-minute clock. Passing every
+ * section individually is exactly what the real test requires, so drilling a
+ * single section against its true pass mark is the highest-fidelity practice
+ * short of a full mock.
+ */
+export const SECTION_DRILL: Record<
+  ExamSection,
+  { total: number; passMark: number; seconds: number }
+> = Object.fromEntries(
+  (Object.keys(EXAM_FORMAT.sections) as ExamSection[]).map((s) => [
+    s,
+    {
+      total: EXAM_FORMAT.sections[s].questions,
+      passMark: EXAM_FORMAT.sections[s].pass,
+      // The real paper gives 60 min for 64 questions — same pace per question.
+      seconds:
+        Math.round((EXAM_FORMAT.sections[s].questions / EXAM_FORMAT.totalQuestions) * 3600 / 30) *
+        30,
+    },
+  ]),
+) as Record<ExamSection, { total: number; passMark: number; seconds: number }>;
+
+export function sampleSectionDrill(
+  section: ExamSection,
+  attempts: QuestionAttempt[] = [],
+  code?: VehicleCode,
+): Question[] {
+  const pool = forCode(QUESTIONS, code).filter((q) => SECTION_OF[q.categoryId] === section);
+  return shuffle(orderByFreshness(pool, attempts).slice(0, SECTION_DRILL[section].total)).map(
+    withShuffledOptions,
+  );
+}
+
+/**
  * Build a full mock exam in the official format: 8 controls, 28 signs and
  * 28 rules questions (64 total). Each section is filled with unique questions,
  * preferring ones the learner has seen least recently; the order is shuffled

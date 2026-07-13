@@ -84,7 +84,7 @@ export default function DashboardPage() {
         inputs={{
           cp: state.cp,
           readiness: readiness.readiness,
-          hasPassedMock: state.mockExams.some((m) => m.passed && !m.mini),
+          hasPassedMock: state.mockExams.some((m) => m.passed && !m.mini && !m.drill),
         }}
       />
 
