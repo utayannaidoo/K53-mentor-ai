@@ -68,12 +68,21 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
 
   // Paystack redirects back with ?topup=success after buying a pack.
   React.useEffect(() => {
-    const q = new URLSearchParams(window.location.search).get("topup");
-    if (q === "success") {
-      setTopUpBanner("Top-up added — your extra messages apply automatically. Carry on!");
-      setCapNotice(null);
-      window.history.replaceState(null, "", window.location.pathname);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("topup") !== "success") return;
+    // Confirm the charge server-side so the credits are banked immediately,
+    // rather than waiting for the async webhook to land.
+    const reference = params.get("reference") ?? params.get("trxref");
+    if (reference) {
+      fetch("/api/paystack/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reference }),
+      }).catch(() => {});
     }
+    setTopUpBanner("Top-up added — your extra messages apply automatically. Carry on!");
+    setCapNotice(null);
+    window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
   async function buyTopUp() {

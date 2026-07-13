@@ -41,21 +41,51 @@ function BillingInner() {
   React.useEffect(() => {
     if (!paidReturn || !isSupabaseConfigured) return;
     let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+    // Paystack appends the transaction reference to the callback URL.
+    const reference = sp.get("reference") ?? sp.get("trxref");
+
+    const settle = (tier: SubscriptionTier | null): boolean => {
+      if (cancelled) return true;
+      if (tier && tier !== "free") {
+        setBanner("Payment complete — your plan is active.");
+        trackEvent("plan_activated", { tier });
+        return true;
+      }
+      return false;
+    };
+
     let tries = 0;
     const poll = async () => {
       tries += 1;
       const tier = await refreshAccount().catch(() => null);
-      if (cancelled) return;
-      if (tier && tier !== "free") {
-        setBanner("Payment complete — your plan is active.");
-        trackEvent("plan_activated", { tier });
-      } else if (tries < 8) {
-        timer = setTimeout(poll, 2500);
-      } else {
-        setBanner("Payment received. Your plan can take a minute to activate — refresh shortly.");
-      }
+      if (settle(tier)) return;
+      if (tries < 8) timer = setTimeout(poll, 2500);
+      else setBanner("Payment received. Your plan can take a minute to activate — refresh shortly.");
     };
-    let timer = setTimeout(poll, 1500);
+
+    const run = async () => {
+      // Confirm the payment server-side straight away rather than waiting on
+      // the webhook — the plan activates the moment the buyer is back.
+      if (reference) {
+        try {
+          const res = await fetch("/api/paystack/verify", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ reference }),
+          });
+          if (res.ok && !cancelled) {
+            const tier = await refreshAccount().catch(() => null);
+            if (settle(tier)) return;
+          }
+        } catch {
+          // fall through to polling
+        }
+      }
+      if (!cancelled) timer = setTimeout(poll, 1500);
+    };
+    run();
+
     return () => {
       cancelled = true;
       clearTimeout(timer);
@@ -76,11 +106,19 @@ function BillingInner() {
     setCancelBusy(true);
     try {
       const res = await fetch("/api/billing/cancel", { method: "POST" });
-      const data = await res.json().catch(() => ({}) as { error?: string });
+      const data = await res
+        .json()
+        .catch(() => ({}) as { error?: string; refunded?: boolean; refundError?: boolean });
       if (res.ok) {
         setTier("free");
         setConfirmingCancel(false);
-        setBanner("Your plan is cancelled — you're back on Free.");
+        setBanner(
+          data.refunded
+            ? "Your plan is cancelled and your payment refunded in full — it clears to your card within 5–10 business days."
+            : data.refundError
+              ? "Your plan is cancelled. We couldn't process the automatic refund — please email us and we'll sort it out right away."
+              : "Your plan is cancelled — you're back on Free.",
+        );
         return;
       }
       setError(
@@ -266,6 +304,7 @@ function BillingInner() {
             <p className="text-sm font-medium text-foreground">Cancel your plan?</p>
             <p className="mt-1 text-xs text-muted-foreground">
               You&apos;ll drop to Free immediately — your progress, streak and readiness all carry over.
+              If you&apos;re within 7 days of your first payment, we&apos;ll refund it in full automatically.
             </p>
             <div className="mt-3 flex gap-2">
               <Button size="sm" variant="danger" onClick={doCancel} disabled={cancelBusy}>
@@ -352,6 +391,11 @@ function BillingInner() {
         {isSupabaseConfigured
           ? "Payments are powered by Paystack. Paid features unlock the moment your payment is confirmed."
           : "Payments are powered by Paystack (payment-ready, not charged in this demo). Choosing a paid plan unlocks its features immediately so you can try them."}
+        {" "}
+        <a href="/refunds" className="underline hover:text-foreground">
+          Refund &amp; cancellation policy
+        </a>
+        .
       </p>
     </div>
   );

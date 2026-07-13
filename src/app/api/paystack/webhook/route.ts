@@ -1,7 +1,8 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyPaystackSignature } from "@/lib/paystack/client";
+import { applyChargeSuccess, type ChargeSuccessData } from "@/lib/paystack/apply";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
-import { buildPaymentFailedEmail, buildPaymentReceiptEmail } from "@/lib/notify/templates";
+import { buildPaymentFailedEmail } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
@@ -18,16 +19,6 @@ export const runtime = "nodejs";
  * subscription.disable has no such metadata (it's not initiated by us), so
  * it's resolved by matching the Paystack customer_code we stored earlier.
  */
-
-interface ChargeSuccessData {
-  id: number;
-  reference: string;
-  /** Amount in the currency's smallest unit (ZAR cents). */
-  amount?: number;
-  customer: { customer_code: string; email: string; first_name?: string | null };
-  metadata?: Record<string, string> | null;
-  plan?: { plan_code?: string } | null;
-}
 
 interface SubscriptionEventData {
   subscription_code: string;
@@ -74,54 +65,9 @@ export async function POST(req: Request) {
 
   switch (payload.event) {
     case "charge.success": {
-      const data = payload.data as ChargeSuccessData;
-      const meta = data.metadata ?? {};
-      const userId = meta.user_id;
-      if (!userId) {
-        // Renewal charges don't carry our checkout metadata. A successful
-        // plan charge for a known customer clears any past_due grace state.
-        if (data.plan?.plan_code && data.customer?.customer_code) {
-          await admin
-            .from("subscriptions")
-            .update({ status: "active" })
-            .eq("provider_customer_id", data.customer.customer_code)
-            .neq("tier", "free");
-        }
-        break;
-      }
-
-      // One-off tutor top-up: bank the credits and stop.
-      if (meta.kind === "tutor_topup") {
-        const credits = Math.min(500, Math.max(0, Number(meta.credits) || 0));
-        if (credits > 0) {
-          await admin.rpc("grant_tutor_credits", { p_user: userId, p_credits: credits });
-        }
-        break;
-      }
-
-      // Subscription's first (or renewal) charge: grant/confirm the tier.
-      // A plan-less charge with kind !== tutor_topup isn't one of ours.
-      const plan = meta.plan;
-      if ((plan !== "premium" && plan !== "premium_plus") || !data.plan?.plan_code) break;
-      await admin.from("subscriptions").upsert(
-        {
-          user_id: userId,
-          tier: plan,
-          status: "active",
-          provider: "paystack",
-          provider_customer_id: data.customer.customer_code,
-        },
-        { onConflict: "user_id" },
-      );
-      // Receipt + welcome (best-effort; the ledger already made this once-only).
-      if (isEmailConfigured && data.customer.email) {
-        const receipt = buildPaymentReceiptEmail({
-          firstName: data.customer.first_name ?? "",
-          planName: PLAN_MAP[plan].name,
-          amountZar: (data.amount ?? 0) / 100,
-        });
-        await sendEmail({ to: data.customer.email, ...receipt }).catch(() => {});
-      }
+      // Shared with the callback verify route — one grant path, however the
+      // charge is confirmed first. The ledger insert above makes it once-only.
+      await applyChargeSuccess(admin, payload.data as ChargeSuccessData);
       break;
     }
 

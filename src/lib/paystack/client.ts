@@ -59,6 +59,32 @@ export function initializeTransaction(
   });
 }
 
+export interface VerifyTransactionResult {
+  id: number;
+  /** "success" once paid; also "failed" / "abandoned" / "ongoing". */
+  status: string;
+  reference: string;
+  /** Amount actually paid, in ZAR cents. */
+  amount?: number;
+  currency?: string;
+  customer: { customer_code: string; email: string; first_name?: string | null };
+  metadata?: Record<string, string> | null;
+  /** Present (object or bare code) on subscription charges; empty on one-offs. */
+  plan?: { plan_code?: string } | string | null;
+}
+
+/**
+ * Verify a transaction by its reference. Paystack's recommended way to confirm
+ * a payment on the callback: it re-fetches the transaction from Paystack (the
+ * source of truth) rather than trusting the redirect. Complements the webhook —
+ * activation no longer has to wait for an async event to land.
+ */
+export function verifyTransaction(reference: string): Promise<VerifyTransactionResult> {
+  return paystackFetch<VerifyTransactionResult>(
+    `/transaction/verify/${encodeURIComponent(reference)}`,
+  );
+}
+
 export interface PaystackCustomer {
   customer_code: string;
   email: string;
@@ -80,6 +106,19 @@ export function disableSubscription(code: string, token: string): Promise<unknow
   return paystackFetch("/subscription/disable", {
     method: "POST",
     body: JSON.stringify({ code, token }),
+  });
+}
+
+/**
+ * Refund a transaction in full by its reference. Used by the 7-day money-back
+ * guarantee: cancelling within the window reverses the first charge. Omitting
+ * `amount` refunds the whole transaction; Paystack sends the money back to the
+ * customer's original payment method.
+ */
+export function refundTransaction(reference: string): Promise<unknown> {
+  return paystackFetch("/refund", {
+    method: "POST",
+    body: JSON.stringify({ transaction: reference }),
   });
 }
 
