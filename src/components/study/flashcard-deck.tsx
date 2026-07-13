@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useSpeechInput } from "@/hooks/use-speech-input";
+import { SpeakButton } from "@/components/study/speak-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
@@ -134,7 +135,15 @@ export function FlashcardDeck() {
       <TrialMeter feature="flashcards" className="mt-3" />
 
       {/* Card */}
-      <div className="perspective mt-8">
+      <div className="perspective relative mt-8">
+        {/* Speaker sits above the flip surface so it doesn't trigger a flip;
+            reads whichever side is showing. */}
+        <div className="absolute right-3 top-3 z-10">
+          <SpeakButton
+            text={flipped ? card.back : card.front}
+            label={flipped ? "Read the answer aloud" : "Read the card aloud"}
+          />
+        </div>
         <div
           className={cn(
             "relative w-full transition-transform duration-500 [transform-style:preserve-3d]",
