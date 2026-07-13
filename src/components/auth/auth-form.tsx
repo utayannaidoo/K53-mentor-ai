@@ -22,10 +22,33 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
-  // Already signed in — hand off to the post-auth router, which waits for the
-  // server account to hydrate before deciding where the user belongs.
+  // Landing pricing buttons arrive as /signup?plan=…&track=…&cycle=…. Carry that
+  // choice through auth so the user lands straight in that plan's checkout; the
+  // billing page skips the charge if they already have a paid plan. Without a
+  // plan, fall back to the normal post-auth router.
+  function postAuthDest(): string {
+    const p = new URLSearchParams(window.location.search);
+    const plan = p.get("plan");
+    if (plan === "premium" || plan === "premium_plus") {
+      const q = new URLSearchParams({ buy: plan });
+      const t = p.get("track");
+      const c = p.get("cycle");
+      if (t) q.set("track", t);
+      if (c) q.set("cycle", c);
+      return `/account/billing?${q.toString()}`;
+    }
+    return "/continue";
+  }
+
+  // Preserve the plan choice when switching between the login / signup links.
+  const [linkQuery, setLinkQuery] = React.useState("");
+  React.useEffect(() => setLinkQuery(window.location.search), []);
+
+  // Already signed in — hand off to the post-auth destination (checkout if a
+  // plan was chosen, otherwise the router that decides onboarding vs dashboard).
   React.useEffect(() => {
-    if (ready && isAuthed) router.replace("/continue");
+    if (ready && isAuthed) router.replace(postAuthDest());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, isAuthed, router]);
 
   // A referral link (/signup?ref=CODE) parks the code until the account
@@ -63,7 +86,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     // Demo path / mirror profile into the local store.
     if (mode === "signup") track("signup_completed", { method: "password" });
     signInLocal(name || email.split("@")[0] || "Learner", email || "demo@k53mentor.ai");
-    router.push("/continue");
+    router.push(postAuthDest());
   }
 
   function continueAsGuest() {
@@ -79,8 +102,8 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       provider: "google",
       options: {
         // The callback route exchanges the code and forwards to the post-auth
-        // router, which waits for the account to hydrate before routing.
-        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent("/continue")}`,
+        // destination (checkout if a plan was chosen, else the routing handoff).
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthDest())}`,
       },
     });
     if (oauthError) setError(oauthError.message);
@@ -173,14 +196,14 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         {mode === "signup" ? (
           <>
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-primary hover:underline">
+            <Link href={`/login${linkQuery}`} className="font-medium text-primary hover:underline">
               Log in
             </Link>
           </>
         ) : (
           <>
             New here?{" "}
-            <Link href="/signup" className="font-medium text-primary hover:underline">
+            <Link href={`/signup${linkQuery}`} className="font-medium text-primary hover:underline">
               Create an account
             </Link>
           </>

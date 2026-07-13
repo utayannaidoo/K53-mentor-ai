@@ -129,7 +129,11 @@ export function PricingSection({
               </div>
 
               <Link
-                href={isFree ? "/onboarding" : "/account/billing"}
+                href={
+                  isFree
+                    ? "/onboarding"
+                    : `/signup?plan=${plan.id}&track=${vc}&cycle=${annual ? "annual" : "monthly"}`
+                }
                 className={cn(
                   "mt-5 flex w-full items-center justify-center rounded-xl py-[13px] text-[15px] font-semibold transition-[transform,filter] duration-[400ms] ease-spring hover:brightness-[1.06] active:scale-[0.97]",
                   plan.highlighted

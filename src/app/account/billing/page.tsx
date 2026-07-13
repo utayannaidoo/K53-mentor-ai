@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Sparkles, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
@@ -28,6 +28,7 @@ import type { SubscriptionTier, VehicleClass } from "@/types";
 
 function BillingInner() {
   const sp = useSearchParams();
+  const router = useRouter();
   const { state, setTier, setVehicleClass, updateOnboarding, refreshAccount } = useStudyStore();
   const [banner, setBanner] = React.useState<string | null>(
     sp.get("status") === "success" ? "Payment received — activating your plan…" : null,
@@ -48,8 +49,13 @@ function BillingInner() {
     const settle = (tier: SubscriptionTier | null): boolean => {
       if (cancelled) return true;
       if (tier && tier !== "free") {
-        setBanner("Payment complete — your plan is active.");
+        setBanner("Payment complete — taking you to your study plan…");
         trackEvent("plan_activated", { tier });
+        // Hand off to the post-auth router, which sends first-timers into
+        // onboarding and everyone else to their dashboard.
+        setTimeout(() => {
+          if (!cancelled) router.push("/continue");
+        }, 1600);
         return true;
       }
       return false;
@@ -95,8 +101,17 @@ function BillingInner() {
   // The track (car vs bike+heavy) is chosen here — it sets which codes the
   // learner can study and drives the per-class price. A plan covers exactly
   // one track; the other track's plans are a switch, never included.
-  const [track, setTrack] = React.useState<VehicleClass>(state.vehicleClass ?? "car");
-  const [cycle, setCycle] = React.useState<"monthly" | "annual">("monthly");
+  const trackParam = sp.get("track");
+  const [track, setTrack] = React.useState<VehicleClass>(
+    trackParam === "bike_heavy"
+      ? "bike_heavy"
+      : trackParam === "car"
+        ? "car"
+        : (state.vehicleClass ?? "car"),
+  );
+  const [cycle, setCycle] = React.useState<"monthly" | "annual">(
+    sp.get("cycle") === "annual" ? "annual" : "monthly",
+  );
   const [cancelBusy, setCancelBusy] = React.useState(false);
   const [confirmingCancel, setConfirmingCancel] = React.useState(false);
 
@@ -199,6 +214,28 @@ function BillingInner() {
       setBusy(null);
     }
   }
+
+  // Arrived from a landing pricing button (…?buy=premium): kick off that plan's
+  // checkout automatically. If the account already has a paid plan, don't charge
+  // again — carry straight on into the app.
+  const buy = sp.get("buy");
+  const autoBuyStarted = React.useRef(false);
+  React.useEffect(() => {
+    if (!buy || !isSupabaseConfigured || autoBuyStarted.current) return;
+    autoBuyStarted.current = true;
+    void (async () => {
+      const tier = await refreshAccount().catch(() => null);
+      if (tier && tier !== "free") {
+        router.replace("/continue");
+        return;
+      }
+      if (buy === "premium" || buy === "premium_plus") {
+        setBusy(buy);
+        void choose(PLAN_MAP[buy]);
+      }
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buy]);
 
   return (
     <div className="mx-auto max-w-5xl">
