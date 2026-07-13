@@ -28,4 +28,5 @@ export const EXAM_FORMAT = {
   },
 } as const;
 
-export const SUPPORT_EMAIL = "hello@k53mentor.ai";
+// Interim support/refund inbox until a branded address is set up.
+export const SUPPORT_EMAIL = "utayan.naidoo@gmail.com";

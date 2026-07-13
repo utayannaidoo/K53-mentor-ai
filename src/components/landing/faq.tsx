@@ -17,6 +17,11 @@ const FAQ_ITEMS = [
       "Your subscription keeps working until your test date — and if you don't pass first time, message us and we'll extend your Premium access free until you do. We'd rather you pass than churn.",
   },
   {
+    question: "Can I cancel? Do you offer refunds?",
+    answer:
+      "Yes to both. Cancel yourself any time from Account → Billing — billing stops immediately and you keep all your progress. Cancel within 7 days of your first payment and you're refunded in full automatically, no email needed. We also always refund duplicate or incorrect charges. See our full Refund & Cancellation Policy for details.",
+  },
+  {
     question: "Will it work on my phone with limited data?",
     answer:
       "Yes. K53 Mentor AI is built mobile-first and is light on data — there's no autoplay video, images are kept minimal, and a data-saver mode defers non-essential loads. It's designed for studying on the go in South African conditions.",

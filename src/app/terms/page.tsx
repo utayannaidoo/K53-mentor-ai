@@ -61,8 +61,13 @@ export default function TermsPage() {
           </li>
           <li>Prices are shown in South African Rand and may change with notice.</li>
           <li>
-            You can cancel any time; your plan stays active until the end of the period already
-            paid for.
+            You can cancel any time from your billing page; billing stops immediately and your
+            account returns to the Free plan. Cancel within 7 days of your first payment and you
+            are refunded in full automatically — see our{" "}
+            <a href="/refunds" className="underline">
+              Refund &amp; Cancellation Policy
+            </a>
+            .
           </li>
           <li>
             Where the app runs in demo mode, no charges are made and paid features are unlocked for
