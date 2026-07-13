@@ -14,6 +14,7 @@ import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
+import { SpeakButton } from "@/components/study/speak-button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueTomorrow } from "@/lib/plan";
 import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
@@ -185,9 +186,16 @@ export function QuestionPractice() {
               <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" />
             </div>
           )}
-          <h1 className="mt-3 text-balance font-display text-xl font-semibold leading-snug tracking-tight">
-            {q.prompt}
-          </h1>
+          <div className="mt-3 flex items-start gap-2">
+            <h1 className="text-balance font-display text-xl font-semibold leading-snug tracking-tight">
+              {q.prompt}
+            </h1>
+            <SpeakButton
+              className="mt-0.5"
+              label="Read the question and options aloud"
+              text={`${q.prompt}. ${q.options.map((o, idx) => `${LETTERS[idx]}. ${o}`).join(". ")}`}
+            />
+          </div>
 
           <div className="mt-5 space-y-3">
             {q.options.map((opt, idx) => {
