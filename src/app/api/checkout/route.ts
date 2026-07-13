@@ -3,7 +3,13 @@ import { isPaystackConfigured, isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
 import { SITE_URL } from "@/lib/constants";
-import { TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
+import {
+  TUTOR_TOPUP_CREDITS,
+  TUTOR_TOPUP_PRICE,
+  PLAN_MAP,
+  monthlyPrice,
+  annualPrice,
+} from "@/lib/billing/plans";
 import { initializeTransaction } from "@/lib/paystack/client";
 
 export const runtime = "nodejs";
@@ -120,13 +126,21 @@ export async function POST(req: Request) {
 
     // ── Subscription checkout ────────────────────────────────────────────────
     const cycle = parsed.cycle ?? "monthly";
-    const planCode = planCodeFor(parsed.plan, cycle, parsed.track ?? "car");
+    const track = parsed.track ?? "car";
+    const planCode = planCodeFor(parsed.plan, cycle, track);
     if (!planCode) {
       return Response.json({ error: "Price not configured for this plan." }, { status: 500 });
     }
 
+    // Paystack's initialize endpoint rejects the request ("Invalid Amount Sent")
+    // unless an amount is present, even when a plan sets the recurring price. Send
+    // the plan's own amount (ZAR → cents) so the two always agree.
+    const planDef = PLAN_MAP[parsed.plan];
+    const amountZar = cycle === "annual" ? annualPrice(planDef, track) : monthlyPrice(planDef, track);
+
     const { authorization_url } = await initializeTransaction({
       email,
+      amount: amountZar * 100,
       plan: planCode,
       callback_url: `${SITE_URL}/account/billing?status=success&plan=${parsed.plan}`,
       metadata: {
