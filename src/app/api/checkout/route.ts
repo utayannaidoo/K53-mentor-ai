@@ -31,7 +31,7 @@ function planCodeFor(
   plan: "premium" | "premium_plus",
   cycle: "monthly" | "annual",
   track: "car" | "bike_heavy",
-): string | undefined {
+): { code: string; pricedTrack: "car" | "bike_heavy" } | undefined {
   const e = process.env;
   const car =
     plan === "premium"
@@ -44,7 +44,13 @@ function planCodeFor(
           monthly: e.PAYSTACK_PLAN_PREMIUM_PLUS_BIKE_MONTHLY,
           annual: e.PAYSTACK_PLAN_PREMIUM_PLUS_BIKE_ANNUAL,
         };
-  return track === "bike_heavy" ? (bike[cycle] ?? car[cycle]) : car[cycle];
+  // The amount we send must match the plan actually used. If a bike Plan isn't
+  // configured we fall back to the car Plan — and price it as the car track too,
+  // so Paystack never gets a bike amount against a car plan (never undercharge).
+  if (track === "bike_heavy" && bike[cycle]) {
+    return { code: bike[cycle]!, pricedTrack: "bike_heavy" };
+  }
+  return car[cycle] ? { code: car[cycle]!, pricedTrack: "car" } : undefined;
 }
 
 /**
@@ -127,16 +133,19 @@ export async function POST(req: Request) {
     // ── Subscription checkout ────────────────────────────────────────────────
     const cycle = parsed.cycle ?? "monthly";
     const track = parsed.track ?? "car";
-    const planCode = planCodeFor(parsed.plan, cycle, track);
-    if (!planCode) {
+    const priced = planCodeFor(parsed.plan, cycle, track);
+    if (!priced) {
       return Response.json({ error: "Price not configured for this plan." }, { status: 500 });
     }
+    const { code: planCode, pricedTrack } = priced;
 
     // Paystack's initialize endpoint rejects the request ("Invalid Amount Sent")
     // unless an amount is present, even when a plan sets the recurring price. Send
-    // the plan's own amount (ZAR → cents) so the two always agree.
+    // the plan's own amount (ZAR → cents), priced for the track whose Plan we
+    // actually used, so the amount and the plan always agree.
     const planDef = PLAN_MAP[parsed.plan];
-    const amountZar = cycle === "annual" ? annualPrice(planDef, track) : monthlyPrice(planDef, track);
+    const amountZar =
+      cycle === "annual" ? annualPrice(planDef, pricedTrack) : monthlyPrice(planDef, pricedTrack);
 
     const { authorization_url } = await initializeTransaction({
       email,
