@@ -72,6 +72,27 @@ export async function applyChargeSuccess(
     },
     { onConflict: "user_id" },
   );
+
+  // Keep the studied licence code in step with the paid track, so study content
+  // follows the plan and survives an account refresh (which reloads the code
+  // from the profile). Only change it when the track actually differs, so an
+  // existing code within the same class (e.g. 14 within bike & heavy) is kept.
+  const track = meta.track;
+  if (track === "car" || track === "bike_heavy") {
+    const { data: prof } = await admin
+      .from("profiles")
+      .select("vehicle_code")
+      .eq("id", userId)
+      .maybeSingle();
+    const code = (prof as { vehicle_code?: string | null } | null)?.vehicle_code ?? null;
+    const currentTrack = code === "A" || code === "14" ? "bike_heavy" : code === "8" ? "car" : null;
+    if (currentTrack !== track) {
+      await admin
+        .from("profiles")
+        .update({ vehicle_code: track === "car" ? "8" : "A" })
+        .eq("id", userId);
+    }
+  }
   // Receipt + welcome (best-effort; the ledger already made this once-only).
   if (isEmailConfigured && data.customer.email) {
     const receipt = buildPaymentReceiptEmail({
