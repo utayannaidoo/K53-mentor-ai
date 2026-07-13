@@ -77,9 +77,27 @@ export function mocksRemaining(
   const limits = PLAN_MAP[state.tier].limits;
   const cap = kind === "full" ? limits.mockExams : limits.miniMocks;
   if (cap === "unlimited") return Infinity;
-  const pool = state.mockExams.filter((m) => Boolean(m.mini) === (kind === "mini"));
+  // Section drills live under their own allowance — never count them here.
+  const pool = state.mockExams.filter(
+    (m) => !m.drill && Boolean(m.mini) === (kind === "mini"),
+  );
   const used =
     limits.reset === "trial"
+      ? pool.length
+      : pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
+  return Math.max(0, cap - used);
+}
+
+/**
+ * How many single-section drills the learner has left: free counts lifetime
+ * (one taste, like the mini mock), paid plans count today only.
+ */
+export function drillsRemaining(state: UserState, now = new Date()): number {
+  const cap = PLAN_MAP[state.tier].limits.sectionDrills;
+  if (cap === "unlimited") return Infinity;
+  const pool = state.mockExams.filter((m) => Boolean(m.drill));
+  const used =
+    PLAN_MAP[state.tier].limits.reset === "trial"
       ? pool.length
       : pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
   return Math.max(0, cap - used);

@@ -223,6 +223,8 @@ export interface MockExamAttempt {
   durationSeconds: number;
   /** True for the 15-question mini mock — counted separately from full mocks. */
   mini?: boolean;
+  /** Set for single-section drills — counted under their own allowance. */
+  drill?: "controls" | "signs" | "rules";
 }
 
 export type SessionType =

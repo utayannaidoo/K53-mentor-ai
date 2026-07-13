@@ -69,7 +69,7 @@ export function loadState(): UserState {
       merged.rankAchieved = computeRankIndex({
         cp: merged.cp,
         readiness: computeReadiness(merged).readiness,
-        hasPassedMock: merged.mockExams.some((m) => m.passed && !m.mini),
+        hasPassedMock: merged.mockExams.some((m) => m.passed && !m.mini && !m.drill),
       });
       merged.pendingRankUp = null;
       merged.version = STATE_VERSION;

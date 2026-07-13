@@ -14,9 +14,10 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { sampleMockExam, sampleMiniMock, MINI_MOCK, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
+import { sampleMockExam, sampleMiniMock, sampleSectionDrill, MINI_MOCK, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { EXAM_FORMAT } from "@/lib/constants";
-import { mocksRemaining } from "@/lib/plan";
+import { track } from "@/lib/analytics";
+import { mocksRemaining, drillsRemaining } from "@/lib/plan";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
 import { sourceFor } from "@/lib/content/provenance";
 import { cn } from "@/lib/utils";
@@ -44,7 +45,17 @@ export function MockExam() {
   const sp = useSearchParams();
   // Mini mode: 15 questions at the real pass ratio, weighted to weak areas.
   const mini = sp.get("mode") === "mini";
-  const passMark = mini ? MINI_MOCK.passMark : EXAM_FORMAT.passMark;
+  // Drill mode: one exam section at its real size and pass mark.
+  const drillParam = sp.get("section") as ExamSection | null;
+  const drill: ExamSection | null =
+    sp.get("mode") === "drill" && drillParam && drillParam in EXAM_FORMAT.sections
+      ? drillParam
+      : null;
+  const passMark = drill
+    ? SECTION_DRILL[drill].passMark
+    : mini
+      ? MINI_MOCK.passMark
+      : EXAM_FORMAT.passMark;
   const [phase, setPhase] = React.useState<"intro" | "exam" | "results">("intro");
   const [questions, setQuestions] = React.useState<Question[]>([]);
   const [answers, setAnswers] = React.useState<number[]>([]);
@@ -59,7 +70,7 @@ export function MockExam() {
   const preProbRef = React.useRef<number | null>(null);
   const cpStartRef = React.useRef<number | null>(null);
 
-  const remainingMocks = mocksRemaining(state, mini ? "mini" : "full");
+  const remainingMocks = drill ? drillsRemaining(state) : mocksRemaining(state, mini ? "mini" : "full");
 
   const submit = React.useCallback(() => {
     const correct = questions.reduce((n, q, idx) => n + (answers[idx] === q.correctIndex ? 1 : 0), 0);
@@ -70,7 +81,7 @@ export function MockExam() {
       const c = idxs.filter((x) => answers[x.idx] === x.q.correctIndex).length;
       perCategory[cat.id] = { correct: c, total: idxs.length, score: Math.round((c / idxs.length) * 100) };
     }
-    const mark = mini ? MINI_MOCK.passMark : EXAM_FORMAT.passMark;
+    const mark = drill ? SECTION_DRILL[drill].passMark : mini ? MINI_MOCK.passMark : EXAM_FORMAT.passMark;
     const passed = correct >= mark;
     const durationSeconds = Math.round((Date.now() - startRef.current) / 1000);
     const responses = questions.map((q, idx) => ({
@@ -79,7 +90,16 @@ export function MockExam() {
       correct: answers[idx] === q.correctIndex,
       selectedIndex: answers[idx],
     }));
-    if (mini) {
+    if (drill) {
+      // Drills carry their section so the per-plan drill allowance can count
+      // them; like minis, they feed the readiness model but aren't full mocks.
+      recordMockExam(
+        { score: correct, total: questions.length, passed, perCategory, durationSeconds, drill },
+        responses,
+      );
+      setMiniResult({ score: correct, total: questions.length, passed, perCategory });
+      track("drill_completed", { section: drill, passed });
+    } else if (mini) {
       // Minis are recorded with a `mini` flag so the plan's per-day/lifetime
       // mock limits can count them; readiness still learns from every answer.
       recordMockExam(
@@ -95,7 +115,7 @@ export function MockExam() {
     }
     recordSession("mock", durationSeconds);
     setPhase("results");
-  }, [answers, questions, mini, recordMockExam, recordSession]);
+  }, [answers, questions, mini, drill, recordMockExam, recordSession]);
 
   // Countdown timer.
   React.useEffect(() => {
@@ -109,13 +129,16 @@ export function MockExam() {
   }, [phase, secondsLeft, submit]);
 
   function start() {
-    const qs = mini
-      ? sampleMiniMock(state.attempts, state.onboarding?.vehicleCode, readiness.weakCategories)
-      : sampleMockExam(state.attempts, state.onboarding?.vehicleCode);
+    const qs = drill
+      ? sampleSectionDrill(drill, state.attempts, state.onboarding?.vehicleCode)
+      : mini
+        ? sampleMiniMock(state.attempts, state.onboarding?.vehicleCode, readiness.weakCategories)
+        : sampleMockExam(state.attempts, state.onboarding?.vehicleCode);
+    if (drill) track("drill_started", { section: drill });
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));
     setI(0);
-    setSecondsLeft(mini ? MINI_MOCK.seconds : EXAM_SECONDS);
+    setSecondsLeft(drill ? SECTION_DRILL[drill].seconds : mini ? MINI_MOCK.seconds : EXAM_SECONDS);
     startRef.current = Date.now();
     preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
@@ -126,7 +149,18 @@ export function MockExam() {
     const free = state.tier === "free";
     return (
       <div className="mx-auto max-w-md py-10">
-        {free && !mini ? (
+        {drill ? (
+          <Paywall
+            feature="section_drill"
+            title={free ? "You've used your free section drill" : "You've done today's 5 section drills"}
+            description={
+              free
+                ? "One timed drill is included on the free plan. Premium gives you 5 section drills a day — signs, rules or controls, each at its real pass mark."
+                : "Your daily allowance resets tomorrow. Premium Plus removes drill limits entirely."
+            }
+            cta={free ? "Keep drilling sections" : "See Premium Plus"}
+          />
+        ) : free && !mini ? (
           <Paywall
             feature="mock_exam"
             title="Full mock exams are a Premium feature"
@@ -157,22 +191,24 @@ export function MockExam() {
       <div className="mx-auto max-w-lg py-10">
         <Card className="p-8 text-center">
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-            {mini ? <Timer className="h-6 w-6" /> : <FileText className="h-6 w-6" />}
+            {mini || drill ? <Timer className="h-6 w-6" /> : <FileText className="h-6 w-6" />}
           </div>
           <h1 className="mt-5 font-display text-2xl font-semibold tracking-tight">
-            {mini ? "Mini mock" : "Full mock exam"}
+            {drill ? `${SECTION_LABEL[drill]} drill` : mini ? "Mini mock" : "Full mock exam"}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            {mini
-              ? `${MINI_MOCK.total} questions at the real test's pass ratio, weighted toward your weakest areas. A pressure check that fits in a break.`
-              : `${EXAM_FORMAT.totalQuestions} questions, just like the real test. You must reach the pass mark in every section. The clock starts when you begin.`}
+            {drill
+              ? `The real test's ${SECTION_LABEL[drill].toLowerCase()} section on its own — ${SECTION_DRILL[drill].total} questions at the real pace, and you need ${SECTION_DRILL[drill].passMark} to pass, exactly like on test day.`
+              : mini
+                ? `${MINI_MOCK.total} questions at the real test's pass ratio, weighted toward your weakest areas. A pressure check that fits in a break.`
+                : `${EXAM_FORMAT.totalQuestions} questions, just like the real test. You must reach the pass mark in every section. The clock starts when you begin.`}
           </p>
           <div className="mt-6 grid grid-cols-3 gap-3 text-sm">
-            <Stat label="Questions" value={`${mini ? MINI_MOCK.total : EXAM_FORMAT.totalQuestions}`} />
+            <Stat label="Questions" value={`${drill ? SECTION_DRILL[drill].total : mini ? MINI_MOCK.total : EXAM_FORMAT.totalQuestions}`} />
             <Stat label="To pass" value={`${passMark}`} />
-            <Stat label="Time" value={mini ? "12 min" : "60 min"} />
+            <Stat label="Time" value={drill ? `${Math.round(SECTION_DRILL[drill].seconds / 60)} min` : mini ? "12 min" : "60 min"} />
           </div>
-          {!mini && (
+          {!mini && !drill && (
             <div className="mt-4 space-y-1.5 text-left">
               {EXAM_SECTIONS.map((s) => (
                 <div
@@ -188,14 +224,27 @@ export function MockExam() {
             </div>
           )}
           <Button size="xl" className="mt-7 w-full" onClick={start}>
-            Start {mini ? "mini mock" : "mock exam"} <ArrowRight />
+            Start {drill ? "drill" : mini ? "mini mock" : "mock exam"} <ArrowRight />
           </Button>
+          {drill && (
+            <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+              {EXAM_SECTIONS.filter((s) => s !== drill).map((s) => (
+                <Link
+                  key={s}
+                  href={`/study/mock-exam?mode=drill&section=${s}`}
+                  className="font-medium text-primary hover:underline"
+                >
+                  {SECTION_LABEL[s]} instead
+                </Link>
+              ))}
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-center gap-4 text-sm">
             <Link
-              href={mini ? "/study/mock-exam" : "/study/mock-exam?mode=mini"}
+              href={mini || drill ? "/study/mock-exam" : "/study/mock-exam?mode=mini"}
               className="font-medium text-primary hover:underline"
             >
-              {mini ? "Do the full 64-question mock" : "Short on time? Try the mini mock"}
+              {mini || drill ? "Do the full 64-question mock" : "Short on time? Try the mini mock"}
             </Link>
             <Link href="/study" className="text-muted-foreground hover:text-foreground">
               Not now
@@ -207,7 +256,7 @@ export function MockExam() {
   }
 
   if (phase === "results") {
-    const last: ExamResult | undefined = mini
+    const last: ExamResult | undefined = mini || drill
       ? (miniResult ?? undefined)
       : state.mockExams[state.mockExams.length - 1];
     if (!last) return null;
@@ -224,7 +273,7 @@ export function MockExam() {
     const preProb = preProbRef.current;
     const postProb = readiness.passProbability;
     const probDelta = preProb != null ? postProb - preProb : null;
-    const failedSections = mini
+    const failedSections = mini || drill
       ? []
       : sectionScores.filter((s) => s.correct < s.pass).map((s) => SECTION_LABEL[s.section]);
     const weakCategories = (Object.keys(last.perCategory) as CategoryId[])
@@ -243,9 +292,11 @@ export function MockExam() {
           <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
             <Badge variant={last.passed ? "success" : "warning"} className="text-sm">
               {last.passed
-                ? mini
-                  ? "Mini mock passed 🎉"
-                  : "You passed 🎉"
+                ? drill
+                  ? `${SECTION_LABEL[drill]} section passed 🎉`
+                  : mini
+                    ? "Mini mock passed 🎉"
+                    : "You passed 🎉"
                 : `${passMark - last.score} short of passing`}
             </Badge>
             {cpStartRef.current !== null && state.cp > cpStartRef.current && (
@@ -283,7 +334,7 @@ export function MockExam() {
           }}
         />
 
-        {!mini && (
+        {!mini && !drill && (
         <Card className="mt-5 p-6">
           <h2 className="font-display text-lg font-semibold">By section</h2>
           <p className="mt-1 text-sm text-muted-foreground">

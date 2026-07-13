@@ -108,6 +108,7 @@ export async function pushProgress(supabase: SupabaseClient, userId: string, sta
           per_category: m.perCategory,
           duration_seconds: m.durationSeconds,
           mini: Boolean(m.mini),
+          drill: m.drill ?? null,
           taken_at: m.at,
         })),
         { onConflict: "user_id,client_id" },
@@ -202,7 +203,7 @@ export async function pullProgress(supabase: SupabaseClient, userId: string): Pr
       .limit(1000),
     supabase
       .from("mock_exam_attempts")
-      .select("id,client_id,score,total,passed,per_category,duration_seconds,mini,taken_at")
+      .select("id,client_id,score,total,passed,per_category,duration_seconds,mini,drill,taken_at")
       .eq("user_id", userId)
       .order("taken_at", { ascending: false })
       .limit(200),
@@ -255,6 +256,7 @@ export async function pullProgress(supabase: SupabaseClient, userId: string): Pr
     perCategory: (r.per_category ?? {}) as Partial<Record<CategoryId, CategoryScore>>,
     durationSeconds: Number(r.duration_seconds ?? 0),
     mini: Boolean(r.mini),
+    drill: (r.drill as MockExamAttempt["drill"] | null) ?? undefined,
     at: r.taken_at as string,
   }));
 

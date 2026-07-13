@@ -14,6 +14,7 @@ import {
   Circle,
   Zap,
   ScanLine,
+  Target,
   Timer,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
@@ -22,7 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { MasteryBar } from "@/components/ui/mastery-bar";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { countDueFlashcards, generateTodayPlan, isTaskDone, mocksRemaining } from "@/lib/plan";
+import { countDueFlashcards, drillsRemaining, generateTodayPlan, isTaskDone, mocksRemaining } from "@/lib/plan";
 import { PLAN_COMPLETE_CP } from "@/lib/engagement";
 import { hasFeature } from "@/lib/billing/plans";
 import { categoryName } from "@/lib/content/categories";
@@ -40,6 +41,7 @@ export default function StudyHubPage() {
   const flashcardsLocked = !usageFor("flashcards").allowed;
   const mockLocked = mocksRemaining(state, "full") <= 0;
   const miniLocked = mocksRemaining(state, "mini") <= 0;
+  const drillLocked = drillsRemaining(state) <= 0;
 
   const missions = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(missions.map((t) => [t.id, isTaskDone(t, state)]));
@@ -60,6 +62,7 @@ export default function StudyHubPage() {
     { href: "/study/scenarios", icon: Route, title: "Scenarios", desc: "Real-world judgement", tone: "text-accent", locked: !scenariosUnlocked },
     { href: "/study/mock-exam", icon: FileText, title: "Mock exam", desc: "Full 64-question test", tone: "text-primary", locked: mockLocked },
     { href: "/study/mock-exam?mode=mini", icon: Timer, title: "Mini mock", desc: "15 questions · 12 minutes", tone: "text-primary", locked: miniLocked },
+    { href: "/study/mock-exam?mode=drill&section=signs", icon: Target, title: "Section drills", desc: "One exam section at its real pass mark", tone: "text-primary", locked: drillLocked },
     { href: "/study/controls", icon: Car, title: "Car controls", desc: "Know every control + how to drive off", tone: "text-primary" },
   ];
 
