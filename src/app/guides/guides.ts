@@ -18,4 +18,10 @@ export const GUIDES = [
     description:
       "What each South African licence code covers, the age requirements, and how motorcycles (A1/A) fit in.",
   },
+  {
+    slug: "aarto-demerit-points",
+    title: "AARTO demerit points, explained (starts 1 September 2026)",
+    description:
+      "How demerit points work, the learner threshold of 6 points, how points fall away, and why they matter the day you pass.",
+  },
 ] as const;
