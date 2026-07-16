@@ -22,6 +22,7 @@ import { StreakBanner } from "@/components/app/streak-banner";
 import { RankUpToast } from "@/components/engagement/rank-up-toast";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { PageLoader } from "@/components/shared/page-loader";
+import { AppShellSkeleton } from "@/components/app/app-shell-skeleton";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -62,8 +63,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (ready && !isAuthed) router.replace("/login");
   }, [ready, isAuthed, router]);
 
-  if (!ready || !isAuthed) {
-    return <PageLoader />;
+  if (!ready) {
+    return <AppShellSkeleton />;
+  }
+  if (!isAuthed) {
+    return <PageLoader />; // redirecting to /login
   }
 
   const isPlus = state.tier === "premium_plus";

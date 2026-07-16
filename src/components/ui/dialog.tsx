@@ -5,28 +5,66 @@ import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+const FOCUSABLE =
+  'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
 export function Dialog({
   open,
   onClose,
   children,
   className,
+  label,
 }: {
   open: boolean;
   onClose: () => void;
   children: React.ReactNode;
   className?: string;
+  /** Accessible name announced by screen readers when the dialog opens. */
+  label?: string;
 }) {
   const [mounted, setMounted] = React.useState(false);
+  const panelRef = React.useRef<HTMLDivElement>(null);
   React.useEffect(() => setMounted(true), []);
 
   React.useEffect(() => {
     if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    // Focus management: move focus into the dialog on open, keep Tab cycling
+    // inside it, and hand focus back to the opener on close.
+    const opener = document.activeElement as HTMLElement | null;
+    panelRef.current?.focus();
+
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      if (e.key !== "Tab" || !panelRef.current) return;
+      const focusables = Array.from(
+        panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (focusables.length === 0) {
+        e.preventDefault();
+        panelRef.current.focus();
+        return;
+      }
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || active === panelRef.current)) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && active === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      opener?.focus?.();
     };
   }, [open, onClose]);
 
@@ -44,10 +82,13 @@ export function Dialog({
         aria-hidden
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
+        aria-label={label}
+        tabIndex={-1}
         className={cn(
-          "glass relative flex max-h-[85dvh] w-full max-w-md flex-col animate-modal-in overflow-y-auto rounded-lg p-6",
+          "glass relative flex max-h-[85dvh] w-full max-w-md flex-col animate-modal-in overflow-y-auto rounded-lg p-6 focus:outline-none",
           className,
         )}
       >

@@ -113,7 +113,7 @@ export function HowItWorks() {
         {/* pt offsets the floating nav (~4.5rem) so the steps + panel sit in the
             centre of the *visible* area, not the full viewport (which the nav
             overlaps at the top). */}
-        <div className="sticky top-0 flex h-screen flex-col justify-center pt-[4.5rem]">
+        <div className="sticky top-0 flex h-dvh flex-col justify-center pt-[4.5rem]">
           <div className="flex flex-col items-center gap-6 lg:flex-row lg:gap-14">
             <div className="flex w-full flex-1 flex-col gap-2">
               {STEPS.map((s, i) => {

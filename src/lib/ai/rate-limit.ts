@@ -18,6 +18,23 @@ const hasUpstash = Boolean(
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN,
 );
 
+// Production deployments with paid AI calls must have a shared limiter: the
+// in-memory fallback resets per cold start and isn't shared across serverless
+// instances, so without Redis the spend caps are effectively absent. Fail the
+// boot (not silently the caps) when this misconfiguration ships to hosting.
+const aiConfigured = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY);
+if (
+  process.env.NODE_ENV === "production" &&
+  process.env.VERCEL &&
+  process.env.NEXT_PHASE !== "phase-production-build" &&
+  aiConfigured &&
+  !hasUpstash
+) {
+  throw new Error(
+    "UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN must be set in production when an AI provider is configured — the in-memory rate limiter cannot cap spend on serverless.",
+  );
+}
+
 const BURST_LIMIT = Number(process.env.TUTOR_BURST_LIMIT ?? 8); // requests
 const BURST_WINDOW_S = Number(process.env.TUTOR_BURST_WINDOW_S ?? 10); // seconds
 const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests / day
@@ -110,11 +127,21 @@ export interface LimitResult {
 /** Whether real (Redis-backed) limiting is active. Useful for diagnostics. */
 export const rateLimitBackend: "upstash" | "memory" = hasUpstash ? "upstash" : "memory";
 
-/** Best-effort client IP from proxy headers (set by the hosting platform). */
+/**
+ * Client IP from proxy headers. `x-real-ip` is set by the hosting platform
+ * (Vercel) and can't be forged by the caller. In `x-forwarded-for` only the
+ * RIGHTMOST entry was appended by the trusted proxy — the leftmost values are
+ * client-supplied and spoofable, so they must never key a rate limit.
+ */
 export function clientIp(req: Request): string {
+  const real = req.headers.get("x-real-ip")?.trim();
+  if (real) return real;
   const xff = req.headers.get("x-forwarded-for");
-  if (xff) return xff.split(",")[0].trim();
-  return req.headers.get("x-real-ip")?.trim() || "anon";
+  if (xff) {
+    const parts = xff.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length > 0) return parts[parts.length - 1];
+  }
+  return "anon";
 }
 
 /** Seconds until the daily fixed window (UTC midnight) resets. */
@@ -149,8 +176,10 @@ export async function limitUserDaily(
     }
     return memLimit(key, limit, 86_400_000);
   } catch (err) {
+    // Redis outage: degrade to the per-instance in-memory limiter — weaker
+    // than shared state, but the caps stay bounded instead of vanishing.
     console.error("rate-limit error", err);
-    return { success: true, retryAfter: 0 };
+    return memLimit(key, limit, 86_400_000);
   }
 }
 
@@ -171,7 +200,7 @@ export async function limitCheckout(ip: string): Promise<LimitResult> {
     return memLimit(`checkout:${ip}`, 10, 60_000);
   } catch (err) {
     console.error("rate-limit error", err);
-    return { success: true, retryAfter: 0 };
+    return memLimit(`checkout:${ip}`, 10, 60_000);
   }
 }
 
@@ -194,7 +223,9 @@ export async function limitCoach(ip: string): Promise<LimitResult> {
     return memLimit(`coach:day:${ip}`, COACH_DAILY_LIMIT, 86_400_000);
   } catch (err) {
     console.error("rate-limit error", err);
-    return { success: true, retryAfter: 0 };
+    const b = memLimit(`coach:burst:${ip}`, 6, 10_000);
+    if (!b.success) return b;
+    return memLimit(`coach:day:${ip}`, COACH_DAILY_LIMIT, 86_400_000);
   }
 }
 
@@ -216,12 +247,14 @@ export async function limitVision(ip: string): Promise<LimitResult> {
     if (!b.success) return b;
     return memLimit(`vision:day:${ip}`, VISION_DAILY_LIMIT, 86_400_000);
   } catch (err) {
+    // Vision calls are the priciest in the app — if the limiter itself is
+    // down we cannot know how much has been spent, so fail CLOSED.
     console.error("rate-limit error", err);
-    return { success: true, retryAfter: 0 };
+    return { success: false, retryAfter: 60 };
   }
 }
 
-/** Apply burst + daily limits for a client IP. Fails open on limiter errors. */
+/** Apply burst + daily limits for a client IP. Degrades to the in-memory limiter on limiter errors. */
 export async function limitTutor(ip: string): Promise<LimitResult> {
   try {
     if (burst && daily) {
@@ -241,8 +274,11 @@ export async function limitTutor(ip: string): Promise<LimitResult> {
     if (!b.success) return b;
     return memLimit(`day:${ip}`, DAILY_LIMIT, 86_400_000);
   } catch (err) {
-    // Never let a limiter outage take down the tutor — fail open.
+    // Limiter outage: keep the tutor up, but degrade to per-instance caps
+    // instead of dropping them entirely.
     console.error("rate-limit error", err);
-    return { success: true, retryAfter: 0 };
+    const b = memLimit(`burst:${ip}`, BURST_LIMIT, BURST_WINDOW_S * 1000);
+    if (!b.success) return b;
+    return memLimit(`day:${ip}`, DAILY_LIMIT, 86_400_000);
   }
 }

@@ -4,7 +4,7 @@ An AI-powered study platform for the South African **K53 learner's and driver's 
 It diagnoses a learner's weak spots, builds a personalised spaced-repetition plan, and coaches them
 with an AI tutor — not just another question bank.
 
-Built with **Next.js 15 (App Router) · TypeScript · Tailwind CSS · Supabase · OpenAI · Stripe-ready**.
+Built with **Next.js 15 (App Router) · TypeScript · Tailwind CSS · Supabase · Anthropic/OpenAI AI cascade · Paystack billing**.
 
 > Not affiliated with or endorsed by the RTMC. Content is aligned to the structure of the official
 > K53 manual; it is not government-issued material.
@@ -19,7 +19,7 @@ Built with **Next.js 15 (App Router) · TypeScript · Tailwind CSS · Supabase �
   scenario, sized to a "10 minutes a day" habit.
 - **Spaced repetition** — SM-2 flashcards with `Again / Hard / Good / Easy` and per-category mastery.
 - **AI Tutor** — a ChatGPT-style coach that explains the *why*, anchored to the exact question or
-  card you're stuck on. Powered by OpenAI, with a genuinely useful rule-based fallback when no key
+  card you're stuck on. Powered by an Anthropic → OpenAI provider cascade, with a genuinely useful rule-based fallback when no key
   is set.
 - **Scenario learning** — branching, real-world situational judgement (traffic circles, hazards,
   dead robots) with consequence feedback.
@@ -28,7 +28,7 @@ Built with **Next.js 15 (App Router) · TypeScript · Tailwind CSS · Supabase �
   docking, three-point turn, inspection, observation).
 - **Retention** — streaks with a weekly *freeze* (forgiveness), a readiness trend, and proactive AI
   nudges when you're repeatedly missing a category.
-- **Subscriptions** — Free / Premium / Premium Plus with real feature-gating and a Stripe-ready
+- **Subscriptions** — Free / Premium / Premium Plus with real feature-gating and a Paystack
   checkout route.
 - **Calm, premium UI** — light/dark, mobile-first, data-saver mode, accessible.
 
@@ -73,26 +73,27 @@ The schema (`0001_init.sql`) creates every table with **Row Level Security** so 
 touch their own rows, plus a trigger that bootstraps a profile, streak and free subscription on
 sign-up. `0002_seed.sql` seeds categories, licence modules and representative content.
 
-### OpenAI (AI tutor)
+### AI tutor (Anthropic preferred, OpenAI fallback)
 
 ```
-OPENAI_API_KEY=...
-OPENAI_MODEL_FAST=gpt-4o-mini   # routine explanations
-OPENAI_MODEL_SMART=gpt-4o       # escalated for complex prompts
+ANTHROPIC_API_KEY=...            # preferred provider
+OPENAI_API_KEY=...               # optional fallback
+TUTOR_PROVIDER=                  # force one: anthropic|openai|local
 ```
 
-The tutor route (`src/app/api/tutor/route.ts`) tiers models for cost control and falls back to the
-local explainer on any error.
+The tutor route (`src/app/api/tutor/route.ts`) cascades Anthropic → OpenAI → the built-in
+rule-based explainer, tiers fast/smart models for cost control, and falls back gracefully on
+any error. See `.env.example` for model overrides and token caps.
 
-### Stripe (billing)
+### Paystack (billing)
 
 ```
-STRIPE_SECRET_KEY=...
-STRIPE_PRICE_PREMIUM_MONTHLY=...
-STRIPE_PRICE_PREMIUM_PLUS_MONTHLY=...
+PAYSTACK_SECRET_KEY=...
+# plus eight plan codes (tier × cycle × track) — see .env.example
 ```
 
-`src/app/api/checkout/route.ts` creates a real Checkout Session when configured; otherwise the
+`src/app/api/checkout/route.ts` creates a hosted Paystack checkout when configured; the
+webhook (`/api/paystack/webhook`) is the only writer of paid tier. Without Paystack env the
 client unlocks the tier locally for demoing.
 
 ---
