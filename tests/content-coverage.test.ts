@@ -7,9 +7,17 @@ import type { CategoryId } from "@/types";
  * Content ratchet: minimum counts per category. Bump these numbers with every
  * content sprint — CI then guarantees the bank only ever grows and a refactor
  * can't silently drop a batch. (Targets live in docs/content/expansion-roadmap.md.)
+ *
+ * `signs` was lowered once, from 280 to 251, and that is the only time this
+ * should ever happen without a matching gain elsewhere. A review of the
+ * generated signs pack retired 29 questions: a whole framing that turned out to
+ * be answerable by matching a word in the prompt to a word in an option, plus a
+ * handful whose answer text was an OCR run-on or merely restated the sign's
+ * name. Deliberately trading count for trustworthiness — the ratchet exists to
+ * catch accidental loss, not to force us to keep bad questions.
  */
 const MIN_QUESTIONS: Record<CategoryId, number> = {
-  signs: 280,
+  signs: 251,
   rules: 113,
   controls: 121,
   hazard_awareness: 59,

@@ -16,17 +16,20 @@ import { SIGNS, hasVerifiedName } from "@/lib/content/signs";
  * is a real-world harm, so the only safe generator is one that can't author
  * facts, just recombine verified ones.
  *
- * Three framings per sign keep the same fact from *feeling* like the same
+ * Two framings per sign keep the same fact from *feeling* like the same
  * question (see FORMS below). Distractors are drawn from the same sign category
- * so they stay plausibly confusable rather than trivially wrong.
+ * so they stay plausibly confusable rather than trivially wrong. Both framings
+ * show the sign, so paper building already treats them as one subject via the
+ * shared image and won't put both in the same paper.
  */
 
-/**
- * The catalogue is OCR-derived and uneven, so each field is gated separately —
- * a sign with a clean meaning but a mangled auto-name can still carry a
- * meaning-based question. Roughly a quarter of the catalogue survives; that is
- * the intended outcome, not an accident. Better a smaller trustworthy pool.
+/*
+ * The catalogue is OCR-derived and uneven, so each field below is gated
+ * separately — a sign with a clean meaning but a mangled auto-name can still
+ * carry a meaning-based question. Roughly a quarter of the catalogue survives;
+ * that is the intended outcome, not an accident.
  */
+
 /**
  * Some catalogue meanings carry the manual's caption prefix ("Examples: the
  * lane on the left…"). The text after it is the real meaning, so strip rather
@@ -44,6 +47,14 @@ function cleanMeaning(s: RoadSign): string {
  */
 const QUALIFIER_FRAGMENT = /^(applies|or under|may not|note|in this case|and\b|but\b)/i;
 
+/**
+ * A mid-string " : " means the extractor ran a caption into the body text —
+ * "Dual-carriage freeway begins : The following rules apply to all freeways
+ * Hand signals are not allowed…". The result reads as a sign name welded to an
+ * unrelated rule, which is incoherent as an answer however long it is.
+ */
+const RUN_ON_CAPTION = /\s:\s/;
+
 function hasUsableMeaning(s: RoadSign): boolean {
   const m = cleanMeaning(s);
   return (
@@ -51,7 +62,12 @@ function hasUsableMeaning(s: RoadSign): boolean {
     !m.endsWith(":") && // truncated stub, e.g. "Stop line:"
     /[.!]$/.test(m) && // a complete sentence, not a cut-off fragment
     /^[A-Z]/.test(m) &&
-    !QUALIFIER_FRAGMENT.test(m)
+    !QUALIFIER_FRAGMENT.test(m) &&
+    !RUN_ON_CAPTION.test(m) &&
+    // The answer we would actually show has to say something. A first sentence
+    // like "Modal transfer." or "Priority road." restates the sign's name and
+    // explains nothing, which makes "what does this mean?" circular.
+    optionText(m).length >= 30
   );
 }
 
@@ -105,11 +121,27 @@ function pickSeeded<T>(pool: readonly T[], n: number, seed: number): T[] {
   return a.slice(0, n);
 }
 
-/** First sentence only — full meanings are too long to sit in an option list. */
+/**
+ * Trim a meaning down to something that fits an option list without becoming
+ * uninformative.
+ *
+ * Takes whole sentences, and keeps taking them until there is enough substance
+ * to answer with — a bare "Priority road." is the sign's name again, not its
+ * meaning, and the sentence after it is usually the part that actually
+ * explains. Stops as soon as it has enough, so options stay readable.
+ */
+function optionText(meaning: string): string {
+  const sentences = meaning.match(/[^.!]+[.!]/g) ?? [meaning];
+  let out = "";
+  for (const s of sentences) {
+    out = `${out} ${s.trim()}`.trim();
+    if (out.length >= 30) break;
+  }
+  return out;
+}
+
 function shortMeaning(s: RoadSign): string {
-  const m = cleanMeaning(s);
-  const cut = m.match(/^(.+?[.!])(\s|$)/);
-  return (cut ? cut[1] : m).trim();
+  return optionText(cleanMeaning(s));
 }
 
 /**
@@ -161,7 +193,6 @@ function distractors(
  * learner most needs approachable sign practice.
  */
 function difficultyFor(sign: RoadSign, form: Form): 1 | 2 | 3 {
-  if (form === "reverse") return 3; // no image, pure recall
   if (form === "name") return 1; // image plus a familiar name
   return hasUsableName(sign) ? 1 : 2; // meaning: common sign vs long-tail one
 }
@@ -175,16 +206,27 @@ const CATEGORY_LABEL: Record<SignCategory, string> = {
 };
 
 /**
- * The three framings. The same underlying fact reaches the learner as a
- * different task each time, which is what makes a finite bank feel deep:
+ * The framings. The same underlying fact reaches the learner as a different
+ * task each time, which is what makes a finite bank feel deep:
  *
  *  - `meaning` — sees the sign, picks what it means (recognition)
  *  - `name`    — sees the sign, names it (recall)
- *  - `reverse` — reads the meaning, picks the sign by name (no image; the
- *                inverse lookup, which is what the written test actually asks)
+ *
+ * A third framing — read a meaning, name the sign, with no image — was built
+ * and then removed. It does not work against this catalogue: South African sign
+ * names are descriptive, so a sign's catalogue *meaning* is close to a
+ * definition of its *name*. Fifteen of the twenty it produced were answerable by
+ * matching a word in the prompt to a word in an option, without knowing anything
+ * about signs — the worst asked which sign means "Railway crossing." with
+ * "Railway crossing" among the options. Worse, they were graded hardest, so a
+ * learner would have aced the top difficulty band by reading rather than
+ * knowing, skewing their readiness score.
+ *
+ * Reverse-lookup is a good exercise; it just has to be hand-authored, where the
+ * prompt can describe a situation instead of reciting the name.
  */
-type Form = "meaning" | "name" | "reverse";
-const FORMS: Form[] = ["meaning", "name", "reverse"];
+type Form = "meaning" | "name";
+const FORMS: Form[] = ["meaning", "name"];
 
 function build(sign: RoadSign, form: Form, pool: RoadSign[]): Question | null {
   const id = `gen-sign-${sign.id}-${form}`;
@@ -214,36 +256,20 @@ function build(sign: RoadSign, form: Form, pool: RoadSign[]): Question | null {
     };
   }
 
-  if (form === "name") {
-    if (!hasUsableName(sign)) return null;
-    const wrong = distractors(sign, pool.filter(hasUsableName), (s) => s.name, 3, seed);
-    if (wrong.length < 3) return null;
-    return {
-      id,
-      categoryId: "signs",
-      prompt: "Which sign is this?",
-      options: [sign.name, ...wrong],
-      correctIndex: 0,
-      explanation: `This is the ${label} "${sign.name}". ${cleanMeaning(sign)}`,
-      difficulty,
-      scope: "learners",
-      image: sign.image,
-    };
-  }
-
-  // reverse — deliberately shows no image, so it tests recall rather than reading
-  if (!hasUsableName(sign) || !hasUsableMeaning(sign)) return null;
+  // name
+  if (!hasUsableName(sign)) return null;
   const wrong = distractors(sign, pool.filter(hasUsableName), (s) => s.name, 3, seed);
   if (wrong.length < 3) return null;
   return {
     id,
     categoryId: "signs",
-    prompt: `Which ${label} means: "${shortMeaning(sign)}"`,
+    prompt: "Which sign is this?",
     options: [sign.name, ...wrong],
     correctIndex: 0,
-    explanation: `${sign.name} — ${cleanMeaning(sign)}`,
+    explanation: `This is the ${label} "${sign.name}". ${cleanMeaning(sign)}`,
     difficulty,
     scope: "learners",
+    image: sign.image,
   };
 }
 

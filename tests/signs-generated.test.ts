@@ -37,13 +37,38 @@ describe("generated sign questions", () => {
     expect(offenders.map((q) => q.id)).toEqual([]);
   });
 
+  it("never lets the prompt give the answer away", () => {
+    // A generated question must not be answerable by matching a word in the
+    // prompt to a word in an option. This retired an entire framing: asking
+    // which sign means "Railway crossing." with "Railway crossing" on the list.
+    const STOP = new Set([
+      "the", "a", "an", "is", "are", "to", "of", "in", "on", "at", "and", "or", "this", "that",
+      "it", "you", "your", "may", "must", "not", "be", "from", "with", "for", "as", "sign",
+      "road", "which", "means", "other", "vehicles",
+    ]);
+    const words = (s: string) =>
+      new Set(
+        s
+          .toLowerCase()
+          .replace(/[^a-z0-9 ]/g, " ")
+          .split(/\s+/)
+          .filter((w) => w.length > 2 && !STOP.has(w)),
+      );
+    const guessable = GENERATED_SIGN_QUESTIONS.filter((q) => {
+      const p = words(q.prompt);
+      const overlap = q.options.map((o) => [...words(o)].filter((w) => p.has(w)).length);
+      const correct = overlap[q.correctIndex];
+      const best = Math.max(...overlap.filter((_, i) => i !== q.correctIndex));
+      return correct > best;
+    });
+    expect(guessable.map((q) => q.id)).toEqual([]);
+  });
+
   it("only asks a learner to name signs whose name is hand-verified", () => {
-    const naming = GENERATED_SIGN_QUESTIONS.filter(
-      (q) => q.id.endsWith("-name") || q.id.endsWith("-reverse"),
-    );
+    const naming = GENERATED_SIGN_QUESTIONS.filter((q) => q.id.endsWith("-name"));
     expect(naming.length).toBeGreaterThan(0);
     for (const q of naming) {
-      const signId = q.id.replace(/^gen-sign-/, "").replace(/-(name|reverse)$/, "");
+      const signId = q.id.replace(/^gen-sign-/, "").replace(/-name$/, "");
       expect(hasVerifiedName({ id: signId })).toBe(true);
       // Every option is a name, so every option must be verified too.
       const verifiedNames = new Set(
@@ -55,10 +80,25 @@ describe("generated sign questions", () => {
     }
   });
 
-  it("shows an image for recognition forms and withholds it for recall", () => {
+  it("always shows the sign it is asking about", () => {
+    for (const q of GENERATED_SIGN_QUESTIONS) expect(q.image).toMatch(/^\/signs\//);
+  });
+
+  it("keys both forms of a sign to the same image so a paper can't ask twice", () => {
+    // Paper building dedupes on the image path. Both forms must therefore carry
+    // the *same* image as any hand-authored question about that sign — keying
+    // them on anything else (a sign id, say) silently splits the subject in two
+    // and lets both land in one paper.
+    const byImage = new Map<string, Set<string>>();
     for (const q of GENERATED_SIGN_QUESTIONS) {
-      if (q.id.endsWith("-reverse")) expect(q.image).toBeUndefined();
-      else expect(q.image).toMatch(/^\/signs\//);
+      expect(q.image, q.id).toBeTruthy();
+      const signId = q.id.replace(/^gen-sign-/, "").replace(/-(meaning|name)$/, "");
+      const set = byImage.get(q.image!) ?? new Set<string>();
+      set.add(signId);
+      byImage.set(q.image!, set);
+    }
+    for (const [image, signs] of byImage) {
+      expect([...signs], `${image} maps to more than one sign`).toHaveLength(1);
     }
   });
 
@@ -80,12 +120,6 @@ describe("generated sign questions", () => {
     // No single band may swallow the pack.
     for (const band of [1, 2, 3]) {
       expect(spread[band] / GENERATED_SIGN_QUESTIONS.length).toBeLessThan(0.75);
-    }
-  });
-
-  it("grades the image-less recall form as the hardest", () => {
-    for (const q of GENERATED_SIGN_QUESTIONS) {
-      if (q.id.endsWith("-reverse")) expect(q.difficulty).toBe(3);
     }
   });
 
