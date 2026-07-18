@@ -27,3 +27,16 @@ Sources: National Road Traffic Act 93/1996 + Regulations; [SA Learner Driver Man
 - **Reversing**: only as far as necessary and only when it can be done safely.
 - **Obstruction/view**: nothing may be on/around the windscreen that obstructs the driver's view; TV screens visible to the driver prohibited.
 - **Animals**: yield to herded animals; stop if signalled by the herder.
+
+## Rules-section expansion batch
+
+Spread deliberately across all five categories that feed the exam's rules section
+(rules, intersections, parking, following distance, hazard awareness), since the mock
+draws 28 from the group as a whole. Procedure, priority and judgement only — no new
+regulated numeric thresholds (see the roadmap's standing note to verify those first).
+
+- **Priority**: right of way is given, never taken. Funeral processions/convoys — don't split them. Roadblocks — stop where directed, hands visible, produce licence. Give way to a pedestrian already crossing the road you're turning into. Animal-drawn vehicles — pass wide and slow, no hooter. A headlight flash has no legal meaning. Slow vehicles should pull over to release a queue. Lights at dusk are about being seen, not seeing.
+- **Intersections**: only enter when you can clear it; stop at the line then edge out for a view; turning across a courteous gap hides filtering traffic; signal left as you pass the exit before yours in a circle; yield ≠ always stop, but you must be able to; creep-and-peep at blocked junctions; making way for an ambulance never requires running the red; a left turn sweeps across where a cyclist would be.
+- **Parking**: facing against the flow misaims your reflectors and forces a crossing to leave; don't hide a sign or signal; loading zones are for loading; off the travelled surface where there's no kerb; children out on the kerb side after a check; hazard lights don't create permission to stop.
+- **Following distance**: the gap buys time, the one thing you can't make later; it also buys a view past the vehicle ahead; rebuild it every time someone fills it; increase it downhill (gravity works with momentum, against brakes); a gap judged in town is inadequate at open-road speed — which is why the rule is counted in seconds.
+- **Hazard awareness**: keep the eyes moving rather than fixed; keep an escape route in mind; assume a child steps out from between parked cars near a school; an indicator is a claim, movement is evidence; a puddle can pull the steering and hide a pothole; cover the brake past driveways (reversing lights are the only warning); drop back from an unsecured load.
