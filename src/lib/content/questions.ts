@@ -12,6 +12,7 @@ import { HPF_PACK_QUESTIONS } from "./hpf-pack";
 import { BIKE_HEAVY_PACK_QUESTIONS } from "./bike-heavy-pack";
 import { CONVERTED_PACK_QUESTIONS } from "./converted-pack";
 import { AARTO_PACK_QUESTIONS } from "./aarto-pack";
+import { GENERATED_SIGN_QUESTIONS } from "./signs-generated";
 
 /**
  * K53-aligned question bank, structured around the official South African K53
@@ -1803,7 +1804,7 @@ const CORE_QUESTIONS: Question[] = [
 ];
 
 /** Core (universal) questions plus the vehicle-code–specific and extra banks. */
-export const QUESTIONS: Question[] = [...CORE_QUESTIONS, ...VEHICLE_QUESTIONS, ...EXTRA_QUESTIONS, ...VEHICLE_EXTRA_QUESTIONS, ...SIGNS_PACK_QUESTIONS, ...RULES_PACK_QUESTIONS, ...MARKINGS_PACK_QUESTIONS, ...INTERSECTIONS_PACK_QUESTIONS, ...CONTROLS_PACK_QUESTIONS, ...HPF_PACK_QUESTIONS, ...BIKE_HEAVY_PACK_QUESTIONS, ...CONVERTED_PACK_QUESTIONS, ...AARTO_PACK_QUESTIONS];
+export const QUESTIONS: Question[] = [...CORE_QUESTIONS, ...VEHICLE_QUESTIONS, ...EXTRA_QUESTIONS, ...VEHICLE_EXTRA_QUESTIONS, ...SIGNS_PACK_QUESTIONS, ...RULES_PACK_QUESTIONS, ...MARKINGS_PACK_QUESTIONS, ...INTERSECTIONS_PACK_QUESTIONS, ...CONTROLS_PACK_QUESTIONS, ...HPF_PACK_QUESTIONS, ...BIKE_HEAVY_PACK_QUESTIONS, ...CONVERTED_PACK_QUESTIONS, ...AARTO_PACK_QUESTIONS, ...GENERATED_SIGN_QUESTIONS];
 
 export const QUESTIONS_BY_ID: Record<string, Question> = Object.fromEntries(
   QUESTIONS.map((q) => [q.id, q]),

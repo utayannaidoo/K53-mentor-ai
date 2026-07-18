@@ -113,6 +113,20 @@ export const SIGNS_BY_ID: Record<string, RoadSign> = Object.fromEntries(
   SIGNS.map((s) => [s.id, s]),
 );
 
+/**
+ * Signs whose *name* is hand-verified above rather than derived from OCR.
+ *
+ * deriveName() falls back to the manual's caption text, which is frequently a
+ * fragment rather than a name ("Or under certain conditions", "Examples",
+ * "May not"). Fine as a library label, useless as a quiz answer — so anything
+ * that asks the learner to name a sign must draw only from this set.
+ */
+export const VERIFIED_NAME_IDS: ReadonlySet<string> = new Set(Object.keys(CURATED));
+
+export function hasVerifiedName(sign: { id: string }): boolean {
+  return VERIFIED_NAME_IDS.has(sign.id);
+}
+
 export function signsByCategory(category: SignCategory): RoadSign[] {
   return SIGNS.filter((s) => s.category === category);
 }

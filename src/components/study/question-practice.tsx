@@ -20,7 +20,12 @@ import { countDueTomorrow } from "@/lib/plan";
 import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { forCode } from "@/lib/content/vehicle";
-import { easyFirst, orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
+import {
+  easyFirst,
+  orderByFreshness,
+  takeDistinctSubjects,
+  withShuffledOptions,
+} from "@/lib/diagnostic/select";
 import { TrialMeter } from "@/components/app/trial-meter";
 import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
@@ -47,7 +52,7 @@ export function QuestionPractice() {
     if (state.onboarding?.knowledgeLevel === "beginner" && state.attempts.length === 0) {
       ordered = easyFirst(ordered);
     }
-    return ordered.slice(0, limit).map(withShuffledOptions);
+    return takeDistinctSubjects(ordered, limit).map(withShuffledOptions);
   });
   const startRef = React.useRef(Date.now());
   const cpStartRef = React.useRef(state.cp);
