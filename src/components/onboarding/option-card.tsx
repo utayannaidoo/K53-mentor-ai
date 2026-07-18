@@ -1,5 +1,6 @@
 import * as React from "react";
 import { Check } from "lucide-react";
+import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 
 export function OptionCard({
@@ -20,7 +21,10 @@ export function OptionCard({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        haptics.tap();
+        onClick();
+      }}
       aria-pressed={selected}
       className={cn(
         "press group relative flex w-full items-center gap-4 rounded-xl border-2 bg-card p-4 text-left",

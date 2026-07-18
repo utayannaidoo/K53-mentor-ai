@@ -344,8 +344,14 @@ function BillingInner() {
               If you&apos;re within 7 days of your first payment, we&apos;ll refund it in full automatically.
             </p>
             <div className="mt-3 flex gap-2">
-              <Button size="sm" variant="danger" onClick={doCancel} disabled={cancelBusy}>
-                {cancelBusy ? "Cancelling…" : "Yes, cancel"}
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={doCancel}
+                loading={cancelBusy}
+                loadingText="Cancelling…"
+              >
+                Yes, cancel
               </Button>
               <Button size="sm" variant="outline" onClick={() => setConfirmingCancel(false)} disabled={cancelBusy}>
                 Keep my plan
@@ -394,11 +400,11 @@ function BillingInner() {
                 className="mt-5 w-full"
                 variant={current ? "outline" : plan.highlighted ? "default" : "outline"}
                 disabled={current || busy !== null}
+                loading={busy === plan.id}
+                loadingText="Opening checkout…"
                 onClick={() => choose(plan)}
               >
-                {busy === plan.id ? (
-                  <Spinner />
-                ) : current ? (
+                {current ? (
                   "Current plan"
                 ) : isTrackSwitch ? (
                   `Switch to ${VEHICLE_CLASS_SHORT[track]}`

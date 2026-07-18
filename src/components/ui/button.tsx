@@ -1,5 +1,6 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 
 export const buttonVariants = cva(
@@ -35,15 +36,49 @@ export const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {}
+    VariantProps<typeof buttonVariants> {
+  /**
+   * Shows a spinner and blocks interaction while an action is in flight.
+   * The label stays mounted (hidden) so the button keeps its width instead of
+   * collapsing mid-action.
+   */
+  loading?: boolean;
+  /** Optional text to swap in while loading, e.g. "Sending…". */
+  loadingText?: string;
+}
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, ...props }, ref) => (
+  ({ className, variant, size, loading, loadingText, disabled, children, ...props }, ref) => (
     <button
       ref={ref}
       className={cn(buttonVariants({ variant, size }), className)}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {loading && loadingText ? (
+        // An explicit loading label replaces the content outright.
+        <>
+          <Spinner />
+          {loadingText}
+        </>
+      ) : (
+        <>
+          {loading && (
+            <span className="absolute inset-0 flex items-center justify-center">
+              <Spinner />
+            </span>
+          )}
+          {/* Kept mounted but hidden so the button holds its width mid-action.
+              The wrapper is one flex child, so icon/text spacing is preserved. */}
+          <span
+            className={cn("inline-flex items-center gap-2", loading && "invisible")}
+          >
+            {children}
+          </span>
+        </>
+      )}
+    </button>
   ),
 );
 Button.displayName = "Button";

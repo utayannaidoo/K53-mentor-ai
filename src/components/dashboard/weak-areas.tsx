@@ -9,14 +9,39 @@ import type { CategoryId } from "@/types";
 
 export function WeakAreas({
   perCategory,
+  hasAttempts,
   limit = 4,
 }: {
   perCategory: Record<CategoryId, number>;
+  /** Whether the learner has answered anything yet. */
+  hasAttempts: boolean;
   limit?: number;
 }) {
   const ranked = (Object.keys(perCategory) as CategoryId[])
     .sort((a, b) => perCategory[a] - perCategory[b])
     .slice(0, limit);
+
+  // With no attempts, readiness still reports a uniform baseline for every
+  // category — so this card would list four identical percentages under the
+  // heading "Weak areas", reading as "you're bad at all of this" when the truth
+  // is that we don't know yet. Attempt count is the honest signal, not the score.
+  if (!hasAttempts) {
+    return (
+      <Card className={`${glass} p-6`}>
+        <h2 className="font-display text-lg font-semibold">Weak areas</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          Nothing to show yet — answer a few questions and we&apos;ll pinpoint exactly which
+          categories need the work.
+        </p>
+        <Link
+          href="/study/questions"
+          className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline"
+        >
+          Start a practice session <ArrowRight className="h-4 w-4" />
+        </Link>
+      </Card>
+    );
+  }
 
   return (
     <Card className={`${glass} p-6`}>

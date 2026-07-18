@@ -27,6 +27,7 @@ import { SCENARIOS } from "@/lib/content/scenarios";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { forCode } from "@/lib/content/vehicle";
 import { categoryName } from "@/lib/content/categories";
+import { haptics } from "@/lib/haptics";
 import { shuffle, cn } from "@/lib/utils";
 
 export function ScenarioPlayer() {
@@ -95,6 +96,8 @@ export function ScenarioPlayer() {
   function choose(choiceId: string) {
     if (chosen[i] !== null) return; // already answered
     const choice = sc.choices.find((c) => c.id === choiceId)!;
+    if (choice.correct) haptics.success();
+    else haptics.error();
     setChosen((prev) => {
       const copy = [...prev];
       copy[i] = choiceId;

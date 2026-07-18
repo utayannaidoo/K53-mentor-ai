@@ -23,6 +23,7 @@ import type { SessionRecapData } from "@/lib/ai/coach";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
 import { initialCardState, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
 import { categoryName } from "@/lib/content/categories";
+import { haptics } from "@/lib/haptics";
 import { formatDuration, cn } from "@/lib/utils";
 import type { CategoryId, SrsRating } from "@/types";
 
@@ -107,6 +108,10 @@ export function FlashcardDeck() {
   const intervals = previewIntervals(cardState);
 
   function rate(rating: SrsRating) {
+    // "Again" is the one rating that means the recall failed — everything else
+    // is a successful review, however hard it felt.
+    if (rating === "again") haptics.error();
+    else haptics.success();
     reviewCard(card.id, rating);
     setReviewed((r) => r + 1);
     if (rating === "again") setAgainCount((n) => n + 1);
@@ -114,9 +119,15 @@ export function FlashcardDeck() {
     setAttempt("");
     const nextI = i + 1;
     if (nextI >= queue.length) {
+      haptics.celebrate();
       recordSession("flashcards", Math.round((Date.now() - startRef.current) / 1000));
     }
     setI(nextI);
+  }
+
+  function reveal() {
+    haptics.tap();
+    setFlipped(true);
   }
 
   return (
@@ -154,8 +165,8 @@ export function FlashcardDeck() {
           {/* Front */}
           <button
             type="button"
-            onClick={() => setFlipped(true)}
-            className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-8 text-center shadow-soft backface-hidden"
+            onClick={reveal}
+            className="press absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-8 text-center shadow-soft backface-hidden"
           >
             <Badge variant="secondary" className="gap-1">
               <CategoryIcon id={card.categoryId} className="h-3 w-3" /> {categoryName(card.categoryId)}
@@ -202,7 +213,7 @@ export function FlashcardDeck() {
                 key={r}
                 onClick={() => rate(r)}
                 className={cn(
-                  "flex flex-col items-center gap-0.5 rounded-xl border-2 bg-card py-3 transition-colors",
+                  "press flex flex-col items-center gap-0.5 rounded-xl border-2 bg-card py-3",
                   RATING_STYLE[r],
                 )}
               >
@@ -216,7 +227,7 @@ export function FlashcardDeck() {
             className="space-y-2"
             onSubmit={(e) => {
               e.preventDefault();
-              setFlipped(true);
+              reveal();
             }}
           >
             <div className="flex items-center gap-2">

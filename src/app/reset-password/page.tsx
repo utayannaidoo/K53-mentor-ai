@@ -7,7 +7,6 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
 import { createClient } from "@/lib/supabase/client";
 import { SITE_URL } from "@/lib/constants";
 
@@ -61,8 +60,14 @@ export default function ResetPasswordPage() {
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email" />
             </div>
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? <Spinner /> : "Send reset link"}
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              loading={loading}
+              loadingText="Sending…"
+            >
+              Send reset link
             </Button>
           </form>
           <Link href="/login" className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">

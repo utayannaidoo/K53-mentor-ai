@@ -94,7 +94,7 @@ export default function DashboardPage() {
           passProbability={readiness.passProbability}
           delta={delta}
         />
-        <WeakAreas perCategory={readiness.perCategory} />
+        <WeakAreas perCategory={readiness.perCategory} hasAttempts={state.attempts.length > 0} />
       </div>
 
       <Card className={cn(glass, "mt-5 p-6")}>

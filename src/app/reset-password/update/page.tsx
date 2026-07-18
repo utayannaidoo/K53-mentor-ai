@@ -8,7 +8,6 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
 import { createClient } from "@/lib/supabase/client";
 
 /**
@@ -93,8 +92,14 @@ export default function UpdatePasswordPage() {
               />
             </div>
             {error && <p className="text-sm text-danger">{error}</p>}
-            <Button type="submit" size="lg" className="w-full" disabled={loading}>
-              {loading ? <Spinner /> : "Update password"}
+            <Button
+              type="submit"
+              size="lg"
+              className="w-full"
+              loading={loading}
+              loadingText="Updating…"
+            >
+              Update password
             </Button>
           </form>
           <Link

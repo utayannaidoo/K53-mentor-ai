@@ -379,8 +379,13 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                       : "Daily tutor messages used for your plan."}
                   </span>
                   {capNotice.canTopUp ? (
-                    <Button size="sm" onClick={buyTopUp} disabled={topUpBusy}>
-                      {topUpBusy ? "Opening checkout…" : "Buy top-up"}
+                    <Button
+                      size="sm"
+                      onClick={buyTopUp}
+                      loading={topUpBusy}
+                      loadingText="Opening checkout…"
+                    >
+                      Buy top-up
                     </Button>
                   ) : (
                     <Link href="/account/billing" className="text-xs font-semibold text-primary hover:underline">
@@ -460,7 +465,8 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                 <Button
                   type="submit"
                   size="icon"
-                  disabled={(!input.trim() && !pendingImage) || loading}
+                  disabled={!input.trim() && !pendingImage}
+                  loading={loading}
                   aria-label="Send"
                 >
                   <Send className="h-4 w-4" />

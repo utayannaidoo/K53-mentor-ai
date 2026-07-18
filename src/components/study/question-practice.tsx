@@ -24,6 +24,7 @@ import { easyFirst, orderByFreshness, withShuffledOptions } from "@/lib/diagnost
 import { TrialMeter } from "@/components/app/trial-meter";
 import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
+import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { CategoryId, Question } from "@/types";
 
@@ -119,6 +120,9 @@ export function QuestionPractice() {
 
   function choose(optionIndex: number) {
     if (answers[i] !== null) return; // already answered — don't re-record
+    // Acknowledge the tap physically before the visual result lands.
+    if (optionIndex === q.correctIndex) haptics.success();
+    else haptics.error();
     setAnswers((prev) => {
       const copy = [...prev];
       copy[i] = optionIndex;
@@ -139,6 +143,7 @@ export function QuestionPractice() {
   function goNext() {
     if (answers[i] === null) return; // can't advance until answered
     if (isLast) {
+      haptics.celebrate();
       if (!sessionRecorded.current) {
         recordSession("questions", Math.round((Date.now() - startRef.current) / 1000));
         sessionRecorded.current = true;
@@ -209,7 +214,7 @@ export function QuestionPractice() {
                     disabled={answered}
                     className={cn(
                       "flex w-full items-center gap-3 rounded-xl border-2 bg-card p-4 text-left transition-all",
-                      !answered && "hover:border-primary/40",
+                      !answered && "press hover:border-primary/40",
                       showCorrect && "border-success bg-success/[0.06]",
                       showWrong && "border-warning bg-warning/[0.06]",
                       !showCorrect && !showWrong && "border-border",
