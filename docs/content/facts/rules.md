@@ -40,3 +40,20 @@ regulated numeric thresholds (see the roadmap's standing note to verify those fi
 - **Parking**: facing against the flow misaims your reflectors and forces a crossing to leave; don't hide a sign or signal; loading zones are for loading; off the travelled surface where there's no kerb; children out on the kerb side after a check; hazard lights don't create permission to stop.
 - **Following distance**: the gap buys time, the one thing you can't make later; it also buys a view past the vehicle ahead; rebuild it every time someone fills it; increase it downhill (gravity works with momentum, against brakes); a gap judged in town is inadequate at open-road speed — which is why the rule is counted in seconds.
 - **Hazard awareness**: keep the eyes moving rather than fixed; keep an escape route in mind; assume a child steps out from between parked cars near a school; an indicator is a claim, movement is evidence; a puddle can pull the steering and hide a pothole; cover the brake past driveways (reversing lights are the only warning); drop back from an unsecured load.
+
+## Rules + controls lift batch
+
+Sized to raise the mock ceiling for code 08, where controls and the rules group sat
+exactly level at ten distinct papers — so growing rules alone would have gained code 08
+nothing. All items universal; none turns on a regulated numeric threshold.
+
+- **Rules**: never enter a level crossing without room to clear it; duty to stop, assist and give particulars after an injury collision; a rope-towed vehicle needs a licensed driver at its wheel; hazard lights while moving hide your indicators; the yellow edge line marks the roadway — the shoulder is not a lane; rear seatbelts must be worn where fitted; a rear-projecting load must be marked; number plates must stay legible; slow right down past a bus setting down passengers; footwear that slips or jams a pedal breaches the duty to remain in full control.
+- **Intersections**: KEEP CLEAR boxes must stay open; merge from a slip lane at traffic speed rather than stopping at its end; a green light does not clear pedestrians already crossing; turning right out of a one-way street uses the right-hand edge; the missed hazard leaving a circle is pedestrians on the exit; give way to cyclists when turning across a cycle lane; the yield line is where the obligation bites, not a compulsory stop; never enter an intersection you cannot clear; lane choice on a two-lane circle reflects the exit; scholar-patrol banners are the instruction.
+- **Parking**: taxi ranks, traffic islands, school gates, expired paid bays, verges (pedestrian space + buried services), parking abreast, reversing into angled bays, EV charging bays.
+- **Following distance**: don't accelerate while being overtaken; lateral space is an escape route too; convoys should spread out rather than bunch; dazzle — look to the left edge and slow; open a channel between lanes for an ambulance rather than all crowding left; a tunnel removes every escape route so the gap ahead is all you have.
+- **Hazard awareness**: the early cues that a parked car is pulling out; low sun *behind* you dazzles oncoming drivers; mud and wet leaves behave like ice at gateways and bends; hazard lights when joining the back of a queue on a fast road; animals bolt toward light; a swaying load may be shifting — drop back and don't sit alongside.
+
+### Controls (developing faults, checks, control technique)
+- Handbrake partly applied (warning light + burning smell); spongy brake pedal; pulling to one side under braking; steering free play; unlatched bonnet; windscreen chip in the driver's view.
+- Under-inflation makes steering vague, lengthens stopping and overheats the tyre; recheck wheel nuts after a roadside change; set the warning triangle well back; a loaded boot lifts the beam (use the levelling control); jump-lead order matters because the last connection sparks.
+- Rear fog lights only in genuinely poor visibility; cruise control not in traffic, wet or winding roads; block gear changes are fine when road speed suits the gear; holding high revs adds noise not progress; convex mirrors make vehicles look smaller and further away.
