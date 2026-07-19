@@ -83,6 +83,17 @@ _**P1/P2 features shipped** (post-sprint): (1) **Per-section timed drill mode** 
 - Numbers (speeds, BAC, distances, demerits) must match the sources below; re-verify before each content batch.
 - Explanations teach the *why*, provenance via the existing `sourceFor` line.
 
+## Next-sprint sources (researched July 2026 — mine these for sprints 8+)
+
+In yield order; each verified reachable at research time. All items written from these must still flow through the fact-file pipeline (§5).
+
+1. **SARTSM sign catalogue** (sprint 8 — signs 119→220): [V1C1](https://www.transport.gov.za/wp-content/uploads/2023/02/V1C1.pdf), [V2C1](https://www.transport.gov.za/wp-content/uploads/2023/02/V2C1.pdf), [V4C1](https://www.transport.gov.za/wp-content/uploads/2023/02/V4C1.pdf) — the full R/W/GS/temporary inventory with codes+meanings; extend `scripts/extract_signs.py` to the remaining sets so every new item ships with a real image.
+2. **Official practical-test doc** (controls/yard depth + per-manoeuvre penalty tables): [Dept of Transport K53 light motor vehicles code A part 1](https://www.arrivealive.co.za/documents/k53/k53%20light%20motor%20vehicles%20code%20a%20part%201.pdf); supporting guides: [k53sim.co.za manoeuvres](https://k53sim.co.za/k53-yard-test-manoeuvres-parallel-parking-alley-docking-incline-start/), [k53.elidge.com yard test](https://k53.elidge.com/category/k53-guide/k53-driving-licence-test/the-yard-test-for-the-k53-driving-licence-test/).
+3. **Bike/heavy moat** (code-gated depth 2): [toda.co.za code 10/14 questions](https://toda.co.za/learners-test-for-trucks), [k53test.co.za vehicle codes](https://k53test.co.za/vehicle-codes) (Code 10 ≤16 t GVM; Code 14 >16 t / articulated; written test shared, controls differ per code).
+4. **Coverage comparison** (check our blind spots against what competitors drill): [testprep.co.za](https://www.testprep.co.za/) (850+ Q), [k53learnerstest.co.za](https://k53learnerstest.co.za/), [k53learnersapp.co.za](https://k53learnersapp.co.za/k53-learners-test), [testmocks.com](https://testmocks.com/exams/k53-rsa-learners-licence/), [officialmotusk53.co.za](https://www.officialmotusk53.co.za/motus-k53-online-test/), [k53online.co.za](https://k53online.co.za/), [freek53.xyz](https://www.freek53.xyz/).
+5. **Study-guide PDFs** (secondary cross-checks): [k-53.co.za study guide 2026](https://www.k-53.co.za/assets/k53-study-guide-2026.pdf), [iDriving School K53 manual](https://idrivingschool.co.za/wp-content/uploads/2024/08/iDriving-School-K53_optimized.pdf).
+6. **AARTO refresh**: re-verify fines/dates at [aboutaarto.co.za](https://www.aboutaarto.co.za/demerits) close to the 1 Sept 2026 demerit go-live before publishing any new AARTO batch.
+
 ## Sources
 - Test structure & pass marks: [k53-test.co.za](https://www.k53-test.co.za/writing-the-learners-licence-test), [nasi-ispani.co.za](https://www.nasi-ispani.co.za/the-k53-learners-test-basics-to-help-you-pass/)
 - Sign taxonomy: [Dept of Transport SARTSM](https://www.transport.gov.za/wp-content/uploads/2023/02/V2C3.pdf), [Arrive Alive](https://www.arrivealive.mobi/traffic-signs-of-south-africa), [Wikipedia — Road signs in South Africa](https://en.wikipedia.org/wiki/Road_signs_in_South_Africa)

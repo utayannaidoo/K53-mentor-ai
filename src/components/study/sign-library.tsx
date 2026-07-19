@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowLeft, Search, Octagon, AlertTriangle, Info, Signpost, Minus } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
@@ -120,11 +121,12 @@ export function SignLibrary() {
                   >
                     <Card className="hover-elevate flex h-full flex-col items-center gap-3 p-4">
                       <span className="flex h-24 w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-2">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img
+                        <Image
                           src={s.image}
                           alt={s.name}
-                          loading="lazy"
+                          width={192}
+                          height={192}
+                          sizes="120px"
                           className="h-full w-full object-contain"
                         />
                       </span>
@@ -140,12 +142,18 @@ export function SignLibrary() {
         </div>
       )}
 
-      <Dialog open={active !== null} onClose={() => setActive(null)}>
+      <Dialog open={active !== null} onClose={() => setActive(null)} label="Sign details">
         {active && (
           <div className="text-center">
             <span className="mx-auto flex h-40 w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-4">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={active.image} alt={active.name} className="h-full w-full object-contain" />
+              <Image
+                src={active.image}
+                alt={active.name}
+                width={320}
+                height={320}
+                sizes="320px"
+                className="h-full w-full object-contain"
+              />
             </span>
             <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
               <Badge variant="secondary" className="capitalize">

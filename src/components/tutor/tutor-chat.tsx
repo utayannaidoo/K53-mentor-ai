@@ -57,6 +57,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
     image: EncodedImage;
     previewUrl: string;
   } | null>(null);
+  const [imageError, setImageError] = React.useState<string | null>(null);
   const fileRef = React.useRef<HTMLInputElement>(null);
   const initRef = React.useRef(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
@@ -396,6 +397,11 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   </Chip>
                 ))}
               </div>
+              {imageError && (
+                <div className="mb-2.5 rounded-lg border border-danger/30 bg-danger/[0.08] px-3 py-2 text-xs text-danger">
+                  {imageError}
+                </div>
+              )}
               {pendingImage && (
                 <div className="mb-2.5 flex items-center gap-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -437,8 +443,11 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                         image,
                         previewUrl: `data:${image.mediaType};base64,${image.data}`,
                       });
+                      setImageError(null);
                     } catch {
-                      /* unreadable file — leave composer as-is */
+                      setImageError(
+                        "That photo couldn't be read — try a different image (JPG or PNG works best).",
+                      );
                     }
                   }}
                 />

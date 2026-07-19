@@ -106,7 +106,7 @@ export function ShareCard() {
       streak: state.streak.current,
       cp: state.cp,
     }),
-    [state.profile, state.rankAchieved, state.streak.current, state.cp, readiness.readiness],
+    [state.profile, state.rankAchieved, state.streak, state.cp, readiness.readiness],
   );
 
   React.useEffect(() => {

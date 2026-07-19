@@ -126,7 +126,12 @@ export function DiagnosticRunner() {
           </p>
           {(current.image || current.sign) && (
             <div className="mt-4">
-              <SignVisual image={current.image} sign={current.sign} alt="Road sign" className="h-20 w-20" />
+              <SignVisual
+                image={current.image}
+                sign={current.sign}
+                alt={`Road sign for this question about ${current.categoryId.replace(/_/g, " ")}`}
+                className="h-20 w-20"
+              />
             </div>
           )}
           <h1 className="mt-3 text-balance font-display text-xl font-semibold leading-snug tracking-tight sm:text-2xl">

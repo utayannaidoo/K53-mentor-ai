@@ -1,4 +1,5 @@
 import * as React from "react";
+import Image from "next/image";
 import type { SignKey } from "@/types";
 import { SignGlyph } from "./sign-glyph";
 import { cn } from "@/lib/utils";
@@ -28,8 +29,14 @@ export function SignVisual({
           className,
         )}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={image} alt={alt} loading="lazy" className="h-full w-full object-contain" />
+        <Image
+          src={image}
+          alt={alt}
+          width={160}
+          height={160}
+          sizes="80px"
+          className="h-full w-full object-contain"
+        />
       </span>
     );
   }

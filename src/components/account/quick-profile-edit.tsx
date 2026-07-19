@@ -103,7 +103,7 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
 
   return (
     <>
-      <Dialog open={open} onClose={onClose} className="max-w-lg">
+      <Dialog open={open} onClose={onClose} className="max-w-lg" label="Update study profile">
         <h2 className="font-display text-lg font-semibold">Update study profile</h2>
         <p className="mt-1 text-sm text-muted-foreground">
           Quick changes — no need to redo the full onboarding.
