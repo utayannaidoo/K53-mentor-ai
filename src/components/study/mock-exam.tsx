@@ -20,6 +20,7 @@ import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
 import { sourceFor } from "@/lib/content/provenance";
+import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { CategoryId, CategoryScore, Question } from "@/types";
 
@@ -114,6 +115,8 @@ export function MockExam() {
       );
     }
     recordSession("mock", durationSeconds);
+    // Finishing a full mock is the biggest moment in the app — mark it.
+    haptics.celebrate();
     setPhase("results");
   }, [answers, questions, mini, drill, recordMockExam, recordSession]);
 
@@ -415,6 +418,9 @@ export function MockExam() {
   const ss = String(secondsLeft % 60).padStart(2, "0");
 
   function choose(optionIndex: number) {
+    // Exam conditions — correctness stays hidden until submit, so this is a
+    // neutral acknowledgement rather than a right/wrong signal.
+    haptics.tap();
     setAnswers((prev) => {
       const copy = [...prev];
       copy[i] = optionIndex;

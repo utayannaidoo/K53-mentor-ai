@@ -1,4 +1,11 @@
-import type { CategoryId, Question, QuestionAttempt, VehicleCode } from "@/types";
+import type {
+  CategoryId,
+  Question,
+  QuestionAttempt,
+  Scenario,
+  ScenarioAttempt,
+  VehicleCode,
+} from "@/types";
 import { QUESTIONS } from "@/lib/content/questions";
 import { forCode } from "@/lib/content/vehicle";
 import { CATEGORIES } from "@/lib/content/categories";
@@ -20,19 +27,91 @@ export function withShuffledOptions(q: Question): Question {
   };
 }
 
+/** When each item was last seen, from a list of attempts keyed by its own id field. */
+function lastSeenBy<A extends { at: string }>(
+  attempts: readonly A[],
+  idOf: (a: A) => string,
+): Map<string, number> {
+  const lastSeen = new Map<string, number>();
+  for (const a of attempts) {
+    const t = Date.parse(a.at) || 0;
+    const id = idOf(a);
+    if (t > (lastSeen.get(id) ?? 0)) lastSeen.set(id, t);
+  }
+  return lastSeen;
+}
+
+/** Least-recently-seen first (unseen first), randomised within each tier. */
+function byFreshness<T extends { id: string }>(pool: T[], lastSeen: Map<string, number>): T[] {
+  // shuffle first so ties (e.g. all-unseen) are randomised; sort is stable in V8.
+  return shuffle(pool).sort((a, b) => (lastSeen.get(a.id) ?? 0) - (lastSeen.get(b.id) ?? 0));
+}
+
 /**
  * Order a pool so the questions the learner has seen least recently come first
  * (unseen first, then oldest), with random order within each tier. This lets a
  * mode cycle through the whole bank before repeating anything.
  */
 export function orderByFreshness(pool: Question[], attempts: QuestionAttempt[] = []): Question[] {
-  const lastSeen = new Map<string, number>();
-  for (const a of attempts) {
-    const t = Date.parse(a.at) || 0;
-    if (t > (lastSeen.get(a.questionId) ?? 0)) lastSeen.set(a.questionId, t);
+  return byFreshness(pool, lastSeenBy(attempts, (a) => a.questionId));
+}
+
+/**
+ * The same rotation for scenarios, which record their attempts under
+ * `scenarioId` rather than `questionId`.
+ */
+export function orderScenariosByFreshness(
+  pool: Scenario[],
+  attempts: ScenarioAttempt[] = [],
+): Scenario[] {
+  return byFreshness(pool, lastSeenBy(attempts, (a) => a.scenarioId));
+}
+
+/**
+ * What a question is *about*, for the purpose of not asking it twice.
+ *
+ * Several questions can legitimately target the same road sign — one asks what
+ * it means, another names it, a hand-written one poses a scenario around it.
+ * Individually they are all fair; two of them in the same paper is what makes a
+ * deep bank feel shallow, because the learner recognises the picture, not the
+ * question. Items without a subject fall back to their own id, so they are
+ * always distinct from each other.
+ */
+function subjectOf(q: Question): string {
+  return q.image ?? (q.sign ? `sign:${q.sign}` : `id:${q.id}`);
+}
+
+/**
+ * Take `n` questions, preferring one per subject.
+ *
+ * Pass a shared `seen` set to dedupe across several calls. Papers are built
+ * section by section, but a sign can be the subject of a signs question *and*
+ * of a rules question about the intersection it governs — so deduping within
+ * each section separately still lets the same sign appear twice in one paper.
+ *
+ * Falls back to the skipped items (still in freshness order) when the pool
+ * cannot fill `n` distinct subjects — a mock exam must always be the full 64
+ * questions, so a shorter paper is never the right trade.
+ */
+export function takeDistinctSubjects(
+  ordered: Question[],
+  n: number,
+  seen: Set<string> = new Set(),
+): Question[] {
+  const picked: Question[] = [];
+  const skipped: Question[] = [];
+  for (const q of ordered) {
+    if (picked.length === n) break;
+    const key = subjectOf(q);
+    if (seen.has(key)) {
+      skipped.push(q);
+      continue;
+    }
+    seen.add(key);
+    picked.push(q);
   }
-  // shuffle first so ties (e.g. all-unseen) are randomised; sort is stable in V8.
-  return shuffle(pool).sort((a, b) => (lastSeen.get(a.id) ?? 0) - (lastSeen.get(b.id) ?? 0));
+  if (picked.length < n) picked.push(...skipped.slice(0, n - picked.length));
+  return picked;
 }
 
 /** Target question count per category for the 15-question diagnostic. */
@@ -81,9 +160,10 @@ export function sampleDiagnostic(
   const bank = forCode(QUESTIONS, code);
   const plan = diagnosticPlanFor(worryCategories);
   const picked: Question[] = [];
+  const seen = new Set<string>(); // one diagnostic, one subject list
   for (const cat of CATEGORIES) {
     const pool = orderByFreshness(bank.filter((q) => q.categoryId === cat.id), attempts);
-    picked.push(...pool.slice(0, plan[cat.id] ?? 2));
+    picked.push(...takeDistinctSubjects(pool, plan[cat.id] ?? 2, seen));
   }
   return shuffle(picked).map(withShuffledOptions);
 }
@@ -114,8 +194,15 @@ export function sampleMiniMock(
   const restPool = bank.filter((q) => !weakSet.has(q.categoryId));
   // ~60% weak-category questions, the rest spread across everything else.
   const targetWeak = weakSet.size > 0 ? Math.min(9, weakPool.length) : 0;
-  const picked = orderByFreshness(weakPool, attempts).slice(0, targetWeak);
-  picked.push(...orderByFreshness(restPool, attempts).slice(0, MINI_MOCK.total - picked.length));
+  const seen = new Set<string>();
+  const picked = takeDistinctSubjects(orderByFreshness(weakPool, attempts), targetWeak, seen);
+  picked.push(
+    ...takeDistinctSubjects(
+      orderByFreshness(restPool, attempts),
+      MINI_MOCK.total - picked.length,
+      seen,
+    ),
+  );
   return shuffle(picked).map(withShuffledOptions);
 }
 
@@ -161,9 +248,9 @@ export function sampleSectionDrill(
   code?: VehicleCode,
 ): Question[] {
   const pool = forCode(QUESTIONS, code).filter((q) => SECTION_OF[q.categoryId] === section);
-  return shuffle(orderByFreshness(pool, attempts).slice(0, SECTION_DRILL[section].total)).map(
-    withShuffledOptions,
-  );
+  return shuffle(
+    takeDistinctSubjects(orderByFreshness(pool, attempts), SECTION_DRILL[section].total),
+  ).map(withShuffledOptions);
 }
 
 /**
@@ -184,9 +271,10 @@ export function sampleMockExam(
   for (const q of forCode(QUESTIONS, code)) bySection[SECTION_OF[q.categoryId]].push(q);
 
   const out: Question[] = [];
+  const seen = new Set<string>(); // shared across sections — one paper, one subject list
   for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {
     const need = EXAM_FORMAT.sections[section].questions;
-    out.push(...orderByFreshness(bySection[section], attempts).slice(0, need));
+    out.push(...takeDistinctSubjects(orderByFreshness(bySection[section], attempts), need, seen));
   }
   return shuffle(out).map(withShuffledOptions);
 }

@@ -56,3 +56,21 @@ Sources: official K53 manual road-markings section; SARTSM temporary-signs chapt
 - **Cones, barricades, delineators**: mark the closed area — do not enter or move them; follow the coned path.
 - **Detour / temporary route** signs override the normal route for the duration.
 - Reason yellow is used: high-visibility colour that instantly flags "conditions have changed from normal" so drivers re-assess.
+
+## Hazard, dimension and command signs batch
+
+Added to lift the signs pool after the generated pack was cut back on quality grounds
+(the catalogue is exhausted at our quality bar, so further depth is hand-authored).
+Signs described in words rather than shown, matching the existing text-based sign items.
+
+- **Warning — geometry**: single sharp curve; series of curves (winding symbol); hairpin; dip (grounds a low vehicle, hides oncoming traffic); uneven/rough surface; two-way traffic resumes (end of one-way or divided section).
+- **Warning — surface/weather**: slippery road (car with skid marks); falling rocks (watch the cutting, not just the surface); crosswind (windsock); low-water bridge/causeway (do not enter water of unknown depth); loose stones/chippings.
+- **Warning — other users**: farm animals (cow silhouette, herd may follow); cyclists; traffic signals ahead (placed where the robot is hidden); yield ahead (advance notice, obligation starts at the yield line); tunnel (lights on, no overtaking).
+- **Regulatory — dimension/mass**: height, width (includes the load), length (includes any trailer), mass (protects structures). All red-ringed = prohibition, driver's responsibility.
+- **Regulatory — command/prohibition**: blue circle with speed = **minimum** speed; keep left/right at an obstruction; no towing; no pedestrians; no dangerous goods; compulsory straight ahead.
+- **Information**: no-through road (red bar); hospital (H); rest area; freeway emergency telephone; route markers identify the road, destination boards say where it goes.
+- **Reading the system**: blue circle commands / red ring prohibits (both compulsory); warning = adjust, regulatory = enforceable; warnings sit back from the hazard on purpose; supplementary plates qualify the main sign (times, distance, vehicle class); a traffic officer outranks signage; a faded sign still binds.
+- **Delineation**: chevron boards on the outside of a bend; black-and-yellow hazard markers at obstructions; reflective marker posts trace the road at night.
+- **Level crossings**: X-shaped cross marks the crossing itself; flashing red = stop and wait even with no train visible (a second train may follow).
+- **Freeway/lane**: freeway-ends sign means the protections end; overhead red X closes that lane; climbing/passing lane ahead removes the reason to force a pass; exit numbers are unambiguous where place names aren't; distance boards.
+- **Restrictions**: a struck-through repeat cancels that restriction; otherwise a restriction runs until cancelled; a speed limit is a maximum for ideal conditions, never a target.

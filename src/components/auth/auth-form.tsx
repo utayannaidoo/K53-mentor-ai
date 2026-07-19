@@ -7,7 +7,6 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Spinner } from "@/components/ui/spinner";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/env";
@@ -145,13 +144,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
         {error && <p className="text-sm text-danger">{error}</p>}
 
-        <Button type="submit" size="lg" className="w-full" disabled={loading}>
-          {loading ? <Spinner /> : (
-            <>
-              {mode === "signup" ? "Create account" : "Log in"}
-              <ArrowRight />
-            </>
-          )}
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full"
+          loading={loading}
+          loadingText={mode === "signup" ? "Creating account…" : "Logging in…"}
+        >
+          {mode === "signup" ? "Create account" : "Log in"}
+          <ArrowRight />
         </Button>
       </form>
 

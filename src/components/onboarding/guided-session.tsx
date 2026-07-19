@@ -17,6 +17,7 @@ import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
 import { categoryName } from "@/lib/content/categories";
 import { RATING_LABEL } from "@/lib/srs/sm2";
 import { track } from "@/lib/analytics";
+import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { Question, SrsRating } from "@/types";
 
@@ -159,6 +160,8 @@ function GuidedCards({
   if (!card) return null;
 
   function rate(r: SrsRating) {
+    if (r === "again") haptics.error();
+    else haptics.success();
     reviewCard(card.id, r);
     setFlipped(false);
     if (i + 1 >= cards.length) onDone();
@@ -181,7 +184,7 @@ function GuidedCards({
       <button
         type="button"
         onClick={() => setFlipped((f) => !f)}
-        className="mt-5 flex min-h-[200px] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card p-6 text-center shadow-soft transition-colors hover:border-primary/40"
+        className="press mt-5 flex min-h-[200px] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card p-6 text-center shadow-soft hover:border-primary/40"
       >
         <Badge variant="secondary" className="gap-1">
           <CategoryIcon id={card.categoryId} className="h-3 w-3" />
@@ -209,7 +212,7 @@ function GuidedCards({
                 type="button"
                 onClick={() => rate(r)}
                 className={cn(
-                  "rounded-xl border-2 bg-card py-2.5 text-sm font-semibold transition-colors",
+                  "press rounded-xl border-2 bg-card py-2.5 text-sm font-semibold",
                   r === "again" && "border-danger/40 text-danger hover:bg-danger/10",
                   r === "good" && "border-primary/40 text-primary hover:bg-primary/10",
                   r === "easy" && "border-success/40 text-success hover:bg-success/10",
@@ -272,6 +275,8 @@ function GuidedQuestions({
 
   function choose(idx: number) {
     if (answered) return;
+    if (idx === q.correctIndex) haptics.success();
+    else haptics.error();
     setSelected(idx);
     recordQuestionAttempt({
       questionId: q.id,
@@ -326,7 +331,7 @@ function GuidedQuestions({
                 onClick={() => choose(idx)}
                 className={cn(
                   "flex w-full items-center gap-2.5 rounded-xl border-2 bg-card p-3.5 text-left text-sm transition-all",
-                  !answered && "hover:border-primary/40",
+                  !answered && "press hover:border-primary/40",
                   showCorrect && "border-success bg-success/[0.06]",
                   showWrong && "border-warning bg-warning/[0.06]",
                   !showCorrect && !showWrong && "border-border",
