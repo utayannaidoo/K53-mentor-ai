@@ -71,16 +71,50 @@ describe("scenario balance", () => {
     }
   });
 
-  it("leaves no category empty for any licence code", () => {
+  /**
+   * Categories every code must be able to practise as scenarios.
+   *
+   * `controls` is deliberately absent: no code 08 controls scenario exists yet,
+   * and code A has exactly one. That is a real gap of the same kind this file
+   * was written to catch — it is listed here rather than asserted so it stays
+   * visible instead of being quietly forgotten. Move it into the list when the
+   * content lands.
+   */
+  const MUST_PRACTISE: CategoryId[] = [
+    "signs",
+    "parking",
+    "rules",
+    "intersections",
+    "following_distance",
+    "hazard_awareness",
+  ];
+
+  it("leaves no core category empty for any licence code", () => {
     // A session serves a slice of the pool, so a category with nothing in it is
     // a category the learner will never practise.
     for (const code of CODES) {
       const pool = forCode(SCENARIOS, code);
       const counts = new Map<CategoryId, number>();
       for (const s of pool) counts.set(s.categoryId, (counts.get(s.categoryId) ?? 0) + 1);
-      for (const category of ["signs", "parking", "rules", "intersections"] as CategoryId[]) {
-        expect(counts.get(category) ?? 0, `code ${code} has no ${category} scenarios`).toBeGreaterThan(
-          0,
+      for (const category of MUST_PRACTISE) {
+        expect(
+          counts.get(category) ?? 0,
+          `code ${code} has no ${category} scenarios`,
+        ).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("gives each core category enough scenarios to be worth practising", () => {
+    // One or two items in a category means the learner meets the same scenario
+    // every time it comes up, which is how `following_distance` felt at three.
+    for (const code of CODES) {
+      const pool = forCode(SCENARIOS, code);
+      const counts = new Map<CategoryId, number>();
+      for (const s of pool) counts.set(s.categoryId, (counts.get(s.categoryId) ?? 0) + 1);
+      for (const category of MUST_PRACTISE) {
+        expect(counts.get(category) ?? 0, `code ${code} is thin on ${category}`).toBeGreaterThanOrEqual(
+          4,
         );
       }
     }
