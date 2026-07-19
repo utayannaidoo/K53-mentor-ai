@@ -2,7 +2,9 @@
 
 _Research date: July 2026. Sources listed at the bottom; verify regulated facts (fines, AARTO dates) before publishing content built on them._
 
-## 1. Where the bank stands today
+> **Status, updated 19 July 2026.** P0 (volume) is **done and exceeded** — the bank is at 792 questions against a 600 target, and supports ~10 non-repeating mocks against a target of 8+. Section 1 below is kept as the historical baseline; the current numbers come from `node scripts/content-stats.mjs`, which reads the real exports and is the only figure worth trusting. Live priorities are in section 4.
+
+## 1. Where the bank stood when this was written (July 2026 baseline)
 
 | Category | Questions | Flashcards |
 |---|---|---|
@@ -15,7 +17,7 @@ _Research date: July 2026. Sources listed at the bottom; verify regulated facts 
 | following_distance | 19 | 11 |
 | **Total** | **294** | **177** |
 
-The official exam draws 28 signs + 28 rules-group + 8 controls per paper. Our signs pool (65) supports barely two full mocks without repeats; leading competitor apps advertise **1 000+ questions**. Volume is the #1 gap.
+The official exam draws 28 signs + 28 rules-group + 8 controls per paper, so the **smallest section** caps how many distinct papers exist — it is easy to grow the wrong pool and gain nothing. At the time of writing the signs pool (65) supported barely two full mocks. It now supports ~10; `scripts/content-stats.mjs` prints the limiting section per licence code.
 
 ## 2. What the research says the test actually needs
 
@@ -31,9 +33,15 @@ What users praise elsewhere: questions "very similar to the real test", per-sect
 
 ## 4. Prioritized roadmap
 
-### P0 — Volume (content only, no code)
-1. Grow signs to 150+ questions (regulatory/warning/guidance/temporary/markings sub-coverage) and rules to 120+ with numeric-fact items. Target: **600 questions / 350 flashcards** total; supports 8+ non-repeating mocks.
-2. Balance thin categories first: parking, following_distance, intersections (each < 22 today). _First batch shipped alongside this doc: +40 questions, +20 flashcards._
+### P0 — Volume — ✅ done, exceeded
+1. ~~Grow signs to 150+ and rules to 120+; target 600 questions / 350 flashcards, 8+ non-repeating mocks.~~ **Done.** 792 questions / 394 flashcards / 62 scenarios, ~10 non-repeating mocks per code. Signs is 332, rules-group 280.
+2. ~~Balance thin categories: parking, following_distance, intersections.~~ **Done**, for scenarios too — every category now has at least four scenarios for every licence code, enforced by `tests/scenario-content.test.ts`.
+
+**What limits the mock count now:** all three sections are close together (code 08: controls 80, rules 280, signs 332 ÷ their per-paper draw). Lifting it further needs *all three* to grow — adding to one alone buys nothing. Run `node scripts/content-stats.mjs` before starting; it names the limiting section.
+
+**Cheapest remaining lever:** `VERIFIED_NAME_IDS` in `src/lib/content/signs.ts`. The generated pack quizzes only signs whose name is hand-verified, so each name added yields another question with no code change — 56 of 439 are verified today. Verify against the rendered PNG in `public/signs/`, not the OCR `autoName`, which is often a caption fragment.
+
+**Deliberately not done:** questions turning on a regulated numeric threshold (tread depth, required equipment, reporting deadlines, licence validity). High-yield and heavily examined, but each needs the regulation open beside it — see the header note. Cite via the per-item `source` field.
 
 ### P1 — Exam-fidelity features
 3. **Per-section test mode**: "Signs only" / "Rules only" / "Controls only" timed drills matching real section pass marks (reuses mini-mock machinery; competitors' most-loved feature).

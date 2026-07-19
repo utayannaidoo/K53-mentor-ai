@@ -17,7 +17,7 @@ import type { CategoryId } from "@/types";
  * catch accidental loss, not to force us to keep bad questions.
  */
 const MIN_QUESTIONS: Record<CategoryId, number> = {
-  signs: 301,
+  signs: 332,
   rules: 121,
   controls: 121,
   hazard_awareness: 66,

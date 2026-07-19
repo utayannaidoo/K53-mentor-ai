@@ -5,6 +5,7 @@ import { EXTRA_SCENARIOS } from "./scenarios.extra";
 import { VEHICLE_EXTRA_SCENARIOS } from "./vehicle-extra";
 import { SIGNS_PARKING_SCENARIOS } from "./scenarios-signs-parking";
 import { FOLLOWING_SCENARIOS } from "./scenarios-following";
+import { CONTROLS_SCENARIOS } from "./scenarios-controls";
 
 const CORE_SCENARIOS: Scenario[] = [
   {
@@ -513,7 +514,7 @@ const CORE_SCENARIOS: Scenario[] = [
 ];
 
 /** Core (universal) scenarios plus the vehicle-code–specific ones. */
-export const SCENARIOS: Scenario[] = [...CORE_SCENARIOS, ...VEHICLE_SCENARIOS, ...EXTRA_SCENARIOS, ...VEHICLE_EXTRA_SCENARIOS, ...SIGNS_PARKING_SCENARIOS, ...FOLLOWING_SCENARIOS];
+export const SCENARIOS: Scenario[] = [...CORE_SCENARIOS, ...VEHICLE_SCENARIOS, ...EXTRA_SCENARIOS, ...VEHICLE_EXTRA_SCENARIOS, ...SIGNS_PARKING_SCENARIOS, ...FOLLOWING_SCENARIOS, ...CONTROLS_SCENARIOS];
 
 export const SCENARIOS_BY_ID: Record<string, Scenario> = Object.fromEntries(
   SCENARIOS.map((s) => [s.id, s]),

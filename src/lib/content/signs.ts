@@ -85,6 +85,45 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-037-03": { name: "Children ahead" },
   "warning-037-04": { name: "Cyclists ahead" },
   "warning-040-07": { name: "Railway crossing" },
+
+  // Batch 5 — names taken from the catalogue meanings, which state the sign
+  // unambiguously for these ("Speed humps ahead.", "To prohibit hawkers…").
+  // Method spot-checked against the rendered images for a sample spanning both
+  // categories (slippery road, speed hump, no-left-at-intersection, end of
+  // residential area) — all four matched. Naming a sign is what the generated
+  // `name` questions quiz, so only signs whose identity is beyond doubt belong
+  // here; anything needing a judgement call about which sign it is was left out.
+  "warning-027-01": { name: "Cattle grid ahead" },
+  "warning-027-03": { name: "Tunnel ahead" },
+  "warning-027-06": { name: "Slow-moving vehicles ahead" },
+  "warning-028-01": { name: "Gravel road begins" },
+  "warning-028-02": { name: "Tarred road begins" },
+  "warning-028-03": { name: "Uneven road ahead" },
+  "warning-028-04": { name: "Speed humps ahead" },
+  "warning-028-05": { name: "Road narrows from both sides" },
+  "warning-028-06": { name: "Road narrows from one side" },
+  "warning-028-07": { name: "Road narrows at a bridge" },
+  "warning-029-01": { name: "Slippery road ahead" },
+  "warning-029-02": { name: "Falling rocks ahead" },
+  "regulatory-007-01": { name: "Stop / Go (manually operated)" },
+  "regulatory-008-04": { name: "One-way roadway (straight ahead)" },
+  "regulatory-009-07": { name: "Proceed clockwise at the junction" },
+  "regulatory-010-02": { name: "Buses and minibuses only" },
+  "regulatory-010-05": { name: "Goods vehicles only" },
+  "regulatory-010-06": { name: "Pedestrians only" },
+  "regulatory-010-07": { name: "Cyclists and pedestrians only" },
+  "regulatory-011-03": { name: "No left turn at intersection" },
+  "regulatory-011-04": { name: "No right turn at intersection" },
+  "regulatory-012-05": { name: "No motorcycles" },
+  "regulatory-012-06": { name: "No hawkers" },
+  "regulatory-012-07": { name: "No pedestrians" },
+  "regulatory-014-03": { name: "Parking for people with disabilities" },
+  "regulatory-014-05": { name: "Parking for authorised vehicles" },
+  "regulatory-014-07": { name: "Parking for police vehicles" },
+  "regulatory-017-02": { name: "End of headlights-on requirement" },
+  "regulatory-017-05": { name: "End of dual-carriage freeway" },
+  "regulatory-017-06": { name: "End of single-carriage freeway" },
+  "regulatory-017-07": { name: "End of residential area" },
 };
 
 function deriveName(raw: RawSign): string {
