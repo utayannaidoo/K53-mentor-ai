@@ -1,4 +1,11 @@
-import type { CategoryId, Question, QuestionAttempt, VehicleCode } from "@/types";
+import type {
+  CategoryId,
+  Question,
+  QuestionAttempt,
+  Scenario,
+  ScenarioAttempt,
+  VehicleCode,
+} from "@/types";
 import { QUESTIONS } from "@/lib/content/questions";
 import { forCode } from "@/lib/content/vehicle";
 import { CATEGORIES } from "@/lib/content/categories";
@@ -20,19 +27,44 @@ export function withShuffledOptions(q: Question): Question {
   };
 }
 
+/** When each item was last seen, from a list of attempts keyed by its own id field. */
+function lastSeenBy<A extends { at: string }>(
+  attempts: readonly A[],
+  idOf: (a: A) => string,
+): Map<string, number> {
+  const lastSeen = new Map<string, number>();
+  for (const a of attempts) {
+    const t = Date.parse(a.at) || 0;
+    const id = idOf(a);
+    if (t > (lastSeen.get(id) ?? 0)) lastSeen.set(id, t);
+  }
+  return lastSeen;
+}
+
+/** Least-recently-seen first (unseen first), randomised within each tier. */
+function byFreshness<T extends { id: string }>(pool: T[], lastSeen: Map<string, number>): T[] {
+  // shuffle first so ties (e.g. all-unseen) are randomised; sort is stable in V8.
+  return shuffle(pool).sort((a, b) => (lastSeen.get(a.id) ?? 0) - (lastSeen.get(b.id) ?? 0));
+}
+
 /**
  * Order a pool so the questions the learner has seen least recently come first
  * (unseen first, then oldest), with random order within each tier. This lets a
  * mode cycle through the whole bank before repeating anything.
  */
 export function orderByFreshness(pool: Question[], attempts: QuestionAttempt[] = []): Question[] {
-  const lastSeen = new Map<string, number>();
-  for (const a of attempts) {
-    const t = Date.parse(a.at) || 0;
-    if (t > (lastSeen.get(a.questionId) ?? 0)) lastSeen.set(a.questionId, t);
-  }
-  // shuffle first so ties (e.g. all-unseen) are randomised; sort is stable in V8.
-  return shuffle(pool).sort((a, b) => (lastSeen.get(a.id) ?? 0) - (lastSeen.get(b.id) ?? 0));
+  return byFreshness(pool, lastSeenBy(attempts, (a) => a.questionId));
+}
+
+/**
+ * The same rotation for scenarios, which record their attempts under
+ * `scenarioId` rather than `questionId`.
+ */
+export function orderScenariosByFreshness(
+  pool: Scenario[],
+  attempts: ScenarioAttempt[] = [],
+): Scenario[] {
+  return byFreshness(pool, lastSeenBy(attempts, (a) => a.scenarioId));
 }
 
 /**

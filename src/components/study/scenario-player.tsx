@@ -21,7 +21,8 @@ import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { hasFeature } from "@/lib/billing/plans";
+import { hasFeature, STUDY_SESSION_SIZE } from "@/lib/billing/plans";
+import { orderScenariosByFreshness } from "@/lib/diagnostic/select";
 import { countDueTomorrow } from "@/lib/plan";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import type { SessionRecapData } from "@/lib/ai/coach";
@@ -32,11 +33,17 @@ import { shuffle, cn } from "@/lib/utils";
 
 export function ScenarioPlayer() {
   const { state, recordScenarioAttempt, recordSession } = useStudyStore();
+  // Least-recently-seen first, then a session-sized slice — the two only work
+  // together. Serving the whole pool (as this used to) replays every scenario
+  // every session no matter how it is ordered; slicing without the rotation
+  // would just hand out a random dozen and repeat some of them next time.
   const [queue] = React.useState(() =>
-    shuffle(forCode(SCENARIOS, state.onboarding?.vehicleCode)).map((s) => ({
-      ...s,
-      choices: shuffle(s.choices),
-    })),
+    orderScenariosByFreshness(
+      forCode(SCENARIOS, state.onboarding?.vehicleCode),
+      state.scenarioAttempts,
+    )
+      .slice(0, STUDY_SESSION_SIZE)
+      .map((s) => ({ ...s, choices: shuffle(s.choices) })),
   );
   const startRef = React.useRef(Date.now());
   const cpStartRef = React.useRef(state.cp);
