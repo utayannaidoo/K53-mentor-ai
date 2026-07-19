@@ -72,13 +72,9 @@ describe("scenario balance", () => {
   });
 
   /**
-   * Categories every code must be able to practise as scenarios.
-   *
-   * `controls` is deliberately absent: no code 08 controls scenario exists yet,
-   * and code A has exactly one. That is a real gap of the same kind this file
-   * was written to catch — it is listed here rather than asserted so it stays
-   * visible instead of being quietly forgotten. Move it into the list when the
-   * content lands.
+   * Every category, for every code. `controls` was excluded here while code 08
+   * had no controls scenario at all — that gap is now filled, so the list is
+   * complete and there is no longer a category a learner cannot practise.
    */
   const MUST_PRACTISE: CategoryId[] = [
     "signs",
@@ -87,6 +83,7 @@ describe("scenario balance", () => {
     "intersections",
     "following_distance",
     "hazard_awareness",
+    "controls",
   ];
 
   it("leaves no core category empty for any licence code", () => {
