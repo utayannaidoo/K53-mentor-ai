@@ -124,6 +124,44 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-017-05": { name: "End of dual-carriage freeway" },
   "regulatory-017-06": { name: "End of single-carriage freeway" },
   "regulatory-017-07": { name: "End of residential area" },
+
+  // Batch 6 — junction-priority, dimension-warning, temporary and reservation
+  // families. Same method as batch 5: the catalogue meaning names the sign
+  // outright. Spot-checked against the rendered PNGs for one sign from each
+  // family new to this batch — crossroad priority, drift, bus-lane reservation
+  // and the height-restriction *warning* triangle — all four matched.
+  //
+  // The 031-xx entries are the temporary (yellow) twins of the 030-xx warnings.
+  // Naming both is deliberate: permanent-vs-temporary is a listed high-yield
+  // confusion pair, and the backgrounds differ clearly, so the image answers it.
+  "warning-029-04": { name: "Jetty or river bank ahead" },
+  "warning-029-05": { name: "Drift ahead" },
+  "warning-029-06": { name: "Reduced visibility ahead" },
+  "warning-029-07": { name: "Narrow structure ahead" },
+  "warning-030-01": { name: "Length restriction ahead" },
+  "warning-030-02": { name: "Height restriction ahead" },
+  "warning-030-03": { name: "Width restriction ahead" },
+  "warning-030-05": { name: "Crosswinds ahead" },
+  "warning-031-01": { name: "Surface step ahead (temporary)" },
+  "warning-031-02": { name: "Soft shoulder ahead (temporary)" },
+  "warning-031-03": { name: "Loose stones ahead (temporary)" },
+  "warning-031-04": { name: "Width restriction ahead (temporary)" },
+  "warning-031-05": { name: "Length restriction ahead (temporary)" },
+  "warning-031-06": { name: "Height restriction ahead (temporary)" },
+  "warning-035-02": { name: "Priority road with crossroad ahead" },
+  "warning-035-03": { name: "Priority crossroad ahead" },
+  "warning-035-06": { name: "Side road junction ahead" },
+  "warning-035-07": { name: "Staggered junctions ahead" },
+  "warning-038-07": { name: "Agricultural vehicles ahead" },
+  "regulatory-009-04": { name: "Pass on the side shown" },
+  "regulatory-009-05": { name: "Proceed in the direction shown" },
+  "regulatory-012-02": { name: "No overtaking by goods vehicles" },
+  "regulatory-012-03": { name: "No hooter" },
+  "regulatory-013-01": { name: "Bus lane reservation" },
+  "regulatory-014-01": { name: "Parking reservation" },
+  "regulatory-014-06": { name: "Time-limited parking" },
+  "regulatory-017-03": { name: "End of mass restriction" },
+  "regulatory-017-04": { name: "End of lane reservation" },
 };
 
 function deriveName(raw: RawSign): string {

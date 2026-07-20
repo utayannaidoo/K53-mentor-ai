@@ -54,6 +54,16 @@ What users praise elsewhere: questions "very similar to the real test", per-sect
 8. **Voice-read questions** (accessibility + studying in taxis; Web Speech API already used for flashcard recall).
 9. Driver's-side expansion: per-manoeuvre penalty-point tables and observation-sequence checklists in the yard-test modules.
 
+## 4b. Sprint log
+
+| Sprint | Result |
+|---|---|
+| Signs — junctions, restriction warnings, temporary twins, reservations | +55 signs (27 hand-authored + 28 auto-generated from newly verified names). Signs 332 → 387; verified sign names 56 → 84 of 439. Mock ceiling: code A 11.7 → 12.4, code 14 11.8 → 12.3. **Code 08 unchanged at 11.4 — it is rules-capped**, so the next signs sprint gains it nothing until rules grows. |
+
+Two guards fired during this sprint and both were fixed rather than relaxed:
+- The generated pack's difficulty had drifted to 83% "easy", because difficulty keyed off *"has a verified name"* as a proxy for *"is a common sign"*. Verifying the long tail broke the proxy. Difficulty now keys off an explicit core-sign set, independent of naming progress (23/31/46 across the three bands).
+- The answer-position test counted questions served only once in its denominator, so its pass rate fell as the bank grew. Among questions actually served twice, slot variety is 93%.
+
 ## 5. Content pipeline — how we out-volume competitors (target: 900+ questions, 500+ flashcards, 60+ scenarios)
 
 Competitors advertise "1000+ questions" but they're shallow rewrites of each other. Our edge: generate from **primary sources**, which are structured and enumerable.

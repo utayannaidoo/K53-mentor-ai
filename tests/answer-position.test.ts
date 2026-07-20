@@ -85,19 +85,22 @@ describe("served answer positions", () => {
     // pins every question to one slot forever, so a single question seen in two
     // different slots proves the shuffle ran.
     const slotsById = new Map<string, Set<number>>();
+    const servedCount = new Map<string, number>();
     for (let run = 0; run < 40; run++) {
       for (const q of sampleMockExam([], "8")) {
         const set = slotsById.get(q.id) ?? new Set<number>();
         set.add(q.correctIndex);
         slotsById.set(q.id, set);
+        servedCount.set(q.id, (servedCount.get(q.id) ?? 0) + 1);
       }
     }
-    const seenOften = [...slotsById.entries()].filter(([, s]) => s.size > 0);
-    expect(seenOften.length).toBeGreaterThan(100);
-    // Across 40 papers the overwhelming majority of repeatedly-served questions
-    // must have appeared in more than one slot.
-    const varied = seenOften.filter(([, s]) => s.size > 1).length;
-    expect(varied / seenOften.length).toBeGreaterThan(0.8);
+    // Only questions served more than once can possibly show two slots, so they
+    // are the only fair denominator. Counting single-serve questions made this
+    // ratio fall as the bank grew — a defect in the test, not in the shuffle.
+    const repeatable = [...servedCount.entries()].filter(([, n]) => n > 1).map(([id]) => id);
+    expect(repeatable.length).toBeGreaterThan(100);
+    const varied = repeatable.filter((id) => (slotsById.get(id)?.size ?? 0) > 1).length;
+    expect(varied / repeatable.length).toBeGreaterThan(0.8);
   });
 
   it("keeps the same option correct after shuffling", () => {

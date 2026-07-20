@@ -74,3 +74,17 @@ Signs described in words rather than shown, matching the existing text-based sig
 - **Level crossings**: X-shaped cross marks the crossing itself; flashing red = stop and wait even with no train visible (a second train may follow).
 - **Freeway/lane**: freeway-ends sign means the protections end; overhead red X closes that lane; climbing/passing lane ahead removes the reason to force a pass; exit numbers are unambiguous where place names aren't; distance boards.
 - **Restrictions**: a struck-through repeat cancels that restriction; otherwise a restriction runs until cancelled; a speed limit is a maximum for ideal conditions, never a target.
+
+## Junction-priority, restriction-warning, temporary and reservation batch
+
+Sources unchanged (SARTSM May 2012 is still current — re-checked July 2026, no new sign
+regulations). Items written from the catalogue meanings in `signs.catalog.json`; sign
+names newly verified for this batch were spot-checked against the rendered PNGs.
+
+- **Junction priority**: on a junction-warning triangle the *thicker* limb is the priority road. Thick-through-yours = you have priority with a lesser road crossing; thick-across = the crossing road has priority and you must be ready to give way. Also: side-road junction ahead, staggered junctions (two side roads close together, not opposite — a poor place to overtake).
+- **Warning of a restriction vs the restriction**: a red *triangle* carrying a height/width/length figure warns that a restriction is coming; the red *ring* is the prohibition itself and passing it is the offence. The manual treats them as separate signs.
+- **Temporary (yellow) twins**: the catalogue carries yellow versions of the surface-step, soft-shoulder, loose-stones and dimension warnings. Same legal force as the white version; yellow signals that conditions have changed from normal.
+- **Reservation signs**: a large **R** beside a vehicle symbol = that road, lane or area is *set aside for* the class shown (not prohibited to it). The yellow line drawn on the sign shows which side of the real line the reserved lane lies. Parking reservations may carry a time limit on the plate.
+- **De-restriction**: a struck-through repeat cancels the restriction (mass restriction ends, lane reservation ends). Restrictions otherwise run until cancelled.
+- **Other surface/visibility warnings**: drift (water across the road — cross slowly, test brakes after), reduced visibility/mist, narrow structure (bridge too narrow to pass freely), jetty or river bank close to the road, agricultural vehicles.
+- **Class-specific prohibitions**: no overtaking *by goods vehicles* (the symbol says who the restriction is aimed at); no hooter (protects hospitals and residential areas).

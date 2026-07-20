@@ -180,21 +180,56 @@ function distractors(
 }
 
 /**
- * Difficulty comes from the task and the sign, not from how big its category is.
+ * The signs a learner actually meets on an ordinary drive.
  *
- * Two things actually make one of these harder:
- *  - the form. Seeing the sign and picking its meaning is recognition; reading a
- *    meaning and recalling which sign it belongs to has no picture to lean on.
- *  - how common the sign is. The hand-verified set is the signs a learner meets
- *    on real roads; the rest of the catalogue is long-tail.
+ * Difficulty used to key off "does this sign have a hand-verified name", as a
+ * proxy for how common it is. That held while only the high-traffic signs were
+ * verified, and broke as the verified set grew to cover the long tail — a
+ * staggered-junction or jetty-edge sign is not easy just because someone got
+ * round to naming it. Being common is the thing that makes a sign easy, so
+ * that is what is encoded here, independently of naming progress.
+ */
+const CORE_SIGN_IDS: ReadonlySet<string> = new Set([
+  "regulatory-006-01", // stop
+  "regulatory-006-02", // yield
+  "regulatory-006-05", // pedestrian crossing (yield)
+  "regulatory-007-03", // traffic circle ahead
+  "regulatory-007-04", // pedestrian priority
+  "regulatory-008-01", // no entry
+  "regulatory-008-02", // one-way (left)
+  "regulatory-008-03", // one-way (right)
+  "regulatory-009-03", // speed limit
+  "regulatory-011-01", // no left turn
+  "regulatory-011-02", // no right turn
+  "regulatory-011-05", // no U-turn
+  "regulatory-011-07", // no parking
+  "regulatory-012-01", // no overtaking
+  "regulatory-022-01", // robot — red
+  "regulatory-022-03", // robot — amber
+  "regulatory-022-04", // robot — green
+  "warning-027-02", // gate / railway boom
+  "warning-027-04", // steep descent
+  "warning-027-05", // steep ascent
+  "warning-037-01", // pedestrian crossing ahead
+  "warning-037-02", // pedestrians ahead
+  "warning-037-03", // children ahead
+  "warning-037-04", // cyclists ahead
+  "warning-040-07", // railway crossing
+]);
+
+/**
+ * Difficulty comes from how common the sign is and what the question asks.
  *
  * This matters beyond labelling: a beginner's first session is sorted with
- * easyFirst(), so mis-grading these as hard would hide them exactly when a new
- * learner most needs approachable sign practice.
+ * easyFirst(), so grading the long tail as easy would put obscure signs in
+ * front of a learner who has not yet met a stop sign in the app — and grading
+ * everything hard would hide sign practice from them entirely.
  */
 function difficultyFor(sign: RoadSign, form: Form): 1 | 2 | 3 {
-  if (form === "name") return 1; // image plus a familiar name
-  return hasUsableName(sign) ? 1 : 2; // meaning: common sign vs long-tail one
+  if (CORE_SIGN_IDS.has(sign.id)) return 1; // met on every drive
+  // Long tail: naming it from the picture is recall against a crowded field;
+  // picking its meaning means separating four similar meanings from one category.
+  return form === "name" ? 2 : 3;
 }
 
 const CATEGORY_LABEL: Record<SignCategory, string> = {
