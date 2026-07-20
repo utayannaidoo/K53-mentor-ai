@@ -58,6 +58,7 @@ What users praise elsewhere: questions "very similar to the real test", per-sect
 
 | Sprint | Result |
 |---|---|
+| Rules — offence principles, plus a controls top-up | +55 (42 rules-group, 12 controls, 1 removed as a duplicate). Rules 131 → 149. Ceiling: code 08 11.4 → **12.9**, A 12.4 → 13.7, code 14 12.3 → 13.8. Controls was included because the rules work pushed past it and it became the cap at exactly 12.00 for code 08. The duplicate-prompt gate caught a restatement of an existing stopping-distance question; it was removed rather than reworded. |
 | Signs — junctions, restriction warnings, temporary twins, reservations | +55 signs (27 hand-authored + 28 auto-generated from newly verified names). Signs 332 → 387; verified sign names 56 → 84 of 439. Mock ceiling: code A 11.7 → 12.4, code 14 11.8 → 12.3. **Code 08 unchanged at 11.4 — it is rules-capped**, so the next signs sprint gains it nothing until rules grows. |
 
 Two guards fired during this sprint and both were fixed rather than relaxed:

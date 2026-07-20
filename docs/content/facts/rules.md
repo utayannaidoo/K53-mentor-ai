@@ -57,3 +57,28 @@ nothing. All items universal; none turns on a regulated numeric threshold.
 - Handbrake partly applied (warning light + burning smell); spongy brake pedal; pulling to one side under braking; steering free play; unlatched bonnet; windscreen chip in the driver's view.
 - Under-inflation makes steering vague, lengthens stopping and overheats the tyre; recheck wheel nuts after a roadside change; set the warning triangle well back; a loaded boot lifts the beam (use the levelling control); jump-lead order matters because the last connection sparks.
 - Rear fog lights only in genuinely poor visibility; cruise control not in traffic, wet or winding roads; block gear changes are fine when road speed suits the gear; holding high revs adds noise not progress; convex mirrors make vehicles look smaller and further away.
+
+## Rules sprint — offence principles
+
+Written to raise the binding section for every code. Offence *principles* only; specific
+fines, demerit values, tread depths and validity periods stay out, per the standing rule
+that a regulated number needs the regulation open beside it.
+
+- **Reckless vs negligent driving**: negligent falls short of the care a reasonable driver would take; reckless shows deliberate disregard for the danger created. It turns on state of mind, not outcome — no crash need occur.
+- **Refusing a breath or blood specimen** when lawfully required is itself an offence; it adds a charge rather than avoiding one.
+- **Racing / spinning on a public road** is an offence however empty the road appears.
+- **Failing to stop when lawfully directed** by a traffic officer is a separate offence from whatever prompted the stop. A driving licence must be produced on demand.
+- **Roadworthy certificate** certifies condition *at the time of examination* — the driver's continuing duty to keep the vehicle safe does not transfer to it. The **licence disc** must be readable from outside the vehicle.
+- **Learner supervision**: accompanied by a holder of a valid licence for that class, seated where they can assist.
+- **Obstruction**: driving unreasonably slowly so as to obstruct the normal flow can itself be an offence — judged against conditions, not only against the limit.
+- **Pavement driving**, **reversing on a freeway**, and carrying passengers in an open goods compartment (no restraint — occupants are ejected in a crash).
+- **Pedestrians** without a sidewalk should walk facing oncoming traffic. **Cyclists** ride single file where riding abreast would obstruct, keeping as far left as is safe.
+- **Solid centre line**: may be crossed only so far as necessary to reach an entrance, and only when safe — access is the recognised exception, not overtaking.
+- **Hooter** is a warning instrument; use for greeting or annoyance is a nuisance offence.
+- **AARTO mechanics** (dates in facts/aarto.md, re-verified 19 Jul 2026): points attach to the *driver's* record and follow them between vehicles; paying an infringement is an admission, so it settles the fine but does not remove the points.
+
+### Intersections, parking, following distance, hazard awareness
+- Single-lane bridge with no priority sign — whoever can wait more safely yields. Slow and move over for an emergency vehicle stopped on the shoulder. Single flashing amber = proceed with caution, giving way as required. A green arrow with a red releases only that movement. Right-hand rule is the fallback at a wholly uncontrolled intersection. Never overtake a vehicle stopped at a pedestrian crossing. A turning vehicle yields to one going straight. A worn stop line does not remove the duty to stop — the sign creates it.
+- Parking: facing against traffic at night misaims your reflectors; hydrants; straddling two bays; leaving the engine running unattended; parking opposite parked cars on a narrow street can obstruct emergency access.
+- Following distance: the assured-clear-distance principle (safe speed is set by sight distance, whatever the limit says); the rule is in seconds because a time gap scales with speed; "overdriving your headlights"; the wet gap grows because *braking* distance grows, not reaction.
+- Hazard: rest is the only remedy for fatigue; a micro-sleep goes unnoticed by the driver; legally obtained medicine can still impair; hands-free phones divide attention (the conversation is the risk); the first minutes of rain after a dry spell are the most slippery; aquaplaning — ease off, hold straight, no hard braking.
