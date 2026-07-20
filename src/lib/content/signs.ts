@@ -162,6 +162,31 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-014-06": { name: "Time-limited parking" },
   "regulatory-017-03": { name: "End of mass restriction" },
   "regulatory-017-04": { name: "End of lane reservation" },
+
+  // Batch 7 — danger plates, information signs and the remaining reservation
+  // variants. Danger-plate chevrons spot-checked against the rendered PNG.
+  //
+  // Deliberately left unnamed: the 040-02/03 and 040-05/06 pairs, whose
+  // catalogue meanings are word-for-word identical (they are the left/right
+  // variants of one marker), and the 013-02..05 reservation set, which differs
+  // only by which side of the yellow line the lane sits. Two quiz answers that
+  // differ by a detail the meaning does not state make a question a coin toss.
+  "warning-029-03": { name: "General warning" },
+  "warning-039-03": { name: "Construction vehicles ahead" },
+  "warning-040-01": { name: "Danger plate — pass this side" },
+  "warning-040-04": { name: "Overhead structure marker" },
+  "information-043-01": { name: "Freeway exit countdown markers" },
+  "information-043-03": { name: "No through road" },
+  "information-043-05": { name: "Priority road" },
+  "information-044-03": { name: "Modal transfer point" },
+  "information-044-04": { name: "Information centre" },
+  "regulatory-009-02": { name: "Alternative route to toll road" },
+  "regulatory-010-04": { name: "Heavy goods vehicles only" },
+  "regulatory-013-06": { name: "Reserved stop zone" },
+  "regulatory-013-07": { name: "Temporary lane reservation" },
+  "regulatory-014-02": { name: "Parking for the class shown" },
+  "regulatory-014-04": { name: "Temporary parking reservation" },
+  "marking-081-01": { name: "Exclusive parking bay" },
 };
 
 function deriveName(raw: RawSign): string {

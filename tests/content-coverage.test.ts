@@ -17,13 +17,13 @@ import type { CategoryId } from "@/types";
  * catch accidental loss, not to force us to keep bad questions.
  */
 const MIN_QUESTIONS: Record<CategoryId, number> = {
-  signs: 387,
-  rules: 149,
-  controls: 149,
-  hazard_awareness: 78,
-  intersections: 80,
-  parking: 59,
-  following_distance: 54,
+  signs: 418,
+  rules: 170,
+  controls: 184,
+  hazard_awareness: 83,
+  intersections: 86,
+  parking: 63,
+  following_distance: 56,
 };
 
 const MIN_FLASHCARDS: Record<CategoryId, number> = {
