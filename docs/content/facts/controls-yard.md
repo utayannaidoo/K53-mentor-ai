@@ -48,3 +48,16 @@ questions per paper and code 08 had only 45 to draw on. All items universal (no 
 _Not covered here on purpose:_ items turning on a regulated threshold (minimum tread depth,
 equipment that must legally be carried). Those belong with the rules pack against a cited
 regulation, per the roadmap's note to verify regulated facts before publishing.
+
+## Safety systems, skid control, night/wet driving and emergencies
+
+Written for the "Controls only" section drill rather than the mock ceiling — controls has
+had the most headroom of the three sections since the rules sprint, so depth here buys
+distinct drills (8 questions each), not distinct papers.
+
+- **Assistance systems**: ABS stops wheels locking so you can steer while braking hard — it may slightly *lengthen* stopping distance on gravel or snow, which is the trade for steering. Stability control brakes individual wheels to pull the car back into line. All of these work inside the grip that already exists; none makes an unsafe speed safe. An airbag supplements the seatbelt and is dangerous without it. Reversing cameras and sensors miss anything approaching from the side.
+- **Skids** are caused by asking more of the tyres than the surface can give. Rear slide: ease off, look where you want to go, steer gently into the slide. Front push (understeer): ease off *and* reduce steering angle. Progressive inputs are the whole defence.
+- **Night**: dip main beam for oncoming traffic *and* when following closely; front fog lights throw a wide low beam under the fog instead of reflecting off it; dirty lenses cut output badly; interior lights and a bright dash destroy night vision.
+- **Wet**: tread grooves exist to channel water, so wet grip collapses long before a tyre looks worn; smearing wipers are near-blindness in glare; demister plus air conditioning dries the air and clears mist fastest; test and dry brakes after standing water.
+- **Emergencies**: engine-bay smoke — stop, switch off, get clear, do **not** open the bonnet fully (it feeds air to the fire). Stalled in rising water — get out and to high ground immediately. Broken down on a busy road — everyone out and well off the road, behind a barrier if there is one. A warning triangle only works if it is reachable and set well back.
+- **Everyday**: wrong fuel — do not start the engine. Check tyre pressures cold. The spare's pressure and the jack/spanner are the most-neglected pre-trip items. Red dashboard warnings mean stop now; amber means get it checked. A handbrake with excessive travel needs adjustment. Never adjust the seat while moving. Set door mirrors so their view just meets the interior mirror's, minimising the blind gap. A steady pull to one side is pressure or alignment. A rear-facing child seat must never sit in front of an active airbag.
