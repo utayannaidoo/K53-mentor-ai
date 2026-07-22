@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { X, Check, ChevronLeft, ChevronRight, CornerDownRight, Sparkles, Target, Zap } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Paywall } from "@/components/app/paywall";
@@ -44,7 +44,7 @@ export function QuestionPractice() {
   const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : STUDY_SESSION_SIZE;
   const limit = Math.max(1, Math.min(remaining, STUDY_SESSION_SIZE));
 
-  const [queue] = React.useState<Question[]>(() => {
+  function buildQueue(): Question[] {
     const base = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
     const pool = forCode(base, state.onboarding?.vehicleCode);
     let ordered = orderByFreshness(pool, state.attempts);
@@ -53,7 +53,9 @@ export function QuestionPractice() {
       ordered = easyFirst(ordered);
     }
     return takeDistinctSubjects(ordered, limit).map(withShuffledOptions);
-  });
+  }
+
+  const [queue, setQueue] = React.useState<Question[]>(buildQueue);
   const startRef = React.useRef(Date.now());
   const cpStartRef = React.useRef(state.cp);
   const [i, setI] = React.useState(0);
@@ -61,6 +63,21 @@ export function QuestionPractice() {
     new Array(queue.length).fill(null),
   );
   const sessionRecorded = React.useRef(false);
+
+  // Start a fresh session in place. "Practice more" used to link back to this
+  // same route, but navigating to the URL you're already on doesn't remount
+  // the component — so it looked dead. Rebuild the queue from current state
+  // (orderByFreshness now deprioritises the questions just answered) and reset
+  // the per-session state instead.
+  function restart() {
+    const next = buildQueue();
+    setQueue(next);
+    setAnswers(new Array(next.length).fill(null));
+    startRef.current = Date.now();
+    cpStartRef.current = state.cp;
+    sessionRecorded.current = false;
+    setI(0);
+  }
 
   if (Number.isFinite(cap.cap) && cap.used >= cap.cap) {
     return (
@@ -102,6 +119,7 @@ export function QuestionPractice() {
         total={queue.length}
         seconds={seconds}
         cpEarned={state.cp - cpStartRef.current}
+        onPracticeMore={restart}
         trialNearEnd={state.tier === "free" && Number.isFinite(cap.cap) && cap.cap - cap.used <= 2}
         recap={{
           mode: "questions",
@@ -318,6 +336,7 @@ function Summary({
   seconds,
   cpEarned,
   recap,
+  onPracticeMore,
   trialNearEnd,
 }: {
   correct: number;
@@ -325,6 +344,7 @@ function Summary({
   seconds: number;
   cpEarned: number;
   recap: SessionRecapData;
+  onPracticeMore: () => void;
   trialNearEnd?: boolean;
 }) {
   const acc = total ? Math.round((correct / total) * 100) : 0;
@@ -344,9 +364,9 @@ function Summary({
           </div>
         )}
         <div className="mt-6 flex justify-center gap-3">
-          <Link href="/study/questions" className={cn(buttonVariants({ variant: "outline" }))}>
+          <Button variant="outline" onClick={onPracticeMore}>
             Practice more
-          </Link>
+          </Button>
           <Link href="/dashboard" className={cn(buttonVariants())}>
             Back to dashboard
           </Link>
