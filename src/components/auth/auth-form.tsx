@@ -14,7 +14,7 @@ import { track } from "@/lib/analytics";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
-  const { signInLocal, isAuthed, ready } = useStudyStore();
+  const { signInLocal } = useStudyStore();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -42,13 +42,6 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   // Preserve the plan choice when switching between the login / signup links.
   const [linkQuery, setLinkQuery] = React.useState("");
   React.useEffect(() => setLinkQuery(window.location.search), []);
-
-  // Already signed in — hand off to the post-auth destination (checkout if a
-  // plan was chosen, otherwise the router that decides onboarding vs dashboard).
-  React.useEffect(() => {
-    if (ready && isAuthed) router.replace(postAuthDest());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ready, isAuthed, router]);
 
   // A referral link (/signup?ref=CODE) parks the code until the account
   // exists; the study store claims it right after the first sign-in.
