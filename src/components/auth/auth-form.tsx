@@ -20,6 +20,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [password, setPassword] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // Signup succeeded but Supabase requires email confirmation before a
+  // session exists — show the "check your inbox" panel instead of redirecting
+  // into an app the middleware would immediately bounce back to /login.
+  const [awaitingConfirmation, setAwaitingConfirmation] = React.useState(false);
 
   // Landing pricing buttons arrive as /signup?plan=…&track=…&cycle=…. Carry that
   // choice through auth so the user lands straight in that plan's checkout; the
@@ -71,12 +75,30 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     // Production path: real Supabase auth when configured.
     const supabase = createClient();
     if (supabase) {
-      const { error: authError } =
+      const { data, error: authError } =
         mode === "signup"
-          ? await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
+          ? await supabase.auth.signUp({
+              email,
+              password,
+              options: {
+                data: { full_name: name },
+                // The confirmation link lands on our callback, which exchanges
+                // the code and forwards to the post-auth destination — same
+                // pattern as the Google OAuth redirect below.
+                emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthDest())}`,
+              },
+            })
           : await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
         setError(authError.message);
+        setLoading(false);
+        return;
+      }
+      // Email confirmation is on: the account exists but there's no session
+      // yet, so entering the app now would just bounce off the middleware.
+      if (mode === "signup" && !data.session) {
+        track("signup_completed", { method: "password" });
+        setAwaitingConfirmation(true);
         setLoading(false);
         return;
       }
@@ -106,6 +128,25 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       },
     });
     if (oauthError) setError(oauthError.message);
+  }
+
+  if (awaitingConfirmation) {
+    return (
+      <div className="text-center">
+        <h1 className="font-display text-2xl font-semibold tracking-tight">Check your email</h1>
+        <p className="mt-2 text-sm text-muted-foreground">
+          We&apos;ve sent a confirmation link to{" "}
+          <span className="font-medium text-foreground">{email}</span>. Click it to activate
+          your account, then log in.
+        </p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Already confirmed?{" "}
+          <Link href={`/login${linkQuery}`} className="font-medium text-primary hover:underline">
+            Log in
+          </Link>
+        </p>
+      </div>
+    );
   }
 
   return (

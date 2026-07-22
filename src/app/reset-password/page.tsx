@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
-import { SITE_URL } from "@/lib/constants";
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = React.useState("");
@@ -23,7 +22,10 @@ export default function ResetPasswordPage() {
       await supabase.auth.resetPasswordForEmail(email, {
         // Land on the callback (which establishes the recovery session) then
         // forward to the page where the user actually sets a new password.
-        redirectTo: `${SITE_URL}/auth/callback?next=/reset-password/update`,
+        // Built from the page's own origin — same reasoning as the checkout
+        // callback: a stale NEXT_PUBLIC_SITE_URL must never send the reset
+        // link to a different deployment than the one the user is on.
+        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password/update`,
       });
     }
     // Brief delay so the action feels real in demo mode.

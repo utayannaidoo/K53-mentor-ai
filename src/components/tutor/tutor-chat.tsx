@@ -482,7 +482,11 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                 </Button>
               </form>
               <p className="mt-2 text-center text-2xs text-muted-foreground">
-                {cap.cap === Infinity ? "Unlimited tutor messages" : `${Math.max(0, cap.cap - cap.used)} of ${cap.cap} free messages left today`}
+                {cap.cap === Infinity
+                  ? "Unlimited tutor messages"
+                  : state.tier === "free"
+                    ? `${Math.max(0, cap.cap - cap.used)} of ${cap.cap} free messages left`
+                    : `${Math.max(0, cap.cap - cap.used)} of ${cap.cap} messages left today`}
               </p>
             </>
           )}
