@@ -29,7 +29,8 @@ import type { SubscriptionTier, VehicleClass } from "@/types";
 function BillingInner() {
   const sp = useSearchParams();
   const router = useRouter();
-  const { state, setTier, setVehicleClass, updateOnboarding, refreshAccount } = useStudyStore();
+  const { state, hasOnboarded, setTier, setVehicleClass, updateOnboarding, refreshAccount } =
+    useStudyStore();
   const [banner, setBanner] = React.useState<string | null>(
     sp.get("status") === "success" ? "Payment received — activating your plan…" : null,
   );
@@ -51,10 +52,13 @@ function BillingInner() {
       if (tier && tier !== "free") {
         setBanner("Payment complete — taking you to your study plan…");
         trackEvent("plan_activated", { tier });
-        // Hand off to the post-auth router, which sends first-timers into
-        // onboarding and everyone else to their dashboard.
+        // A returning user who just changed plans is already signed in and
+        // onboarded — send them straight back into the app. Only a brand-new
+        // payer who hasn't onboarded yet needs the /continue router (which
+        // hands first-timers into onboarding/diagnostic). Routing an existing
+        // user through /continue is what could bounce a plan change to /login.
         setTimeout(() => {
-          if (!cancelled) router.push("/continue");
+          if (!cancelled) router.push(hasOnboarded ? "/dashboard" : "/continue");
         }, 1600);
         return true;
       }

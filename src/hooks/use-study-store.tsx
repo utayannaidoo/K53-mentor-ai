@@ -256,10 +256,22 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     if (!supabase) return;
     let cancelled = false;
 
-    const hydrate = async (user: import("@supabase/supabase-js").User | null) => {
+    const hydrate = async (
+      user: import("@supabase/supabase-js").User | null,
+      event: import("@supabase/supabase-js").AuthChangeEvent,
+    ) => {
       if (!user) {
-        setState((s) => (s.profile ? { ...s, profile: null } : s));
-        setAccountHydrated(true); // signed out — nothing to wait for
+        // A transient null user (Supabase's single-use refresh token racing
+        // between the middleware and this client after a full-page return —
+        // e.g. coming back from the Paystack redirect on a plan change) must
+        // NOT be read as a logout. Clearing the profile here is what made a
+        // plan change look like a sign-out. Only an explicit SIGNED_OUT ends
+        // the session; otherwise keep the cached profile and let the session
+        // cookies remain the source of truth.
+        if (event === "SIGNED_OUT") {
+          setState((s) => (s.profile ? { ...s, profile: null } : s));
+        }
+        setAccountHydrated(true); // nothing to wait for
         return;
       }
       // A (re)sign-in is in flight: hold routing until the account lands.
@@ -294,9 +306,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       }
     };
 
-    supabase.auth.getUser().then(({ data }) => hydrate(data.user));
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
-      hydrate(session?.user ?? null);
+    supabase.auth.getUser().then(({ data }) => hydrate(data.user, "INITIAL_SESSION"));
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      hydrate(session?.user ?? null, event);
     });
 
     return () => {
