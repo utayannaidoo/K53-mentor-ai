@@ -45,7 +45,7 @@ export function FlashcardDeck() {
   // One session is at most STUDY_SESSION_SIZE cards; the daily cap allows N sessions.
   const sessionLimit = Math.min(remaining, STUDY_SESSION_SIZE);
 
-  const [queue] = React.useState(() =>
+  const [queue, setQueue] = React.useState(() =>
     selectFlashcardQueue(state, {
       categoryId: categoryParam,
       limit: sessionLimit,
@@ -57,6 +57,22 @@ export function FlashcardDeck() {
   const [flipped, setFlipped] = React.useState(false);
   const [reviewed, setReviewed] = React.useState(0);
   const [againCount, setAgainCount] = React.useState(0);
+
+  // Start a fresh session in place. "Review more" used to be a link back to
+  // this same route, but navigating to the URL you're already on doesn't
+  // remount the deck — so it looked dead. Rebuild the queue from current state
+  // (reviewed cards now carry future due dates; unseen cards remain) and reset
+  // the per-session counters instead.
+  function restart() {
+    setQueue(selectFlashcardQueue(state, { categoryId: categoryParam, limit: sessionLimit }));
+    startRef.current = Date.now();
+    cpStartRef.current = state.cp;
+    setI(0);
+    setFlipped(false);
+    setReviewed(0);
+    setAgainCount(0);
+    setAttempt("");
+  }
   // Active recall: the learner commits to an answer (typed or dictated) before
   // the reveal, so the self-rating is honest. Always optional — never a gate.
   const [attempt, setAttempt] = React.useState("");
@@ -91,6 +107,7 @@ export function FlashcardDeck() {
         reviewed={reviewed}
         seconds={seconds}
         cpEarned={state.cp - cpStartRef.current}
+        onReviewMore={restart}
         trialNearEnd={state.tier === "free" && Number.isFinite(cap.cap) && cap.cap - cap.used <= 2}
         recap={{
           mode: "flashcards",
@@ -293,12 +310,14 @@ function Completion({
   seconds,
   cpEarned,
   recap,
+  onReviewMore,
   trialNearEnd,
 }: {
   reviewed: number;
   seconds: number;
   cpEarned: number;
   recap: SessionRecapData;
+  onReviewMore: () => void;
   trialNearEnd?: boolean;
 }) {
   return (
@@ -309,9 +328,9 @@ function Completion({
         description={`You reviewed ${reviewed} ${reviewed === 1 ? "card" : "cards"} in ${formatDuration(seconds)}. Your mastery and readiness just moved.`}
         action={
           <div className="flex gap-3">
-            <Link href="/study/flashcards" className={cn(buttonVariants({ variant: "outline" }))}>
+            <Button variant="outline" onClick={onReviewMore}>
               Review more
-            </Link>
+            </Button>
             <Link href="/dashboard" className={cn(buttonVariants())}>
               Dashboard
             </Link>
