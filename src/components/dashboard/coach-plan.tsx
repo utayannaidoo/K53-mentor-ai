@@ -105,7 +105,9 @@ export function CoachPlan({
         </div>
       )}
 
-      <ul className="mt-5 grid gap-2.5 sm:grid-cols-3">
+      {/* grid-cols-1 (minmax(0,1fr)) — an auto column would size to the widest
+          nowrap subtitle and overflow the card on phones. */}
+      <ul className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
         {tasks.map((task, idx) => {
           const done = doneMap[task.id];
           const locked = (task.premium && !scenariosUnlocked) || (planLocked && idx > 0);
