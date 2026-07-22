@@ -12,6 +12,7 @@ import {
   type VehicleClass,
 } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
+import { isSupabaseConfigured } from "@/lib/env";
 
 export function PricingSection({
   withHeading = true,
@@ -161,8 +162,20 @@ export function PricingSection({
       </div>
 
       <p className="mx-auto mt-8 max-w-xl text-center text-xs text-muted-foreground">
-        Prices in ZAR. Billing is payment-ready (Paystack) but not charged in this demo — choosing a
-        paid plan simply unlocks the features so you can try them.
+        {isSupabaseConfigured ? (
+          <>
+            Prices in ZAR, billed securely through Paystack. Cancel anytime — with a{" "}
+            <Link href="/refunds" className="underline hover:text-foreground">
+              7-day money-back guarantee
+            </Link>{" "}
+            on your first payment.
+          </>
+        ) : (
+          <>
+            Prices in ZAR. Billing is payment-ready (Paystack) but not charged in this demo —
+            choosing a paid plan simply unlocks the features so you can try them.
+          </>
+        )}
       </p>
     </section>
   );
