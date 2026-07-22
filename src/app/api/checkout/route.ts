@@ -14,6 +14,30 @@ import { initializeTransaction } from "@/lib/paystack/client";
 
 export const runtime = "nodejs";
 
+/**
+ * Where Paystack sends the buyer back after hosted checkout. Prefer the
+ * request's own origin so a checkout started on a given domain always returns
+ * to that same domain — a checkout begun on production lands back on
+ * production, a preview returns to the preview. This makes the callback
+ * immune to a stale or preview-pointed `NEXT_PUBLIC_SITE_URL`, which had been
+ * silently bouncing production buyers onto a preview deployment (where the
+ * post-payment `verify` ran against the wrong session and 403'd). The Origin
+ * header on a browser fetch is set by the browser, not user script, so it is
+ * safe to trust here; this only controls a post-payment redirect, never the
+ * entitlement grant (that stays webhook-only). Falls back to the forwarded
+ * host, then the configured SITE_URL.
+ */
+function callbackOrigin(req: Request): string {
+  const origin = req.headers.get("origin");
+  if (origin && /^https?:\/\//i.test(origin)) return origin;
+  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
+  if (host) {
+    const proto = req.headers.get("x-forwarded-proto") ?? "https";
+    return `${proto}://${host}`;
+  }
+  return SITE_URL;
+}
+
 const schema = z.object({
   plan: z.enum(["premium", "premium_plus", "tutor_topup"]),
   track: z.enum(["car", "bike_heavy"]).optional(),
@@ -110,6 +134,8 @@ export async function POST(req: Request) {
   }
   // Paystack needs an email even in demo-without-auth; it's never charged.
   const email = userEmail ?? "guest@k53mentor.ai";
+  // Return the buyer to whatever domain they checked out from (see helper).
+  const returnOrigin = callbackOrigin(req);
 
   try {
     // ── One-off tutor top-up (Premium Plus perk) ─────────────────────────────
@@ -120,7 +146,7 @@ export async function POST(req: Request) {
       const { authorization_url } = await initializeTransaction({
         email,
         amount: TUTOR_TOPUP_PRICE * 100, // ZAR → cents
-        callback_url: `${SITE_URL}/tutor?topup=success`,
+        callback_url: `${returnOrigin}/tutor?topup=success`,
         metadata: {
           kind: "tutor_topup",
           credits: String(TUTOR_TOPUP_CREDITS),
@@ -151,7 +177,7 @@ export async function POST(req: Request) {
       email,
       amount: amountZar * 100,
       plan: planCode,
-      callback_url: `${SITE_URL}/account/billing?status=success&plan=${parsed.plan}`,
+      callback_url: `${returnOrigin}/account/billing?status=success&plan=${parsed.plan}`,
       metadata: {
         kind: "subscription",
         plan: parsed.plan,
