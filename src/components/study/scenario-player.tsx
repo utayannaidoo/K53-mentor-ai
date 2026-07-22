@@ -13,7 +13,7 @@ import {
   Sparkles,
   Zap,
 } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Paywall } from "@/components/app/paywall";
@@ -37,14 +37,16 @@ export function ScenarioPlayer() {
   // together. Serving the whole pool (as this used to) replays every scenario
   // every session no matter how it is ordered; slicing without the rotation
   // would just hand out a random dozen and repeat some of them next time.
-  const [queue] = React.useState(() =>
-    orderScenariosByFreshness(
+  function buildQueue() {
+    return orderScenariosByFreshness(
       forCode(SCENARIOS, state.onboarding?.vehicleCode),
       state.scenarioAttempts,
     )
       .slice(0, STUDY_SESSION_SIZE)
-      .map((s) => ({ ...s, choices: shuffle(s.choices) })),
-  );
+      .map((s) => ({ ...s, choices: shuffle(s.choices) }));
+  }
+
+  const [queue, setQueue] = React.useState(buildQueue);
   const startRef = React.useRef(Date.now());
   const cpStartRef = React.useRef(state.cp);
   const [i, setI] = React.useState(0);
@@ -52,6 +54,20 @@ export function ScenarioPlayer() {
     new Array(queue.length).fill(null),
   );
   const sessionRecorded = React.useRef(false);
+
+  // Start a fresh session in place. A link back to this same route wouldn't
+  // remount the component, so rebuild the queue from current state
+  // (orderScenariosByFreshness deprioritises the scenarios just judged) and
+  // reset the per-session state instead.
+  function restart() {
+    const next = buildQueue();
+    setQueue(next);
+    setChosen(new Array(next.length).fill(null));
+    startRef.current = Date.now();
+    cpStartRef.current = state.cp;
+    sessionRecorded.current = false;
+    setI(0);
+  }
 
   if (!hasFeature(state.tier, "scenarios")) {
     return (
@@ -84,6 +100,7 @@ export function ScenarioPlayer() {
         correct={correctCount}
         total={queue.length}
         cpEarned={state.cp - cpStartRef.current}
+        onPlayMore={restart}
         recap={{
           mode: "scenarios",
           correct: correctCount,
@@ -273,11 +290,13 @@ function Summary({
   total,
   cpEarned,
   recap,
+  onPlayMore,
 }: {
   correct: number;
   total: number;
   cpEarned: number;
   recap: SessionRecapData;
+  onPlayMore: () => void;
 }) {
   return (
     <div className="mx-auto max-w-md py-10">
@@ -295,6 +314,9 @@ function Summary({
           </div>
         )}
         <div className="mt-6 flex justify-center gap-3">
+          <Button variant="outline" onClick={onPlayMore}>
+            New scenarios
+          </Button>
           <Link href="/dashboard" className={cn(buttonVariants())}>
             Back to dashboard
           </Link>
