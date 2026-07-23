@@ -24,6 +24,9 @@ export async function sendEmail(msg: EmailMessage): Promise<boolean> {
   try {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
+      // A hung email API must not stall the caller (webhook / cron) — callers
+      // already treat false as "not sent" and move on.
+      signal: AbortSignal.timeout(10_000),
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",

@@ -12,7 +12,7 @@ import { Paywall } from "@/components/app/paywall";
 import { TrialMeter } from "@/components/app/trial-meter";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate, formatZar } from "@/lib/utils";
-import { TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
+import { hasFeature, TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
 import { defaultTutorPrompt, type TutorContextType } from "@/lib/ai/tutor-prompt";
 import { buildLearnerProfile } from "@/lib/ai/learner-profile";
 import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
@@ -128,6 +128,10 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   const messages = thread?.messages ?? [];
   const cap = usageFor("tutor");
   const blocked = !cap.allowed;
+  // Image (vision) input is a paid capability — mirror the server gate in
+  // /api/tutor so free-tier learners aren't offered a control that the server
+  // would ignore. The scanner feature is the same gate used across the app.
+  const canAttachImage = hasFeature(state.tier, "scanner");
 
   React.useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
@@ -433,38 +437,42 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                 }}
                 className="flex items-center gap-2"
               >
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = "";
-                    if (!file) return;
-                    try {
-                      const image = await fileToScaledBase64(file);
-                      setPendingImage({
-                        image,
-                        previewUrl: `data:${image.mediaType};base64,${image.data}`,
-                      });
-                      setImageError(null);
-                    } catch {
-                      setImageError(
-                        "That photo couldn't be read — try a different image (JPG or PNG works best).",
-                      );
-                    }
-                  }}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={() => fileRef.current?.click()}
-                  aria-label="Attach a photo"
-                >
-                  <ImagePlus className="h-4 w-4" />
-                </Button>
+                {canAttachImage && (
+                  <>
+                    <input
+                      ref={fileRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        e.target.value = "";
+                        if (!file) return;
+                        try {
+                          const image = await fileToScaledBase64(file);
+                          setPendingImage({
+                            image,
+                            previewUrl: `data:${image.mediaType};base64,${image.data}`,
+                          });
+                          setImageError(null);
+                        } catch {
+                          setImageError(
+                            "That photo couldn't be read — try a different image (JPG or PNG works best).",
+                          );
+                        }
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={() => fileRef.current?.click()}
+                      aria-label="Attach a photo"
+                    >
+                      <ImagePlus className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
                 <Input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}

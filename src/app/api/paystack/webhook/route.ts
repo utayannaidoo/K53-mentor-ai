@@ -62,56 +62,81 @@ export async function POST(req: Request) {
   if (ledgerError?.code === "23505") {
     return Response.json({ received: true, duplicate: true });
   }
+  if (ledgerError) {
+    // The dedup state is unknown — applying anyway could double-grant on a
+    // redelivery. Fail so Paystack retries once the ledger is reachable.
+    console.error("paystack webhook: ledger insert failed", payload.event, ledgerError.message);
+    return Response.json({ error: "Ledger unavailable" }, { status: 500 });
+  }
 
-  switch (payload.event) {
-    case "charge.success": {
-      // Shared with the callback verify route — one grant path, however the
-      // charge is confirmed first. The ledger insert above makes it once-only.
-      await applyChargeSuccess(admin, payload.data as ChargeSuccessData);
-      break;
-    }
-
-    case "invoice.payment_failed": {
-      // A renewal charge failed. Paystack keeps retrying — mark the row
-      // past_due (a grace state the entitlement check still honours) and
-      // nudge the learner. The hard cutoff is subscription.disable, which
-      // Paystack sends when it gives up.
-      const data = payload.data as {
-        customer?: { customer_code?: string; email?: string; first_name?: string | null };
-      };
-      const customerCode = data.customer?.customer_code;
-      if (!customerCode) break;
-      const { data: row } = await admin
-        .from("subscriptions")
-        .update({ status: "past_due" })
-        .eq("provider_customer_id", customerCode)
-        .select("tier")
-        .maybeSingle();
-      const tier = (row as { tier?: string } | null)?.tier;
-      if (isEmailConfigured && data.customer?.email && (tier === "premium" || tier === "premium_plus")) {
-        const nudge = buildPaymentFailedEmail({
-          firstName: data.customer.first_name ?? "",
-          planName: PLAN_MAP[tier].name,
-        });
-        await sendEmail({ to: data.customer.email, ...nudge }).catch(() => {});
+  try {
+    switch (payload.event) {
+      case "charge.success": {
+        // Shared with the callback verify route — one grant path, however the
+        // charge is confirmed first. The ledger insert above makes it once-only.
+        await applyChargeSuccess(admin, payload.data as ChargeSuccessData);
+        break;
       }
-      break;
-    }
 
-    case "subscription.disable": {
-      const data = payload.data as SubscriptionEventData;
-      const customerCode = data.customer?.customer_code;
-      if (!customerCode) break;
-      await admin
-        .from("subscriptions")
-        .update({ tier: "free", status: "canceled" })
-        .eq("provider_customer_id", customerCode);
-      break;
-    }
+      case "invoice.payment_failed": {
+        // A renewal charge failed. Paystack keeps retrying — mark the row
+        // past_due (a grace state the entitlement check still honours) and
+        // nudge the learner. The hard cutoff is subscription.disable, which
+        // Paystack sends when it gives up.
+        const data = payload.data as {
+          customer?: { customer_code?: string; email?: string; first_name?: string | null };
+        };
+        const customerCode = data.customer?.customer_code;
+        if (!customerCode) break;
+        const { data: row, error } = await admin
+          .from("subscriptions")
+          .update({ status: "past_due" })
+          .eq("provider_customer_id", customerCode)
+          .select("tier")
+          .maybeSingle();
+        if (error) throw new Error(`past_due update failed: ${error.message}`);
+        const tier = (row as { tier?: string } | null)?.tier;
+        if (isEmailConfigured && data.customer?.email && (tier === "premium" || tier === "premium_plus")) {
+          const nudge = buildPaymentFailedEmail({
+            firstName: data.customer.first_name ?? "",
+            planName: PLAN_MAP[tier].name,
+          });
+          await sendEmail({ to: data.customer.email, ...nudge }).catch(() => {});
+        }
+        break;
+      }
 
-    default:
-      // Unhandled event types are acknowledged so Paystack stops retrying them.
-      break;
+      case "subscription.disable": {
+        const data = payload.data as SubscriptionEventData;
+        const customerCode = data.customer?.customer_code;
+        if (!customerCode) break;
+        const { error } = await admin
+          .from("subscriptions")
+          .update({ tier: "free", status: "canceled" })
+          .eq("provider_customer_id", customerCode);
+        if (error) throw new Error(`downgrade failed: ${error.message}`);
+        break;
+      }
+
+      default:
+        // Unhandled event types are acknowledged so Paystack stops retrying them.
+        break;
+    }
+  } catch (err) {
+    // The event was NOT applied. Release the ledger row so Paystack's
+    // redelivery isn't treated as a duplicate — otherwise a transient DB
+    // error becomes a paid-but-never-granted account that only manual ops
+    // can fix. The delete is best-effort; if it also fails, the retry hits
+    // the 23505 path and ops must reconcile from the logs.
+    console.error("paystack webhook: apply failed, releasing ledger row", payload.event, err);
+    await admin
+      .from("payment_events")
+      .delete()
+      .eq("id", ledgerId)
+      .then(({ error }) => {
+        if (error) console.error("paystack webhook: ledger release failed", ledgerId, error.message);
+      });
+    return Response.json({ error: "Event could not be applied" }, { status: 500 });
   }
 
   return Response.json({ received: true });
