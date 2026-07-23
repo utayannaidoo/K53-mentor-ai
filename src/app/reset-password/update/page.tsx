@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { isPasswordValid } from "@/lib/auth/password";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 
 /**
  * Set a new password. Reached from the reset email via /auth/callback, which
@@ -25,8 +27,8 @@ export default function UpdatePasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (password.length < 8) {
-      setError("Use at least 8 characters.");
+    if (!isPasswordValid(password)) {
+      setError("Your password doesn't meet all the requirements below yet.");
       return;
     }
     if (password !== confirm) {
@@ -78,6 +80,7 @@ export default function UpdatePasswordPage() {
                 placeholder="••••••••"
                 autoComplete="new-password"
               />
+              <PasswordRequirements password={password} className="pt-1" />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="confirm">Confirm password</Label>
