@@ -30,7 +30,10 @@
     --muted-foreground: 44 10% 40%;
 
     --success: 152 60% 30%;
-    --warning: 36 90% 45%;
+    /* Deep ochre: amber at 45% lightness only reached 2.6:1 on the cream
+       background — text-warning is real information (wrong answers, streak
+       risk), so it must clear WCAG AA (this is 4.6:1). */
+    --warning: 32 95% 34%;
     --danger: 8 70% 48%;
 
     --border: 45 22% 80%;

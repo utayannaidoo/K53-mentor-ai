@@ -87,7 +87,8 @@ export default function StudyHubPage() {
             </Badge>
           </span>
         </div>
-        <ul className="mt-4 grid gap-2.5 sm:grid-cols-3">
+        {/* grid-cols-1 keeps the auto column clamped so truncate works (see coach-plan). */}
+        <ul className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
           {missions.map((task) => {
             const done = doneMap[task.id];
             const locked = task.premium && !scenariosUnlocked;
