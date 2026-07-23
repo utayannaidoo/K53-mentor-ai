@@ -11,6 +11,8 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/env";
 import { track } from "@/lib/analytics";
+import { isPasswordValid } from "@/lib/auth/password";
+import { PasswordRequirements } from "@/components/auth/password-requirements";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -24,6 +26,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   // session exists — show the "check your inbox" panel instead of redirecting
   // into an app the middleware would immediately bounce back to /login.
   const [awaitingConfirmation, setAwaitingConfirmation] = React.useState(false);
+
+  // Enforce the password policy on real signups only. Login must never apply it
+  // (existing accounts predate the rules), and demo mode's "any password works"
+  // promise stays intact when Supabase isn't configured.
+  const enforcePassword = mode === "signup" && isSupabaseConfigured;
 
   // Landing pricing buttons arrive as /signup?plan=…&track=…&cycle=…. Carry that
   // choice through auth so the user lands straight in that plan's checkout; the
@@ -69,8 +76,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setError(null);
+
+    // Catch a weak password here so the user gets inline guidance instead of a
+    // server-side rejection after the round-trip.
+    if (enforcePassword && !isPasswordValid(password)) {
+      setError("Your password doesn't meet all the requirements below yet.");
+      return;
+    }
+    setLoading(true);
 
     // Production path: real Supabase auth when configured.
     const supabase = createClient();
@@ -181,6 +195,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             )}
           </div>
           <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete={mode === "signup" ? "new-password" : "current-password"} />
+          {enforcePassword && <PasswordRequirements password={password} className="pt-1" />}
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
