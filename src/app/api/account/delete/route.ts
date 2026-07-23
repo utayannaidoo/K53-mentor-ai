@@ -49,7 +49,14 @@ export async function POST(req: Request) {
     .eq("user_id", user.id)
     .maybeSingle();
   const row = sub as { tier: string; status: string } | null;
-  if (row && row.tier !== "free" && (row.status === "active" || row.status === "past_due")) {
+  // Any live paid state must be cancelled first, otherwise Paystack keeps a
+  // payment method attached to an account that no longer exists. `trialing` is
+  // treated as live here to match the entitlement and checkout status checks.
+  if (
+    row &&
+    row.tier !== "free" &&
+    (row.status === "active" || row.status === "trialing" || row.status === "past_due")
+  ) {
     return Response.json({ error: "cancel_subscription_first" }, { status: 409 });
   }
 

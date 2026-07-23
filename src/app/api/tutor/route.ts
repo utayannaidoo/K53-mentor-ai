@@ -5,6 +5,7 @@ import { retrieveRelated } from "@/lib/ai/retrieve";
 import { chooseProvider, streamTutorReply } from "@/lib/ai/provider";
 import { clientIp, limitTutor, limitUserDaily } from "@/lib/ai/rate-limit";
 import { resolveEntitlement, spendTutorCredit } from "@/lib/billing/entitlements.server";
+import { hasFeature } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
 
@@ -73,7 +74,13 @@ export async function POST(req: Request) {
     }
   }
 
-  const { messages, context, profile, image } = parsed;
+  const { messages, context, profile } = parsed;
+  // Image (vision) input is a paid capability: /api/vision enforces a free
+  // allowance of 0 and the scanner is a paid feature. Enforce the same gate
+  // here so an attached photo can't buy free image analysis through the tutor
+  // route. The composer hides the attach control for tiers without it; this is
+  // the authoritative server-side backstop for a tampered client.
+  const image = hasFeature(ent.tier, "scanner") ? parsed.image : undefined;
   const lastUser = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
 
   // ── Grounding: anchored item + retrieved related facts + learner profile ───

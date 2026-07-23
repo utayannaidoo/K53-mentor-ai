@@ -106,6 +106,13 @@ const memBuckets = new Map<string, Bucket>();
 
 function memLimit(key: string, limit: number, windowMs: number): LimitResult {
   const now = Date.now();
+  // Buckets are keyed per IP/user/day and never expire on their own — sweep
+  // stale ones occasionally so a long-lived instance doesn't grow forever.
+  if (memBuckets.size > 10_000) {
+    for (const [k, v] of memBuckets) {
+      if (now > v.resetAt) memBuckets.delete(k);
+    }
+  }
   const b = memBuckets.get(key);
   if (!b || now > b.resetAt) {
     memBuckets.set(key, { count: 1, resetAt: now + windowMs });

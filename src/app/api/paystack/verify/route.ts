@@ -79,6 +79,12 @@ export async function POST(req: Request) {
     .from("payment_events")
     .insert({ id: ledgerId, type: "charge.success" });
   const alreadyApplied = ledgerError?.code === "23505";
+  if (ledgerError && !alreadyApplied) {
+    // Dedup state unknown — don't risk a double grant; the client polls and
+    // the webhook path will still land the entitlement.
+    console.error("paystack/verify: ledger insert failed", ledgerError.message);
+    return Response.json({ error: "Verification failed — please try again shortly." }, { status: 502 });
+  }
 
   if (!alreadyApplied) {
     // verify returns `plan` as an object or a bare code; normalise to the
@@ -92,7 +98,22 @@ export async function POST(req: Request) {
       metadata: meta,
       plan: planCode ? { plan_code: planCode } : null,
     };
-    await applyChargeSuccess(admin, data);
+    try {
+      await applyChargeSuccess(admin, data);
+    } catch (err) {
+      // Grant failed — release the ledger row so the webhook redelivery (or
+      // the buyer's next verify poll) can re-apply it instead of being
+      // swallowed as a duplicate.
+      console.error("paystack/verify: apply failed, releasing ledger row", err);
+      await admin
+        .from("payment_events")
+        .delete()
+        .eq("id", ledgerId)
+        .then(({ error }) => {
+          if (error) console.error("paystack/verify: ledger release failed", ledgerId, error.message);
+        });
+      return Response.json({ error: "Verification failed — please try again shortly." }, { status: 502 });
+    }
   }
 
   // Return the current tier so the client can reflect it without a reload.

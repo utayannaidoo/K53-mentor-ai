@@ -19,7 +19,14 @@ async function requireUser() {
 }
 
 /** GET → the caller's referral code + how many friends have joined through it. */
-export async function GET() {
+export async function GET(req: Request) {
+  const rl = await limitCheckout(clientIp(req));
+  if (!rl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
   const user = await requireUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const admin = createAdminClient();
@@ -40,7 +47,10 @@ const claimSchema = z.object({ code: z.string().min(4).max(16) });
 export async function POST(req: Request) {
   const rl = await limitCheckout(clientIp(req));
   if (!rl.success) {
-    return Response.json({ error: "rate_limited" }, { status: 429 });
+    return Response.json(
+      { error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
   }
   const user = await requireUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });

@@ -16,18 +16,30 @@ function secretKey(): string {
   return key;
 }
 
+/** Hard ceiling on any Paystack call — a hung upstream must not hold a serverless function open until the platform kills it. */
+const REQUEST_TIMEOUT_MS = 15_000;
+
 async function paystackFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
+    signal: init?.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     headers: {
       Authorization: `Bearer ${secretKey()}`,
       "Content-Type": "application/json",
       ...init?.headers,
     },
   });
-  const body = (await res.json()) as { status: boolean; message: string; data: T };
-  if (!res.ok || !body.status) {
-    throw new Error(`Paystack ${path}: ${body.message ?? res.statusText}`);
+  // A gateway outage can answer with HTML, not JSON — surface the HTTP status
+  // instead of a bare JSON.parse SyntaxError.
+  const raw = await res.text();
+  let body: { status: boolean; message?: string; data: T } | null = null;
+  try {
+    body = JSON.parse(raw) as { status: boolean; message?: string; data: T };
+  } catch {
+    body = null;
+  }
+  if (!res.ok || !body?.status) {
+    throw new Error(`Paystack ${path}: ${body?.message ?? `${res.status} ${res.statusText}`}`);
   }
   return body.data;
 }

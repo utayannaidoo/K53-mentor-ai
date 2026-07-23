@@ -25,6 +25,12 @@ export interface ChargeSuccessData {
  * truth shared by the webhook and the callback verify route, so a payment grants
  * exactly the same thing however it's confirmed first. Callers must guard this
  * with the `payment_events` ledger so it runs at most once per charge.
+ *
+ * THROWS when a money-bearing write fails, so the caller can release its
+ * ledger row and let Paystack's redelivery (or the buyer's retry) re-apply the
+ * grant. Cosmetic follow-ups (profile track sync, subscription reconciliation,
+ * receipt email) stay best-effort — a hiccup there must not un-grant a paid
+ * tier or trigger a retry loop.
  */
 export async function applyChargeSuccess(
   admin: SupabaseClient,
@@ -36,11 +42,12 @@ export async function applyChargeSuccess(
     // Renewal charges don't carry our checkout metadata. A successful plan
     // charge for a known customer clears any past_due grace state.
     if (data.plan?.plan_code && data.customer?.customer_code) {
-      await admin
+      const { error } = await admin
         .from("subscriptions")
         .update({ status: "active" })
         .eq("provider_customer_id", data.customer.customer_code)
         .neq("tier", "free");
+      if (error) throw new Error(`applyChargeSuccess: renewal status update failed: ${error.message}`);
     }
     return;
   }
@@ -49,7 +56,8 @@ export async function applyChargeSuccess(
   if (meta.kind === "tutor_topup") {
     const credits = Math.min(500, Math.max(0, Number(meta.credits) || 0));
     if (credits > 0) {
-      await admin.rpc("grant_tutor_credits", { p_user: userId, p_credits: credits });
+      const { error } = await admin.rpc("grant_tutor_credits", { p_user: userId, p_credits: credits });
+      if (error) throw new Error(`applyChargeSuccess: credit grant failed: ${error.message}`);
     }
     return;
   }
@@ -58,7 +66,7 @@ export async function applyChargeSuccess(
   // A plan-less charge with kind !== tutor_topup isn't one of ours.
   const plan = meta.plan;
   if ((plan !== "premium" && plan !== "premium_plus") || !data.plan?.plan_code) return;
-  await admin.from("subscriptions").upsert(
+  const { error: grantError } = await admin.from("subscriptions").upsert(
     {
       user_id: userId,
       tier: plan,
@@ -73,6 +81,7 @@ export async function applyChargeSuccess(
     },
     { onConflict: "user_id" },
   );
+  if (grantError) throw new Error(`applyChargeSuccess: tier grant failed: ${grantError.message}`);
 
   // Keep the studied licence code in step with the paid track, so study content
   // follows the plan and survives an account refresh (which reloads the code
