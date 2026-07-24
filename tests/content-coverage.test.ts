@@ -26,14 +26,16 @@ const MIN_QUESTIONS: Record<CategoryId, number> = {
   following_distance: 56,
 };
 
+// Includes cards derived from the question bank (flashcards-derived.ts), which
+// top each category up to ~75% of its question count. Bump, never lower.
 const MIN_FLASHCARDS: Record<CategoryId, number> = {
-  signs: 93,
-  rules: 82,
-  controls: 73,
-  hazard_awareness: 45,
-  intersections: 42,
-  parking: 31,
-  following_distance: 28,
+  signs: 314,
+  rules: 128,
+  controls: 138,
+  hazard_awareness: 63,
+  intersections: 65,
+  parking: 48,
+  following_distance: 42,
 };
 
 function countBy(items: { categoryId: CategoryId }[]): Record<string, number> {

@@ -1,5 +1,7 @@
 import type { Flashcard } from "@/types";
 import { signImg } from "./signs";
+import { QUESTIONS } from "./questions";
+import { deriveFlashcards } from "./flashcards-derived";
 import { VEHICLE_FLASHCARDS } from "./flashcards.vehicle";
 import { EXTRA_FLASHCARDS } from "./flashcards.extra";
 import { VEHICLE_EXTRA_FLASHCARDS } from "./vehicle-extra";
@@ -109,8 +111,21 @@ const CORE_FLASHCARDS: Flashcard[] = [
   { id: "fc_skid", categoryId: "hazard_awareness", front: "Rear wheels start to skid?", back: "Ease off the power and steer gently into the slide; avoid harsh braking or steering.", difficulty: 3 },
 ];
 
-/** Core (universal) flashcards plus the vehicle-code–specific and extra cards. */
-export const FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS, ...VEHICLE_EXTRA_FLASHCARDS, ...SIGNS_PACK_FLASHCARDS, ...RULES_PACK_FLASHCARDS, ...MARKINGS_PACK_FLASHCARDS, ...INTERSECTIONS_PACK_FLASHCARDS, ...CONTROLS_PACK_FLASHCARDS, ...HPF_PACK_FLASHCARDS, ...BIKE_HEAVY_PACK_FLASHCARDS, ...CONVERTED_PACK_FLASHCARDS, ...AARTO_PACK_FLASHCARDS];
+/**
+ * Hand-authored cards: core (universal) plus the vehicle-code–specific and
+ * themed packs. These are the source-of-truth wording a learner sees first.
+ */
+const HAND_AUTHORED_FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS, ...VEHICLE_EXTRA_FLASHCARDS, ...SIGNS_PACK_FLASHCARDS, ...RULES_PACK_FLASHCARDS, ...MARKINGS_PACK_FLASHCARDS, ...INTERSECTIONS_PACK_FLASHCARDS, ...CONTROLS_PACK_FLASHCARDS, ...HPF_PACK_FLASHCARDS, ...BIKE_HEAVY_PACK_FLASHCARDS, ...CONVERTED_PACK_FLASHCARDS, ...AARTO_PACK_FLASHCARDS];
+
+/**
+ * Hand-authored cards plus cards derived from the question bank (de-duplicated
+ * against the hand-authored set), so spaced-repetition coverage tracks the much
+ * larger question bank — see flashcards-derived.ts.
+ */
+export const FLASHCARDS: Flashcard[] = [
+  ...HAND_AUTHORED_FLASHCARDS,
+  ...deriveFlashcards(QUESTIONS, HAND_AUTHORED_FLASHCARDS),
+];
 
 export const FLASHCARDS_BY_ID: Record<string, Flashcard> = Object.fromEntries(
   FLASHCARDS.map((f) => [f.id, f]),
