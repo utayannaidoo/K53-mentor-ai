@@ -19,6 +19,8 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
 import { PLAN_MAP, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
 import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
+import { Input } from "@/components/ui/input";
 
 function AccountInner() {
   const router = useRouter();
@@ -28,11 +30,29 @@ function AccountInner() {
   const [editOpen, setEditOpen] = React.useState(sp.get("edit") === "profile");
   const [showDelete, setShowDelete] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState("");
+  const [deletePassword, setDeletePassword] = React.useState("");
+  const [needsPassword, setNeedsPassword] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const plan = PLAN_MAP[state.tier];
   const profile = state.profile;
   const onboarding = state.onboarding;
+
+  // Deleting is irreversible, so password accounts must re-enter their password
+  // to confirm. OAuth-only accounts have none — detect which this is so we only
+  // ask when it applies. (The server enforces this regardless; this is UX.)
+  React.useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+    let cancelled = false;
+    void supabase.auth.getUser().then(({ data }) => {
+      const hasPassword = (data.user?.identities ?? []).some((i) => i.provider === "email");
+      if (!cancelled) setNeedsPassword(hasPassword);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function handleSignOut() {
     signOut();
@@ -50,7 +70,11 @@ function AccountInner() {
     setDeleteError(null);
     setDeleting(true);
     try {
-      const res = await fetch("/api/account/delete", { method: "POST" });
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(needsPassword ? { password: deletePassword } : {}),
+      });
       const data = await res.json().catch(() => ({}) as { error?: string });
       if (res.ok) {
         // Server account is gone (or demo mode) — clear this browser too.
@@ -60,9 +84,11 @@ function AccountInner() {
         return;
       }
       setDeleteError(
-        data.error === "cancel_subscription_first"
-          ? "Cancel your paid plan first (Billing & plan), then delete your account."
-          : "Deletion failed — please try again shortly.",
+        data.error === "password_required" || data.error === "invalid_password"
+          ? "That password is incorrect. Enter your current password to confirm."
+          : data.error === "subscription_cancel_failed"
+            ? "We couldn't cancel your subscription just now, so we've kept your account. Please try again shortly."
+            : "Deletion failed — please try again shortly.",
       );
     } catch {
       setDeleteError("Network error — check your connection and try again.");
@@ -206,7 +232,9 @@ function AccountInner() {
             <p className="text-sm font-semibold text-foreground">Delete your account permanently?</p>
             <p className="mt-1 text-xs text-muted-foreground">
               This erases your profile, progress, streak and all study history everywhere —
-              it cannot be undone. If you have a paid plan, cancel it first on the billing page.
+              it cannot be undone. If you have a paid plan, we&apos;ll cancel it automatically
+              so you&apos;re never charged again — and refund your last payment in full if
+              you&apos;re within 7 days of it.
             </p>
             <p className="mt-3 text-xs font-medium text-foreground">
               Type <span className="font-mono font-bold">DELETE</span> to confirm:
@@ -218,13 +246,26 @@ function AccountInner() {
               placeholder="DELETE"
               autoComplete="off"
             />
+            {needsPassword && (
+              <div className="mt-3">
+                <p className="text-xs font-medium text-foreground">Confirm your password:</p>
+                <Input
+                  type="password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  className="mt-1.5 h-9 w-56"
+                  placeholder="Current password"
+                  autoComplete="current-password"
+                />
+              </div>
+            )}
             {deleteError && <p className="mt-2 text-xs text-danger">{deleteError}</p>}
             <div className="mt-3 flex gap-2">
               <Button
                 size="sm"
                 variant="danger"
                 onClick={handleDelete}
-                disabled={confirmDelete !== "DELETE" || deleting}
+                disabled={confirmDelete !== "DELETE" || (needsPassword && !deletePassword) || deleting}
               >
                 {deleting ? "Deleting…" : "Delete forever"}
               </Button>
@@ -234,6 +275,7 @@ function AccountInner() {
                 onClick={() => {
                   setShowDelete(false);
                   setConfirmDelete("");
+                  setDeletePassword("");
                   setDeleteError(null);
                 }}
                 disabled={deleting}

@@ -104,19 +104,25 @@ export async function applyChargeSuccess(
     }
   }
 
-  // A track switch starts a new Paystack subscription; cancel any *other* active
-  // subscription for this customer so they're never billed for two tracks at
-  // once. A no-op on a first purchase (only the new subscription is active).
-  try {
-    const customer = await fetchCustomer(data.customer.customer_code);
-    const stale = customer.subscriptions.filter(
-      (s) => s.status === "active" && s.plan.plan_code !== data.plan!.plan_code,
-    );
-    for (const s of stale) {
-      await disableSubscription(s.subscription_code, s.email_token);
-    }
-  } catch (err) {
-    console.error("applyChargeSuccess: could not reconcile old subscriptions", err);
+  // A plan, cycle, or track change starts a NEW Paystack subscription while the
+  // OLD one stays active — Paystack never auto-cancels the previous plan. Left
+  // alone, the learner is billed for BOTH plans every renewal. So cancel every
+  // *other* active subscription for this customer, keeping only the one matching
+  // the plan just paid for. A no-op on a first purchase (only the new sub exists).
+  //
+  // This intentionally THROWS on failure instead of logging and moving on: a
+  // swallowed disable is a permanent double-charge, and the ledger row is already
+  // committed so Paystack's redelivery would otherwise skip it. Throwing releases
+  // the ledger row (both callers do this) so the whole charge is retried until the
+  // old subscription is actually gone. The tier grant and track sync above are
+  // idempotent on retry, and the receipt email below runs only *after* this
+  // succeeds — so a retry re-grants harmlessly and never double-sends the receipt.
+  const customer = await fetchCustomer(data.customer.customer_code);
+  const stale = customer.subscriptions.filter(
+    (s) => s.status === "active" && s.plan.plan_code !== data.plan!.plan_code,
+  );
+  for (const s of stale) {
+    await disableSubscription(s.subscription_code, s.email_token);
   }
 
   // Receipt + welcome (best-effort; the ledger already made this once-only).
