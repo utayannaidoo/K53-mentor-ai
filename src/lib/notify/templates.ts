@@ -106,6 +106,33 @@ export function buildPaymentFailedEmail(input: { firstName: string; planName: st
   return { subject, html, text };
 }
 
+/**
+ * One-time code to confirm an account deletion. Used by OAuth-only accounts,
+ * which have no password to reauthenticate with. `code` is server-generated
+ * (digits only) but still escaped, on principle — email HTML never trusts input.
+ */
+export function buildAccountDeletionCodeEmail(input: {
+  firstName: string;
+  code: string;
+}): EmailContent {
+  const name = esc(input.firstName) || "there";
+  const code = esc(input.code);
+  const subject = "Your account deletion code";
+  const text =
+    `Hi ${input.firstName || "there"} — your K53 Mentor account deletion code is ${input.code}. ` +
+    `It expires in 10 minutes. Enter it on the account page to permanently delete your account. ` +
+    `Didn't request this? Ignore this email — nothing will be deleted.`;
+  const html = wrap(
+    h("Confirm account deletion") +
+      p(`Hi ${name} — enter this code on the account page to permanently delete your account:`) +
+      `<p style="font-size:30px;font-weight:700;letter-spacing:6px;color:#1d2724;margin:14px 0;">${code}</p>` +
+      p(`<span style="color:#8a938e;font-size:12px;">The code expires in 10 minutes. Didn't request this? Ignore this email — nothing will be deleted.</span>`),
+    "Go to account",
+    "/account",
+  );
+  return { subject, html, text };
+}
+
 export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
   const { streak, longest, dueCards } = input;
   // The name is profile data the user typed — escape it so a crafted "name"

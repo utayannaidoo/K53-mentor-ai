@@ -31,28 +31,60 @@ function AccountInner() {
   const [showDelete, setShowDelete] = React.useState(false);
   const [confirmDelete, setConfirmDelete] = React.useState("");
   const [deletePassword, setDeletePassword] = React.useState("");
-  const [needsPassword, setNeedsPassword] = React.useState(false);
+  const [deleteCode, setDeleteCode] = React.useState("");
+  const [codeSent, setCodeSent] = React.useState(false);
+  const [sendingCode, setSendingCode] = React.useState(false);
+  // How this account signs in decides how deletion is confirmed: a password
+  // account re-enters its password; an OAuth account enters an emailed code.
+  const [authMethod, setAuthMethod] = React.useState<"password" | "oauth" | null>(null);
+  const needsPassword = authMethod === "password";
+  const needsCode = authMethod === "oauth";
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
   const plan = PLAN_MAP[state.tier];
   const profile = state.profile;
   const onboarding = state.onboarding;
 
-  // Deleting is irreversible, so password accounts must re-enter their password
-  // to confirm. OAuth-only accounts have none — detect which this is so we only
-  // ask when it applies. (The server enforces this regardless; this is UX.)
+  // Deleting is irreversible, so it's confirmed by reauthentication: a password
+  // account re-enters its password; an OAuth account (no password) enters a code
+  // we email. Detect which so we ask for the right one. (The server enforces
+  // this regardless; this is UX.)
   React.useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
     let cancelled = false;
     void supabase.auth.getUser().then(({ data }) => {
-      const hasPassword = (data.user?.identities ?? []).some((i) => i.provider === "email");
-      if (!cancelled) setNeedsPassword(hasPassword);
+      if (cancelled || !data.user) return;
+      const hasPassword = (data.user.identities ?? []).some((i) => i.provider === "email");
+      setAuthMethod(hasPassword ? "password" : "oauth");
     });
     return () => {
       cancelled = true;
     };
   }, []);
+
+  /** OAuth accounts: email a one-time code before deletion can be confirmed. */
+  async function sendDeleteCode() {
+    setDeleteError(null);
+    setSendingCode(true);
+    try {
+      const res = await fetch("/api/account/delete/send-code", { method: "POST" });
+      const data = await res.json().catch(() => ({}) as { error?: string });
+      if (res.ok) {
+        setCodeSent(true);
+        return;
+      }
+      setDeleteError(
+        data.error === "email_not_configured" || data.error === "email_failed"
+          ? "We couldn't email your code just now — please try again shortly."
+          : "Couldn't start deletion — please try again shortly.",
+      );
+    } catch {
+      setDeleteError("Network error — check your connection and try again.");
+    } finally {
+      setSendingCode(false);
+    }
+  }
 
   function handleSignOut() {
     signOut();
@@ -73,7 +105,9 @@ function AccountInner() {
       const res = await fetch("/api/account/delete", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(needsPassword ? { password: deletePassword } : {}),
+        body: JSON.stringify(
+          needsPassword ? { password: deletePassword } : needsCode ? { code: deleteCode } : {},
+        ),
       });
       const data = await res.json().catch(() => ({}) as { error?: string });
       if (res.ok) {
@@ -86,9 +120,11 @@ function AccountInner() {
       setDeleteError(
         data.error === "password_required" || data.error === "invalid_password"
           ? "That password is incorrect. Enter your current password to confirm."
-          : data.error === "subscription_cancel_failed"
-            ? "We couldn't cancel your subscription just now, so we've kept your account. Please try again shortly."
-            : "Deletion failed — please try again shortly.",
+          : data.error === "code_required" || data.error === "invalid_code"
+            ? "That code is incorrect or expired. Request a new one and try again."
+            : data.error === "subscription_cancel_failed"
+              ? "We couldn't cancel your subscription just now, so we've kept your account. Please try again shortly."
+              : "Deletion failed — please try again shortly.",
       );
     } catch {
       setDeleteError("Network error — check your connection and try again.");
@@ -259,13 +295,62 @@ function AccountInner() {
                 />
               </div>
             )}
+            {needsCode && (
+              <div className="mt-3">
+                {!codeSent ? (
+                  <>
+                    <p className="text-xs text-muted-foreground">
+                      For your security, we&apos;ll email a 6-digit code to confirm — your account
+                      signs in with Google, so there&apos;s no password to enter.
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-2"
+                      onClick={sendDeleteCode}
+                      loading={sendingCode}
+                      loadingText="Sending…"
+                    >
+                      Email me a code
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs font-medium text-foreground">
+                      Enter the 6-digit code we emailed you:
+                    </p>
+                    <Input
+                      inputMode="numeric"
+                      value={deleteCode}
+                      onChange={(e) => setDeleteCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      className="mt-1.5 h-9 w-40 font-mono tracking-[0.3em]"
+                      placeholder="000000"
+                      autoComplete="one-time-code"
+                    />
+                    <button
+                      type="button"
+                      onClick={sendDeleteCode}
+                      disabled={sendingCode}
+                      className="mt-2 block text-xs font-medium text-primary hover:underline disabled:opacity-60"
+                    >
+                      {sendingCode ? "Sending…" : "Resend code"}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
             {deleteError && <p className="mt-2 text-xs text-danger">{deleteError}</p>}
             <div className="mt-3 flex gap-2">
               <Button
                 size="sm"
                 variant="danger"
                 onClick={handleDelete}
-                disabled={confirmDelete !== "DELETE" || (needsPassword && !deletePassword) || deleting}
+                disabled={
+                  confirmDelete !== "DELETE" ||
+                  (needsPassword && !deletePassword) ||
+                  (needsCode && (!codeSent || deleteCode.length !== 6)) ||
+                  deleting
+                }
               >
                 {deleting ? "Deleting…" : "Delete forever"}
               </Button>
@@ -276,6 +361,8 @@ function AccountInner() {
                   setShowDelete(false);
                   setConfirmDelete("");
                   setDeletePassword("");
+                  setDeleteCode("");
+                  setCodeSent(false);
                   setDeleteError(null);
                 }}
                 disabled={deleting}

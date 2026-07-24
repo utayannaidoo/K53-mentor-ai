@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
 import { refundTransaction } from "@/lib/paystack/client";
 import { disableActiveSubscriptions, refundEligible } from "@/lib/billing/subscription-cancel";
+import { verifyDeletionCode } from "@/lib/account/deletion-code";
 
 export const runtime = "nodejs";
 
@@ -36,8 +37,9 @@ async function verifyPassword(email: string, password: string): Promise<boolean>
  *
  * Two safeguards run before the erase:
  *  1. Re-verify the requester. Password accounts must re-enter their password
- *     (verified out-of-band); an OAuth-only account's live provider session is
- *     the proof. This stops someone on an unlocked session from wiping it.
+ *     (verified out-of-band); OAuth-only accounts (no password) must enter a
+ *     one-time code emailed to them first. Either way, someone on an unlocked
+ *     session alone can't wipe the account.
  *  2. Cancel any live Paystack subscription first — and refund it if still
  *     inside the money-back window — so the platform never keeps charging a card
  *     attached to an account that no longer exists, and deleting is never a way
@@ -57,13 +59,14 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, demo: true });
   }
 
-  let body: { password?: unknown } = {};
+  let body: { password?: unknown; code?: unknown } = {};
   try {
-    body = (await req.json()) as { password?: unknown };
+    body = (await req.json()) as { password?: unknown; code?: unknown };
   } catch {
-    // A missing body is fine — OAuth-only accounts send no password.
+    // A missing body is handled by the per-method checks below.
   }
   const password = typeof body.password === "string" ? body.password : "";
+  const code = typeof body.code === "string" ? body.code : "";
 
   const supabase = await createClient();
   const {
@@ -79,8 +82,9 @@ export async function POST(req: Request) {
   }
 
   // ── 1. Reauthenticate ──────────────────────────────────────────────────────
-  // Password accounts must confirm their password. OAuth-only accounts have no
-  // password to re-enter; their active provider session stands in as proof.
+  // Password accounts confirm their password. OAuth-only accounts have none, so
+  // they must supply the one-time code we emailed via /send-code — proving both
+  // the live session AND control of the account's inbox.
   const hasPassword = (user.identities ?? []).some((i) => i.provider === "email");
   if (hasPassword) {
     if (!password) {
@@ -88,6 +92,13 @@ export async function POST(req: Request) {
     }
     if (!user.email || !(await verifyPassword(user.email, password))) {
       return Response.json({ error: "invalid_password" }, { status: 401 });
+    }
+  } else {
+    if (!code) {
+      return Response.json({ error: "code_required" }, { status: 401 });
+    }
+    if (!(await verifyDeletionCode(admin, user.id, code))) {
+      return Response.json({ error: "invalid_code" }, { status: 401 });
     }
   }
 
