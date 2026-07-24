@@ -23,7 +23,33 @@ interface TemplateInput {
 
 const BRAND = "#2C5F4F";
 
-function wrap(bodyHtml: string, ctaLabel: string, ctaPath: string): string {
+/**
+ * Which footer note to show. Reminder emails carry the reminders opt-out;
+ * transactional ones (receipts, dunning, security) get a neutral service note
+ * instead — the opt-out line would be wrong (and phishy) on those.
+ */
+type FooterKind = "reminders" | "transactional";
+
+function footerHtml(kind: FooterKind): string {
+  const style = 'style="font-size:12px;color:#8a938e;margin:18px 4px 0;line-height:1.5;"';
+  if (kind === "transactional") {
+    return `<p ${style}>
+        This is a service email about your K53 Mentor AI account. Manage your account
+        <a href="${SITE_URL}/account" style="color:#8a938e;">here</a>.
+      </p>`;
+  }
+  return `<p ${style}>
+        You're getting study reminders because they're on in your
+        <a href="${SITE_URL}/account" style="color:#8a938e;">account preferences</a> — switch them off there any time.
+      </p>`;
+}
+
+function wrap(
+  bodyHtml: string,
+  ctaLabel: string,
+  ctaPath: string,
+  footer: FooterKind = "reminders",
+): string {
   return `<!doctype html>
 <html>
   <body style="margin:0;padding:0;background:#f5f6f5;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">
@@ -36,10 +62,7 @@ function wrap(bodyHtml: string, ctaLabel: string, ctaPath: string): string {
           ${ctaLabel}
         </a>
       </div>
-      <p style="font-size:12px;color:#8a938e;margin:18px 4px 0;line-height:1.5;">
-        You're getting study reminders because they're on in your
-        <a href="${SITE_URL}/account" style="color:#8a938e;">account preferences</a> — switch them off there any time.
-      </p>
+      ${footerHtml(footer)}
     </div>
   </body>
 </html>`;
@@ -83,6 +106,7 @@ export function buildPaymentReceiptEmail(input: {
       p(`<span style="color:#8a938e;font-size:12px;">Manage or cancel any time from your <a href="${SITE_URL}/account/billing" style="color:#8a938e;">billing page</a>.</span>`),
     "Start studying",
     "/dashboard",
+    "transactional",
   );
   return { subject, html, text };
 }
@@ -102,6 +126,7 @@ export function buildPaymentFailedEmail(input: { firstName: string; planName: st
       p("Your plan stays active while the payment is retried. If your card details changed, the quickest fix is to cancel and resubscribe with the new card."),
     "Fix my billing",
     "/account/billing",
+    "transactional",
   );
   return { subject, html, text };
 }
@@ -129,6 +154,7 @@ export function buildAccountDeletionCodeEmail(input: {
       p(`<span style="color:#8a938e;font-size:12px;">The code expires in 10 minutes. Didn't request this? Ignore this email — nothing will be deleted.</span>`),
     "Go to account",
     "/account",
+    "transactional",
   );
   return { subject, html, text };
 }
