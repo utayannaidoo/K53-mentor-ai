@@ -2,12 +2,10 @@ import { isPaystackConfigured, isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
-import { disableSubscription, fetchCustomer, refundTransaction } from "@/lib/paystack/client";
+import { refundTransaction } from "@/lib/paystack/client";
+import { disableActiveSubscriptions, refundEligible } from "@/lib/billing/subscription-cancel";
 
 export const runtime = "nodejs";
-
-/** Cancel within this many days of the first charge for an automatic full refund. */
-const MONEY_BACK_DAYS = 7;
 
 /**
  * Self-serve cancellation. Paystack has no Stripe-style hosted billing
@@ -61,22 +59,21 @@ export async function POST(req: Request) {
   }
 
   // Eligible for an automatic full refund? Within the money-back window of the
-  // first charge, on a paid tier, guarantee not already used. These fields are
-  // written only by trusted server code (RLS is SELECT-only), so they're safe
-  // to trust here.
-  const paidAtMs = sub?.paid_at ? Date.parse(sub.paid_at) : NaN;
-  const withinWindow =
-    Number.isFinite(paidAtMs) && Date.now() - paidAtMs <= MONEY_BACK_DAYS * 86_400_000;
-  const refundEligible =
-    withinWindow && sub?.tier !== "free" && !sub?.money_back_used && Boolean(sub?.last_charge_reference);
+  // first charge, on a paid tier, guarantee not already used.
+  const eligible = refundEligible({
+    tier: sub?.tier ?? null,
+    lastChargeReference: sub?.last_charge_reference ?? null,
+    paidAt: sub?.paid_at ?? null,
+    moneyBackUsed: sub?.money_back_used ?? null,
+  });
 
   try {
-    const customer = await fetchCustomer(customerCode);
-    const active = customer.subscriptions.find((s) => s.status === "active");
-    if (!active) {
+    // Disable EVERY active subscription, not just the first — a past plan change
+    // can leave two live, and any one still running keeps charging the learner.
+    const disabled = await disableActiveSubscriptions(customerCode);
+    if (disabled === 0) {
       return Response.json({ error: "no_active_subscription" }, { status: 404 });
     }
-    await disableSubscription(active.subscription_code, active.email_token);
   } catch (err) {
     console.error("billing/cancel: paystack error", err);
     return Response.json({ error: "Cancellation failed — please try again shortly." }, { status: 502 });
@@ -87,7 +84,7 @@ export async function POST(req: Request) {
   // can email us instead.
   let refunded = false;
   let refundError = false;
-  if (refundEligible && sub?.last_charge_reference) {
+  if (eligible && sub?.last_charge_reference) {
     try {
       await refundTransaction(sub.last_charge_reference);
       refunded = true;
