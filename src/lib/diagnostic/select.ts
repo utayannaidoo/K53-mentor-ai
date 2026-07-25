@@ -153,8 +153,8 @@ export function diagnosticPlanFor(worryCategories: CategoryId[] = []): Record<Ca
  * worries them, those categories get extra weight.
  */
 export function sampleDiagnostic(
-  attempts: QuestionAttempt[] = [],
-  code?: VehicleCode,
+  attempts: QuestionAttempt[],
+  code: VehicleCode,
   worryCategories: CategoryId[] = [],
 ): Question[] {
   const bank = forCode(QUESTIONS, code);
@@ -184,8 +184,8 @@ export function easyFirst(pool: Question[]): Question[] {
 export const MINI_MOCK = { total: 15, passMark: 12, seconds: 12 * 60 };
 
 export function sampleMiniMock(
-  attempts: QuestionAttempt[] = [],
-  code?: VehicleCode,
+  attempts: QuestionAttempt[],
+  code: VehicleCode,
   weakCategories: CategoryId[] = [],
 ): Question[] {
   const bank = forCode(QUESTIONS, code);
@@ -244,8 +244,8 @@ export const SECTION_DRILL: Record<
 
 export function sampleSectionDrill(
   section: ExamSection,
-  attempts: QuestionAttempt[] = [],
-  code?: VehicleCode,
+  attempts: QuestionAttempt[],
+  code: VehicleCode,
 ): Question[] {
   const pool = forCode(QUESTIONS, code).filter((q) => SECTION_OF[q.categoryId] === section);
   return shuffle(
@@ -260,8 +260,8 @@ export function sampleSectionDrill(
  * and every question's options are shuffled.
  */
 export function sampleMockExam(
-  attempts: QuestionAttempt[] = [],
-  code?: VehicleCode,
+  attempts: QuestionAttempt[],
+  code: VehicleCode,
 ): Question[] {
   const bySection: Record<ExamSection, Question[]> = {
     controls: [],

@@ -224,7 +224,17 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       if (e.key !== STORAGE_KEY || e.newValue == null) return;
       try {
         const incoming = JSON.parse(e.newValue) as UserState;
-        setState({ ...defaultUserState(), ...incoming });
+        setState((s) => {
+          // Only adopt a write from a tab signed in as the SAME learner. Two
+          // tabs on two accounts share one localStorage key, so adopting
+          // blindly handed this tab the other account's profile, tier and
+          // licence code — which then got written back over this account's
+          // rows. A cross-account write is simply not ours to converge with.
+          const mine = s.ownerEmail?.toLowerCase() ?? null;
+          const theirs = incoming.ownerEmail?.toLowerCase() ?? null;
+          if (mine !== null && theirs !== null && mine !== theirs) return s;
+          return { ...defaultUserState(), ...incoming };
+        });
       } catch {
         /* unreadable write — ignore */
       }
@@ -306,7 +316,13 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       }
     };
 
-    supabase.auth.getUser().then(({ data }) => hydrate(data.user, "INITIAL_SESSION"));
+    supabase.auth
+      .getUser()
+      .then(({ data }) => hydrate(data.user, "INITIAL_SESSION"))
+      // Surfaces now WAIT on accountHydrated before building a study queue, so
+      // a rejected session lookup must still release them — otherwise a
+      // network blip leaves the app on a permanent skeleton.
+      .catch(() => setAccountHydrated(true));
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       hydrate(session?.user ?? null, event);
     });
@@ -321,19 +337,20 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
   React.useEffect(() => {
     if (!supabase || !ready || !state.profile) return;
     const t = setTimeout(() => {
-      saveAccount(supabase, state).catch(() => {
-        // Best-effort; the local cache remains the fallback.
-      });
       supabase.auth
         .getUser()
-        .then(({ data: { user } }) =>
-          // Only push when the local state actually belongs to the signed-in
-          // user — never write one account's progress into another's rows
-          // during the brief switch window before hydrate re-seeds.
-          user && user.id === state.profile?.id
-            ? pushProgress(supabase, user.id, state)
-            : undefined,
-        )
+        .then(({ data: { user } }) => {
+          // Only write when the local state actually belongs to the signed-in
+          // user — never write one account's profile or progress into
+          // another's rows during the brief switch window before hydrate
+          // re-seeds. This guarded progress but not the account rows, which is
+          // how one learner's licence code landed on another's profile.
+          if (!user || user.id !== state.profile?.id) return;
+          saveAccount(supabase, state).catch(() => {
+            // Best-effort; the local cache remains the fallback.
+          });
+          return pushProgress(supabase, user.id, state);
+        })
         .catch(() => {
           // Watermark unchanged — the next flush retries the same window.
         });
@@ -423,6 +440,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       setState((s) => {
         const next = { ...s, ...account };
         if (account.cp != null) next.cp = Math.max(s.cp, account.cp);
+        // A null track means "none on record" (free, or a pre-0017 sub), not
+        // "clear the one we have" — same rule as hydrateAccountState.
+        next.vehicleClass = account.vehicleClass ?? s.vehicleClass;
         return next;
       });
       return account.tier ?? null;

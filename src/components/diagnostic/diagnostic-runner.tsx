@@ -8,20 +8,39 @@ import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { CATEGORIES } from "@/lib/content/categories";
 import { sampleDiagnostic } from "@/lib/diagnostic/select";
+import { studyCodeOf } from "@/lib/billing/plans";
 import { scoreDiagnostic } from "@/lib/diagnostic/scoring";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn } from "@/lib/utils";
 
 const LETTERS = ["A", "B", "C", "D"];
 
+/**
+ * The diagnostic sits outside the app shell, so it has to wait for the account
+ * itself. The question set is sampled once, on first render — sample it before
+ * the account lands and the whole diagnostic is drawn from an unresolved
+ * licence code (another vehicle track's questions, or the entire bank).
+ */
 export function DiagnosticRunner() {
+  const { ready, accountHydrated } = useStudyStore();
+  if (!ready || !accountHydrated) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  return <DiagnosticQuiz />;
+}
+
+function DiagnosticQuiz() {
   const router = useRouter();
   const { state, recordQuestionAttempt, recordDiagnostic } = useStudyStore();
 
   const [questions] = React.useState(() =>
     sampleDiagnostic(
       state.attempts,
-      state.onboarding?.vehicleCode,
+      studyCodeOf(state),
       state.onboarding?.worryCategories ?? [],
     ),
   );

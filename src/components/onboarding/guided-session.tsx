@@ -13,6 +13,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { selectFlashcardQueue } from "@/lib/plan";
 import { QUESTIONS } from "@/lib/content/questions";
 import { forCode } from "@/lib/content/vehicle";
+import { studyCodeOf } from "@/lib/billing/plans";
 import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
 import { categoryName } from "@/lib/content/categories";
 import { RATING_LABEL } from "@/lib/srs/sm2";
@@ -41,7 +42,7 @@ export function GuidedSession() {
   const [cards] = React.useState(() => selectFlashcardQueue(state, { limit: 3 }));
   const [questions] = React.useState<Question[]>(() => {
     const focus = state.onboarding?.worryCategories?.[0] ?? readiness.weakCategories[0] ?? null;
-    const bank = forCode(QUESTIONS, state.onboarding?.vehicleCode);
+    const bank = forCode(QUESTIONS, studyCodeOf(state));
     const pool = focus ? bank.filter((q) => q.categoryId === focus) : bank;
     return orderByFreshness(pool.length >= 2 ? pool : bank, state.attempts)
       .slice(0, 2)

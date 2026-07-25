@@ -59,7 +59,16 @@ describe("appliesToCode", () => {
   it("keeps universal content universal", () => {
     expect(appliesToCode(undefined, "8")).toBe(true);
     expect(appliesToCode([], "A")).toBe(true);
-    expect(appliesToCode(["10"], undefined)).toBe(true);
+  });
+
+  it("gates coded content to its own group", () => {
+    // `code` is required now, so there is no "unresolved" case to assert here:
+    // passing undefined is a compile error, and callers resolve it through
+    // studyCodeOf first. It used to be accepted and treated as "show
+    // everything", which served heavy and motorcycle items to car learners
+    // for the whole window before the account hydrated.
+    expect(appliesToCode(["10"], "8")).toBe(false);
+    expect(appliesToCode(["10"], "14")).toBe(true);
   });
 
   it("shows car content to a learner whose stored code is unrecognised", () => {
