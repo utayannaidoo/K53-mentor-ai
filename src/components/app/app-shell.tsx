@@ -73,7 +73,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isPlus = state.tier === "premium_plus";
   const firstName = state.profile?.name?.split(" ")[0] ?? "Learner";
   const vehicleGroup = state.onboarding ? groupOf(state.onboarding.vehicleCode) : "car";
-  const LicencePrepIcon = LICENCE_PREP_ICON[vehicleGroup];
+  // Belt and braces alongside groupOf's own fallback: an undefined value here
+  // gets rendered as a component and takes the whole authed app down.
+  const LicencePrepIcon = LICENCE_PREP_ICON[vehicleGroup] ?? Car;
 
   return (
     <div className="flex min-h-dvh bg-background bg-app">

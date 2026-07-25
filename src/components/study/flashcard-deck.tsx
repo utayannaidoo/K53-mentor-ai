@@ -172,18 +172,22 @@ export function FlashcardDeck() {
             label={flipped ? "Read the answer aloud" : "Read the card aloud"}
           />
         </div>
+        {/* Both faces share one grid cell, so the card sizes to the taller of
+            the two rather than a hard-coded 340px: short cards stop carrying
+            dead space, and a long answer can't overflow its face. Sizing to the
+            taller face (not the visible one) also means the box doesn't resize
+            mid-flip. The floor keeps small cards from feeling flimsy. */}
         <div
           className={cn(
-            "relative w-full transition-transform duration-500 [transform-style:preserve-3d]",
+            "relative grid min-h-[17rem] w-full transition-transform duration-500 [transform-style:preserve-3d]",
             flipped && "rotate-y-180",
           )}
-          style={{ minHeight: 340 }}
         >
           {/* Front */}
           <button
             type="button"
             onClick={reveal}
-            className="press absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-8 text-center shadow-soft backface-hidden"
+            className="press col-start-1 row-start-1 flex flex-col items-center justify-center gap-4 rounded-2xl border border-border bg-card p-8 text-center shadow-soft backface-hidden"
           >
             <Badge variant="secondary" className="gap-1">
               <CategoryIcon id={card.categoryId} className="h-3 w-3" /> {categoryName(card.categoryId)}
@@ -198,7 +202,7 @@ export function FlashcardDeck() {
           </button>
 
           {/* Back */}
-          <div className="absolute inset-0 flex flex-col rounded-2xl border border-primary/20 bg-card p-8 shadow-soft backface-hidden rotate-y-180">
+          <div className="col-start-1 row-start-1 flex flex-col rounded-2xl border border-primary/20 bg-card p-8 shadow-soft backface-hidden rotate-y-180">
             <Badge variant="secondary" className="w-fit gap-1">
               <CategoryIcon id={card.categoryId} className="h-3 w-3" /> Answer
             </Badge>

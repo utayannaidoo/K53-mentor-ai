@@ -11,14 +11,33 @@ const GROUP: Record<VehicleCode, "car" | "motorcycle" | "heavy"> = {
 
 export type VehicleGroup = "car" | "motorcycle" | "heavy";
 
-/** The content group a code belongs to. */
+/** The group used when a stored code can't be recognised. */
+export const DEFAULT_VEHICLE_GROUP: VehicleGroup = "car";
+
+/**
+ * The content group a code belongs to.
+ *
+ * Falls back to "car" for anything unrecognised. The code is read back out of
+ * `k53mentor.state.v1` in the browser, so it isn't guaranteed to be one of the
+ * current `VehicleCode` values however well-typed the call sites are — a state
+ * blob written by an older build (or hand-edited) can carry a retired code
+ * such as "B". Returning undefined here propagated into an icon-map lookup in
+ * the app shell, which rendered `undefined` as a component; that throws and
+ * white-screens the whole authed app behind the error boundary, with no
+ * recovery short of clearing site data.
+ */
 export function groupOf(code: VehicleCode): VehicleGroup {
-  return GROUP[code];
+  return GROUP[code] ?? DEFAULT_VEHICLE_GROUP;
 }
 
-/** Two codes share content if they're in the same group (A≡A1, 10≡14). */
+/**
+ * Two codes share content if they're in the same group (A≡A1, 10≡14).
+ * Routed through `groupOf` so an unrecognised code resolves to a real group —
+ * comparing the raw map gave `undefined === undefined`, which made a stale code
+ * match *every* group instead of none.
+ */
 export function sameGroup(a: VehicleCode, b: VehicleCode): boolean {
-  return GROUP[a] === GROUP[b];
+  return groupOf(a) === groupOf(b);
 }
 
 /**
