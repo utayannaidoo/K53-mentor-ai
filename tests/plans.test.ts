@@ -2,31 +2,30 @@ import { describe, expect, it } from "vitest";
 import {
   PLANS,
   PLAN_MAP,
+  SELECTABLE_CODES,
   annualMonthlyPrice,
   annualPrice,
-  classAllowsCode,
-  codesForClass,
   dailyCap,
   hasFeature,
+  isFreePlan,
   monthlyPrice,
-  vehicleClass,
 } from "@/lib/billing/plans";
 
 describe("plan pricing", () => {
   it("annual billing takes R20/mo off every paid plan, free stays free", () => {
     for (const plan of PLANS) {
-      for (const vc of ["car", "bike_heavy"] as const) {
-        const m = monthlyPrice(plan, vc);
-        expect(annualMonthlyPrice(plan, vc)).toBe(m === 0 ? 0 : m - 20);
-        expect(annualPrice(plan, vc)).toBe(annualMonthlyPrice(plan, vc) * 12);
-      }
+      const m = monthlyPrice(plan);
+      expect(annualMonthlyPrice(plan)).toBe(m === 0 ? 0 : m - 20);
+      expect(annualPrice(plan)).toBe(annualMonthlyPrice(plan) * 12);
     }
   });
 
-  it("bike+heavy is priced below car on paid plans", () => {
-    expect(monthlyPrice(PLAN_MAP.premium, "bike_heavy")).toBeLessThan(
-      monthlyPrice(PLAN_MAP.premium, "car"),
-    );
+  it("one price per tier — nothing depends on which vehicle is studied", () => {
+    expect(monthlyPrice(PLAN_MAP.free)).toBe(0);
+    expect(isFreePlan(PLAN_MAP.free)).toBe(true);
+    expect(monthlyPrice(PLAN_MAP.premium)).toBe(60);
+    expect(monthlyPrice(PLAN_MAP.premium_plus)).toBe(70);
+    expect(isFreePlan(PLAN_MAP.premium)).toBe(false);
   });
 });
 
@@ -50,18 +49,8 @@ describe("feature gates", () => {
   });
 });
 
-describe("vehicle tracks", () => {
-  it("maps codes to their track", () => {
-    expect(vehicleClass("8")).toBe("car");
-    expect(vehicleClass("A")).toBe("bike_heavy");
-    expect(vehicleClass("14")).toBe("bike_heavy");
-  });
-
-  it("a null track offers everything; a chosen track restricts", () => {
-    expect(codesForClass(null)).toContain("8");
-    expect(codesForClass(null)).toContain("A");
-    expect(codesForClass("car")).toEqual(["8"]);
-    expect(classAllowsCode("car", "A")).toBe(false);
-    expect(classAllowsCode(null, "A")).toBe(true);
+describe("licence codes", () => {
+  it("every code is selectable on every plan — the code is never sold", () => {
+    expect(SELECTABLE_CODES).toEqual(["8", "A", "14"]);
   });
 });

@@ -3,14 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
-import {
-  PLANS,
-  monthlyPrice,
-  annualMonthlyPrice,
-  isFreePlan,
-  VEHICLE_CLASS_LABEL,
-  type VehicleClass,
-} from "@/lib/billing/plans";
+import { PLANS, monthlyPrice, annualMonthlyPrice, isFreePlan } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 
@@ -22,7 +15,6 @@ export function PricingSection({
   className?: string;
 }) {
   const [annual, setAnnual] = React.useState(false);
-  const [vc, setVc] = React.useState<VehicleClass>("car");
 
   return (
     <section
@@ -40,31 +32,8 @@ export function PricingSection({
         </div>
       )}
 
-      {/* Toggles: vehicle class + billing cadence */}
+      {/* Billing cadence — one price covers every licence code */}
       <div className="mt-2 flex flex-col items-center gap-3">
-        {/* Vehicle-class toggle — the price depends on which licence you're after */}
-        <div className="relative inline-grid grid-cols-2 items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
-          <span
-            aria-hidden
-            className="absolute left-[5px] top-[5px] z-0 h-[calc(100%-10px)] w-[calc(50%-5px)] rounded-full bg-card/95 shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)] transition-transform duration-[450ms] ease-spring"
-            style={{ transform: vc === "bike_heavy" ? "translateX(100%)" : "translateX(0)" }}
-          />
-          <button
-            type="button"
-            onClick={() => setVc("car")}
-            className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
-          >
-            Car
-          </button>
-          <button
-            type="button"
-            onClick={() => setVc("bike_heavy")}
-            className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
-          >
-            Bike &amp; Heavy
-          </button>
-        </div>
-
         {/* Sliding monthly / annual toggle */}
         <div className="relative inline-grid grid-cols-2 items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
           <span
@@ -88,13 +57,15 @@ export function PricingSection({
           </button>
         </div>
 
-        <p className="text-xs text-muted-foreground">{VEHICLE_CLASS_LABEL[vc]}</p>
+        <p className="text-xs text-muted-foreground">
+          Car, motorcycle and heavy codes — all included, switch any time.
+        </p>
       </div>
 
       <div className="mt-9 grid items-start gap-[18px] [grid-template-columns:repeat(auto-fit,minmax(270px,1fr))]">
         {PLANS.map((plan) => {
           const isFree = isFreePlan(plan);
-          const monthlyEquivalent = annual ? annualMonthlyPrice(plan, vc) : monthlyPrice(plan, vc);
+          const monthlyEquivalent = annual ? annualMonthlyPrice(plan) : monthlyPrice(plan);
           const cta = isFree
             ? "Start free"
             : plan.name === "Premium"
@@ -133,7 +104,7 @@ export function PricingSection({
                 href={
                   isFree
                     ? "/onboarding"
-                    : `/signup?plan=${plan.id}&track=${vc}&cycle=${annual ? "annual" : "monthly"}`
+                    : `/signup?plan=${plan.id}&cycle=${annual ? "annual" : "monthly"}`
                 }
                 className={cn(
                   "mt-5 flex w-full items-center justify-center rounded-xl py-[13px] text-[15px] font-semibold transition-[transform,filter] duration-[400ms] ease-spring hover:brightness-[1.06] active:scale-[0.97]",

@@ -17,20 +17,16 @@ import {
   annualMonthlyPrice,
   annualPrice,
   isFreePlan,
-  vehicleClass as classOfCode,
-  VEHICLE_CLASS_LABEL,
-  VEHICLE_CLASS_SHORT,
 } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 import { track as trackEvent } from "@/lib/analytics";
-import type { SubscriptionTier, VehicleClass } from "@/types";
+import type { SubscriptionTier } from "@/types";
 
 function BillingInner() {
   const sp = useSearchParams();
   const router = useRouter();
-  const { state, hasOnboarded, setTier, setVehicleClass, updateOnboarding, refreshAccount } =
-    useStudyStore();
+  const { state, hasOnboarded, setTier, refreshAccount } = useStudyStore();
   const [banner, setBanner] = React.useState<string | null>(
     sp.get("status") === "success" ? "Payment received — activating your plan…" : null,
   );
@@ -102,17 +98,6 @@ function BillingInner() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paidReturn]);
-  // The track (car vs bike+heavy) is chosen here — it sets which codes the
-  // learner can study and drives the per-class price. A plan covers exactly
-  // one track; the other track's plans are a switch, never included.
-  const trackParam = sp.get("track");
-  const [track, setTrack] = React.useState<VehicleClass>(
-    trackParam === "bike_heavy"
-      ? "bike_heavy"
-      : trackParam === "car"
-        ? "car"
-        : (state.vehicleClass ?? "car"),
-  );
   const [cycle, setCycle] = React.useState<"monthly" | "annual">(
     sp.get("cycle") === "annual" ? "annual" : "monthly",
   );
@@ -152,21 +137,8 @@ function BillingInner() {
     }
   }
 
-  /** Move the subscription (and the study content with it) onto `track`. */
-  function applyTrack() {
-    setVehicleClass(track);
-    // The study code must live inside the track that's being paid for —
-    // otherwise the subscription says one vehicle class while every study
-    // surface serves another.
-    const code = state.onboarding?.vehicleCode;
-    if (code && classOfCode(code) !== track) {
-      updateOnboarding({ vehicleCode: track === "car" ? "8" : "A" });
-    }
-  }
-
   async function choose(plan: (typeof PLANS)[number]) {
-    const switchingTrack = state.vehicleClass !== null && state.vehicleClass !== track;
-    if (plan.id === state.tier && !switchingTrack) return;
+    if (plan.id === state.tier) return;
     setError(null);
     if (plan.id === "free") {
       if (isSupabaseConfigured && state.tier !== "free") {
@@ -175,26 +147,20 @@ function BillingInner() {
         setConfirmingCancel(true);
         return;
       }
-      applyTrack();
       setTier("free");
-      setBanner(
-        switchingTrack && state.tier === "free"
-          ? `Your Free plan now covers ${VEHICLE_CLASS_LABEL[track]}.`
-          : "You're now on the Free plan.",
-      );
+      setBanner("You're now on the Free plan.");
       return;
     }
     setBusy(plan.id);
-    trackEvent("checkout_started", { plan: plan.id, cycle, track });
+    trackEvent("checkout_started", { plan: plan.id, cycle });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plan: plan.id, track, cycle }),
+        body: JSON.stringify({ plan: plan.id, cycle }),
       });
       const data = await res.json().catch(() => ({}) as { url?: string; demo?: boolean });
       if (res.ok && data.url) {
-        applyTrack();
         window.location.href = data.url;
         return;
       }
@@ -202,9 +168,8 @@ function BillingInner() {
       // billing backend). Anywhere else, a failed checkout is a failure —
       // tier is granted exclusively by the Paystack webhook.
       if (data.demo && !isSupabaseConfigured) {
-        applyTrack();
         setTier(plan.id);
-        setBanner(`You're now on ${plan.name} — ${VEHICLE_CLASS_LABEL[track]}. (Demo — no charge was made.)`);
+        setBanner(`You're now on ${plan.name}. (Demo — no charge was made.)`);
         return;
       }
       setError(
@@ -277,34 +242,7 @@ function BillingInner() {
         </div>
       )}
 
-      {/* Subscription track — decides which licence codes you can study. */}
       <div className="mb-6">
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-muted-foreground">Track</span>
-          <div className="inline-flex rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
-            {(["car", "bike_heavy"] as const).map((t) => (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setTrack(t)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
-                  track === t
-                    ? "bg-card text-foreground shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)]"
-                    : "text-muted-foreground",
-                )}
-              >
-                {VEHICLE_CLASS_SHORT[t]}
-              </button>
-            ))}
-          </div>
-          <span className="text-xs text-muted-foreground">{VEHICLE_CLASS_LABEL[track]}</span>
-        </div>
-        <p className="mt-2 text-xs text-muted-foreground">
-          A plan covers one track only. Switching track moves your subscription and study
-          content to the other vehicle class — it doesn&apos;t add it.
-        </p>
-
         {/* Billing cycle — annual takes R20/mo off every paid plan. */}
         <div className="mt-4 flex flex-wrap items-center gap-3">
           <span className="text-sm font-medium text-muted-foreground">Billing</span>
@@ -367,11 +305,7 @@ function BillingInner() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         {PLANS.map((plan) => {
-          // A plan is only "current" on the track it was bought for — the
-          // same tier on the other track is a switch, not something owned.
-          const onTrack = state.vehicleClass === null || state.vehicleClass === track;
-          const current = plan.id === state.tier && onTrack;
-          const isTrackSwitch = plan.id === state.tier && !onTrack;
+          const current = plan.id === state.tier;
           return (
             <Card
               key={plan.id}
@@ -379,24 +313,20 @@ function BillingInner() {
             >
               <div className="flex items-center justify-between">
                 <h3 className="font-display text-lg font-semibold">{plan.name}</h3>
-                {current && (
-                  <Badge variant="success">
-                    {state.vehicleClass ? `Current · ${VEHICLE_CLASS_SHORT[state.vehicleClass]}` : "Current"}
-                  </Badge>
-                )}
+                {current && <Badge variant="success">Current</Badge>}
               </div>
               <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
               <div className="mt-4 flex items-baseline gap-1">
                 <span className="font-display text-2xl font-semibold">
                   {isFreePlan(plan)
                     ? "Free"
-                    : formatZar(cycle === "annual" ? annualMonthlyPrice(plan, track) : monthlyPrice(plan, track))}
+                    : formatZar(cycle === "annual" ? annualMonthlyPrice(plan) : monthlyPrice(plan))}
                 </span>
                 {!isFreePlan(plan) && <span className="text-sm text-muted-foreground">/month</span>}
               </div>
               {!isFreePlan(plan) && cycle === "annual" && (
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {formatZar(annualPrice(plan, track))} billed once a year
+                  {formatZar(annualPrice(plan))} billed once a year
                 </p>
               )}
 
@@ -410,8 +340,6 @@ function BillingInner() {
               >
                 {current ? (
                   "Current plan"
-                ) : isTrackSwitch ? (
-                  `Switch to ${VEHICLE_CLASS_SHORT[track]}`
                 ) : plan.id === "free" ? (
                   "Downgrade"
                 ) : (

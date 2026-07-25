@@ -3,7 +3,7 @@ import { computeRankIndex, endowCp } from "@/lib/engagement";
 import { computeReadiness } from "@/lib/diagnostic/scoring";
 
 export const STORAGE_KEY = "k53mentor.state.v1";
-export const STATE_VERSION = 2;
+export const STATE_VERSION = 3;
 
 export function todayKey(now = new Date()): string {
   return now.toISOString().slice(0, 10);
@@ -26,7 +26,6 @@ export function defaultUserState(): UserState {
     ownerEmail: null,
     onboarding: null,
     tier: "free",
-    vehicleClass: null,
     diagnostics: [],
     cardStates: {},
     attempts: [],
@@ -72,8 +71,12 @@ export function loadState(): UserState {
         hasPassedMock: merged.mockExams.some((m) => m.passed && !m.mini && !m.drill),
       });
       merged.pendingRankUp = null;
-      merged.version = STATE_VERSION;
     }
+    // v2 -> v3: the paid "vehicle track" is gone — one plan covers every
+    // licence code now. Strip the stale key so a value left by an older
+    // build can't linger in the saved blob.
+    delete (merged as Partial<UserState> & { vehicleClass?: unknown }).vehicleClass;
+    merged.version = STATE_VERSION;
     return merged;
   } catch {
     return defaultUserState();

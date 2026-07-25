@@ -40,41 +40,29 @@ function callbackOrigin(req: Request): string {
 
 const schema = z.object({
   plan: z.enum(["premium", "premium_plus", "tutor_topup"]),
-  track: z.enum(["car", "bike_heavy"]).optional(),
   cycle: z.enum(["monthly", "annual"]).optional(),
+  // `track` was the car vs bike+heavy split. One plan now covers every
+  // licence code, so it is accepted and ignored rather than rejected — old
+  // bookmarks and in-flight clients must not start 400ing on deploy.
+  track: z.string().optional(),
 });
 
 /**
- * Paystack Plan code for a plan + cycle + track, from env. Prices differ per
- * vehicle class (Premium: R60 car / R50 bike+heavy) and a Paystack Plan has
- * exactly one fixed price — so each tier × cycle × track is its own Plan.
- * The BIKE vars fall back to the car Plan so a half-configured deploy sells
- * at the (higher) car price rather than failing or undercharging.
+ * Paystack Plan code for a plan + cycle, from env. One price per tier now, so
+ * there are four Plans (2 tiers x 2 cycles) rather than eight — the bike+heavy
+ * variants are retired. These are the same Plan codes that were already live
+ * for the car track, so no new Paystack Plans need creating.
  */
 function planCodeFor(
   plan: "premium" | "premium_plus",
   cycle: "monthly" | "annual",
-  track: "car" | "bike_heavy",
-): { code: string; pricedTrack: "car" | "bike_heavy" } | undefined {
+): string | undefined {
   const e = process.env;
-  const car =
+  const codes =
     plan === "premium"
       ? { monthly: e.PAYSTACK_PLAN_PREMIUM_MONTHLY, annual: e.PAYSTACK_PLAN_PREMIUM_ANNUAL }
       : { monthly: e.PAYSTACK_PLAN_PREMIUM_PLUS_MONTHLY, annual: e.PAYSTACK_PLAN_PREMIUM_PLUS_ANNUAL };
-  const bike =
-    plan === "premium"
-      ? { monthly: e.PAYSTACK_PLAN_PREMIUM_BIKE_MONTHLY, annual: e.PAYSTACK_PLAN_PREMIUM_BIKE_ANNUAL }
-      : {
-          monthly: e.PAYSTACK_PLAN_PREMIUM_PLUS_BIKE_MONTHLY,
-          annual: e.PAYSTACK_PLAN_PREMIUM_PLUS_BIKE_ANNUAL,
-        };
-  // The amount we send must match the plan actually used. If a bike Plan isn't
-  // configured we fall back to the car Plan — and price it as the car track too,
-  // so Paystack never gets a bike amount against a car plan (never undercharge).
-  if (track === "bike_heavy" && bike[cycle]) {
-    return { code: bike[cycle]!, pricedTrack: "bike_heavy" };
-  }
-  return car[cycle] ? { code: car[cycle]!, pricedTrack: "car" } : undefined;
+  return codes[cycle] || undefined;
 }
 
 /**
@@ -158,20 +146,16 @@ export async function POST(req: Request) {
 
     // ── Subscription checkout ────────────────────────────────────────────────
     const cycle = parsed.cycle ?? "monthly";
-    const track = parsed.track ?? "car";
-    const priced = planCodeFor(parsed.plan, cycle, track);
-    if (!priced) {
+    const planCode = planCodeFor(parsed.plan, cycle);
+    if (!planCode) {
       return Response.json({ error: "Price not configured for this plan." }, { status: 500 });
     }
-    const { code: planCode, pricedTrack } = priced;
 
     // Paystack's initialize endpoint rejects the request ("Invalid Amount Sent")
-    // unless an amount is present, even when a plan sets the recurring price. Send
-    // the plan's own amount (ZAR → cents), priced for the track whose Plan we
-    // actually used, so the amount and the plan always agree.
+    // unless an amount is present, even when a plan sets the recurring price.
+    // Send the plan's own amount (ZAR → cents) so amount and Plan agree.
     const planDef = PLAN_MAP[parsed.plan];
-    const amountZar =
-      cycle === "annual" ? annualPrice(planDef, pricedTrack) : monthlyPrice(planDef, pricedTrack);
+    const amountZar = cycle === "annual" ? annualPrice(planDef) : monthlyPrice(planDef);
 
     const { authorization_url } = await initializeTransaction({
       email,
@@ -182,7 +166,6 @@ export async function POST(req: Request) {
         kind: "subscription",
         plan: parsed.plan,
         cycle,
-        ...(parsed.track ? { track: parsed.track } : {}),
         ...(userId ? { user_id: userId } : {}),
       },
     });

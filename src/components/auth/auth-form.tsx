@@ -32,18 +32,18 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   // promise stays intact when Supabase isn't configured.
   const enforcePassword = mode === "signup" && isSupabaseConfigured;
 
-  // Landing pricing buttons arrive as /signup?plan=…&track=…&cycle=…. Carry that
-  // choice through auth so the user lands straight in that plan's checkout; the
-  // billing page skips the charge if they already have a paid plan. Without a
-  // plan, fall back to the normal post-auth router.
+  // Landing pricing buttons arrive as /signup?plan=…&cycle=…. Carry that choice
+  // through auth so the user lands straight in that plan's checkout; the billing
+  // page skips the charge if they already have a paid plan. Without a plan, fall
+  // back to the normal post-auth router. (`track` used to ride along here too —
+  // one plan now covers every licence code, so an old link's stray param is
+  // simply dropped.)
   function postAuthDest(): string {
     const p = new URLSearchParams(window.location.search);
     const plan = p.get("plan");
     if (plan === "premium" || plan === "premium_plus") {
       const q = new URLSearchParams({ buy: plan });
-      const t = p.get("track");
       const c = p.get("cycle");
-      if (t) q.set("track", t);
       if (c) q.set("cycle", c);
       return `/account/billing?${q.toString()}`;
     }

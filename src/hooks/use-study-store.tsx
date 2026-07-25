@@ -14,7 +14,6 @@ import type {
   TutorMessage,
   TutorThread,
   UserState,
-  VehicleClass,
   CategoryId,
 } from "@/types";
 import {
@@ -74,7 +73,6 @@ interface StudyStore {
    * Paystack redirect so the webhook-written tier appears without a reload.
    */
   refreshAccount: () => Promise<SubscriptionTier | null>;
-  setVehicleClass: (vc: VehicleClass | null) => void;
   completeOnboarding: (data: Omit<OnboardingData, "completedAt">) => void;
   updateOnboarding: (patch: Partial<Omit<OnboardingData, "completedAt">>) => void;
 
@@ -440,15 +438,13 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       setState((s) => {
         const next = { ...s, ...account };
         if (account.cp != null) next.cp = Math.max(s.cp, account.cp);
-        // A null track means "none on record" (free, or a pre-0017 sub), not
-        // "clear the one we have" — same rule as hydrateAccountState.
-        next.vehicleClass = account.vehicleClass ?? s.vehicleClass;
+        // Same rule as hydrateAccountState: a server with no onboarding yet
+        // must not blank the answers this browser already holds.
+        next.onboarding = account.onboarding ?? s.onboarding;
         return next;
       });
       return account.tier ?? null;
     },
-
-    setVehicleClass: (vehicleClass) => setState((s) => ({ ...s, vehicleClass })),
 
     completeOnboarding: (data) =>
       setState((s) => ({
