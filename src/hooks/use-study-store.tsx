@@ -46,6 +46,7 @@ import { createClient } from "@/lib/supabase/client";
 import { loadAccount, saveAccount } from "@/lib/supabase/account";
 import { pullProgress, pushProgress } from "@/lib/supabase/progress";
 import { hydrateAccountState } from "@/lib/store/account-hydrate";
+import { persistOnboarding } from "@/lib/store/persist-onboarding";
 
 type UsageKind = "flashcards" | "questions" | "tutor" | "scenarios";
 
@@ -74,7 +75,19 @@ interface StudyStore {
    */
   refreshAccount: () => Promise<SubscriptionTier | null>;
   completeOnboarding: (data: Omit<OnboardingData, "completedAt">) => void;
-  updateOnboarding: (patch: Partial<Omit<OnboardingData, "completedAt">>) => void;
+  /**
+   * Save onboarding answers and resolve only once the server has them.
+   *
+   * The background sync is debounced 800ms, which is right for study progress
+   * (constant, replaceable) but wrong for a profile edit: it is a deliberate
+   * change the user watches, and any navigation inside that window cancels the
+   * pending write via the effect's cleanup. The profile editor reloaded the
+   * page 600ms after saving, so the licence code never reached
+   * `profiles.vehicle_code` — and hydration then restored the server's old
+   * value, silently reverting the change. Rejects if the write fails, so the
+   * caller can say so rather than claim a save that did not happen.
+   */
+  saveOnboarding: (data: OnboardingData) => Promise<void>;
 
   recordDiagnostic: (result: DiagnosticResult) => void;
   reviewCard: (cardId: string, rating: SrsRating) => void;
@@ -452,8 +465,18 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         onboarding: { ...data, completedAt: new Date().toISOString() },
       })),
 
-    updateOnboarding: (patch) =>
-      setState((s) => (s.onboarding ? { ...s, onboarding: { ...s.onboarding, ...patch } } : s)),
+    saveOnboarding: async (data) => {
+      const next = await persistOnboarding({
+        // `latest` is assigned on every render, so this is the committed
+        // state — unlike `state` captured in a stale closure, and unlike a
+        // setState updater, whose result isn't readable synchronously.
+        state: latest.current.state,
+        data,
+        saveLocal: saveState,
+        saveRemote: supabase ? (s) => saveAccount(supabase, s) : null,
+      });
+      setState(next);
+    },
 
     recordDiagnostic: (result) =>
       setState((s) => {
