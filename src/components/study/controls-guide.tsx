@@ -44,6 +44,7 @@ import {
 } from "@/lib/content/controls";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { groupOf } from "@/lib/content/vehicle";
+import { studyCodeOf } from "@/lib/billing/plans";
 import {
   MOTORCYCLE_CONTROLS,
   HEAVY_CONTROLS,
@@ -119,7 +120,7 @@ function VehicleControlRow({ control }: { control: VehicleControlItem }) {
 
 export function ControlsGuide() {
   const { state } = useStudyStore();
-  const group = state.onboarding ? groupOf(state.onboarding.vehicleCode) : "car";
+  const group = groupOf(studyCodeOf(state));
 
   if (group !== "car") {
     const isMoto = group === "motorcycle";

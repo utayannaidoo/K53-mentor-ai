@@ -28,7 +28,7 @@ import {
 } from "@/lib/diagnostic/select";
 import { TrialMeter } from "@/components/app/trial-meter";
 import { categoryName } from "@/lib/content/categories";
-import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
+import { STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import type { CategoryId, Question } from "@/types";
@@ -46,7 +46,7 @@ export function QuestionPractice() {
 
   function buildQueue(): Question[] {
     const base = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
-    const pool = forCode(base, state.onboarding?.vehicleCode);
+    const pool = forCode(base, studyCodeOf(state));
     let ordered = orderByFreshness(pool, state.attempts);
     // Self-declared beginners open their first-ever session with easy questions.
     if (state.onboarding?.knowledgeLevel === "beginner" && state.attempts.length === 0) {

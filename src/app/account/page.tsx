@@ -17,7 +17,7 @@ import { EmailRemindersToggle } from "@/components/account/email-reminders-toggl
 import { InviteCard } from "@/components/account/invite-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
-import { PLAN_MAP, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
+import { PLAN_MAP, VEHICLE_CLASS_SHORT, studyCodeOf } from "@/lib/billing/plans";
 import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -177,7 +177,7 @@ function AccountInner() {
           <>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Info icon={<Target className="h-4 w-4" />} label="Goal" value={GOAL_LABEL[onboarding.goal]} />
-              <Info icon={<Gauge className="h-4 w-4" />} label="Licence code" value={`Code ${onboarding.vehicleCode}`} />
+              <Info icon={<Gauge className="h-4 w-4" />} label="Licence code" value={`Code ${studyCodeOf(state)}`} />
               <Info
                 icon={<CalendarClock className="h-4 w-4" />}
                 label={onboarding.goal === "both" ? "Learner's test" : "Test date"}

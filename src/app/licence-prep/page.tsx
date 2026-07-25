@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { hasFeature } from "@/lib/billing/plans";
+import { hasFeature, studyCodeOf } from "@/lib/billing/plans";
 import { DRIVER_MODULES } from "@/lib/content/driver-modules";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn, glass } from "@/lib/utils";
@@ -25,7 +25,7 @@ const GROUP_BLURB = {
 export default function LicencePrepPage() {
   const { state } = useStudyStore();
   const unlocked = hasFeature(state.tier, "licencePrep");
-  const group = state.onboarding ? groupOf(state.onboarding.vehicleCode) : "car";
+  const group = groupOf(studyCodeOf(state));
   const GroupIcon = GROUP_ICON[group];
   const modules = DRIVER_MODULES.filter((m) => (m.group ?? "car") === group);
 

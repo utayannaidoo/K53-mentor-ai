@@ -21,7 +21,7 @@ import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { hasFeature, STUDY_SESSION_SIZE } from "@/lib/billing/plans";
+import { hasFeature, STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
 import { orderScenariosByFreshness } from "@/lib/diagnostic/select";
 import { countDueTomorrow } from "@/lib/plan";
 import { SCENARIOS } from "@/lib/content/scenarios";
@@ -39,7 +39,7 @@ export function ScenarioPlayer() {
   // would just hand out a random dozen and repeat some of them next time.
   function buildQueue() {
     return orderScenariosByFreshness(
-      forCode(SCENARIOS, state.onboarding?.vehicleCode),
+      forCode(SCENARIOS, studyCodeOf(state)),
       state.scenarioAttempts,
     )
       .slice(0, STUDY_SESSION_SIZE)

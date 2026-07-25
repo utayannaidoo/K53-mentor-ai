@@ -1,4 +1,4 @@
-import type { SubscriptionTier, VehicleCode, VehicleClass } from "@/types";
+import type { SubscriptionTier, UserState, VehicleCode, VehicleClass } from "@/types";
 
 export type FeatureKey = "tutor" | "scenarios" | "licencePrep" | "advancedAnalytics" | "scanner";
 export type CapKey = "flashcardsPerDay" | "questionsPerDay" | "tutorPerDay";
@@ -34,6 +34,43 @@ export function codesForClass(vc: VehicleClass | null): VehicleCode[] {
 /** Whether a track's subscription covers a given code. */
 export function classAllowsCode(vc: VehicleClass | null, code: VehicleCode): boolean {
   return vc === null || vehicleClass(code) === vc;
+}
+
+/** The code a track defaults to when the stored one can't be trusted. */
+export function defaultCodeForClass(vc: VehicleClass): VehicleCode {
+  return vc === "car" ? "8" : "A";
+}
+
+/**
+ * The licence code every study surface must gate its content by.
+ *
+ * The profile's `vehicleCode` is client-owned data: it is cached in
+ * localStorage, can be left behind by another account on a shared device, is
+ * briefly absent while the account hydrates, and is written back by the
+ * client. The paid track is server truth (`subscriptions.track`, webhook-only).
+ * So the track always wins — a car subscriber can never be served motorcycle
+ * or heavy content, whatever the profile happens to say — and an unknown code
+ * falls back to the track's default (or Code 8) instead of "show everything",
+ * which is what let the whole bank leak through before onboarding landed.
+ *
+ * Free learners aren't scoped to a paid track, so their own choice stands.
+ */
+export function studyCodeFor(
+  tier: SubscriptionTier,
+  track: VehicleClass | null,
+  code: VehicleCode | undefined,
+): VehicleCode {
+  if (tier !== "free" && track !== null) {
+    return code && vehicleClass(code) === track ? code : defaultCodeForClass(track);
+  }
+  return code ?? "8";
+}
+
+/** `studyCodeFor` applied to the whole store — the form every call site uses. */
+export function studyCodeOf(
+  state: Pick<UserState, "tier" | "vehicleClass" | "onboarding">,
+): VehicleCode {
+  return studyCodeFor(state.tier, state.vehicleClass, state.onboarding?.vehicleCode);
 }
 
 /**

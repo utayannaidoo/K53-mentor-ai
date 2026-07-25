@@ -66,6 +66,7 @@ export async function applyChargeSuccess(
   // A plan-less charge with kind !== tutor_topup isn't one of ours.
   const plan = meta.plan;
   if ((plan !== "premium" && plan !== "premium_plus") || !data.plan?.plan_code) return;
+  const track = meta.track === "car" || meta.track === "bike_heavy" ? meta.track : null;
   const { error: grantError } = await admin.from("subscriptions").upsert(
     {
       user_id: userId,
@@ -73,6 +74,12 @@ export async function applyChargeSuccess(
       status: "active",
       provider: "paystack",
       provider_customer_id: data.customer.customer_code,
+      // Server truth for which vehicle track the plan covers. The client can't
+      // write this row (RLS, 0004), so it's the one value content gating can
+      // trust — `profiles.vehicle_code` is client-owned and can drift. Only
+      // overwrite when this charge actually carries a track, so a renewal
+      // (which has no metadata) never clears it.
+      ...(track ? { track } : {}),
       // Recorded so a 7-day money-back cancellation can refund this exact
       // charge automatically. Renewals don't carry our metadata, so they
       // never reach here — paid_at stays the first-payment date.
@@ -87,8 +94,7 @@ export async function applyChargeSuccess(
   // follows the plan and survives an account refresh (which reloads the code
   // from the profile). Only change it when the track actually differs, so an
   // existing code within the same class (e.g. 14 within bike & heavy) is kept.
-  const track = meta.track;
-  if (track === "car" || track === "bike_heavy") {
+  if (track) {
     const { data: prof } = await admin
       .from("profiles")
       .select("vehicle_code")

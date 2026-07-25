@@ -27,7 +27,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { hasFeature } from "@/lib/billing/plans";
+import { hasFeature, studyCodeOf } from "@/lib/billing/plans";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn } from "@/lib/utils";
 
@@ -55,15 +55,20 @@ const MOBILE_NAV = NAV.filter((n) =>
 );
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { ready, isAuthed, state } = useStudyStore();
+  const { ready, accountHydrated, isAuthed, state } = useStudyStore();
   const router = useRouter();
   const pathname = usePathname();
 
   React.useEffect(() => {
-    if (ready && !isAuthed) router.replace("/login");
-  }, [ready, isAuthed, router]);
+    if (ready && accountHydrated && !isAuthed) router.replace("/login");
+  }, [ready, accountHydrated, isAuthed, router]);
 
-  if (!ready) {
+  // Nothing under the shell may render before the account lands. Until it
+  // does, `state` is whatever this browser last cached — possibly another
+  // account's tier and licence code — and the study surfaces snapshot their
+  // queue on first render, so a queue built here would keep serving the wrong
+  // vehicle's content for the whole session even after the account arrived.
+  if (!ready || !accountHydrated) {
     return <AppShellSkeleton />;
   }
   if (!isAuthed) {
@@ -72,7 +77,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isPlus = state.tier === "premium_plus";
   const firstName = state.profile?.name?.split(" ")[0] ?? "Learner";
-  const vehicleGroup = state.onboarding ? groupOf(state.onboarding.vehicleCode) : "car";
+  const vehicleGroup = groupOf(studyCodeOf(state));
   const LicencePrepIcon = LICENCE_PREP_ICON[vehicleGroup];
 
   return (

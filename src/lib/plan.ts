@@ -4,7 +4,7 @@ import { SCENARIOS } from "@/lib/content/scenarios";
 import { forCode } from "@/lib/content/vehicle";
 import { isDue } from "@/lib/srs/sm2";
 import { getTodayUsage, todayKey } from "@/lib/store/local-store";
-import { PLAN_MAP } from "@/lib/billing/plans";
+import { PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
 import { categoryName } from "@/lib/content/categories";
 import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { shuffle } from "@/lib/utils";
@@ -24,7 +24,7 @@ export interface PlanTask {
 }
 
 export function countDueFlashcards(state: UserState, now = new Date()): number {
-  return forCode(FLASHCARDS, state.onboarding?.vehicleCode).filter((f) =>
+  return forCode(FLASHCARDS, studyCodeOf(state)).filter((f) =>
     isDue(state.cardStates[f.id], now),
   ).length;
 }
@@ -37,7 +37,7 @@ export function countDueTomorrow(state: UserState, now = new Date()): number {
   const end = new Date(now);
   end.setDate(end.getDate() + 1);
   end.setHours(23, 59, 59, 999);
-  return forCode(FLASHCARDS, state.onboarding?.vehicleCode).filter((f) => {
+  return forCode(FLASHCARDS, studyCodeOf(state)).filter((f) => {
     const cs = state.cardStates[f.id];
     return cs && (cs.reps > 0 || cs.lapses > 0) && new Date(cs.due) <= end;
   }).length;
@@ -52,7 +52,7 @@ export function selectFlashcardQueue(
   opts: { categoryId?: CategoryId; limit?: number } = {},
 ): Flashcard[] {
   const now = new Date();
-  let pool = forCode(FLASHCARDS, state.onboarding?.vehicleCode);
+  let pool = forCode(FLASHCARDS, studyCodeOf(state));
   if (opts.categoryId) pool = pool.filter((f) => f.categoryId === opts.categoryId);
 
   // due cards (shuffled so the review order varies each session), then unseen
@@ -208,7 +208,7 @@ export function generateTodayPlan(
     });
   }
 
-  const scenarioPool = forCode(SCENARIOS, state.onboarding?.vehicleCode);
+  const scenarioPool = forCode(SCENARIOS, studyCodeOf(state));
   const scenario = scenarioPool.find((s) => !weakest || s.categoryId === weakest) ?? scenarioPool[0];
   tasks.push({
     id: "task-scenario",

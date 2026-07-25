@@ -7,6 +7,7 @@ import type {
 import { CATEGORIES } from "@/lib/content/categories";
 import { FLASHCARDS } from "@/lib/content/flashcards";
 import { forCode } from "@/lib/content/vehicle";
+import { studyCodeOf } from "@/lib/billing/plans";
 import { clamp, uid } from "@/lib/utils";
 
 /**
@@ -97,7 +98,7 @@ export function scoreDiagnostic(
 
 /** Average flashcard mastery for a category, across cards the user has studied. */
 function flashMasteryForCategory(state: UserState, categoryId: CategoryId): number | null {
-  const cards = forCode(FLASHCARDS, state.onboarding?.vehicleCode).filter(
+  const cards = forCode(FLASHCARDS, studyCodeOf(state)).filter(
     (f) => f.categoryId === categoryId,
   );
   const studied = cards
