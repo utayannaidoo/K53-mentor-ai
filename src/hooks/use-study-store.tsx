@@ -346,7 +346,13 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
   // ── Supabase: persist account + study progress back (prod only, debounced) ─
   React.useEffect(() => {
-    if (!supabase || !ready || !state.profile) return;
+    // Never write before we've READ. `ready` only means localStorage loaded —
+    // which, on a returning visit, is a cached copy that may be stale or from
+    // an older build. Without the accountHydrated gate this fired 800ms after
+    // load, racing the (slower, network-bound) hydrate, and pushed the cached
+    // profile over the server's. That is how a licence code corrected on the
+    // server reappeared as the old value minutes later, with no user action.
+    if (!supabase || !ready || !accountHydrated || !state.profile) return;
     const t = setTimeout(() => {
       supabase.auth
         .getUser()
@@ -371,6 +377,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
   }, [
     supabase,
     ready,
+    accountHydrated,
     state.profile,
     state.onboarding,
     state.tier,
