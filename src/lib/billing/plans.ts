@@ -1,89 +1,39 @@
-import type { SubscriptionTier, UserState, VehicleCode, VehicleClass } from "@/types";
+import type { SubscriptionTier, UserState, VehicleCode } from "@/types";
 
 export type FeatureKey = "tutor" | "scenarios" | "licencePrep" | "advancedAnalytics" | "scanner";
 export type CapKey = "flashcardsPerDay" | "questionsPerDay" | "tutorPerDay";
 
-export type { VehicleClass };
+/**
+ * Every licence code the app teaches. One plan covers all of them — the code
+ * is a study preference, not something you buy, so this is simply the list
+ * every picker offers. (A1/A share the motorcycle content; 10/14 share the
+ * heavy content, so the picker offers one representative of each group.)
+ */
+export const SELECTABLE_CODES: VehicleCode[] = ["8", "A", "14"];
 
-/** Derive the subscription track from a raw code. */
-export function vehicleClass(code: VehicleCode): VehicleClass {
-  return code === "8" ? "car" : "bike_heavy";
-}
-
-export const VEHICLE_CLASS_LABEL: Record<VehicleClass, string> = {
-  car: "Car · Code 8",
-  bike_heavy: "Motorbike & Heavy · A1 / A / 10 / 14",
+export const CODE_LABEL: Record<VehicleCode, string> = {
+  "8": "Car · Code 08 (B)",
+  A1: "Motorcycle · Code A1",
+  A: "Motorcycle · Code A / A1",
+  "10": "Heavy · Code 10",
+  "14": "Heavy · Code 10 / 14",
 };
 
-export const VEHICLE_CLASS_SHORT: Record<VehicleClass, string> = {
-  car: "Car",
-  bike_heavy: "Bike & Heavy",
-};
-
 /**
- * The codes a subscription track unlocks — the single source of truth for
- * every picker that offers codes. A null track (nothing chosen/paid yet)
- * offers everything; the first pick then sets the track.
- */
-export function codesForClass(vc: VehicleClass | null): VehicleCode[] {
-  if (vc === "car") return ["8"];
-  if (vc === "bike_heavy") return ["A", "14"];
-  return ["8", "A", "14"];
-}
-
-/** Whether a track's subscription covers a given code. */
-export function classAllowsCode(vc: VehicleClass | null, code: VehicleCode): boolean {
-  return vc === null || vehicleClass(code) === vc;
-}
-
-/** The code a track defaults to when the stored one can't be trusted. */
-export function defaultCodeForClass(vc: VehicleClass): VehicleCode {
-  return vc === "car" ? "8" : "A";
-}
-
-/**
- * The licence code every study surface must gate its content by.
+ * The licence code every study surface gates its content by.
  *
- * The profile's `vehicleCode` is client-owned data: it is cached in
- * localStorage, can be left behind by another account on a shared device, is
- * briefly absent while the account hydrates, and is written back by the
- * client. The paid track is server truth (`subscriptions.track`, webhook-only).
- * So the track always wins — a car subscriber can never be served motorcycle
- * or heavy content, whatever the profile happens to say — and an unknown code
- * falls back to the track's default (or Code 8) instead of "show everything",
- * which is what let the whole bank leak through before onboarding landed.
+ * There is exactly one source of truth for it — the learner's own choice, in
+ * `onboarding.vehicleCode`, loaded from `profiles.vehicle_code` on sign-in.
+ * Nothing else may override it: not the plan, not a cached value from another
+ * account on this device.
  *
- * Free learners aren't scoped to a paid track, so their own choice stands.
+ * It never returns undefined. `forCode` used to treat an unresolved code as
+ * "show everything", which leaked motorcycle and heavy content to car
+ * learners during the window before the account hydrated; falling back to
+ * Code 8 narrows instead of opening up.
  */
-export function studyCodeFor(
-  tier: SubscriptionTier,
-  track: VehicleClass | null,
-  code: VehicleCode | undefined,
-): VehicleCode {
-  if (tier !== "free" && track !== null) {
-    return code && vehicleClass(code) === track ? code : defaultCodeForClass(track);
-  }
-  return code ?? "8";
-}
-
-/** `studyCodeFor` applied to the whole store — the form every call site uses. */
-export function studyCodeOf(
-  state: Pick<UserState, "tier" | "vehicleClass" | "onboarding">,
-): VehicleCode {
-  return studyCodeFor(state.tier, state.vehicleClass, state.onboarding?.vehicleCode);
-}
-
-/**
- * The codes a user may switch between in-app. A free learner isn't scoped to
- * any paid track, so they can freely study any code; a paid subscriber is
- * scoped to the track they bought (switching track is a plan change on the
- * billing page, never a silent profile edit).
- */
-export function selectableCodes(
-  tier: SubscriptionTier,
-  vc: VehicleClass | null,
-): VehicleCode[] {
-  return tier === "free" ? ["8", "A", "14"] : codesForClass(vc);
+export function studyCodeOf(state: Pick<UserState, "onboarding">): VehicleCode {
+  return state.onboarding?.vehicleCode ?? "8";
 }
 
 /** Annual billing takes this many Rand off the monthly price of every paid plan. */
@@ -99,12 +49,6 @@ export const STUDY_SESSION_SIZE = 12;
 /** Premium gets this many full flashcard + question sessions a day. */
 export const PREMIUM_SESSIONS_PER_DAY = 3;
 const PREMIUM_DAILY_ITEMS = STUDY_SESSION_SIZE * PREMIUM_SESSIONS_PER_DAY; // 36
-
-/** Monthly price (ZAR) per vehicle class. */
-interface ClassPrice {
-  car: number;
-  bike_heavy: number;
-}
 
 /**
  * The richer per-tier limit model behind the new plan structure. `caps` below
@@ -138,8 +82,11 @@ export interface PlanDef {
   name: string;
   tagline: string;
   highlighted?: boolean;
-  /** Monthly price per vehicle class (ZAR). Free is 0 for both. */
-  monthly: ClassPrice;
+  /**
+   * Monthly price (ZAR). One price per tier — the plan covers every licence
+   * code, so nothing here depends on which vehicle the learner is studying.
+   */
+  monthly: number;
   features: Record<FeatureKey, boolean>;
   caps: Record<CapKey, number>; // Infinity = unlimited (legacy view)
   limits: PlanLimits;
@@ -151,7 +98,7 @@ export const PLANS: PlanDef[] = [
     id: "free",
     name: "Free",
     tagline: "A one-day onboarding — see exactly where you stand.",
-    monthly: { car: 0, bike_heavy: 0 },
+    monthly: 0,
     features: { tutor: true, scenarios: false, licencePrep: false, advancedAnalytics: false, scanner: false },
     caps: { flashcardsPerDay: 12, questionsPerDay: 15, tutorPerDay: 3 },
     limits: {
@@ -182,7 +129,7 @@ export const PLANS: PlanDef[] = [
     name: "Premium",
     tagline: "Focused daily practice to pass your learner's.",
     highlighted: true,
-    monthly: { car: 60, bike_heavy: 50 },
+    monthly: 60,
     features: { tutor: true, scenarios: true, licencePrep: false, advancedAnalytics: false, scanner: true },
     caps: {
       flashcardsPerDay: PREMIUM_DAILY_ITEMS,
@@ -217,7 +164,7 @@ export const PLANS: PlanDef[] = [
     id: "premium_plus",
     name: "Premium Plus",
     tagline: "Everything unlimited — learner's and driver's, end to end.",
-    monthly: { car: 70, bike_heavy: 60 },
+    monthly: 70,
     features: { tutor: true, scenarios: true, licencePrep: true, advancedAnalytics: true, scanner: true },
     caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 40 },
     limits: {
@@ -263,22 +210,21 @@ export function tierForFeature(feature: FeatureKey): SubscriptionTier {
   return (PLANS.find((p) => p.features[feature])?.id ?? "premium") as SubscriptionTier;
 }
 
-/** Monthly price for a plan in a given vehicle class. */
-export function monthlyPrice(plan: PlanDef, vc: VehicleClass): number {
-  return plan.monthly[vc];
+/** Monthly price for a plan. */
+export function monthlyPrice(plan: PlanDef): number {
+  return plan.monthly;
 }
 
 /** Effective monthly price when billed annually (flat −R20/mo on paid plans). */
-export function annualMonthlyPrice(plan: PlanDef, vc: VehicleClass): number {
-  const m = plan.monthly[vc];
-  return m === 0 ? 0 : Math.max(0, m - ANNUAL_MONTHLY_SAVING);
+export function annualMonthlyPrice(plan: PlanDef): number {
+  return plan.monthly === 0 ? 0 : Math.max(0, plan.monthly - ANNUAL_MONTHLY_SAVING);
 }
 
 /** Total charged once per year when billed annually. */
-export function annualPrice(plan: PlanDef, vc: VehicleClass): number {
-  return annualMonthlyPrice(plan, vc) * 12;
+export function annualPrice(plan: PlanDef): number {
+  return annualMonthlyPrice(plan) * 12;
 }
 
 export function isFreePlan(plan: PlanDef): boolean {
-  return plan.monthly.car === 0 && plan.monthly.bike_heavy === 0;
+  return plan.monthly === 0;
 }

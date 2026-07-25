@@ -1,13 +1,5 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import type {
-  OnboardingData,
-  Profile,
-  Streak,
-  SubscriptionTier,
-  UserState,
-  VehicleClass,
-} from "@/types";
-import { studyCodeOf } from "@/lib/billing/plans";
+import type { OnboardingData, Profile, Streak, SubscriptionTier, UserState } from "@/types";
 
 /**
  * Account-tier sync between the study store and Supabase: the durable identity
@@ -16,10 +8,7 @@ import { studyCodeOf } from "@/lib/billing/plans";
  * the local store and is not yet mirrored here — see SESSION notes.
  */
 
-type AccountData = Pick<
-  UserState,
-  "profile" | "onboarding" | "tier" | "vehicleClass" | "streak" | "cp"
->;
+type AccountData = Pick<UserState, "profile" | "onboarding" | "tier" | "streak" | "cp">;
 
 interface ProfileRow {
   full_name: string | null;
@@ -53,11 +42,10 @@ export async function loadAccount(
 ): Promise<Partial<AccountData>> {
   const [profileRes, subRes, streakRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
-    // `select("*")` deliberately, not "tier,track": naming a column that the
-    // database doesn't have yet makes PostgREST fail the whole query, and a
-    // failed subscription read resolves to tier "free" — so a deploy that
-    // landed before migration 0017 would downgrade every paying subscriber.
-    // A wildcard simply returns `track` once the column exists.
+    // `select("*")`, not a named column list: naming a column the database
+    // doesn't have yet makes PostgREST fail the whole query, and a failed
+    // subscription read resolves to tier "free" — which would downgrade every
+    // paying subscriber on a deploy that raced a migration.
     supabase.from("subscriptions").select("*").eq("user_id", user.id).maybeSingle(),
     supabase.from("streaks").select("*").eq("user_id", user.id).maybeSingle(),
   ]);
@@ -89,16 +77,10 @@ export async function loadAccount(
         }
       : null;
 
-  const sub = subRes.data as { tier: SubscriptionTier; track?: VehicleClass | null } | null;
-  const tier = (sub?.tier ?? "free") as SubscriptionTier;
-  // The paid track, straight from the row only the Paystack webhook can write.
-  // This is what content gating trusts — see studyCodeFor in billing/plans.
-  // null for free users, and for subscriptions bought before 0017 added the
-  // column (the webhook fills those in on the next charge).
-  const vehicleClass = sub?.track === "car" || sub?.track === "bike_heavy" ? sub.track : null;
+  const tier = ((subRes.data as { tier: SubscriptionTier } | null)?.tier ?? "free") as SubscriptionTier;
 
   const st = streakRes.data as StreakRow | null;
-  const result: Partial<AccountData> = { profile, onboarding, tier, vehicleClass };
+  const result: Partial<AccountData> = { profile, onboarding, tier };
   if (st) {
     result.streak = {
       current: st.current ?? 0,
@@ -136,8 +118,8 @@ function dueSummary(state: UserState, now = new Date()): { due_cards: number; ne
  * Local state is a browser-wide cache, so during an account switch (or when a
  * second tab pushes its own state through the `storage` event) it can briefly
  * hold a DIFFERENT learner's profile. Writing then upserts that learner's
- * name, email and vehicle code over this account's row — which is how a Car
- * subscriber's profile ended up carrying a motorcycle code permanently.
+ * name, email and licence code over this account's row — which is how one
+ * account's profile ended up carrying another's licence code permanently.
  * `pushProgress` has always had this guard; this is its counterpart.
  */
 export async function saveAccount(supabase: SupabaseClient, state: UserState): Promise<void> {
@@ -159,10 +141,9 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
       ...(o
         ? {
             goal: o.goal,
-            // Clamped to the paid track, never the raw stored code — so a code
-            // that contradicts the subscription can't be written back, and an
-            // already-corrupted row self-heals on the next sync.
-            vehicle_code: studyCodeOf(state),
+            // The learner's own choice, straight through. The owner check
+            // above is what stops another account's code landing here.
+            vehicle_code: o.vehicleCode,
             test_date: o.testDate,
             drivers_test_date: o.driversTestDate,
             confidence: o.confidence,

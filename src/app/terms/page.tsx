@@ -55,9 +55,9 @@ export default function TermsPage() {
         <h2>4. Subscriptions & billing</h2>
         <ul>
           <li>
-            Paid plans are billed monthly or annually, per vehicle track (Car, or Bike &amp;
-            Heavy). A plan covers one track; switching track moves your plan, it doesn&apos;t add a
-            second one.
+            Paid plans are billed monthly or annually. One plan covers every licence code —
+            car (Code 08), motorcycle (A/A1) and heavy (10/14) — and you can switch which one
+            you study at any time from your account, at no extra charge.
           </li>
           <li>Prices are shown in South African Rand and may change with notice.</li>
           <li>

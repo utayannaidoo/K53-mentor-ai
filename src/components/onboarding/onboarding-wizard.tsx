@@ -21,7 +21,6 @@ import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
 import { OptionCard } from "@/components/onboarding/option-card";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { vehicleClass } from "@/lib/billing/plans";
 import { SIZE_BY_FREQUENCY } from "@/lib/plan";
 import { CATEGORIES } from "@/lib/content/categories";
 import { cn } from "@/lib/utils";
@@ -60,10 +59,7 @@ function weeksAway(dateStr: string): number | null {
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const { completeOnboarding, state, setVehicleClass } = useStudyStore();
-  // The subscription track decides which codes are offered: car-only, the two
-  // bike+heavy codes, or (no track yet, e.g. free trial) all three.
-  const planClass = state.vehicleClass;
+  const { completeOnboarding, state } = useStudyStore();
 
   const firstName = state.profile?.name?.split(" ")[0] ?? null;
 
@@ -94,7 +90,9 @@ export function OnboardingWizard() {
   }
 
   function finish() {
-    const code: VehicleCode = vehicleCode ?? (planClass === "bike_heavy" ? "A" : "8");
+    // Whatever they picked here is the code, full stop — no plan may override
+    // it, and it is what every study surface reads from this point on.
+    const code: VehicleCode = vehicleCode ?? "8";
     completeOnboarding({
       goal: goal ?? "learners",
       vehicleCode: code,
@@ -106,8 +104,6 @@ export function OnboardingWizard() {
       studyFrequency: frequency ?? "steady",
       priorAttempts,
     });
-    // Free/no-track users set their track from the code they chose here.
-    if (!planClass) setVehicleClass(vehicleClass(code));
     router.push("/diagnostic");
   }
 
@@ -177,24 +173,12 @@ export function OnboardingWizard() {
           {step === 2 && (
             <Step
               title="Which licence are you after?"
-              subtitle={
-                planClass === "car"
-                  ? "Your Car subscription covers Code 08."
-                  : planClass === "bike_heavy"
-                    ? "Your subscription covers motorcycle and heavy codes — pick the one you're learning."
-                    : "This decides which controls, signs and content you'll get."
-              }
+              subtitle="This decides which controls, signs and content you'll get — and you can change it any time in your account."
             >
               <div className="space-y-3">
-                {planClass !== "bike_heavy" && (
-                  <OptionCard selected={vehicleCode === "8"} onClick={() => pick(setVehicleCode, "8")} icon={<Car className="h-5 w-5" />} title="Car · Code 08 (B)" description="Cars and light vehicles up to 3 500 kg" />
-                )}
-                {planClass !== "car" && (
-                  <>
-                    <OptionCard selected={vehicleCode === "A"} onClick={() => pick(setVehicleCode, "A")} icon={<Bike className="h-5 w-5" />} title="Motorcycle · Code A / A1" description="Any motorcycle — light (≤125 cc) or larger" />
-                    <OptionCard selected={vehicleCode === "14"} onClick={() => pick(setVehicleCode, "14")} icon={<Gauge className="h-5 w-5" />} title="Heavy · Code 10 / 14" description="Rigid and articulated heavy vehicles over 3 500 kg" />
-                  </>
-                )}
+                <OptionCard selected={vehicleCode === "8"} onClick={() => pick(setVehicleCode, "8")} icon={<Car className="h-5 w-5" />} title="Car · Code 08 (B)" description="Cars and light vehicles up to 3 500 kg" />
+                <OptionCard selected={vehicleCode === "A"} onClick={() => pick(setVehicleCode, "A")} icon={<Bike className="h-5 w-5" />} title="Motorcycle · Code A / A1" description="Any motorcycle — light (≤125 cc) or larger" />
+                <OptionCard selected={vehicleCode === "14"} onClick={() => pick(setVehicleCode, "14")} icon={<Gauge className="h-5 w-5" />} title="Heavy · Code 10 / 14" description="Rigid and articulated heavy vehicles over 3 500 kg" />
               </div>
             </Step>
           )}
@@ -436,7 +420,7 @@ export function OnboardingWizard() {
               <div className="mx-auto mt-6 max-w-md space-y-3 rounded-xl border border-border bg-card p-5 text-left">
                 <SummaryRow
                   label="Studying for"
-                  value={CODE_LABEL[vehicleCode ?? (planClass === "bike_heavy" ? "A" : "8")]}
+                  value={CODE_LABEL[vehicleCode ?? "8"]}
                 />
                 <SummaryRow
                   label="Test date"

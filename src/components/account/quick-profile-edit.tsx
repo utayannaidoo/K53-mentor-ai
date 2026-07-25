@@ -1,14 +1,13 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import { Dialog } from "@/components/ui/dialog";
 import { Select } from "@/components/ui/select";
 import { DateSelect } from "@/components/ui/date-select";
 import { Button } from "@/components/ui/button";
 import { PageLoader } from "@/components/shared/page-loader";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { vehicleClass, selectableCodes, VEHICLE_CLASS_SHORT } from "@/lib/billing/plans";
+import { SELECTABLE_CODES } from "@/lib/billing/plans";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn } from "@/lib/utils";
 import type { LicenceGoal, VehicleCode } from "@/types";
@@ -32,11 +31,11 @@ function representativeCode(code: VehicleCode): VehicleCode {
 }
 
 export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const { state, updateOnboarding, completeOnboarding, setVehicleClass } = useStudyStore();
+  const { state, updateOnboarding, completeOnboarding } = useStudyStore();
   const onboarding = state.onboarding;
-  // Free learners can study any code; paid subscribers are scoped to the track
-  // they bought (switching track is a plan change on the billing page).
-  const codes = selectableCodes(state.tier, state.vehicleClass);
+  // Every code, always. One plan covers all of them, so switching licence is a
+  // study preference the learner owns — never a billing decision.
+  const codes = SELECTABLE_CODES;
 
   const [goal, setGoal] = React.useState<LicenceGoal>("learners");
   const [vehicleCode, setVehicleCodeLocal] = React.useState<VehicleCode>("8");
@@ -51,24 +50,22 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
   // wizard) so the licence code is always changeable.
   React.useEffect(() => {
     if (!open) return;
-    const allowed = selectableCodes(state.tier, state.vehicleClass);
     if (onboarding) {
       setGoal(onboarding.goal);
-      const rep = representativeCode(onboarding.vehicleCode);
-      setVehicleCodeLocal(allowed.includes(rep) ? rep : allowed[0]);
+      setVehicleCodeLocal(representativeCode(onboarding.vehicleCode));
       setTestDate(onboarding.testDate ?? "");
       setTestBooked(Boolean(onboarding.testDate));
       setDriversTestDate(onboarding.driversTestDate ?? "");
       setDriversBooked(Boolean(onboarding.driversTestDate));
     } else {
       setGoal("learners");
-      setVehicleCodeLocal(allowed[0]);
+      setVehicleCodeLocal("8");
       setTestDate("");
       setTestBooked(false);
       setDriversTestDate("");
       setDriversBooked(false);
     }
-  }, [open, onboarding, state.vehicleClass, state.tier]);
+  }, [open, onboarding]);
 
   function save() {
     const patch = {
@@ -89,11 +86,6 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
         studyFrequency: "steady",
         priorAttempts: 0,
       });
-    }
-    // A free learner's studied code owns their track; a paid subscriber's track
-    // is set on billing and left untouched here.
-    if (state.tier === "free" || !state.vehicleClass) {
-      setVehicleClass(vehicleClass(vehicleCode));
     }
     setSaving(true);
     // A short, deliberate pause so the refresh reads as "applying your change"
@@ -129,24 +121,10 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
               onChange={(v) => setVehicleCodeLocal(v as VehicleCode)}
               options={codes.map((c) => ({ value: c, label: CODE_LABEL[c as keyof typeof CODE_LABEL] }))}
             />
-            {state.tier !== "free" && state.vehicleClass ? (
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Your {VEHICLE_CLASS_SHORT[state.vehicleClass]} plan covers{" "}
-                {state.vehicleClass === "car" ? "Code 08 only" : "motorcycle & heavy codes only"}.{" "}
-                <Link
-                  href="/account/billing"
-                  className="font-medium text-primary underline"
-                  onClick={onClose}
-                >
-                  Change plan
-                </Link>{" "}
-                to switch track.
-              </p>
-            ) : (
-              <p className="mt-1.5 text-xs text-muted-foreground">
-                Switch anytime — pick the licence you&apos;re actually studying for.
-              </p>
-            )}
+            <p className="mt-1.5 text-xs text-muted-foreground">
+              Switch any time — your plan covers every licence code. Your questions,
+              flashcards, mocks and yard-test modules follow this choice.
+            </p>
           </div>
 
           <div>

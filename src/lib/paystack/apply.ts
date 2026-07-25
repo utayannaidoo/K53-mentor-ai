@@ -28,7 +28,7 @@ export interface ChargeSuccessData {
  *
  * THROWS when a money-bearing write fails, so the caller can release its
  * ledger row and let Paystack's redelivery (or the buyer's retry) re-apply the
- * grant. Cosmetic follow-ups (profile track sync, subscription reconciliation,
+ * grant. Cosmetic follow-ups (subscription reconciliation and the
  * receipt email) stay best-effort — a hiccup there must not un-grant a paid
  * tier or trigger a retry loop.
  */
@@ -66,7 +66,6 @@ export async function applyChargeSuccess(
   // A plan-less charge with kind !== tutor_topup isn't one of ours.
   const plan = meta.plan;
   if ((plan !== "premium" && plan !== "premium_plus") || !data.plan?.plan_code) return;
-  const track = meta.track === "car" || meta.track === "bike_heavy" ? meta.track : null;
   const { error: grantError } = await admin.from("subscriptions").upsert(
     {
       user_id: userId,
@@ -74,12 +73,6 @@ export async function applyChargeSuccess(
       status: "active",
       provider: "paystack",
       provider_customer_id: data.customer.customer_code,
-      // Server truth for which vehicle track the plan covers. The client can't
-      // write this row (RLS, 0004), so it's the one value content gating can
-      // trust — `profiles.vehicle_code` is client-owned and can drift. Only
-      // overwrite when this charge actually carries a track, so a renewal
-      // (which has no metadata) never clears it.
-      ...(track ? { track } : {}),
       // Recorded so a 7-day money-back cancellation can refund this exact
       // charge automatically. Renewals don't carry our metadata, so they
       // never reach here — paid_at stays the first-payment date.
@@ -90,27 +83,13 @@ export async function applyChargeSuccess(
   );
   if (grantError) throw new Error(`applyChargeSuccess: tier grant failed: ${grantError.message}`);
 
-  // Keep the studied licence code in step with the paid track, so study content
-  // follows the plan and survives an account refresh (which reloads the code
-  // from the profile). Only change it when the track actually differs, so an
-  // existing code within the same class (e.g. 14 within bike & heavy) is kept.
-  if (track) {
-    const { data: prof } = await admin
-      .from("profiles")
-      .select("vehicle_code")
-      .eq("id", userId)
-      .maybeSingle();
-    const code = (prof as { vehicle_code?: string | null } | null)?.vehicle_code ?? null;
-    const currentTrack = code === "A" || code === "14" ? "bike_heavy" : code === "8" ? "car" : null;
-    if (currentTrack !== track) {
-      await admin
-        .from("profiles")
-        .update({ vehicle_code: track === "car" ? "8" : "A" })
-        .eq("id", userId);
-    }
-  }
+  // NOTE: `profiles.vehicle_code` is deliberately NOT touched here. One plan
+  // covers every licence code, so paying changes what the learner can do, never
+  // what they are studying. This used to rewrite the code to match the paid
+  // track, which silently moved a learner onto a different vehicle's content
+  // the moment a charge landed.
 
-  // A plan, cycle, or track change starts a NEW Paystack subscription while the
+  // A plan or cycle change starts a NEW Paystack subscription while the
   // OLD one stays active — Paystack never auto-cancels the previous plan. Left
   // alone, the learner is billed for BOTH plans every renewal. So cancel every
   // *other* active subscription for this customer, keeping only the one matching
@@ -120,8 +99,8 @@ export async function applyChargeSuccess(
   // swallowed disable is a permanent double-charge, and the ledger row is already
   // committed so Paystack's redelivery would otherwise skip it. Throwing releases
   // the ledger row (both callers do this) so the whole charge is retried until the
-  // old subscription is actually gone. The tier grant and track sync above are
-  // idempotent on retry, and the receipt email below runs only *after* this
+  // old subscription is actually gone. The tier grant above is idempotent on
+  // retry, and the receipt email below runs only *after* this
   // succeeds — so a retry re-grants harmlessly and never double-sends the receipt.
   const customer = await fetchCustomer(data.customer.customer_code);
   const stale = customer.subscriptions.filter(

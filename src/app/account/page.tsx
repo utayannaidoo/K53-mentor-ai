@@ -17,7 +17,7 @@ import { EmailRemindersToggle } from "@/components/account/email-reminders-toggl
 import { InviteCard } from "@/components/account/invite-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
-import { PLAN_MAP, VEHICLE_CLASS_SHORT, studyCodeOf } from "@/lib/billing/plans";
+import { PLAN_MAP, CODE_LABEL, studyCodeOf } from "@/lib/billing/plans";
 import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -155,11 +155,6 @@ function AccountInner() {
             <h2 className="font-display text-lg font-semibold">Subscription</h2>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Badge variant={state.tier === "free" ? "secondary" : "default"}>{plan.name}</Badge>
-              {/* The track badge is a paid-plan concept — a free learner isn't
-                  scoped to one, so showing it would imply a plan they don't have. */}
-              {state.tier !== "free" && state.vehicleClass && (
-                <Badge variant="secondary">{VEHICLE_CLASS_SHORT[state.vehicleClass]}</Badge>
-              )}
               <span className="text-sm text-muted-foreground">{plan.tagline}</span>
             </div>
           </div>
@@ -177,7 +172,7 @@ function AccountInner() {
           <>
             <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <Info icon={<Target className="h-4 w-4" />} label="Goal" value={GOAL_LABEL[onboarding.goal]} />
-              <Info icon={<Gauge className="h-4 w-4" />} label="Licence code" value={`Code ${studyCodeOf(state)}`} />
+              <Info icon={<Gauge className="h-4 w-4" />} label="Licence code" value={CODE_LABEL[studyCodeOf(state)]} />
               <Info
                 icon={<CalendarClock className="h-4 w-4" />}
                 label={onboarding.goal === "both" ? "Learner's test" : "Test date"}
