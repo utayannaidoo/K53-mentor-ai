@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
-import { SignVisual } from "@/components/shared/sign-visual";
+import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { CATEGORIES } from "@/lib/content/categories";
 import { sampleDiagnostic } from "@/lib/diagnostic/select";
@@ -150,9 +150,11 @@ function DiagnosticQuiz() {
                 sign={current.sign}
                 alt={`Road sign for this question about ${current.categoryId.replace(/_/g, " ")}`}
                 className="h-20 w-20"
+                priority
               />
             </div>
           )}
+          <SignPreload image={questions[index + 1]?.image} />
           <h1 className="mt-3 text-balance font-display text-xl font-semibold leading-snug tracking-tight sm:text-2xl">
             {current.prompt}
           </h1>

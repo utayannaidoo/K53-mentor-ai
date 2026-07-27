@@ -192,7 +192,7 @@ function GuidedCards({
           {flipped ? "Answer" : categoryName(card.categoryId)}
         </Badge>
         {!flipped && (card.image || card.sign) && (
-          <SignVisual image={card.image} sign={card.sign} alt={categoryName(card.categoryId)} className="h-16 w-16" />
+          <SignVisual image={card.image} sign={card.sign} alt={categoryName(card.categoryId)} className="h-16 w-16" priority />
         )}
         <p className={cn("text-balance leading-snug", flipped ? "text-sm" : "font-display text-lg font-semibold tracking-tight")}>
           {flipped ? card.back : card.front}
@@ -313,7 +313,7 @@ function GuidedQuestions({
         </Badge>
         {(q.image || q.sign) && (
           <div className="mt-3">
-            <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-16 w-16" />
+            <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-16 w-16" priority />
           </div>
         )}
         <h2 className="mt-3 text-balance font-display text-lg font-semibold leading-snug tracking-tight">

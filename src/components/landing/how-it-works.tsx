@@ -94,7 +94,7 @@ export function HowItWorks() {
 
   return (
     <>
-      <div className="mx-auto max-w-[1120px] px-6 pt-16 lg:pt-[16vh]">
+      <div className="mx-auto max-w-[1120px] px-6 pt-16 board:pt-[16vh]">
         <div className="mb-6 max-w-[560px]">
           <span className="text-[13px] font-medium uppercase tracking-[0.12em] text-primary">
             How it works
@@ -108,23 +108,24 @@ export function HowItWorks() {
       <section
         ref={sectionRef}
         id="how"
-        className="relative mx-auto h-[280vh] -mt-10 max-w-[1120px] scroll-mt-20 px-6 lg:h-[380vh] lg:-mt-12"
+        className="relative mx-auto h-[280vh] -mt-10 max-w-[1120px] scroll-mt-20 px-6 board:h-[380vh] board:-mt-12"
       >
         {/* pt offsets the floating nav (~4.5rem) so the steps + panel sit in the
             *visible* area, not the full viewport (which the nav overlaps at the
-            top). At lg they centre in it; below lg they top-align, otherwise
-            centring inside a viewport-tall box opens a gap under the heading
-            before the sticky engages. svh (not dvh) keeps the box from
-            re-laying-out when mobile browser chrome collapses mid-scroll. */}
-        <div className="sticky top-0 flex h-[100svh] flex-col justify-start pt-[4.5rem] lg:h-dvh lg:justify-center">
-          <div className="flex flex-col items-center gap-4 lg:flex-row lg:gap-14">
-            <div className="flex w-full flex-none flex-col gap-2 lg:flex-1">
+            top). On the board layout they centre in it; on the stacked one they
+            top-align, otherwise centring inside a viewport-tall box opens a gap
+            under the heading before the sticky engages. svh (not dvh) keeps the
+            box from re-laying-out when mobile browser chrome collapses
+            mid-scroll. */}
+        <div className="sticky top-0 flex h-[100svh] flex-col justify-start pt-[4.5rem] board:h-dvh board:justify-center">
+          <div className="flex flex-col items-center gap-4 board:flex-row board:gap-14">
+            <div className="flex w-full flex-none flex-col gap-2 board:flex-1">
               {STEPS.map((s, i) => {
                 const on = i === active;
                 return (
                   <div
                     key={s.n}
-                    className="flex gap-4 rounded-2xl px-4 py-2 transition-[opacity,background,box-shadow] duration-500 ease-soft max-lg:[@media(min-height:750px)]:py-2.5 lg:py-3"
+                    className="flex gap-4 rounded-2xl px-4 py-2 transition-[opacity,background,box-shadow] duration-500 ease-soft max-md:[@media(min-height:750px)]:py-2.5 board:py-3"
                     style={{
                       opacity: on ? 1 : 0.42,
                       background: on ? "hsl(var(--card)/0.55)" : "transparent",
@@ -138,13 +139,14 @@ export function HowItWorks() {
                       <h3 className="font-display text-[17px] font-semibold tracking-[-0.01em]">
                         {s.title}
                       </h3>
-                      {/* Below lg the four steps and the panel compete for one
-                          viewport, so only the active step keeps its body. The
-                          max-height ceiling is generous enough for the longest
-                          body (~63px) to animate open without clipping; lg pins
-                          every row open. */}
+                      {/* On the stacked layout the four steps and the panel
+                          compete for one viewport, so only the active step
+                          keeps its body. The max-height ceiling is generous
+                          enough for the longest body (~63px) to animate open
+                          without clipping; the board layout pins every row
+                          open. */}
                       <div
-                        className={`overflow-hidden transition-[max-height,opacity] duration-500 ease-soft motion-reduce:transition-none lg:max-h-none lg:opacity-100 ${
+                        className={`overflow-hidden transition-[max-height,opacity] duration-500 ease-soft motion-reduce:transition-none board:max-h-none board:opacity-100 ${
                           on ? "max-h-[6.5rem] opacity-100" : "max-h-0 opacity-0"
                         }`}
                       >
@@ -158,15 +160,19 @@ export function HowItWorks() {
               })}
             </div>
 
-            {/* flex-none below lg: every panel inside is absolutely positioned,
-                so with flex-1 the column has no min-content floor and its
-                flex-basis of 0 overrides the explicit height in the stacked
-                (column) layout — collapsing the panels to nothing. At lg the
-                main axis is horizontal, so flex-1 sizes width and h applies. */}
-            <div className="relative h-[310px] w-full flex-none max-lg:[@media(min-height:750px)]:h-[325px] lg:h-[320px] lg:flex-1">
+            {/* flex-none on the stacked layout: every panel inside is
+                absolutely positioned, so with flex-1 the column has no
+                min-content floor and its flex-basis of 0 overrides the explicit
+                height in the stacked (column) layout — collapsing the panels to
+                nothing. On the board layout the main axis is horizontal, so
+                flex-1 sizes width and h applies. */}
+            {/* 348px: the tallest panel needs ~320px once the board columns
+                narrow to a tablet's ~330px, and `max-h-full` would squash it
+                against a tighter box. */}
+            <div className="relative h-[310px] w-full flex-none max-md:[@media(min-height:750px)]:h-[325px] board:h-[348px] board:flex-1">
             {/* 0 — practice question */}
             <div
-              className={`${PANEL} rounded-[22px] p-5 lg:p-6 ${active === 0 ? "translate-y-0" : "translate-y-[22px]"}`}
+              className={`${PANEL} rounded-[22px] p-5 board:p-6 ${active === 0 ? "translate-y-0" : "translate-y-[22px]"}`}
               style={{
                 opacity: active === 0 ? 1 : 0,
                 pointerEvents: active === 0 ? "auto" : "none",
@@ -176,14 +182,14 @@ export function HowItWorks() {
               <p className="mt-3 font-display text-[17px] font-semibold leading-[1.4]">
                 A flashing red robot at an intersection means you must…
               </p>
-              <div className="mt-4 flex flex-col gap-2 lg:gap-2.5">
-                <div className="cursor-pointer rounded-xl bg-muted/60 px-[15px] py-2.5 text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] transition-transform duration-200 ease-soft hover:scale-[1.03] lg:py-[13px]">
+              <div className="mt-4 flex flex-col gap-2 board:gap-2.5">
+                <div className="cursor-pointer rounded-xl bg-muted/60 px-[15px] py-2.5 text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] transition-transform duration-200 ease-soft hover:scale-[1.03] board:py-[13px]">
                   Slow down and proceed with caution
                 </div>
-                <div className="cursor-pointer rounded-xl bg-primary/15 px-[15px] py-2.5 text-[0.92rem] text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.5)] transition-transform duration-200 ease-soft hover:scale-[1.03] lg:py-[13px]">
+                <div className="cursor-pointer rounded-xl bg-primary/15 px-[15px] py-2.5 text-[0.92rem] text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.5)] transition-transform duration-200 ease-soft hover:scale-[1.03] board:py-[13px]">
                   Stop, then proceed when safe
                 </div>
-                <div className="cursor-pointer rounded-xl bg-muted/60 px-[15px] py-2.5 text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] transition-transform duration-200 ease-soft hover:scale-[1.03] lg:py-[13px]">
+                <div className="cursor-pointer rounded-xl bg-muted/60 px-[15px] py-2.5 text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] transition-transform duration-200 ease-soft hover:scale-[1.03] board:py-[13px]">
                   Maintain your speed
                 </div>
               </div>
@@ -264,7 +270,7 @@ export function HowItWorks() {
                 <Check className="h-[15px] w-[15px]" strokeWidth={3} />
                 Mock exam passed
               </span>
-              <div className="mt-[18px] font-mono text-[44px] font-semibold leading-none tracking-[-0.03em] text-success lg:text-[56px]">
+              <div className="mt-[18px] font-mono text-[44px] font-semibold leading-none tracking-[-0.03em] text-success board:text-[56px]">
                 {mockScore}<span className="text-2xl text-muted-foreground">/68</span>
               </div>
               <p className="mt-2 text-[0.95rem] text-muted-foreground">

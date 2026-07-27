@@ -14,7 +14,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
 import { TrialMeter } from "@/components/app/trial-meter";
-import { SignVisual } from "@/components/shared/sign-visual";
+import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -192,7 +192,8 @@ export function FlashcardDeck() {
             <Badge variant="secondary" className="gap-1">
               <CategoryIcon id={card.categoryId} className="h-3 w-3" /> {categoryName(card.categoryId)}
             </Badge>
-            {(card.image || card.sign) && <SignVisual image={card.image} sign={card.sign} alt={categoryName(card.categoryId)} className="h-24 w-24" />}
+            {(card.image || card.sign) && <SignVisual image={card.image} sign={card.sign} alt={categoryName(card.categoryId)} className="h-24 w-24" priority />}
+            <SignPreload image={queue[i + 1]?.image} />
             <p className="font-display text-xl font-semibold leading-snug tracking-tight text-balance">
               {card.front}
             </p>
