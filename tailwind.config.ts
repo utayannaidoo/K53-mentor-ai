@@ -15,6 +15,14 @@ const config: Config = {
       screens: { "2xl": "1200px" },
     },
     extend: {
+      screens: {
+        // The landing "How it works" board pins two columns to the viewport, so
+        // it needs tablet width *and* enough height to hold them without
+        // clipping. A width-only `lg` check left iPad portrait (820px wide,
+        // ~1060 tall) on the cramped stacked layout while a short landscape
+        // window at 1100px got the board and clipped it.
+        board: { raw: "(min-width: 768px) and (min-height: 620px)" },
+      },
       colors: {
         border: "hsl(var(--border) / <alpha-value>)",
         input: "hsl(var(--input) / <alpha-value>)",

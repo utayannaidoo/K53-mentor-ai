@@ -177,7 +177,7 @@ export function ScenarioPlayer() {
               <CategoryIcon id={sc.categoryId} className="h-3 w-3" /> {categoryName(sc.categoryId)}
             </Badge>
             {(sc.image || sc.sign) && (
-              <SignVisual image={sc.image} sign={sc.sign} alt={sc.title} className="h-12 w-12" />
+              <SignVisual image={sc.image} sign={sc.sign} alt={sc.title} className="h-12 w-12" priority />
             )}
           </div>
 

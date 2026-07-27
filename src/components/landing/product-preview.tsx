@@ -31,7 +31,7 @@ const DEMO_QUESTION = {
   ],
   correctIndex: 1,
   explanation:
-    "A yield (give-way) sign means you do not have to stop if the way is clear, but you must give right of way to crossing traffic and pedestrians and be ready to stop.",
+    "A yield sign means give right of way: slow down, and stop only if crossing traffic or pedestrians make it necessary.",
 };
 
 const DEMO_CARD = {
@@ -61,10 +61,14 @@ export function ProductPreview() {
           demo leads on the LEFT, copy/tabs/CTA on the right. */}
       <div className="mx-auto flex max-w-[1120px] flex-col text-center lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:text-left">
         <div className="order-2 lg:order-1">
-          {/* Device-ish frame */}
+          {/* Device-ish frame. The height is FIXED so neither switching tabs nor
+              answering the question resizes it — a growing card used to shove
+              the rest of the page down mid-interaction. Each demo fills the
+              frame and scrolls internally on the rare overflow (long answer
+              explanation on a narrow phone). */}
           <div
             key={tab}
-            className="glass-2 mx-auto mt-6 w-full max-w-md animate-fade-in rounded-2xl border border-border p-5 text-left shadow-[0_24px_60px_-24px_hsl(var(--shadow)/0.4)] sm:p-6 lg:mt-0 lg:ml-0"
+            className="glass-2 mx-auto mt-6 flex h-[620px] w-full max-w-md animate-fade-in flex-col overflow-hidden rounded-2xl border border-border p-5 text-left shadow-[0_24px_60px_-24px_hsl(var(--shadow)/0.4)] sm:p-6 lg:mt-0 lg:ml-0"
           >
             {tab === "practice" && <DemoQuestion onInteract={() => noteInteraction("practice")} />}
             {tab === "flashcard" && <DemoFlashcard onInteract={() => noteInteraction("flashcard")} />}
@@ -113,12 +117,28 @@ export function ProductPreview() {
 }
 
 function DemoQuestion({ onInteract }: { onInteract: () => void }) {
+  const scroller = React.useRef<HTMLDivElement>(null);
   const [selected, setSelected] = React.useState<number | null>(null);
   const answered = selected !== null;
   const isCorrect = selected === DEMO_QUESTION.correctIndex;
 
+  // The frame can't grow, so on a narrow phone the explanation may land just
+  // below the fold of the scroll area — bring it into view inside the card
+  // (never by scrolling the page, which is what the old growing card did).
+  React.useEffect(() => {
+    if (!answered) return;
+    const el = scroller.current;
+    if (!el) return;
+    const smooth = !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    const id = window.setTimeout(
+      () => el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" }),
+      60,
+    );
+    return () => window.clearTimeout(id);
+  }, [answered]);
+
   return (
-    <div>
+    <div ref={scroller} className="-mx-1 min-h-0 flex-1 overflow-y-auto px-1">
       <div className="flex items-center justify-between">
         <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
           Road signs
@@ -201,14 +221,14 @@ function DemoFlashcard({ onInteract }: { onInteract: () => void }) {
   const [rated, setRated] = React.useState<string | null>(null);
 
   return (
-    <div>
+    <div className="flex min-h-0 flex-1 flex-col">
       <button
         type="button"
         onClick={() => {
           onInteract();
           setFlipped((f) => !f);
         }}
-        className="flex min-h-[190px] w-full flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card p-6 text-center transition-colors hover:border-primary/40"
+        className="flex min-h-[190px] w-full flex-1 flex-col items-center justify-center gap-3 rounded-xl border border-border bg-card p-6 text-center transition-colors hover:border-primary/40"
       >
         <span className="rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">
           {flipped ? "Answer" : "Following distance"}
@@ -228,7 +248,7 @@ function DemoFlashcard({ onInteract }: { onInteract: () => void }) {
         )}
       </button>
 
-      <div className="mt-4 min-h-[64px]">
+      <div className="mt-4 min-h-[64px] shrink-0">
         {flipped && !rated && (
           <div className="grid grid-cols-3 gap-2 animate-fade-in">
             {(
@@ -291,15 +311,15 @@ function DemoTutor({ onInteract }: { onInteract: () => void }) {
   }, [asked, dataSaver]);
 
   return (
-    <div className="flex min-h-[280px] flex-col">
-      <div className="flex items-center gap-2 border-b border-border pb-3">
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex shrink-0 items-center gap-2 border-b border-border pb-3">
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Sparkles className="h-3.5 w-3.5" />
         </span>
         <p className="text-sm font-semibold">Your AI tutor</p>
       </div>
 
-      <div className="flex-1 space-y-3 py-4">
+      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
         {!asked ? (
           <>
             <p className="text-sm text-muted-foreground">

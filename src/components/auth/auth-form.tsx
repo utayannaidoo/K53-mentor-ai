@@ -26,6 +26,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   // session exists — show the "check your inbox" panel instead of redirecting
   // into an app the middleware would immediately bounce back to /login.
   const [awaitingConfirmation, setAwaitingConfirmation] = React.useState(false);
+  // Login was refused because the address is still unverified — offer a new
+  // link instead of leaving the user stuck on a password they typed correctly.
+  const [unconfirmed, setUnconfirmed] = React.useState(false);
+  const [resent, setResent] = React.useState(false);
+  // Why the auth callback sent them back here (expired link, wrong browser…).
+  const [linkError, setLinkError] = React.useState<string | null>(null);
 
   // Enforce the password policy on real signups only. Login must never apply it
   // (existing accounts predate the rules), and demo mode's "any password works"
@@ -54,6 +60,23 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const [linkQuery, setLinkQuery] = React.useState("");
   React.useEffect(() => setLinkQuery(window.location.search), []);
 
+  // /auth/callback redirects here with a reason when a confirmation or reset
+  // link can't be completed. Silence without explanation reads as "email
+  // verification is broken", so always say which failure it was.
+  React.useEffect(() => {
+    // The callback only ever bounces to /login, and the copy below says so.
+    if (mode !== "login") return;
+    const reason = new URLSearchParams(window.location.search).get("error");
+    if (!reason) return;
+    setLinkError(
+      reason === "expired"
+        ? "That link has expired or was already used. Log in below — we'll send a fresh one if your email still needs confirming."
+        : reason === "device"
+          ? "That link has to be opened in the same browser you signed up in. Log in below and we'll email you a new one that works anywhere."
+          : "We couldn't finish that sign-in. Try logging in below.",
+    );
+  }, [mode]);
+
   // Already signed in — hand off to the post-auth destination (checkout if a
   // plan was chosen, otherwise the router that decides onboarding vs dashboard).
   React.useEffect(() => {
@@ -74,9 +97,30 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     }
   }, []);
 
+  /** Where Supabase should send someone after they click an emailed link. */
+  function confirmRedirect(): string {
+    return `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthDest())}`;
+  }
+
+  async function resendConfirmation() {
+    const supabase = createClient();
+    if (!supabase) return;
+    setError(null);
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: { emailRedirectTo: confirmRedirect() },
+    });
+    if (resendError) setError(resendError.message);
+    else setResent(true);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setLinkError(null);
+    setUnconfirmed(false);
+    setResent(false);
 
     // Catch a weak password here so the user gets inline guidance instead of a
     // server-side rejection after the round-trip.
@@ -99,12 +143,19 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 // The confirmation link lands on our callback, which exchanges
                 // the code and forwards to the post-auth destination — same
                 // pattern as the Google OAuth redirect below.
-                emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthDest())}`,
+                emailRedirectTo: confirmRedirect(),
               },
             })
           : await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
-        setError(authError.message);
+        // The password was right; the address just isn't verified yet. Say so
+        // in plain language and put a fresh link one tap away.
+        if (/email not confirmed|not confirmed/i.test(authError.message)) {
+          setUnconfirmed(true);
+          setError(null);
+        } else {
+          setError(authError.message);
+        }
         setLoading(false);
         return;
       }
@@ -165,6 +216,11 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <div>
+      {linkError && (
+        <p className="mb-5 rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed text-foreground">
+          {linkError}
+        </p>
+      )}
       <h1 className="font-display text-2xl font-semibold tracking-tight">
         {mode === "signup" ? "Create your free account" : "Welcome back"}
       </h1>
@@ -199,6 +255,28 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         </div>
 
         {error && <p className="text-sm text-danger">{error}</p>}
+
+        {unconfirmed && (
+          <div className="rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">
+            {resent ? (
+              <>
+                New confirmation link sent to{" "}
+                <span className="font-medium">{email}</span>. Open it, then log in here.
+              </>
+            ) : (
+              <>
+                <p>This email still needs confirming — check your inbox (and spam) for the link.</p>
+                <button
+                  type="button"
+                  onClick={resendConfirmation}
+                  className="mt-1.5 font-medium text-primary hover:underline"
+                >
+                  Send it again
+                </button>
+              </>
+            )}
+          </div>
+        )}
 
         <Button
           type="submit"

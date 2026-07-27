@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useInView } from "@/hooks/use-in-view";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,28 +18,7 @@ export function Reveal({
   className?: string;
   delay?: number;
 }) {
-  const ref = React.useRef<HTMLDivElement>(null);
-  const [shown, setShown] = React.useState(false);
-
-  React.useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    if (typeof IntersectionObserver === "undefined") {
-      setShown(true);
-      return;
-    }
-    const io = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setShown(true);
-          io.disconnect();
-        }
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -8% 0px" },
-    );
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+  const [ref, shown] = useInView<HTMLDivElement>();
 
   return (
     <div

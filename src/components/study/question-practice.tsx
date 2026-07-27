@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
 import { sourceFor } from "@/lib/content/provenance";
-import { SignVisual } from "@/components/shared/sign-visual";
+import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
@@ -211,9 +211,12 @@ export function QuestionPractice() {
           </Badge>
           {(q.image || q.sign) && (
             <div className="mt-4">
-              <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" />
+              <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" priority />
             </div>
           )}
+          {/* Fetch the next question's sign while this one is being answered,
+              so advancing never lands on an empty image card. */}
+          <SignPreload image={queue[i + 1]?.image} />
           <div className="mt-3 flex items-start gap-2">
             <h1 className="text-balance font-display text-xl font-semibold leading-snug tracking-tight">
               {q.prompt}

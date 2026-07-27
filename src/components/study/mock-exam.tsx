@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { MasteryBar } from "@/components/ui/mastery-bar";
 import { Paywall } from "@/components/app/paywall";
-import { SignVisual } from "@/components/shared/sign-visual";
+import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
@@ -456,9 +456,10 @@ export function MockExam() {
         <div key={i} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in">
           {(q.image || q.sign) && (
             <div className="mb-4">
-              <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" />
+              <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" priority />
             </div>
           )}
+          <SignPreload image={questions[i + 1]?.image} />
           <h1 className="text-balance font-display text-xl font-semibold leading-snug tracking-tight">{q.prompt}</h1>
           <div className="mt-5 space-y-3">
             {q.options.map((opt, idx) => (
