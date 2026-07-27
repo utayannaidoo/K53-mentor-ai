@@ -1,8 +1,9 @@
 import { CountUp } from "@/components/landing/count-up";
+import { EXAM_FORMAT } from "@/lib/constants";
 
 const STATS = [
   { value: 15, label: "question diagnostic" },
-  { value: 68, label: "question mock exam" },
+  { value: EXAM_FORMAT.totalQuestions, label: "question mock exam" },
   { value: 7, label: "K53 categories" },
   { value: 10, label: "minutes a day" },
 ];

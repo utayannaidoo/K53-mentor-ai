@@ -1,4 +1,5 @@
 import { Check, X } from "lucide-react";
+import { EXAM_FORMAT } from "@/lib/constants";
 
 type CellValue = boolean | string;
 
@@ -9,7 +10,7 @@ const ROWS: { feature: string; values: [CellValue, CellValue, CellValue] }[] = [
   { feature: "Spaced repetition that adapts to you", values: [true, "Some", false] },
   { feature: "AI tutor that explains your mistakes", values: [true, false, false] },
   { feature: "Scenario-based judgement training", values: [true, false, "Some"] },
-  { feature: "Full 68-question mock exam", values: [true, "Some", false] },
+  { feature: `Full ${EXAM_FORMAT.totalQuestions}-question mock exam`, values: [true, "Some", false] },
   { feature: "Targets your weakest categories", values: [true, false, false] },
   { feature: "Driver's (yard) test prep", values: [true, false, "Varies"] },
   { feature: "10-minute daily study plan", values: [true, false, false] },
