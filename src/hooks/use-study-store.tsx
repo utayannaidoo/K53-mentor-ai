@@ -127,6 +127,22 @@ interface StudyStore {
   resetProgress: () => void;
 }
 
+/**
+ * The parts of the store that change with state, as opposed to the mutators.
+ * Everything else on StudyStore is an action whose identity can stay stable.
+ */
+type StudyValues =
+  | "ready"
+  | "accountHydrated"
+  | "state"
+  | "isAuthed"
+  | "hasOnboarded"
+  | "hasDiagnostic"
+  | "readiness"
+  | "usageFor";
+
+type StudyActions = Omit<StudyStore, StudyValues>;
+
 const StudyContextValue = React.createContext<StudyStore | null>(null);
 
 const CAP_KEY: Record<UsageKind, CapKey | null> = {
@@ -400,15 +416,20 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     };
   };
 
-  const store: StudyStore = {
-    ready,
-    accountHydrated,
-    state,
-    isAuthed: Boolean(state.profile),
-    hasOnboarded: Boolean(state.onboarding),
-    hasDiagnostic: state.diagnostics.length > 0,
-    readiness,
-
+  /**
+   * The mutators, with a stable identity.
+   *
+   * Every one of these either drives `setState` with a functional updater or
+   * reads through `latest.current`, so none of them closes over `state` and
+   * none needs to be rebuilt when it changes. Left inline in the value object
+   * they were rebuilt on every render, which quietly defeats any consumer that
+   * puts an action in a dependency array — mock-exam.tsx's submit useCallback
+   * was being recreated on every keystroke-level render for exactly this reason.
+   *
+   * `usageFor` is deliberately NOT here: it reads `state` to compare usage
+   * against the plan cap, so it belongs with the values that change.
+   */
+  const actions = React.useMemo<StudyActions>(() => ({
     signInLocal: (name, email) => {
       setState((s) => {
         // A different email is a different person: start from a clean slate
@@ -621,23 +642,37 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
     bumpUsage: (kind, by = 1) => setState((s) => bumpUsageState(s, kind, by)),
 
-    usageFor: (kind) => {
-      const capKey = CAP_KEY[kind];
-      // Free is a once-off trial: its caps count lifetime usage, not a daily
-      // window (paid plans reset daily). Matches PlanLimits.reset.
-      const lifetime = PLAN_MAP[state.tier].limits.reset === "trial";
-      const used = lifetime ? totalUsage(state)[kind] : getTodayUsage(state)[kind];
-      const cap = capKey ? dailyCap(state.tier, capKey) : Infinity;
-      return { used, cap, allowed: used < cap };
-    },
-
     acknowledgeRankUp: () => setState((s) => (s.pendingRankUp === null ? s : { ...s, pendingRankUp: null })),
 
     dismissComeback: () =>
       setState((s) => (s.pendingComeback === null ? s : { ...s, pendingComeback: null })),
 
     resetProgress: () => setState(() => defaultUserState()),
-  };
+  }), [supabase]);
+
+  const store = React.useMemo<StudyStore>(
+    () => ({
+      ...actions,
+      ready,
+      accountHydrated,
+      state,
+      isAuthed: Boolean(state.profile),
+      hasOnboarded: Boolean(state.onboarding),
+      hasDiagnostic: state.diagnostics.length > 0,
+      readiness,
+
+      usageFor: (kind) => {
+        const capKey = CAP_KEY[kind];
+        // Free is a once-off trial: its caps count lifetime usage, not a daily
+        // window (paid plans reset daily). Matches PlanLimits.reset.
+        const lifetime = PLAN_MAP[state.tier].limits.reset === "trial";
+        const used = lifetime ? totalUsage(state)[kind] : getTodayUsage(state)[kind];
+        const cap = capKey ? dailyCap(state.tier, capKey) : Infinity;
+        return { used, cap, allowed: used < cap };
+      },
+    }),
+    [actions, ready, accountHydrated, state, readiness],
+  );
 
   return <StudyContextValue.Provider value={store}>{children}</StudyContextValue.Provider>;
 }
