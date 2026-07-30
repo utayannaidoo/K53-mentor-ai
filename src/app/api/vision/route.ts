@@ -60,6 +60,20 @@ function parseScan(text: string): ScanResult | null {
 }
 
 export async function POST(req: Request) {
+  // Per-IP guard first. These are the priciest calls in the app AND carry the
+  // biggest bodies (~4MB of base64), so every cheaper check belongs behind it:
+  // ordered last, a flood forced an auth round-trip, a subscriptions lookup and
+  // a multi-megabyte JSON parse per request before it could be turned away.
+  // limitVision fails CLOSED on limiter outage, which is the intended posture
+  // here — if we cannot account for spend, we do not spend.
+  const rl = await limitVision(clientIp(req));
+  if (!rl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   // Auth + paid-tier entitlement. Vision is a paid feature: the free tier's
   // allowance is 0, so an untampered client never reaches here on free — and
   // a tampered one gets 403 regardless of what its localStorage claims.
@@ -81,13 +95,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const rl = await limitVision(clientIp(req));
-  if (!rl.success) {
-    return Response.json(
-      { error: "rate_limited", retryAfter: rl.retryAfter },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
-    );
-  }
   if (ent.userId) {
     const cap = await limitUserDaily("vision", ent.userId, ent.allowance);
     if (!cap.success) {

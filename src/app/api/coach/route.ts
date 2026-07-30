@@ -88,6 +88,16 @@ function secondOpinionPrompt(d: SecondOpinionData): string {
 }
 
 export async function POST(req: Request) {
+  // Per-IP guard first — before auth's two round-trips and before the body is
+  // parsed, so a flood is refused at the cheapest possible point.
+  const rl = await limitCoach(clientIp(req));
+  if (!rl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   // Auth + paid-tier entitlement (server truth; demo mode skips inside).
   const ent = await resolveEntitlement("coach");
   if (ent instanceof Response) return ent;
@@ -99,13 +109,6 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const rl = await limitCoach(clientIp(req));
-  if (!rl.success) {
-    return Response.json(
-      { error: "rate_limited", retryAfter: rl.retryAfter },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
-    );
-  }
   if (ent.userId) {
     const cap = await limitUserDaily("coach", ent.userId, ent.allowance);
     if (!cap.success) {
