@@ -1,8 +1,12 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isSupabaseConfigured } from "@/lib/env";
+import { assertSupabaseConfiguredInProduction, isSupabaseConfigured } from "@/lib/env";
 import type { SubscriptionTier } from "@/types";
+
+// The demo-mode branch below grants premium_plus with no account. That must
+// never be reachable on a hosted deploy.
+assertSupabaseConfiguredInProduction();
 
 /**
  * Server-side paid-tier enforcement for the AI routes.
