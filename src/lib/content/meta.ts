@@ -1956,3 +1956,13 @@ export const SCENARIO_META: ScenarioMeta[] = [
   { id: "sc_ctrl_mirror_knocked", categoryId: "controls", title: "Mirror out of position" },
   { id: "sc_ctrl_auto_long_red", categoryId: "controls", title: "Long red in an automatic" },
 ];
+
+/**
+ * Fingerprint of the full content bank.
+ *
+ * The cache key for a synced pack. It ships in the bundle, so a client always
+ * knows which version it *should* have and can tell that its cached copy is
+ * stale — which is what stops a content sprint being invisible to everyone who
+ * synced before it.
+ */
+export const CONTENT_VERSION = "2c7a92ac82b1";
