@@ -33,6 +33,17 @@ export function DiagnosticRunner() {
   return <DiagnosticQuiz />;
 }
 
+/**
+ * How long the chosen option stays lit before the next question replaces it.
+ *
+ * The diagnostic deliberately does not reveal whether the answer was right —
+ * it is an assessment, and the breakdown comes at the end. But it does show
+ * WHICH option was picked, and at the old 280ms that confirmation was gone
+ * before the eye could land on it: the screen just changed. Long enough to
+ * register the tap, short enough that 15 questions still move briskly.
+ */
+const ADVANCE_MS = 650;
+
 function DiagnosticQuiz() {
   const router = useRouter();
   const { state, recordQuestionAttempt, recordDiagnostic } = useStudyStore();
@@ -55,8 +66,29 @@ function DiagnosticQuiz() {
   const current = questions[index];
   const total = questions.length;
 
+  /**
+   * Synchronous re-entry lock.
+   *
+   * `selected !== null` alone is not a guard: it only becomes true after React
+   * re-renders, so several clicks landing in the same tick (a fast double-tap
+   * on a slow phone, or a stuck pointer) all read `null`, each record an
+   * attempt and each schedule an advance — burning several questions and
+   * answering them with whatever sat under the finger. A ref flips
+   * immediately, before any state write, so the second click in a burst is
+   * already too late.
+   *
+   * Released by the effect below rather than inside the timeout, so the lock
+   * lifts only once the next question has actually rendered. On the final
+   * question `index` never changes again, which correctly leaves it latched.
+   */
+  const answering = React.useRef(false);
+  React.useEffect(() => {
+    answering.current = false;
+  }, [index]);
+
   function answer(optionIndex: number) {
-    if (selected !== null) return;
+    if (answering.current || selected !== null) return;
+    answering.current = true;
     setSelected(optionIndex);
     const correct = optionIndex === current.correctIndex;
     const response = {
@@ -81,7 +113,7 @@ function DiagnosticQuiz() {
       } else {
         setIndex((i) => i + 1);
       }
-    }, 280);
+    }, ADVANCE_MS);
   }
 
   // Sequentially "light up" categories during analysis.
