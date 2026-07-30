@@ -1,6 +1,14 @@
 import { StudyStoreProvider } from "@/hooks/use-study-store";
+import { ContentProvider } from "@/components/content/content-provider";
 
 /**
+ * One study store for the whole app, and one content pool under it.
+ *
+ * ContentProvider nests inside because it reads the tier from the store to
+ * decide whether to sync the full bank. Both are single instances for the same
+ * reason described below — remounting the content pool on every navigation
+ * would re-read Cache Storage mid-session.
+ *
  * One study store for the whole app.
  *
  * It has to be exactly one, mounted above every route that reads it. Giving
@@ -16,5 +24,9 @@ import { StudyStoreProvider } from "@/hooks/use-study-store";
  * store at all, which is what keeps the question bank off them.
  */
 export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return <StudyStoreProvider>{children}</StudyStoreProvider>;
+  return (
+    <StudyStoreProvider>
+      <ContentProvider>{children}</ContentProvider>
+    </StudyStoreProvider>
+  );
 }

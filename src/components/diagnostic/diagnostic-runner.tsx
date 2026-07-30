@@ -8,7 +8,7 @@ import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { CATEGORIES } from "@/lib/content/categories";
 import { sampleDiagnostic } from "@/lib/diagnostic/select";
-import { QUESTIONS } from "@/lib/content/questions";
+import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { scoreDiagnostic } from "@/lib/diagnostic/scoring";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -48,10 +48,11 @@ const ADVANCE_MS = 650;
 function DiagnosticQuiz() {
   const router = useRouter();
   const { state, recordQuestionAttempt, recordDiagnostic } = useStudyStore();
+  const { questions: bank } = useContentPool();
 
   const [questions] = React.useState(() =>
     sampleDiagnostic(
-      QUESTIONS,
+      bank,
       state.attempts,
       studyCodeOf(state),
       state.onboarding?.worryCategories ?? [],

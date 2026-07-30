@@ -3,11 +3,14 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { TutorChat, type InitialContext } from "@/components/tutor/tutor-chat";
-import { resolveContext } from "@/lib/ai/tutor-prompt";
+import { contextLabel, starterPrompt } from "@/lib/ai/tutor-context";
+import { useContentPool } from "@/components/content/content-provider";
 import { Spinner } from "@/components/ui/spinner";
+import type { CategoryId } from "@/types";
 
 function TutorInner() {
   const sp = useSearchParams();
+  const { questions, flashcards } = useContentPool();
   const question = sp.get("question");
   const card = sp.get("card");
   const category = sp.get("category");
@@ -17,9 +20,23 @@ function TutorInner() {
   else if (card) ctxInput = { type: "card", id: card };
   else if (category) ctxInput = { type: "category", id: category };
 
-  const initial: InitialContext | null = ctxInput
-    ? { ...ctxInput, label: resolveContext(ctxInput)?.label ?? null }
-    : null;
+  // Resolve the anchor item from the learner's own pool rather than from the
+  // bank. Both the chip label and the composer's starter prompt are derived
+  // here so <TutorChat> needs no content at all — it used to look the item up
+  // itself, which is what put the whole bank on this route.
+  let initial: InitialContext | null = null;
+  if (ctxInput) {
+    const item =
+      ctxInput.type === "question"
+        ? (questions.find((q) => q.id === ctxInput!.id) ?? null)
+        : ctxInput.type === "card"
+          ? (flashcards.find((f) => f.id === ctxInput!.id) ?? null)
+          : null;
+    const categoryId =
+      ctxInput.type === "category" ? (ctxInput.id as CategoryId) : (item?.categoryId ?? null);
+    const label = contextLabel(ctxInput.type, categoryId);
+    initial = { ...ctxInput, label, prompt: starterPrompt(ctxInput.type, item, label) };
+  }
 
   return <TutorChat initial={initial} />;
 }
