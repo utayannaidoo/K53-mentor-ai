@@ -6,7 +6,7 @@ import { QUESTIONS } from "@/lib/content/questions";
 import { FLASHCARDS } from "@/lib/content/flashcards";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { forCode, sameGroup } from "@/lib/content/vehicle";
-import { selectFlashcardQueue } from "@/lib/plan";
+import { selectFlashcardQueue } from "@/lib/plan.queue";
 import { sampleDiagnostic, sampleMockExam, sampleMiniMock } from "@/lib/diagnostic/select";
 import type { RemoteProgress } from "@/lib/supabase/progress";
 import type { OnboardingData, SubscriptionTier, UserState, VehicleCode } from "@/types";

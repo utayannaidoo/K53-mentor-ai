@@ -1,13 +1,23 @@
-import type { CategoryId, Flashcard, StudyFrequency, UserState } from "@/types";
-import { FLASHCARDS } from "@/lib/content/flashcards";
-import { SCENARIOS } from "@/lib/content/scenarios";
+import type { CategoryId, StudyFrequency, UserState } from "@/types";
+/**
+ * Planning reads the index, not the bank.
+ *
+ * Everything in this module answers a question about *shape* — how many cards
+ * are due, which category is weakest, how many mocks are left — and none of it
+ * needs a card's front and back or a question's answer. Importing the real
+ * content here is what pulled 645KB of questions into the study store, and
+ * through it into every route that mounts the store.
+ *
+ * The one function that genuinely returns content, selectFlashcardQueue, lives
+ * in ./plan.queue so only the study surfaces that render cards pay for it.
+ */
+import { FLASHCARD_META, SCENARIO_META } from "@/lib/content/meta";
 import { forCode } from "@/lib/content/vehicle";
 import { isDue } from "@/lib/srs/sm2";
 import { getTodayUsage, todayKey } from "@/lib/store/local-store";
 import { PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
 import { categoryName } from "@/lib/content/categories";
 import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
-import { shuffle } from "@/lib/utils";
 
 export type PlanTaskType = "flashcards" | "questions" | "scenario" | "mock";
 
@@ -24,7 +34,7 @@ export interface PlanTask {
 }
 
 export function countDueFlashcards(state: UserState, now = new Date()): number {
-  return forCode(FLASHCARDS, studyCodeOf(state)).filter((f) =>
+  return forCode(FLASHCARD_META, studyCodeOf(state)).filter((f) =>
     isDue(state.cardStates[f.id], now),
   ).length;
 }
@@ -37,32 +47,10 @@ export function countDueTomorrow(state: UserState, now = new Date()): number {
   const end = new Date(now);
   end.setDate(end.getDate() + 1);
   end.setHours(23, 59, 59, 999);
-  return forCode(FLASHCARDS, studyCodeOf(state)).filter((f) => {
+  return forCode(FLASHCARD_META, studyCodeOf(state)).filter((f) => {
     const cs = state.cardStates[f.id];
     return cs && (cs.reps > 0 || cs.lapses > 0) && new Date(cs.due) <= end;
   }).length;
-}
-
-/**
- * Build the flashcard study queue: due cards first (shuffled each session),
- * then unseen cards, optionally filtered to a category.
- */
-export function selectFlashcardQueue(
-  state: UserState,
-  opts: { categoryId?: CategoryId; limit?: number } = {},
-): Flashcard[] {
-  const now = new Date();
-  let pool = forCode(FLASHCARDS, studyCodeOf(state));
-  if (opts.categoryId) pool = pool.filter((f) => f.categoryId === opts.categoryId);
-
-  // due cards (shuffled so the review order varies each session), then unseen
-  const due = shuffle(
-    pool.filter((f) => state.cardStates[f.id] && isDue(state.cardStates[f.id], now)),
-  );
-  const unseen = shuffle(pool.filter((f) => !state.cardStates[f.id]));
-
-  const queue = [...due, ...unseen];
-  return opts.limit ? queue.slice(0, opts.limit) : queue;
 }
 
 /**
@@ -208,7 +196,7 @@ export function generateTodayPlan(
     });
   }
 
-  const scenarioPool = forCode(SCENARIOS, studyCodeOf(state));
+  const scenarioPool = forCode(SCENARIO_META, studyCodeOf(state));
   const scenario = scenarioPool.find((s) => !weakest || s.categoryId === weakest) ?? scenarioPool[0];
   tasks.push({
     id: "task-scenario",

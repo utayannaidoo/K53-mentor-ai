@@ -5,7 +5,9 @@ import type {
   UserState,
 } from "@/types";
 import { CATEGORIES } from "@/lib/content/categories";
-import { FLASHCARDS } from "@/lib/content/flashcards";
+// Mastery only counts cards per category, so the planning index is enough —
+// see meta.ts for why the full deck must not be imported here.
+import { FLASHCARD_META } from "@/lib/content/meta";
 import { forCode } from "@/lib/content/vehicle";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { clamp, uid } from "@/lib/utils";
@@ -98,7 +100,7 @@ export function scoreDiagnostic(
 
 /** Average flashcard mastery for a category, across cards the user has studied. */
 function flashMasteryForCategory(state: UserState, categoryId: CategoryId): number | null {
-  const cards = forCode(FLASHCARDS, studyCodeOf(state)).filter(
+  const cards = forCode(FLASHCARD_META, studyCodeOf(state)).filter(
     (f) => f.categoryId === categoryId,
   );
   const studied = cards

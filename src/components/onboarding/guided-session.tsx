@@ -10,7 +10,7 @@ import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { selectFlashcardQueue } from "@/lib/plan";
+import { selectFlashcardQueue } from "@/lib/plan.queue";
 import { QUESTIONS } from "@/lib/content/questions";
 import { forCode } from "@/lib/content/vehicle";
 import { studyCodeOf } from "@/lib/billing/plans";
