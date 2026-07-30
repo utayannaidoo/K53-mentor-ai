@@ -15,6 +15,7 @@ import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { sampleMockExam, sampleMiniMock, sampleSectionDrill, MINI_MOCK, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
+import { QUESTIONS } from "@/lib/content/questions";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { track } from "@/lib/analytics";
@@ -134,10 +135,10 @@ export function MockExam() {
 
   function start() {
     const qs = drill
-      ? sampleSectionDrill(drill, state.attempts, studyCodeOf(state))
+      ? sampleSectionDrill(QUESTIONS, drill, state.attempts, studyCodeOf(state))
       : mini
-        ? sampleMiniMock(state.attempts, studyCodeOf(state), readiness.weakCategories)
-        : sampleMockExam(state.attempts, studyCodeOf(state));
+        ? sampleMiniMock(QUESTIONS, state.attempts, studyCodeOf(state), readiness.weakCategories)
+        : sampleMockExam(QUESTIONS, state.attempts, studyCodeOf(state));
     if (drill) track("drill_started", { section: drill });
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));

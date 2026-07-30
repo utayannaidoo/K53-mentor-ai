@@ -89,10 +89,10 @@ describe("content follows the chosen code, exclusively", () => {
         forCode(QUESTIONS, resolved),
         forCode(FLASHCARDS, resolved),
         forCode(SCENARIOS, resolved),
-        selectFlashcardQueue(state),
-        sampleDiagnostic([], resolved),
-        sampleMockExam([], resolved),
-        sampleMiniMock([], resolved),
+        selectFlashcardQueue(FLASHCARDS, state),
+        sampleDiagnostic(QUESTIONS, [], resolved),
+        sampleMockExam(QUESTIONS, [], resolved),
+        sampleMiniMock(QUESTIONS, [], resolved),
       ]) {
         expect(pool.length).toBeGreaterThan(0);
         expect(pool.filter((i) => isForeign(i.codes))).toEqual([]);

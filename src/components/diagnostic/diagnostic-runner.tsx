@@ -8,6 +8,7 @@ import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { CATEGORIES } from "@/lib/content/categories";
 import { sampleDiagnostic } from "@/lib/diagnostic/select";
+import { QUESTIONS } from "@/lib/content/questions";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { scoreDiagnostic } from "@/lib/diagnostic/scoring";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -50,6 +51,7 @@ function DiagnosticQuiz() {
 
   const [questions] = React.useState(() =>
     sampleDiagnostic(
+      QUESTIONS,
       state.attempts,
       studyCodeOf(state),
       state.onboarding?.worryCategories ?? [],

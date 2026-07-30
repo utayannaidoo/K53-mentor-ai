@@ -57,7 +57,7 @@ describe("served answer positions", () => {
   it("distributes answer positions uniformly across many full mocks", () => {
     const all = [];
     for (let run = 0; run < 30; run++) {
-      const mock = sampleMockExam([], "8");
+      const mock = sampleMockExam(QUESTIONS, [], "8");
       assertNotDegenerate(mock, "mock");
       all.push(...mock);
     }
@@ -68,9 +68,9 @@ describe("served answer positions", () => {
     const all = [];
     for (let run = 0; run < 40; run++) {
       for (const paper of [
-        sampleMiniMock([], "8"),
-        sampleDiagnostic([], "8"),
-        ...(["controls", "signs", "rules"] as const).map((s) => sampleSectionDrill(s, [], "8")),
+        sampleMiniMock(QUESTIONS, [], "8"),
+        sampleDiagnostic(QUESTIONS, [], "8"),
+        ...(["controls", "signs", "rules"] as const).map((s) => sampleSectionDrill(QUESTIONS, s, [], "8")),
       ]) {
         assertNotDegenerate(paper, "paper");
         all.push(...paper);
@@ -87,7 +87,7 @@ describe("served answer positions", () => {
     const slotsById = new Map<string, Set<number>>();
     const servedCount = new Map<string, number>();
     for (let run = 0; run < 40; run++) {
-      for (const q of sampleMockExam([], "8")) {
+      for (const q of sampleMockExam(QUESTIONS, [], "8")) {
         const set = slotsById.get(q.id) ?? new Set<number>();
         set.add(q.correctIndex);
         slotsById.set(q.id, set);

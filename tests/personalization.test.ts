@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { QUESTIONS } from "@/lib/content/questions";
 import { diagnosticPlanFor, sampleDiagnostic, easyFirst } from "@/lib/diagnostic/select";
 import { generateTodayPlan, SIZE_BY_FREQUENCY } from "@/lib/plan";
 import { defaultUserState } from "@/lib/store/local-store";
@@ -48,7 +49,7 @@ describe("diagnosticPlanFor — worry-seeded diagnostic", () => {
   });
 
   it("sampleDiagnostic still returns 15 questions and includes worry categories", () => {
-    const qs = sampleDiagnostic([], "8", ["parking", "following_distance"]);
+    const qs = sampleDiagnostic(QUESTIONS, [], "8", ["parking", "following_distance"]);
     expect(qs).toHaveLength(BASE_TOTAL);
     const cats = qs.map((q) => q.categoryId);
     expect(cats.filter((c) => c === "parking").length).toBeGreaterThanOrEqual(2);

@@ -12,6 +12,7 @@ import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { selectFlashcardQueue } from "@/lib/plan.queue";
 import { QUESTIONS } from "@/lib/content/questions";
+import { FLASHCARDS } from "@/lib/content/flashcards";
 import { forCode } from "@/lib/content/vehicle";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
@@ -39,7 +40,7 @@ export function GuidedSession() {
   const startRef = React.useRef(Date.now());
   const [step, setStep] = React.useState(0); // 0 intro · 1 cards · 2 questions · 3 paywall
 
-  const [cards] = React.useState(() => selectFlashcardQueue(state, { limit: 3 }));
+  const [cards] = React.useState(() => selectFlashcardQueue(FLASHCARDS, state, { limit: 3 }));
   const [questions] = React.useState<Question[]>(() => {
     const focus = state.onboarding?.worryCategories?.[0] ?? readiness.weakCategories[0] ?? null;
     const bank = forCode(QUESTIONS, studyCodeOf(state));

@@ -6,7 +6,6 @@ import type {
   ScenarioAttempt,
   VehicleCode,
 } from "@/types";
-import { QUESTIONS } from "@/lib/content/questions";
 import { forCode } from "@/lib/content/vehicle";
 import { CATEGORIES } from "@/lib/content/categories";
 import { EXAM_FORMAT } from "@/lib/constants";
@@ -153,11 +152,12 @@ export function diagnosticPlanFor(worryCategories: CategoryId[] = []): Record<Ca
  * worries them, those categories get extra weight.
  */
 export function sampleDiagnostic(
+  pool: Question[],
   attempts: QuestionAttempt[],
   code: VehicleCode,
   worryCategories: CategoryId[] = [],
 ): Question[] {
-  const bank = forCode(QUESTIONS, code);
+  const bank = forCode(pool, code);
   const plan = diagnosticPlanFor(worryCategories);
   const picked: Question[] = [];
   const seen = new Set<string>(); // one diagnostic, one subject list
@@ -184,11 +184,12 @@ export function easyFirst(pool: Question[]): Question[] {
 export const MINI_MOCK = { total: 15, passMark: 12, seconds: 12 * 60 };
 
 export function sampleMiniMock(
+  pool: Question[],
   attempts: QuestionAttempt[],
   code: VehicleCode,
   weakCategories: CategoryId[] = [],
 ): Question[] {
-  const bank = forCode(QUESTIONS, code);
+  const bank = forCode(pool, code);
   const weakSet = new Set(weakCategories.slice(0, 3));
   const weakPool = bank.filter((q) => weakSet.has(q.categoryId));
   const restPool = bank.filter((q) => !weakSet.has(q.categoryId));
@@ -243,13 +244,14 @@ export const SECTION_DRILL: Record<
 ) as Record<ExamSection, { total: number; passMark: number; seconds: number }>;
 
 export function sampleSectionDrill(
+  pool: Question[],
   section: ExamSection,
   attempts: QuestionAttempt[],
   code: VehicleCode,
 ): Question[] {
-  const pool = forCode(QUESTIONS, code).filter((q) => SECTION_OF[q.categoryId] === section);
+  const sectionPool = forCode(pool, code).filter((q) => SECTION_OF[q.categoryId] === section);
   return shuffle(
-    takeDistinctSubjects(orderByFreshness(pool, attempts), SECTION_DRILL[section].total),
+    takeDistinctSubjects(orderByFreshness(sectionPool, attempts), SECTION_DRILL[section].total),
   ).map(withShuffledOptions);
 }
 
@@ -260,6 +262,7 @@ export function sampleSectionDrill(
  * and every question's options are shuffled.
  */
 export function sampleMockExam(
+  pool: Question[],
   attempts: QuestionAttempt[],
   code: VehicleCode,
 ): Question[] {
@@ -268,7 +271,7 @@ export function sampleMockExam(
     signs: [],
     rules: [],
   };
-  for (const q of forCode(QUESTIONS, code)) bySection[SECTION_OF[q.categoryId]].push(q);
+  for (const q of forCode(pool, code)) bySection[SECTION_OF[q.categoryId]].push(q);
 
   const out: Question[] = [];
   const seen = new Set<string>(); // shared across sections — one paper, one subject list

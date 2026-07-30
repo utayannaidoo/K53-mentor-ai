@@ -20,6 +20,7 @@ import { SessionRecap } from "@/components/study/session-recap";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueTomorrow } from "@/lib/plan";
 import { selectFlashcardQueue } from "@/lib/plan.queue";
+import { FLASHCARDS } from "@/lib/content/flashcards";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
 import { initialCardState, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
@@ -47,7 +48,7 @@ export function FlashcardDeck() {
   const sessionLimit = Math.min(remaining, STUDY_SESSION_SIZE);
 
   const [queue, setQueue] = React.useState(() =>
-    selectFlashcardQueue(state, {
+    selectFlashcardQueue(FLASHCARDS, state, {
       categoryId: categoryParam,
       limit: sessionLimit,
     }),
@@ -65,7 +66,7 @@ export function FlashcardDeck() {
   // (reviewed cards now carry future due dates; unseen cards remain) and reset
   // the per-session counters instead.
   function restart() {
-    setQueue(selectFlashcardQueue(state, { categoryId: categoryParam, limit: sessionLimit }));
+    setQueue(selectFlashcardQueue(FLASHCARDS, state, { categoryId: categoryParam, limit: sessionLimit }));
     startRef.current = Date.now();
     cpStartRef.current = state.cp;
     setI(0);

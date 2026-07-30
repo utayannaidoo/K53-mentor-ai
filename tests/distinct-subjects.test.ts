@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { QUESTIONS } from "@/lib/content/questions";
 import {
   sampleMockExam,
   sampleMiniMock,
@@ -52,7 +53,7 @@ describe("takeDistinctSubjects", () => {
 
 describe("paper composition", () => {
   it("builds a full mock at the official size with no repeated subject", () => {
-    const mock = sampleMockExam([], "8");
+    const mock = sampleMockExam(QUESTIONS, [], "8");
     expect(mock).toHaveLength(EXAM_FORMAT.totalQuestions);
     expect(repeatedSubjects(mock)).toBe(0);
   });
@@ -66,7 +67,7 @@ describe("paper composition", () => {
       const attempts: QuestionAttempt[] = [];
       let t = Date.parse("2026-07-18T08:00:00Z");
       for (let i = 0; i < 10; i++) {
-        const mock = sampleMockExam(attempts, "8");
+        const mock = sampleMockExam(QUESTIONS, attempts, "8");
         expect(mock).toHaveLength(EXAM_FORMAT.totalQuestions);
         expect(repeatedSubjects(mock)).toBe(0);
         t = record(attempts, mock, t);
@@ -75,10 +76,10 @@ describe("paper composition", () => {
   });
 
   it("applies to minis, drills and the diagnostic too", () => {
-    expect(repeatedSubjects(sampleMiniMock([], "8"))).toBe(0);
-    expect(repeatedSubjects(sampleDiagnostic([], "8"))).toBe(0);
+    expect(repeatedSubjects(sampleMiniMock(QUESTIONS, [], "8"))).toBe(0);
+    expect(repeatedSubjects(sampleDiagnostic(QUESTIONS, [], "8"))).toBe(0);
     for (const section of ["controls", "signs", "rules"] as const) {
-      const drill = sampleSectionDrill(section, [], "8");
+      const drill = sampleSectionDrill(QUESTIONS, section, [], "8");
       expect(drill).toHaveLength(EXAM_FORMAT.sections[section].questions);
       expect(repeatedSubjects(drill)).toBe(0);
     }
