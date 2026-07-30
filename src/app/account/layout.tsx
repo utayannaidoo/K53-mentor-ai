@@ -1,5 +1,5 @@
-import { AppShell } from "@/components/app/app-shell";
+import { AppScope } from "@/components/app/app-scope";
 
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
-  return <AppShell>{children}</AppShell>;
+  return <AppScope>{children}</AppScope>;
 }
