@@ -37,17 +37,11 @@ const FORBIDDEN = [
 ];
 
 /**
- * Known, tracked debt — listed rather than omitted so it stays visible.
- *
- * Licence-prep has not migrated. It needs a different shape from the others: the
- * page lists every module as a teaser even when locked, so the module metadata
- * has to stay bundled while only the step-by-step instructions move behind the
- * pack. Deleting these two lines is the definition of done for that work.
+ * No known gaps. Licence-prep was the last one: its list page renders from the
+ * bundled MODULE_META (names, difficulty, step counts — the pitch) while the
+ * steps and common faults arrive with the content pack.
  */
-const KNOWN_GAPS = [
-  "src/app/(app)/licence-prep/page.tsx → @/lib/content/driver-modules",
-  "src/components/driver/module-cook-mode.tsx → @/lib/content/driver-modules",
-];
+const KNOWN_GAPS: string[] = [];
 
 function walk(dir: string): string[] {
   const out: string[] = [];

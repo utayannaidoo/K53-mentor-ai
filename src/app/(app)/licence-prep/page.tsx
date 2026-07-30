@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature, studyCodeOf } from "@/lib/billing/plans";
-import { DRIVER_MODULES } from "@/lib/content/driver-modules";
+import { MODULE_META } from "@/lib/content/meta";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn, glass } from "@/lib/utils";
 
@@ -27,7 +27,10 @@ export default function LicencePrepPage() {
   const unlocked = hasFeature(state.tier, "licencePrep");
   const group = groupOf(studyCodeOf(state));
   const GroupIcon = GROUP_ICON[group];
-  const modules = DRIVER_MODULES.filter((m) => (m.group ?? "car") === group);
+  // The list is the pitch, so it renders for locked learners too — from the
+  // bundled metadata. The steps themselves are Premium Plus and arrive with
+  // the content pack.
+  const modules = MODULE_META.filter((m) => (m.group ?? "car") === group);
 
   return (
     <div className="mx-auto max-w-5xl">
@@ -58,8 +61,8 @@ export default function LicencePrepPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {modules.map((m) => {
           const done = state.driverProgress[m.id]?.length ?? 0;
-          const pct = Math.round((done / m.steps.length) * 100);
-          const complete = done === m.steps.length;
+          const pct = Math.round((done / m.stepCount) * 100);
+          const complete = done === m.stepCount;
           return (
             <Link
               key={m.id}
@@ -87,12 +90,12 @@ export default function LicencePrepPage() {
                 <div className="mt-4 flex items-center gap-3 text-xs text-muted-foreground">
                   <span className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> {m.estMinutes} min</span>
                   <span>·</span>
-                  <span>{m.steps.length} steps</span>
+                  <span>{m.stepCount} steps</span>
                 </div>
                 {unlocked && (
                   <div className="mt-3">
                     <Progress value={pct} tone={complete ? "success" : "primary"} />
-                    <p className="mt-1.5 text-2xs text-muted-foreground">{done}/{m.steps.length} practised</p>
+                    <p className="mt-1.5 text-2xs text-muted-foreground">{done}/{m.stepCount} practised</p>
                   </div>
                 )}
               </Card>

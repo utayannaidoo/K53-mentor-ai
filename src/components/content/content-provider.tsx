@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { Flashcard, Question, Scenario } from "@/types";
+import type { DriverModule, Flashcard, Question, Scenario } from "@/types";
 import {
   STARTER_QUESTIONS,
   STARTER_FLASHCARDS,
@@ -33,6 +33,12 @@ export interface ContentPool {
   questions: Question[];
   flashcards: Flashcard[];
   scenarios: Scenario[];
+  /**
+   * Yard-test modules with their steps. Empty until synced — the licence-prep
+   * *list* renders from the bundled MODULE_META regardless, so only the
+   * step-by-step guide waits on this.
+   */
+  modules: DriverModule[];
   /** True once the full bank is in memory. */
   full: boolean;
   status: ContentStatus;
@@ -45,12 +51,16 @@ interface Pack {
   questions: Question[];
   flashcards: Flashcard[];
   scenarios: Scenario[];
+  modules: DriverModule[];
 }
 
-const STARTER: Pick<ContentPool, "questions" | "flashcards" | "scenarios"> = {
+const STARTER: Pick<ContentPool, "questions" | "flashcards" | "scenarios" | "modules"> = {
   questions: STARTER_QUESTIONS,
   flashcards: STARTER_FLASHCARDS,
   scenarios: STARTER_SCENARIOS,
+  // No bundled modules at all: every step of every guide is Premium Plus
+  // content, and the list page renders from metadata instead.
+  modules: [],
 };
 
 const CACHE_NAME = "k53-content";
@@ -159,6 +169,7 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       questions: pack?.questions ?? STARTER.questions,
       flashcards: pack?.flashcards ?? STARTER.flashcards,
       scenarios: pack?.scenarios ?? STARTER.scenarios,
+      modules: pack?.modules ?? STARTER.modules,
       full: pack !== null,
       status,
       sync: () => void sync(),

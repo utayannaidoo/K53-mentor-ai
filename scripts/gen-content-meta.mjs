@@ -143,16 +143,17 @@ function pickStarter(items, categoryId, n, rand) {
 const j = JSON.stringify;
 
 try {
-  const [{ QUESTIONS }, { FLASHCARDS }, { SCENARIOS }] = await Promise.all([
+  const [{ QUESTIONS }, { FLASHCARDS }, { SCENARIOS }, { DRIVER_MODULES }] = await Promise.all([
     server.ssrLoadModule("/src/lib/content/questions.ts"),
     server.ssrLoadModule("/src/lib/content/flashcards.ts"),
     server.ssrLoadModule("/src/lib/content/scenarios.ts"),
+    server.ssrLoadModule("/src/lib/content/driver-modules.ts"),
   ]);
 
   // Fingerprint the bank itself (not the generated output) so the version moves
   // exactly when the content does.
   const contentVersion = createHash("sha256")
-    .update(j([QUESTIONS, FLASHCARDS, SCENARIOS]))
+    .update(j([QUESTIONS, FLASHCARDS, SCENARIOS, DRIVER_MODULES]))
     .digest("hex")
     .slice(0, 12);
 
@@ -170,6 +171,14 @@ try {
   const flashcardLines = FLASHCARDS.map((f) => metaLine(f)).join("\n");
   const scenarioLines = SCENARIOS.map((s) => metaLine(s, `, title: ${j(s.title)}`)).join("\n");
 
+  const moduleLines = DRIVER_MODULES.map((m) =>
+    [
+      `  { id: ${j(m.id)}, name: ${j(m.name)}, summary: ${j(m.summary)},`,
+      `difficulty: ${m.difficulty}, estMinutes: ${m.estMinutes}, stepCount: ${m.steps.length}`,
+      m.group ? `, group: ${j(m.group)} },` : " },",
+    ].join(" "),
+  ).join("\n");
+
   const out = `// GENERATED FILE — do not edit by hand.
 // Regenerate with: node scripts/gen-content-meta.mjs
 // Kept honest by tests/content-meta.test.ts, which fails if this drifts from
@@ -179,7 +188,7 @@ try {
 // is due and award CP, with none of the material a learner is paying to see.
 // Importing the full bank for this is what shipped every question and answer to
 // every route that mounts the store.
-import type { CategoryId, VehicleCode } from "@/types";
+import type { CategoryId, Difficulty, VehicleCode } from "@/types";
 
 export interface ContentMeta {
   id: string;
@@ -204,6 +213,33 @@ ${flashcardLines}
 
 export const SCENARIO_META: ScenarioMeta[] = [
 ${scenarioLines}
+];
+
+/**
+ * Yard-test modules, as the locked licence-prep page needs them.
+ *
+ * That page lists every module even to a learner who hasn't paid — the names,
+ * the difficulty, how long each takes — because the list IS the pitch. So the
+ * labels ship, and the thing being sold does not: the steps (actual
+ * instructions and tips) and commonFaults come from /api/content/pack.
+ *
+ * stepCount rides along because the teaser shows "6 steps" and a
+ * practised-so-far progress bar, both of which need the denominator without
+ * needing a single instruction.
+ */
+export interface ModuleMeta {
+  id: string;
+  name: string;
+  summary: string;
+  difficulty: Difficulty;
+  estMinutes: number;
+  stepCount: number;
+  /** Omitted = car, matching DriverModule. */
+  group?: "car" | "motorcycle" | "heavy";
+}
+
+export const MODULE_META: ModuleMeta[] = [
+${moduleLines}
 ];
 
 /**

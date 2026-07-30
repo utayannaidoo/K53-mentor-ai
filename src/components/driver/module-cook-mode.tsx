@@ -9,12 +9,18 @@ import { Progress } from "@/components/ui/progress";
 import { Paywall } from "@/components/app/paywall";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
-import { DRIVER_MODULES_BY_ID } from "@/lib/content/driver-modules";
+import { MODULE_META } from "@/lib/content/meta";
+import { useContentPool } from "@/components/content/content-provider";
+import { Spinner } from "@/components/ui/spinner";
 import { cn, glass, glassFloat } from "@/lib/utils";
 
 export function ModuleCookMode({ moduleId }: { moduleId: string }) {
   const { state, toggleDriverStep } = useStudyStore();
-  const mod = DRIVER_MODULES_BY_ID[moduleId];
+  const { modules, status, sync } = useContentPool();
+  const mod = modules.find((m) => m.id === moduleId);
+  // The bundled metadata knows every module that exists, so it can tell a real
+  // guide that simply hasn't downloaded yet from a bogus URL.
+  const known = MODULE_META.some((m) => m.id === moduleId);
   const [stepIndex, setStepIndex] = React.useState(0);
 
   if (!hasFeature(state.tier, "licencePrep")) {
@@ -26,6 +32,34 @@ export function ModuleCookMode({ moduleId }: { moduleId: string }) {
           description="Step-by-step yard-test guidance — parallel parking, alley docking, three-point turns and more. Unlock it all with Premium Plus."
           cta="Unlock with Premium Plus"
         />
+      </div>
+    );
+  }
+
+  // A real guide that hasn't arrived yet: the pack is still downloading, or the
+  // learner has data saver on and never started it. Saying "doesn't exist" here
+  // would be a lie to someone who just paid for this.
+  if (!mod && known) {
+    return (
+      <div className="mx-auto max-w-md py-10 text-center">
+        {status === "syncing" ? (
+          <>
+            <Spinner className="mx-auto h-6 w-6" />
+            <p className="mt-4 text-muted-foreground">Downloading your yard-test guides…</p>
+          </>
+        ) : (
+          <>
+            <p className="text-muted-foreground">
+              This guide hasn&apos;t been downloaded to this device yet.
+            </p>
+            <Button className="mt-4 gap-2" onClick={sync}>
+              {status === "error" ? "Try again" : "Download guides"}
+            </Button>
+          </>
+        )}
+        <Link href="/licence-prep" className={cn(buttonVariants({ variant: "outline" }), "mt-4 ml-2")}>
+          Back to licence prep
+        </Link>
       </div>
     );
   }

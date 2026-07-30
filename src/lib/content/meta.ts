@@ -7,7 +7,7 @@
 // is due and award CP, with none of the material a learner is paying to see.
 // Importing the full bank for this is what shipped every question and answer to
 // every route that mounts the store.
-import type { CategoryId, VehicleCode } from "@/types";
+import type { CategoryId, Difficulty, VehicleCode } from "@/types";
 
 export interface ContentMeta {
   id: string;
@@ -1958,6 +1958,65 @@ export const SCENARIO_META: ScenarioMeta[] = [
 ];
 
 /**
+ * Yard-test modules, as the locked licence-prep page needs them.
+ *
+ * That page lists every module even to a learner who hasn't paid — the names,
+ * the difficulty, how long each takes — because the list IS the pitch. So the
+ * labels ship, and the thing being sold does not: the steps (actual
+ * instructions and tips) and commonFaults come from /api/content/pack.
+ *
+ * stepCount rides along because the teaser shows "6 steps" and a
+ * practised-so-far progress bar, both of which need the denominator without
+ * needing a single instruction.
+ */
+export interface ModuleMeta {
+  id: string;
+  name: string;
+  summary: string;
+  difficulty: Difficulty;
+  estMinutes: number;
+  stepCount: number;
+  /** Omitted = car, matching DriverModule. */
+  group?: "car" | "motorcycle" | "heavy";
+}
+
+export const MODULE_META: ModuleMeta[] = [
+  { id: "parallel_parking", name: "Parallel parking", summary: "Reverse neatly into a kerbside bay between two markers without touching them.", difficulty: 2, estMinutes: 12, stepCount: 6  },
+  { id: "alley_docking", name: "Alley docking", summary: "Reverse into a 90° bay (the 'garage') and then drive out, staying inside the lines.", difficulty: 3, estMinutes: 14, stepCount: 6  },
+  { id: "three_point_turn", name: "Three-point turn", summary: "Turn the vehicle to face the opposite direction in a narrow road using forward-reverse-forward.", difficulty: 2, estMinutes: 10, stepCount: 6  },
+  { id: "incline_start", name: "Hill / incline start", summary: "Pull away on an uphill slope without rolling back more than the allowed margin.", difficulty: 2, estMinutes: 8, stepCount: 5  },
+  { id: "vehicle_inspection", name: "Pre-trip vehicle inspection", summary: "The K53 pre-drive checks you must point out before the test begins.", difficulty: 1, estMinutes: 7, stepCount: 5  },
+  { id: "mirror_blindspot", name: "Mirror & blind-spot routine", summary: "The observation discipline examiners look for before every manoeuvre.", difficulty: 1, estMinutes: 6, stepCount: 5  },
+  { id: "moving_off", name: "Moving off into traffic", summary: "Pull away safely from the kerb into the traffic stream, with full observation.", difficulty: 1, estMinutes: 6, stepCount: 5  },
+  { id: "lane_change", name: "Lane change", summary: "Move one lane across cleanly using the mirror–signal–blind-spot–manoeuvre routine.", difficulty: 2, estMinutes: 6, stepCount: 4  },
+  { id: "turn_left", name: "Turning left at an intersection", summary: "The K53 sequence for a controlled left turn, keeping close to the left.", difficulty: 2, estMinutes: 7, stepCount: 5  },
+  { id: "turn_right", name: "Turning right at an intersection", summary: "Position, yield and complete a right turn into the correct side of the new road.", difficulty: 3, estMinutes: 8, stepCount: 5  },
+  { id: "controlled_stop", name: "Stopping & securing the vehicle", summary: "Bring the car to a smooth, safe stop at the side of the road and secure it.", difficulty: 2, estMinutes: 6, stepCount: 5  },
+  { id: "freeway", name: "Entering & leaving a freeway", summary: "Match speed and merge safely from an on-ramp, and exit calmly via the off-ramp.", difficulty: 3, estMinutes: 9, stepCount: 5  },
+  { id: "emergency_stop", name: "Emergency (controlled) stop", summary: "Stop the vehicle as quickly and safely as possible in a straight line, under full control.", difficulty: 3, estMinutes: 5, stepCount: 4  },
+  { id: "moto_inspection", name: "Pre-ride inspection", summary: "The checks to point out before the motorcycle test begins.", difficulty: 1, estMinutes: 6, stepCount: 5 , group: "motorcycle" },
+  { id: "moto_moving_off", name: "Moving off & balance", summary: "Pull away smoothly and under full control, with the correct observation.", difficulty: 1, estMinutes: 6, stepCount: 5 , group: "motorcycle" },
+  { id: "moto_slow_ride", name: "Slow ride & figure-of-eight", summary: "Hold a steady speed band through a slow, curved course without touching the lines or putting a foot down.", difficulty: 3, estMinutes: 12, stepCount: 5 , group: "motorcycle" },
+  { id: "moto_incline_start", name: "Incline start (no roll-back)", summary: "Stop on a slope and move off without the motorcycle rolling backward.", difficulty: 3, estMinutes: 8, stepCount: 4 , group: "motorcycle" },
+  { id: "moto_emergency_stop", name: "Emergency stop", summary: "Stop as quickly and safely as possible, in a straight line, using both brakes.", difficulty: 3, estMinutes: 6, stepCount: 4 , group: "motorcycle" },
+  { id: "moto_uturn", name: "U-turn (within the lines)", summary: "Turn the motorcycle around inside a marked width without touching a line or putting a foot down.", difficulty: 3, estMinutes: 8, stepCount: 5 , group: "motorcycle" },
+  { id: "moto_lane_change", name: "Lane change (observation sequence)", summary: "The full mirrors–signal–lifesaver sequence for changing lanes on a motorcycle.", difficulty: 2, estMinutes: 7, stepCount: 5 , group: "motorcycle" },
+  { id: "moto_road_ride", name: "Road ride: the observation system", summary: "The riding rhythm the examiner scores on the road: scan, mirrors, position, space.", difficulty: 2, estMinutes: 10, stepCount: 5 , group: "motorcycle" },
+  { id: "moto_stop_park", name: "Stopping & parking the bike", summary: "End every ride the way the test ends: controlled stop, secure park, stand and dismount.", difficulty: 1, estMinutes: 6, stepCount: 5 , group: "motorcycle" },
+  { id: "moto_swerve", name: "Emergency swerve", summary: "Steer around a sudden obstacle at speed, then bring the bike to a controlled stop.", difficulty: 3, estMinutes: 7, stepCount: 4 , group: "motorcycle" },
+  { id: "hv_inspection", name: "Pre-trip inspection", summary: "The heavy-vehicle walk-around and cab checks before driving.", difficulty: 2, estMinutes: 9, stepCount: 5 , group: "heavy" },
+  { id: "hv_air_brake_check", name: "Air-brake system check", summary: "Confirm the air-brake system builds, holds and warns correctly before driving.", difficulty: 3, estMinutes: 8, stepCount: 4 , group: "heavy" },
+  { id: "hv_coupling", name: "Coupling a trailer", summary: "Connect a semi-trailer to the truck-tractor and confirm it's safe before moving.", difficulty: 3, estMinutes: 12, stepCount: 5 , group: "heavy" },
+  { id: "hv_uncoupling", name: "Uncoupling a trailer", summary: "Separate the trailer from the tractor safely, leaving it stable and secure.", difficulty: 2, estMinutes: 9, stepCount: 5 , group: "heavy" },
+  { id: "hv_incline_start", name: "Incline start (heavy vehicle)", summary: "Move a heavy vehicle off uphill without rolling back, using the parking brake.", difficulty: 3, estMinutes: 8, stepCount: 4 , group: "heavy" },
+  { id: "hv_straight_reverse", name: "Reverse in a straight line", summary: "Back a long vehicle down a marked lane using mirrors only, without touching the lines.", difficulty: 2, estMinutes: 9, stepCount: 5 , group: "heavy" },
+  { id: "hv_alley_dock", name: "Alley docking (heavy vehicle)", summary: "Reverse into a side bay from a blind side, the way trucks meet loading docks.", difficulty: 3, estMinutes: 12, stepCount: 5 , group: "heavy" },
+  { id: "hv_turn_in_road", name: "Turn in the road", summary: "Turn a heavy vehicle to face the opposite direction inside a limited space.", difficulty: 3, estMinutes: 10, stepCount: 5 , group: "heavy" },
+  { id: "hv_wide_turns", name: "Left & right turns (long vehicle)", summary: "Take intersections without kerbing the trailer or inviting cars into your blind side.", difficulty: 3, estMinutes: 10, stepCount: 5 , group: "heavy" },
+  { id: "hv_road_ride", name: "Road drive: gears, brakes & space", summary: "The on-road discipline examiners score in a heavy vehicle: gear planning, smooth air brakes and space management.", difficulty: 2, estMinutes: 10, stepCount: 5 , group: "heavy" },
+];
+
+/**
  * Fingerprint of the full content bank.
  *
  * The cache key for a synced pack. It ships in the bundle, so a client always
@@ -1965,4 +2024,4 @@ export const SCENARIO_META: ScenarioMeta[] = [
  * stale — which is what stops a content sprint being invisible to everyone who
  * synced before it.
  */
-export const CONTENT_VERSION = "2c7a92ac82b1";
+export const CONTENT_VERSION = "51e50f8da4b7";

@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import { QUESTIONS } from "@/lib/content/questions";
 import { FLASHCARDS } from "@/lib/content/flashcards";
 import { SCENARIOS } from "@/lib/content/scenarios";
-import { QUESTION_DIFFICULTY, FLASHCARD_META, SCENARIO_META } from "@/lib/content/meta";
+import { DRIVER_MODULES } from "@/lib/content/driver-modules";
+import { QUESTION_DIFFICULTY, FLASHCARD_META, SCENARIO_META, MODULE_META } from "@/lib/content/meta";
 
 /**
  * meta.ts is generated (scripts/gen-content-meta.mjs) and is what the study
@@ -59,6 +60,30 @@ describe("content meta index", () => {
     for (const id of Object.keys(QUESTION_DIFFICULTY)) expect(qIds.has(id), `stale question ${id}`).toBe(true);
     for (const m of FLASHCARD_META) expect(fIds.has(m.id), `stale flashcard ${m.id}`).toBe(true);
     for (const m of SCENARIO_META) expect(sIds.has(m.id), `stale scenario ${m.id}`).toBe(true);
+  });
+
+  it("covers every yard-test module, with the fields the locked page shows", () => {
+    expect(MODULE_META).toHaveLength(DRIVER_MODULES.length);
+    const byId = new Map(MODULE_META.map((m) => [m.id, m]));
+    for (const mod of DRIVER_MODULES) {
+      const m = byId.get(mod.id);
+      expect(m, `module ${mod.id} missing from meta`).toBeDefined();
+      expect(m!.name).toBe(mod.name);
+      expect(m!.summary).toBe(mod.summary);
+      expect(m!.difficulty).toBe(mod.difficulty);
+      expect(m!.estMinutes).toBe(mod.estMinutes);
+      // The teaser shows "N steps" and an N-denominated progress bar.
+      expect(m!.stepCount).toBe(mod.steps.length);
+      expect(m!.group).toBe(mod.group);
+    }
+  });
+
+  it("carries no yard-test instructions — those are the paid part", () => {
+    for (const m of MODULE_META as unknown as Record<string, unknown>[]) {
+      for (const banned of ["steps", "commonFaults", "instruction", "tip"]) {
+        expect(m[banned], `module meta ${String(m.id)} exposes "${banned}"`).toBeUndefined();
+      }
+    }
   });
 
   it("leaks nothing a learner is paying to see", () => {
