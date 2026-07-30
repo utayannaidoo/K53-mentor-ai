@@ -50,8 +50,30 @@ export interface Entitlement {
  *   — entitlement fails closed, never open.
  */
 export async function resolveEntitlement(surface: AiSurface): Promise<Entitlement | Response> {
+  const resolved = await resolveTier();
+  if (resolved instanceof Response) return resolved;
+  return { ...resolved, allowance: DAILY_ALLOWANCE[surface][resolved.tier] };
+}
+
+/** Who is calling and what they've paid for, with no surface-specific allowance. */
+export interface ResolvedTier {
+  /** null only in demo mode (no Supabase configured, so no accounts exist). */
+  userId: string | null;
+  tier: SubscriptionTier;
+}
+
+/**
+ * The server's answer to "what has this caller paid for", shared by the AI
+ * routes and the content pack.
+ *
+ * Extracted from resolveEntitlement so the content paywall is enforced by the
+ * exact same lookup that already guards AI spend, rather than a second
+ * implementation that could drift from it. Same posture throughout: a missing
+ * row, an inactive status or a failed lookup all resolve to `free`, never open.
+ */
+export async function resolveTier(): Promise<ResolvedTier | Response> {
   if (!isSupabaseConfigured) {
-    return { userId: null, tier: "premium_plus", allowance: DAILY_ALLOWANCE[surface].premium_plus };
+    return { userId: null, tier: "premium_plus" };
   }
 
   const supabase = await createClient();
@@ -79,7 +101,7 @@ export async function resolveEntitlement(surface: AiSurface): Promise<Entitlemen
     // Fail closed: an unreadable subscription is a free one.
   }
 
-  return { userId: user.id, tier, allowance: DAILY_ALLOWANCE[surface][tier] };
+  return { userId: user.id, tier };
 }
 
 /**
