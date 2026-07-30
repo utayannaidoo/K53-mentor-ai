@@ -13,7 +13,7 @@ import { TrialMeter } from "@/components/app/trial-meter";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate, formatZar } from "@/lib/utils";
 import { hasFeature, TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
-import { defaultTutorPrompt, type TutorContextType } from "@/lib/ai/tutor-prompt";
+import type { TutorContextType } from "@/lib/ai/tutor-context";
 import { buildLearnerProfile } from "@/lib/ai/learner-profile";
 import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
 import { Markdown } from "@/components/tutor/markdown";
@@ -22,6 +22,13 @@ export interface InitialContext {
   type: TutorContextType;
   id?: string;
   label: string | null;
+  /**
+   * The composer's starting text, resolved by the page from the learner's
+   * content pool. Passed in rather than looked up here: doing the lookup in
+   * this component meant importing the bank, and this component renders on
+   * every visit to /tutor.
+   */
+  prompt?: string;
 }
 
 const CONTEXT_CHIPS = [
@@ -45,9 +52,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   const [sessionCtx, setSessionCtx] = React.useState<InitialContext | null>(initial);
   // Pre-fill the composer when the tutor is opened from a question / card / topic,
   // so the learner has a sensible starting question instead of a blank box.
-  const [input, setInput] = React.useState(() =>
-    initial ? defaultTutorPrompt(initial.type, initial.id, initial.label) : "",
-  );
+  const [input, setInput] = React.useState(() => initial?.prompt ?? "");
   const [loading, setLoading] = React.useState(false);
   // Text of the assistant reply as it streams in, before it's committed to the store.
   const [streaming, setStreaming] = React.useState<string | null>(null);

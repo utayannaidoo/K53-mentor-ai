@@ -18,7 +18,9 @@ import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { countDueTomorrow, selectFlashcardQueue } from "@/lib/plan";
+import { countDueTomorrow } from "@/lib/plan";
+import { selectFlashcardQueue } from "@/lib/plan.queue";
+import { useContentPool } from "@/components/content/content-provider";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
 import { initialCardState, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
@@ -39,6 +41,7 @@ export function FlashcardDeck() {
   const sp = useSearchParams();
   const categoryParam = (sp.get("category") as CategoryId | null) ?? undefined;
   const { state, reviewCard, recordSession, usageFor } = useStudyStore();
+  const { flashcards } = useContentPool();
 
   const cap = usageFor("flashcards");
   const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : Infinity;
@@ -46,7 +49,7 @@ export function FlashcardDeck() {
   const sessionLimit = Math.min(remaining, STUDY_SESSION_SIZE);
 
   const [queue, setQueue] = React.useState(() =>
-    selectFlashcardQueue(state, {
+    selectFlashcardQueue(flashcards, state, {
       categoryId: categoryParam,
       limit: sessionLimit,
     }),
@@ -64,7 +67,7 @@ export function FlashcardDeck() {
   // (reviewed cards now carry future due dates; unseen cards remain) and reset
   // the per-session counters instead.
   function restart() {
-    setQueue(selectFlashcardQueue(state, { categoryId: categoryParam, limit: sessionLimit }));
+    setQueue(selectFlashcardQueue(flashcards, state, { categoryId: categoryParam, limit: sessionLimit }));
     startRef.current = Date.now();
     cpStartRef.current = state.cp;
     setI(0);

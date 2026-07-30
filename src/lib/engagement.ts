@@ -1,5 +1,8 @@
 import type { CardState, SrsRating, UserState } from "@/types";
-import { QUESTIONS_BY_ID } from "@/lib/content/questions";
+// Difficulty is the only question field CP scoring reads, so take it from the
+// planning index rather than dragging all 1,060 questions — prompts, options,
+// answers and explanations — into every bundle that awards a point.
+import { QUESTION_DIFFICULTY } from "@/lib/content/meta";
 
 /**
  * Confidence Points (CP) & Driver Rank — the game layer over real competence.
@@ -15,7 +18,7 @@ import { QUESTIONS_BY_ID } from "@/lib/content/questions";
 /** CP for a question answer: 2/4/6 by difficulty, doubled on first-ever correct. */
 export function questionCp(questionId: string, correct: boolean, firstCorrect: boolean): number {
   if (!correct) return 0;
-  const difficulty = QUESTIONS_BY_ID[questionId]?.difficulty ?? 1;
+  const difficulty = QUESTION_DIFFICULTY[questionId] ?? 1;
   const base = 2 * difficulty;
   return firstCorrect ? base * 2 : base;
 }

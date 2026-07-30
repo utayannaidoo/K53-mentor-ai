@@ -6,7 +6,7 @@ import { QUESTIONS } from "@/lib/content/questions";
 import { FLASHCARDS } from "@/lib/content/flashcards";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { forCode, sameGroup } from "@/lib/content/vehicle";
-import { selectFlashcardQueue } from "@/lib/plan";
+import { selectFlashcardQueue } from "@/lib/plan.queue";
 import { sampleDiagnostic, sampleMockExam, sampleMiniMock } from "@/lib/diagnostic/select";
 import type { RemoteProgress } from "@/lib/supabase/progress";
 import type { OnboardingData, SubscriptionTier, UserState, VehicleCode } from "@/types";
@@ -89,10 +89,10 @@ describe("content follows the chosen code, exclusively", () => {
         forCode(QUESTIONS, resolved),
         forCode(FLASHCARDS, resolved),
         forCode(SCENARIOS, resolved),
-        selectFlashcardQueue(state),
-        sampleDiagnostic([], resolved),
-        sampleMockExam([], resolved),
-        sampleMiniMock([], resolved),
+        selectFlashcardQueue(FLASHCARDS, state),
+        sampleDiagnostic(QUESTIONS, [], resolved),
+        sampleMockExam(QUESTIONS, [], resolved),
+        sampleMiniMock(QUESTIONS, [], resolved),
       ]) {
         expect(pool.length).toBeGreaterThan(0);
         expect(pool.filter((i) => isForeign(i.codes))).toEqual([]);

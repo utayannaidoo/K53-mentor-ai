@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import { Inter, Overpass, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/shared/theme-provider";
-import { StudyStoreProvider } from "@/hooks/use-study-store";
 import { DataSaverInit } from "@/components/shared/data-saver-init";
 import { ErrorReporter } from "@/components/shared/error-reporter";
 import { AnalyticsProvider } from "@/components/shared/analytics-provider";
@@ -77,15 +76,22 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${overpass.variable} ${mono.variable}`}
     >
+      {/*
+        StudyStoreProvider is deliberately NOT here. It is a client component
+        that reaches the question bank through @/lib/plan, @/lib/engagement and
+        @/lib/diagnostic/scoring, so mounting it at the root put ~645KB of
+        questions — prompts, options, correct answers and explanations — into
+        the shared layout chunk of every route. The marketing pages, the guides
+        and the login form all shipped the entire product to anyone who asked.
+        It now mounts per route tree, in the layouts that actually study.
+      */}
       <body className="min-h-dvh font-sans">
         <ThemeProvider>
-          <StudyStoreProvider>
-            <DataSaverInit />
-            <ErrorReporter />
-            <AnalyticsProvider />
-            <SwRegister />
-            {children}
-          </StudyStoreProvider>
+          <DataSaverInit />
+          <ErrorReporter />
+          <AnalyticsProvider />
+          <SwRegister />
+          {children}
         </ThemeProvider>
       </body>
     </html>

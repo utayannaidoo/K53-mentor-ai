@@ -41,6 +41,7 @@ const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests 
 
 const COACH_DAILY_LIMIT = Number(process.env.COACH_DAILY_IP_LIMIT ?? 80); // requests / day
 const VISION_DAILY_LIMIT = Number(process.env.VISION_DAILY_IP_LIMIT ?? 20); // scans / day (priciest calls)
+const CONTENT_HOURLY_LIMIT = Number(process.env.CONTENT_HOURLY_IP_LIMIT ?? 6); // pack syncs / hour
 
 let redis: Redis | null = null;
 let burst: Ratelimit | null = null;
@@ -50,6 +51,7 @@ let coachBurst: Ratelimit | null = null;
 let coachDaily: Ratelimit | null = null;
 let visionBurst: Ratelimit | null = null;
 let visionDaily: Ratelimit | null = null;
+let content: Ratelimit | null = null;
 
 if (hasUpstash) {
   redis = Redis.fromEnv();
@@ -93,6 +95,12 @@ if (hasUpstash) {
     redis,
     limiter: Ratelimit.fixedWindow(VISION_DAILY_LIMIT, "1 d"),
     prefix: "k53:vision:day",
+    analytics: false,
+  });
+  content = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(CONTENT_HOURLY_LIMIT, "1 h"),
+    prefix: "k53:content",
     analytics: false,
   });
 }
@@ -193,6 +201,35 @@ export async function limitUserDaily(
 /** Client error reports: tight per-IP cap so the log can't be flooded. */
 export async function limitLog(ip: string): Promise<LimitResult> {
   return memLimit(`log:${ip}`, 10, 60_000);
+}
+
+/**
+ * Content-pack downloads.
+ *
+ * A real device syncs once and then serves from its cache, re-syncing only when
+ * CONTENT_VERSION moves — a handful of times a month. Anything hitting this
+ * repeatedly is scraping the bank, so the cap can be tight without ever
+ * touching a legitimate learner. 6/hour leaves room for a flaky connection
+ * retrying, a second device, and a content release landing mid-session.
+ *
+ * Redis-backed like the other paid surfaces, not memLimit: the whole point of
+ * this endpoint is that it guards the product, and a per-instance counter that
+ * resets on cold start is not a guard on serverless. The in-memory path stays
+ * only as the local-dev fallback.
+ */
+export async function limitContent(ip: string): Promise<LimitResult> {
+  try {
+    if (content) {
+      const r = await content.limit(ip);
+      return r.success
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
+    }
+    return memLimit(`content:${ip}`, CONTENT_HOURLY_LIMIT, 3_600_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return memLimit(`content:${ip}`, CONTENT_HOURLY_LIMIT, 3_600_000);
+  }
 }
 
 /** Modest per-IP limit for checkout-session creation (10/min). */

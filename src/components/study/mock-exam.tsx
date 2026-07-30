@@ -15,6 +15,7 @@ import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { sampleMockExam, sampleMiniMock, sampleSectionDrill, MINI_MOCK, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
+import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { track } from "@/lib/analytics";
@@ -58,6 +59,9 @@ export function MockExam() {
     : mini
       ? MINI_MOCK.passMark
       : EXAM_FORMAT.passMark;
+  // Named `bank` deliberately: `questions` below is the paper currently being
+  // sat, and sampling from that instead of the bank builds an empty exam.
+  const { questions: bank } = useContentPool();
   const [phase, setPhase] = React.useState<"intro" | "exam" | "results">("intro");
   const [questions, setQuestions] = React.useState<Question[]>([]);
   const [answers, setAnswers] = React.useState<number[]>([]);
@@ -134,10 +138,10 @@ export function MockExam() {
 
   function start() {
     const qs = drill
-      ? sampleSectionDrill(drill, state.attempts, studyCodeOf(state))
+      ? sampleSectionDrill(bank, drill, state.attempts, studyCodeOf(state))
       : mini
-        ? sampleMiniMock(state.attempts, studyCodeOf(state), readiness.weakCategories)
-        : sampleMockExam(state.attempts, studyCodeOf(state));
+        ? sampleMiniMock(bank, state.attempts, studyCodeOf(state), readiness.weakCategories)
+        : sampleMockExam(bank, state.attempts, studyCodeOf(state));
     if (drill) track("drill_started", { section: drill });
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));

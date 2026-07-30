@@ -40,6 +40,20 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  // ── Per-IP abuse guard FIRST ───────────────────────────────────────────────
+  // Before auth (two network round-trips) and before parsing a body that the
+  // schema allows to reach ~5.6MB. Ordered after them, a flood still cost a
+  // getUser(), a subscriptions lookup and a multi-megabyte JSON parse per
+  // request — the limiter only ever declined work that had already been done.
+  // clientIp() reads headers only, so this is safe as the first statement.
+  const rl = await limitTutor(clientIp(req));
+  if (!rl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: rl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
+    );
+  }
+
   // Auth + paid-tier entitlement (server truth; demo mode skips inside).
   const ent = await resolveEntitlement("tutor");
   if (ent instanceof Response) return ent;
@@ -51,14 +65,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  // ── Rate limiting: per-IP abuse guard, then the per-user plan allowance ────
-  const rl = await limitTutor(clientIp(req));
-  if (!rl.success) {
-    return Response.json(
-      { error: "rate_limited", retryAfter: rl.retryAfter },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
-    );
-  }
+  // Per-user plan allowance (the money guard behind the per-IP one above).
   if (ent.userId) {
     const cap = await limitUserDaily("tutor", ent.userId, ent.allowance);
     if (!cap.success) {

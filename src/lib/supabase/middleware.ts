@@ -2,7 +2,10 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
-import { isSupabaseConfigured, supabaseConfig } from "@/lib/env";
+import { assertSupabaseConfiguredInProduction, isSupabaseConfigured, supabaseConfig } from "@/lib/env";
+
+// A hosted deploy missing Supabase would silently skip every check below.
+assertSupabaseConfiguredInProduction();
 
 /** App areas that require a signed-in user (prefix match). */
 const PROTECTED = ["/dashboard", "/study", "/tutor", "/licence-prep", "/account"];

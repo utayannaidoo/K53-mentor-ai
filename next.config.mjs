@@ -12,7 +12,9 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://images.unsplash.com https://avatars.githubusercontent.com",
+  // Every image the app renders is a local /signs/* asset (439 of them) or an
+  // inline data:/blob: preview from the scanner's file input. No remote hosts.
+  "img-src 'self' data: blob:",
   "font-src 'self' data:",
   // PostHog ingestion hosts (us/eu); harmless when analytics is unconfigured.
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.i.posthog.com https://*.posthog.com${isProd ? "" : " ws:"}`,
@@ -39,12 +41,13 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  images: {
-    remotePatterns: [
-      { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "avatars.githubusercontent.com" },
-    ],
-  },
+  // No remotePatterns on purpose. Nothing in the app loads a remote image —
+  // the sign catalogue is 439 local /signs/* files — so allowing any remote
+  // host only left the image optimiser fetching and decoding attacker-chosen
+  // URLs for no product reason. That fetch path is the way Next's bundled
+  // sharp/libvips CVEs (GHSA-f88m-g3jw-g9cj) would be reached, and it is an
+  // SSRF-adjacent primitive in its own right. An empty allow-list closes it.
+  // (dangerouslyAllowSVG stays unset, so SVG optimisation is off too.)
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

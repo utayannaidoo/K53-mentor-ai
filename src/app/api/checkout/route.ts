@@ -2,7 +2,6 @@ import { z } from "zod";
 import { isPaystackConfigured, isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
-import { SITE_URL } from "@/lib/constants";
 import {
   TUTOR_TOPUP_CREDITS,
   TUTOR_TOPUP_PRICE,
@@ -11,32 +10,9 @@ import {
   annualPrice,
 } from "@/lib/billing/plans";
 import { initializeTransaction } from "@/lib/paystack/client";
+import { callbackOrigin } from "@/lib/billing/callback-origin";
 
 export const runtime = "nodejs";
-
-/**
- * Where Paystack sends the buyer back after hosted checkout. Prefer the
- * request's own origin so a checkout started on a given domain always returns
- * to that same domain — a checkout begun on production lands back on
- * production, a preview returns to the preview. This makes the callback
- * immune to a stale or preview-pointed `NEXT_PUBLIC_SITE_URL`, which had been
- * silently bouncing production buyers onto a preview deployment (where the
- * post-payment `verify` ran against the wrong session and 403'd). The Origin
- * header on a browser fetch is set by the browser, not user script, so it is
- * safe to trust here; this only controls a post-payment redirect, never the
- * entitlement grant (that stays webhook-only). Falls back to the forwarded
- * host, then the configured SITE_URL.
- */
-function callbackOrigin(req: Request): string {
-  const origin = req.headers.get("origin");
-  if (origin && /^https?:\/\//i.test(origin)) return origin;
-  const host = req.headers.get("x-forwarded-host") ?? req.headers.get("host");
-  if (host) {
-    const proto = req.headers.get("x-forwarded-proto") ?? "https";
-    return `${proto}://${host}`;
-  }
-  return SITE_URL;
-}
 
 const schema = z.object({
   plan: z.enum(["premium", "premium_plus", "tutor_topup"]),

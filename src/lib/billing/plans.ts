@@ -201,6 +201,20 @@ export function hasFeature(tier: SubscriptionTier, feature: FeatureKey): boolean
   return PLAN_MAP[tier].features[feature];
 }
 
+/**
+ * Whether this tier has paid for anything at all.
+ *
+ * Deliberately not expressed as a FeatureKey. The individual flags separate the
+ * two *paid* plans from each other — `licencePrep` and `advancedAnalytics` are
+ * Premium Plus only, `scenarios` and `scanner` start at Premium — so none of
+ * them means "has paid", and reaching for one as a proxy silently denies
+ * Premium subscribers whatever it guards. The content pack needs exactly this
+ * question and nothing finer.
+ */
+export function isPaidTier(tier: SubscriptionTier): boolean {
+  return tier !== "free";
+}
+
 export function dailyCap(tier: SubscriptionTier, cap: CapKey): number {
   return PLAN_MAP[tier].caps[cap];
 }

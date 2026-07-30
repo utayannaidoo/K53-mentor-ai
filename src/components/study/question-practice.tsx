@@ -17,9 +17,9 @@ import { SecondOpinion } from "@/components/study/second-opinion";
 import { SpeakButton } from "@/components/study/speak-button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueTomorrow } from "@/lib/plan";
-import { QUESTIONS, questionsByCategory } from "@/lib/content/questions";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { forCode } from "@/lib/content/vehicle";
+import { useContentPool } from "@/components/content/content-provider";
 import {
   easyFirst,
   orderByFreshness,
@@ -39,13 +39,14 @@ export function QuestionPractice() {
   const sp = useSearchParams();
   const categoryParam = (sp.get("category") as CategoryId | null) ?? undefined;
   const { state, recordQuestionAttempt, recordSession, usageFor } = useStudyStore();
+  const { questions: bank } = useContentPool();
 
   const cap = usageFor("questions");
   const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : STUDY_SESSION_SIZE;
   const limit = Math.max(1, Math.min(remaining, STUDY_SESSION_SIZE));
 
   function buildQueue(): Question[] {
-    const base = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
+    const base = categoryParam ? bank.filter((q) => q.categoryId === categoryParam) : bank;
     const pool = forCode(base, studyCodeOf(state));
     let ordered = orderByFreshness(pool, state.attempts);
     // Self-declared beginners open their first-ever session with easy questions.

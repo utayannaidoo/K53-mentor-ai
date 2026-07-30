@@ -24,22 +24,23 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature, STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
 import { orderScenariosByFreshness } from "@/lib/diagnostic/select";
 import { countDueTomorrow } from "@/lib/plan";
-import { SCENARIOS } from "@/lib/content/scenarios";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { forCode } from "@/lib/content/vehicle";
+import { useContentPool } from "@/components/content/content-provider";
 import { categoryName } from "@/lib/content/categories";
 import { haptics } from "@/lib/haptics";
 import { shuffle, cn } from "@/lib/utils";
 
 export function ScenarioPlayer() {
   const { state, recordScenarioAttempt, recordSession } = useStudyStore();
+  const { scenarios } = useContentPool();
   // Least-recently-seen first, then a session-sized slice — the two only work
   // together. Serving the whole pool (as this used to) replays every scenario
   // every session no matter how it is ordered; slicing without the rotation
   // would just hand out a random dozen and repeat some of them next time.
   function buildQueue() {
     return orderScenariosByFreshness(
-      forCode(SCENARIOS, studyCodeOf(state)),
+      forCode(scenarios, studyCodeOf(state)),
       state.scenarioAttempts,
     )
       .slice(0, STUDY_SESSION_SIZE)

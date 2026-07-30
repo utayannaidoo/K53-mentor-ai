@@ -3,12 +3,18 @@ import { FLASHCARDS_BY_ID } from "@/lib/content/flashcards";
 import { CATEGORY_MAP } from "@/lib/content/categories";
 import type { CategoryId } from "@/types";
 
-export type TutorContextType = "question" | "card" | "category" | "none";
-
-export interface TutorContextInput {
-  type: TutorContextType;
-  id?: string;
-}
+/**
+ * SERVER-ONLY in practice: this module resolves a context id into the full
+ * question text, its correct answer and its official explanation, so it imports
+ * the whole bank. Importing it from a client component ships the bank with it —
+ * which is exactly what /tutor was doing.
+ *
+ * The two things a client actually needs (a chip label and a starter prompt)
+ * live in ./tutor-context, which takes the item instead of looking it up. The
+ * shared types are re-exported from there so nothing has two definitions.
+ */
+export type { TutorContextType, TutorContextInput } from "@/lib/ai/tutor-context";
+import type { TutorContextInput } from "@/lib/ai/tutor-context";
 
 export interface ResolvedContext {
   label: string;
@@ -52,37 +58,10 @@ export function resolveContext(ctx?: TutorContextInput): ResolvedContext | null 
   return null;
 }
 
-/**
- * A natural starter prompt to pre-fill the tutor composer with, based on where
- * the learner opened the tutor from. Quotes the actual item so it's clear what
- * is being asked about. Returns "" for no context (menu access).
- */
-export function defaultTutorPrompt(
-  type: TutorContextType,
-  id?: string,
-  label?: string | null,
-): string {
-  switch (type) {
-    case "question": {
-      const q = id ? QUESTIONS_BY_ID[id] : undefined;
-      return q
-        ? `Why is the correct answer to "${q.prompt}" the right one? Please explain it simply.`
-        : "Why is the correct answer to this question right? Please explain it simply.";
-    }
-    case "card": {
-      const f = id ? FLASHCARDS_BY_ID[id] : undefined;
-      return f
-        ? `Can you explain this flashcard in more detail — "${f.front}"?`
-        : "Can you explain this flashcard to me in more detail?";
-    }
-    case "category": {
-      const topic = label?.replace(/^Topic · /, "").trim();
-      return `Can you help me understand ${topic && topic.length ? topic : "this topic"}?`;
-    }
-    default:
-      return "";
-  }
-}
+// The composer's starter prompt moved to ./tutor-context as starterPrompt().
+// It only ever needed the item's own text, and the client already has the item
+// — looking it up here meant a client import of this module, and with it the
+// entire question bank.
 
 /**
  * Stable persona block. Kept constant across requests so providers that support

@@ -10,9 +10,9 @@ import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { selectFlashcardQueue } from "@/lib/plan";
-import { QUESTIONS } from "@/lib/content/questions";
+import { selectFlashcardQueue } from "@/lib/plan.queue";
 import { forCode } from "@/lib/content/vehicle";
+import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
 import { categoryName } from "@/lib/content/categories";
@@ -39,10 +39,12 @@ export function GuidedSession() {
   const startRef = React.useRef(Date.now());
   const [step, setStep] = React.useState(0); // 0 intro · 1 cards · 2 questions · 3 paywall
 
-  const [cards] = React.useState(() => selectFlashcardQueue(state, { limit: 3 }));
+  const { questions: questionBank, flashcards: cardBank } = useContentPool();
+
+  const [cards] = React.useState(() => selectFlashcardQueue(cardBank, state, { limit: 3 }));
   const [questions] = React.useState<Question[]>(() => {
     const focus = state.onboarding?.worryCategories?.[0] ?? readiness.weakCategories[0] ?? null;
-    const bank = forCode(QUESTIONS, studyCodeOf(state));
+    const bank = forCode(questionBank, studyCodeOf(state));
     const pool = focus ? bank.filter((q) => q.categoryId === focus) : bank;
     return orderByFreshness(pool.length >= 2 ? pool : bank, state.attempts)
       .slice(0, 2)

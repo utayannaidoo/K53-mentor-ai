@@ -17,6 +17,7 @@ import { EmailRemindersToggle } from "@/components/account/email-reminders-toggl
 import { InviteCard } from "@/components/account/invite-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
+import { OfflinePackRow } from "@/components/content/offline-pack-row";
 import { PLAN_MAP, CODE_LABEL, studyCodeOf } from "@/lib/billing/plans";
 import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -232,6 +233,7 @@ function AccountInner() {
           </div>
           <Switch checked={dataSaver} onChange={setDataSaver} label="Data saver" />
         </div>
+        <OfflinePackRow />
         <EmailRemindersToggle />
       </Card>
 

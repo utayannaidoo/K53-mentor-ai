@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { QUESTIONS } from "@/lib/content/questions";
 import { SECTION_DRILL, SECTION_OF, sampleSectionDrill, type ExamSection } from "@/lib/diagnostic/select";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { drillsRemaining, mocksRemaining } from "@/lib/plan";
@@ -19,7 +20,7 @@ describe("SECTION_DRILL config", () => {
 
 describe("sampleSectionDrill", () => {
   it.each(SECTIONS)("%s: full size, single section, unique questions", (s) => {
-    const qs = sampleSectionDrill(s, [], "8");
+    const qs = sampleSectionDrill(QUESTIONS, s, [], "8");
     expect(qs).toHaveLength(SECTION_DRILL[s].total);
     expect(new Set(qs.map((q) => q.id)).size).toBe(qs.length);
     for (const q of qs) expect(SECTION_OF[q.categoryId]).toBe(s);
