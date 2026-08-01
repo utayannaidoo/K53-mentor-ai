@@ -76,7 +76,7 @@ export function orderScenariosByFreshness(
  * question. Items without a subject fall back to their own id, so they are
  * always distinct from each other.
  */
-function subjectOf(q: Question): string {
+export function subjectOf(q: Question): string {
   return q.image ?? (q.sign ? `sign:${q.sign}` : `id:${q.id}`);
 }
 

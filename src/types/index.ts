@@ -177,6 +177,15 @@ export interface QuestionAttempt {
   selectedIndex: number;
   at: string;
   context: StudyContext;
+  /**
+   * Milliseconds from the question appearing to the answer being tapped.
+   *
+   * The cheapest confidence signal there is: fast+correct reads as mastered,
+   * slow+correct as fragile, fast+wrong as a genuine misconception rather than
+   * carelessness. Optional — attempts recorded before this existed have no
+   * timing, and every reader treats it as unknown.
+   */
+  ms?: number;
 }
 
 export interface CategoryScore {
