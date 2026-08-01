@@ -35,6 +35,34 @@ import type {
 
 const TOTAL_STEPS = 7; // excluding the welcome screen
 
+/**
+ * The wizard's answers survive a reload. Phone calls, app switches, low-memory
+ * tab eviction and accidental pull-to-refresh are all routine on the devices
+ * this is built for, and losing seven screens of answers to any of them is the
+ * most expensive thing that can happen at the top of the funnel.
+ */
+const DRAFT_KEY = "k53mentor.onboarding.draft.v1";
+
+interface WizardDraft {
+  step: number;
+  goal: LicenceGoal | null;
+  vehicleCode: VehicleCode | null;
+  testDate: string;
+  noDate: boolean;
+  driversTestDate: string;
+  noDriversDate: boolean;
+  priorAttempts: number;
+  confidence: ConfidenceLevel | null;
+  worryCategories: CategoryId[];
+  knowledge: KnowledgeLevel | null;
+  frequency: StudyFrequency | null;
+}
+
+/** Today in the *viewer's* timezone — `toISOString()` would roll over early in SA. */
+function localIsoDate(date = new Date()): string {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
+}
+
 const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
   1: "Totally lost",
   2: "Shaky",
@@ -76,6 +104,73 @@ export function OnboardingWizard() {
   const [knowledge, setKnowledge] = React.useState<KnowledgeLevel | null>(null);
   const [frequency, setFrequency] = React.useState<StudyFrequency | null>(null);
 
+  const todayIso = React.useMemo(() => localIsoDate(), []);
+  const testDateInPast = testDate !== "" && testDate < todayIso;
+  const driversDateInPast = driversTestDate !== "" && driversTestDate < todayIso;
+
+  // Restore after mount, not via lazy initial state: these pages are statically
+  // prerendered, so reading storage during render would desync hydration.
+  const restored = React.useRef(false);
+  React.useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(DRAFT_KEY);
+      if (raw) {
+        const d = JSON.parse(raw) as Partial<WizardDraft>;
+        if (typeof d.step === "number") setStep(Math.min(Math.max(d.step, 0), TOTAL_STEPS));
+        if (d.goal) setGoal(d.goal);
+        if (d.vehicleCode) setVehicleCode(d.vehicleCode);
+        if (typeof d.testDate === "string") setTestDate(d.testDate);
+        if (typeof d.noDate === "boolean") setNoDate(d.noDate);
+        if (typeof d.driversTestDate === "string") setDriversTestDate(d.driversTestDate);
+        if (typeof d.noDriversDate === "boolean") setNoDriversDate(d.noDriversDate);
+        if (typeof d.priorAttempts === "number") setPriorAttempts(d.priorAttempts);
+        if (d.confidence) setConfidence(d.confidence);
+        if (Array.isArray(d.worryCategories)) setWorryCategories(d.worryCategories);
+        if (d.knowledge) setKnowledge(d.knowledge);
+        if (d.frequency) setFrequency(d.frequency);
+      }
+    } catch {
+      // Corrupt or unavailable storage (private mode, quota) just means a fresh start.
+    }
+    restored.current = true;
+  }, []);
+
+  React.useEffect(() => {
+    if (!restored.current) return; // never overwrite the draft with the initial blanks
+    const draft: WizardDraft = {
+      step,
+      goal,
+      vehicleCode,
+      testDate,
+      noDate,
+      driversTestDate,
+      noDriversDate,
+      priorAttempts,
+      confidence,
+      worryCategories,
+      knowledge,
+      frequency,
+    };
+    try {
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+    } catch {
+      // Storage full or blocked — the wizard still works, it just won't resume.
+    }
+  }, [
+    step,
+    goal,
+    vehicleCode,
+    testDate,
+    noDate,
+    driversTestDate,
+    noDriversDate,
+    priorAttempts,
+    confidence,
+    worryCategories,
+    knowledge,
+    frequency,
+  ]);
+
   const next = () => setStep((s) => Math.min(s + 1, TOTAL_STEPS));
   const back = () => setStep((s) => Math.max(s - 1, 0));
 
@@ -83,8 +178,19 @@ export function OnboardingWizard() {
     setWorryCategories((prev) => (prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]));
   }
 
+  // Auto-advance steps fire on a 240ms delay so the selection is visible before
+  // the screen changes. Without this latch a double-tap — routine on a slow
+  // phone — queues two advances and silently skips the next question, which for
+  // the licence-code step means studying the wrong vehicle's content entirely.
+  const advancing = React.useRef(false);
+  React.useEffect(() => {
+    advancing.current = false;
+  }, [step]);
+
   /** Set a value then auto-advance for single-tap steps. */
   function pick<T>(setter: (v: T) => void, value: T) {
+    if (advancing.current) return;
+    advancing.current = true;
     setter(value);
     window.setTimeout(next, 240);
   }
@@ -104,6 +210,11 @@ export function OnboardingWizard() {
       studyFrequency: frequency ?? "steady",
       priorAttempts,
     });
+    try {
+      window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      // Nothing to clean up if storage is unavailable.
+    }
     router.push("/diagnostic");
   }
 
@@ -121,7 +232,11 @@ export function OnboardingWizard() {
       {step > 0 && (
         <div className="mx-auto w-full max-w-lg px-6">
           <div className="flex items-center gap-3">
-            <button onClick={back} className="text-muted-foreground transition-colors hover:text-foreground" aria-label="Back">
+            <button
+              onClick={back}
+              className="-m-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+              aria-label="Back"
+            >
               <ArrowLeft className="h-5 w-5" />
             </button>
             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
@@ -137,7 +252,7 @@ export function OnboardingWizard() {
         </div>
       )}
 
-      <div className="flex flex-1 items-center justify-center px-6 py-8">
+      <main id="main-content" className="flex flex-1 items-center justify-center px-6 py-8">
         <div key={step} className="w-full max-w-lg animate-fade-in">
           {/* Step 0 — Welcome */}
           {step === 0 && (
@@ -191,18 +306,34 @@ export function OnboardingWizard() {
             >
               <div className="space-y-4">
                 <div>
-                  {goal === "both" && (
-                    <p className="mb-1.5 text-sm font-medium text-foreground">Learner&apos;s test date</p>
-                  )}
+                  <label
+                    htmlFor="learners-test-date"
+                    className={cn(
+                      "mb-1.5 block text-sm font-medium text-foreground",
+                      goal !== "both" && "sr-only",
+                    )}
+                  >
+                    Learner&apos;s test date
+                  </label>
                   <Input
+                    id="learners-test-date"
                     type="date"
                     value={testDate}
+                    min={todayIso}
+                    aria-invalid={testDateInPast || undefined}
+                    aria-describedby={testDateInPast ? "learners-test-date-error" : undefined}
                     onChange={(e) => {
                       setTestDate(e.target.value);
                       setNoDate(false);
                     }}
                     className="h-12 text-base"
                   />
+                  {testDateInPast && (
+                    <p id="learners-test-date-error" role="alert" className="mt-1.5 text-sm text-danger">
+                      That date has already passed — pick your upcoming test date, or tap
+                      &ldquo;I haven&apos;t booked yet&rdquo;.
+                    </p>
+                  )}
                   <button
                     type="button"
                     onClick={() => {
@@ -220,16 +351,31 @@ export function OnboardingWizard() {
 
                 {goal === "both" && (
                   <div>
-                    <p className="mb-1.5 text-sm font-medium text-foreground">Driver&apos;s test date</p>
+                    <label
+                      htmlFor="drivers-test-date"
+                      className="mb-1.5 block text-sm font-medium text-foreground"
+                    >
+                      Driver&apos;s test date
+                    </label>
                     <Input
+                      id="drivers-test-date"
                       type="date"
                       value={driversTestDate}
+                      min={todayIso}
+                      aria-invalid={driversDateInPast || undefined}
+                      aria-describedby={driversDateInPast ? "drivers-test-date-error" : undefined}
                       onChange={(e) => {
                         setDriversTestDate(e.target.value);
                         setNoDriversDate(false);
                       }}
                       className="h-12 text-base"
                     />
+                    {driversDateInPast && (
+                      <p id="drivers-test-date-error" role="alert" className="mt-1.5 text-sm text-danger">
+                        That date has already passed — pick your upcoming test date, or tap
+                        &ldquo;I haven&apos;t booked yet&rdquo;.
+                      </p>
+                    )}
                     <button
                       type="button"
                       onClick={() => {
@@ -262,7 +408,8 @@ export function OnboardingWizard() {
                   className="w-full"
                   disabled={
                     (!testDate && !noDate) ||
-                    (goal === "both" && !driversTestDate && !noDriversDate)
+                    testDateInPast ||
+                    (goal === "both" && ((!driversTestDate && !noDriversDate) || driversDateInPast))
                   }
                   onClick={next}
                 >
@@ -471,7 +618,7 @@ export function OnboardingWizard() {
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
