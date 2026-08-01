@@ -29,6 +29,7 @@ import {
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { PLAN_MAP, dailyCap, type CapKey } from "@/lib/billing/plans";
+import { trialExhausted } from "@/lib/billing/trial";
 import { countDueFlashcards, generateTodayPlan, isTaskDone } from "@/lib/plan";
 import {
   computeRankIndex,
@@ -97,6 +98,8 @@ interface StudyStore {
     correct: boolean;
     selectedIndex: number;
     context?: StudyContext;
+    /** Milliseconds spent on the question, when the surface measured it. */
+    ms?: number;
   }) => void;
   recordScenarioAttempt: (a: Omit<ScenarioAttempt, "id" | "at">) => void;
   recordMockExam: (
@@ -106,6 +109,7 @@ interface StudyStore {
       categoryId: CategoryId;
       correct: boolean;
       selectedIndex: number;
+      ms?: number;
     }[],
   ) => void;
   recordSession: (type: SessionType, durationSeconds: number) => void;
@@ -623,12 +627,13 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
     usageFor: (kind) => {
       const capKey = CAP_KEY[kind];
-      // Free is a once-off trial: its caps count lifetime usage, not a daily
-      // window (paid plans reset daily). Matches PlanLimits.reset.
-      const lifetime = PLAN_MAP[state.tier].limits.reset === "trial";
-      const used = lifetime ? totalUsage(state)[kind] : getTodayUsage(state)[kind];
+      // Every tier now meters per day. Free additionally stops refilling once
+      // its trial week is up, at which point nothing is allowed regardless of
+      // today's count.
+      const used = getTodayUsage(state)[kind];
       const cap = capKey ? dailyCap(state.tier, capKey) : Infinity;
-      return { used, cap, allowed: used < cap };
+      const expired = trialExhausted(state);
+      return { used, cap, allowed: !expired && used < cap };
     },
 
     acknowledgeRankUp: () => setState((s) => (s.pendingRankUp === null ? s : { ...s, pendingRankUp: null })),

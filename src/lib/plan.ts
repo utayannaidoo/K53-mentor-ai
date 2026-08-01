@@ -5,6 +5,7 @@ import { forCode } from "@/lib/content/vehicle";
 import { isDue } from "@/lib/srs/sm2";
 import { getTodayUsage, todayKey } from "@/lib/store/local-store";
 import { PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
+import { trialExhausted } from "@/lib/billing/trial";
 import { categoryName } from "@/lib/content/categories";
 import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { shuffle } from "@/lib/utils";
@@ -23,10 +24,30 @@ export interface PlanTask {
   premium?: boolean;
 }
 
+/**
+ * Cards genuinely due for REVIEW — studied at least once and now come round
+ * again. A never-seen card is *new*, not due.
+ *
+ * `isDue(undefined)` returns true so that unseen cards fall into the study
+ * queue, which is right for queue building and wrong for counting: on a fresh
+ * account it made every card in the bank "due", and the dashboard told a learner
+ * who had seen two flashcards that they had "672 reviews due" — directly under a
+ * plan card promising 15. Sizing still works because the plan clamps to the
+ * session max either way.
+ */
 export function countDueFlashcards(state: UserState, now = new Date()): number {
-  return forCode(FLASHCARDS, studyCodeOf(state)).filter((f) =>
-    isDue(state.cardStates[f.id], now),
-  ).length;
+  return forCode(FLASHCARDS, studyCodeOf(state)).filter((f) => {
+    const cs = state.cardStates[f.id];
+    return Boolean(cs) && (cs.reps > 0 || cs.lapses > 0) && isDue(cs, now);
+  }).length;
+}
+
+/** Cards never studied yet — what a new learner actually has in front of them. */
+export function countNewFlashcards(state: UserState): number {
+  return forCode(FLASHCARDS, studyCodeOf(state)).filter((f) => {
+    const cs = state.cardStates[f.id];
+    return !cs || (cs.reps === 0 && cs.lapses === 0);
+  }).length;
 }
 
 /**
@@ -66,8 +87,8 @@ export function selectFlashcardQueue(
 }
 
 /**
- * How many full or mini mocks the learner has left: free counts lifetime
- * (the trial never resets), paid plans count today only.
+ * How many full or mini mocks the learner has left today. Free gets its daily
+ * allowance for the trial week, then nothing.
  */
 export function mocksRemaining(
   state: UserState,
@@ -81,26 +102,21 @@ export function mocksRemaining(
   const pool = state.mockExams.filter(
     (m) => !m.drill && Boolean(m.mini) === (kind === "mini"),
   );
-  const used =
-    limits.reset === "trial"
-      ? pool.length
-      : pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
-  return Math.max(0, cap - used);
+  const used = pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
+  return trialExhausted(state, now.getTime()) ? 0 : Math.max(0, cap - used);
 }
 
 /**
- * How many single-section drills the learner has left: free counts lifetime
- * (one taste, like the mini mock), paid plans count today only.
+ * How many single-section drills the learner has left today. Free gets its
+ * daily allowance for the trial week, then nothing.
  */
 export function drillsRemaining(state: UserState, now = new Date()): number {
   const cap = PLAN_MAP[state.tier].limits.sectionDrills;
   if (cap === "unlimited") return Infinity;
-  const pool = state.mockExams.filter((m) => Boolean(m.drill));
-  const used =
-    PLAN_MAP[state.tier].limits.reset === "trial"
-      ? pool.length
-      : pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
-  return Math.max(0, cap - used);
+  const used = state.mockExams.filter(
+    (m) => Boolean(m.drill) && m.at.slice(0, 10) === todayKey(now),
+  ).length;
+  return trialExhausted(state, now.getTime()) ? 0 : Math.max(0, cap - used);
 }
 
 /** Days between mocks before the predictor is considered stale. */
@@ -173,7 +189,9 @@ export function generateTodayPlan(
   tasks.push({
     id: "task-flashcards",
     type: "flashcards",
-    title: `${flashTarget} flashcards due`,
+    // "due" only when something actually is: a new learner has no reviews, and
+    // calling their first deck "due" is both wrong and quietly stressful.
+    title: due > 0 ? `${flashTarget} flashcards due` : `${flashTarget} new flashcards`,
     subtitle: due > 0 ? "Spaced repetition keeps these fresh" : "Build your first review deck",
     targetCount: flashTarget,
     estMinutes: 4,

@@ -23,7 +23,11 @@ export type AiSurface = "tutor" | "coach" | "vision";
  * tier can legitimately produce; vision is paid-only (0 = feature locked).
  */
 const DAILY_ALLOWANCE: Record<AiSurface, Record<SubscriptionTier, number>> = {
-  tutor: { free: 3, premium: 15, premium_plus: 40 },
+  // free mirrors PlanLimits.tutorMessages. The client additionally stops
+  // refilling after the 7-day trial window; this stays a plain per-day ceiling
+  // because it is a cost guard, not the product rule — and a per-day ceiling is
+  // strictly tighter than what the old lifetime-vs-daily mismatch allowed.
+  tutor: { free: 2, premium: 15, premium_plus: 40 },
   coach: { free: 12, premium: 60, premium_plus: 100 },
   vision: { free: 0, premium: 12, premium_plus: 25 },
 };

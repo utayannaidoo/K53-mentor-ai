@@ -108,9 +108,15 @@ export function CoachPlan({
       {/* grid-cols-1 (minmax(0,1fr)) — an auto column would size to the widest
           nowrap subtitle and overflow the card on phones. */}
       <ul className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-3">
-        {tasks.map((task, idx) => {
+        {tasks.map((task) => {
           const done = doneMap[task.id];
-          const locked = (task.premium && !scenariosUnlocked) || (planLocked && idx > 0);
+          // Only genuinely paid tasks lock. This used to also lock everything
+          // after the first item for free users — but /study lists the same
+          // missions unlocked, so the identical "Practice: Vehicle controls"
+          // tile was paywalled here and free one tap away. A gate a learner can
+          // walk around in two clicks isn't a gate, it's a lesson that the
+          // paywall is bluffing. The upsell below still sells the full plan.
+          const locked = task.premium && !scenariosUnlocked;
           const href = locked ? "/account/billing" : task.href;
           return (
             <li key={task.id}>

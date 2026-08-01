@@ -55,11 +55,26 @@ const PREMIUM_DAILY_ITEMS = STUDY_SESSION_SIZE * PREMIUM_SESSIONS_PER_DAY; // 36
  * is kept as the legacy numeric view consumed by the study surfaces; `limits`
  * is the source of truth the new enforcement + UI read from.
  */
+/** How long the free tier's daily allowances keep refilling. */
+export const FREE_TRIAL_DAYS = 7;
+
 export interface PlanLimits {
-  /** Free is a one-off onboarding trial; paid plans reset daily. */
-  reset: "trial" | "daily";
+  /**
+   * All plans now refill daily. Free additionally expires: its allowances reset
+   * every day for `trialDays`, then stop.
+   *
+   * It used to be `"trial"` — one lifetime pool of 12 cards / 15 questions / 3
+   * tutor messages, which a learner could exhaust in a single ten-minute
+   * sitting. That is not enough to feel a product whose whole thesis is "ten
+   * minutes a day, spaced repetition, streaks": they were asked to buy a habit
+   * they had never experienced. A week of small daily allowances costs roughly
+   * the same content but can actually produce a streak.
+   */
+  reset: "daily";
+  /** Days the plan's daily allowance keeps refilling. Absent = forever (paid). */
+  trialDays?: number;
   diagnostic: "full";
-  /** A daily/once-off item count, or unlimited. */
+  /** A per-day item count, or unlimited. */
   flashcards: number | "unlimited";
   questions: number | "unlimited";
   /** false = not included, a number = per-day allowance, or unlimited. */
@@ -68,9 +83,9 @@ export interface PlanLimits {
   /** Premium Plus: buy extra tutor messages beyond the daily allowance. */
   tutorTopUp: boolean;
   mockExams: number | "unlimited";
-  /** 15-question mini mocks (free: lifetime, paid: per day). */
+  /** 15-question mini mocks, per day. */
   miniMocks: number | "unlimited";
-  /** Single-section timed drills at real pass marks (free: lifetime, paid: per day). */
+  /** Single-section timed drills at real pass marks, per day. */
   sectionDrills: number | "unlimited";
   mockLength: "short" | "full";
   studyPlan: boolean;
@@ -97,30 +112,31 @@ export const PLANS: PlanDef[] = [
   {
     id: "free",
     name: "Free",
-    tagline: "A one-day onboarding — see exactly where you stand.",
+    tagline: "A free week — build the habit before you pay for it.",
     monthly: 0,
     features: { tutor: true, scenarios: false, licencePrep: false, advancedAnalytics: false, scanner: false },
-    caps: { flashcardsPerDay: 12, questionsPerDay: 15, tutorPerDay: 3 },
+    caps: { flashcardsPerDay: 10, questionsPerDay: 10, tutorPerDay: 2 },
     limits: {
-      reset: "trial",
+      reset: "daily",
+      trialDays: FREE_TRIAL_DAYS,
       diagnostic: "full",
-      flashcards: 12,
-      questions: 15,
+      flashcards: 10,
+      questions: 10,
       scenarios: false,
-      tutorMessages: 3,
+      tutorMessages: 2,
       tutorTopUp: false,
       mockExams: 0, // full mock is a paid feature
-      miniMocks: 1, // one lifetime mini mock to taste the pressure
-      sectionDrills: 1, // one lifetime section drill, same taste-then-pay pattern
+      miniMocks: 1, // one a day during the trial week
+      sectionDrills: 1, // one a day, same taste-then-pay pattern
       mockLength: "short",
       studyPlan: false,
       progressHistory: "7d",
     },
     perks: [
       "Full AI diagnostic + readiness score",
-      "12 flashcards & 15 questions (once-off)",
-      "3 AI tutor messages",
-      "One 15-question mini mock",
+      "10 flashcards & 10 questions every day for 7 days",
+      "2 AI tutor messages a day",
+      "A 15-question mini mock every day",
       "7-day progress history",
     ],
   },

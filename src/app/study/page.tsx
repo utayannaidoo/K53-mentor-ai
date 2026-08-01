@@ -35,8 +35,9 @@ export default function StudyHubPage() {
   const due = countDueFlashcards(state);
   const scenariosUnlocked = hasFeature(state.tier, "scenarios");
   const scannerUnlocked = hasFeature(state.tier, "scanner");
-  // A mode also locks once its allowance is spent (free pools are lifetime,
-  // paid limits reset daily) — the lock tells the learner before they tap.
+  // A mode also locks once today's allowance is spent (every tier meters per
+  // day; free stops refilling after its trial week) — the lock tells the
+  // learner before they tap.
   const questionsLocked = !usageFor("questions").allowed;
   const flashcardsLocked = !usageFor("flashcards").allowed;
   const mockLocked = mocksRemaining(state, "full") <= 0;

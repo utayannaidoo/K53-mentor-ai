@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Flame } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
 import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { CoachPlan } from "@/components/dashboard/coach-plan";
 import { ComebackCard } from "@/components/dashboard/comeback-card";
+import { isCramWindow, daysUntilTest } from "@/lib/learning/cram";
+import { openMistakes } from "@/lib/learning/mistakes";
 import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
 import { RoadProgress } from "@/components/engagement/road-progress";
 import { WeakAreas } from "@/components/dashboard/weak-areas";
@@ -50,6 +52,34 @@ export default function DashboardPage() {
       <TestCountdown onboarding={state.onboarding} />
 
       <ComebackCard />
+
+      {/* Final stretch. Everything else here is built for a learner with weeks;
+          with the test this close, the only useful advice is "spend what's left
+          on what you're still getting wrong". Shown above the plan because on
+          this day it *is* the plan. */}
+      {isCramWindow(state) && openMistakes(state).length > 0 && (
+        <Card className="mb-5 flex flex-wrap items-center justify-between gap-4 border-warning/30 bg-warning/[0.06] p-5">
+          <div className="flex items-start gap-3">
+            <Flame className="mt-0.5 h-5 w-5 shrink-0 text-warning" />
+            <div>
+              <p className="font-medium text-foreground">
+                {daysUntilTest(state) === 0
+                  ? "Your test is today"
+                  : daysUntilTest(state) === 1
+                    ? "Your test is tomorrow"
+                    : `Your test is in ${daysUntilTest(state)} days`}
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Skip the new material. {openMistakes(state).length} questions are still tripping you
+                up — signs and rules first, since they carry the most marks.
+              </p>
+            </div>
+          </div>
+          <Link href="/study/questions?mode=cram" className={cn(buttonVariants())}>
+            Drill my mistakes <ArrowRight />
+          </Link>
+        </Card>
+      )}
 
       {trialExhausted(state) && <TrialEndCard compact />}
 

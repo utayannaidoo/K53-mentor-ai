@@ -33,10 +33,12 @@ describe("drillsRemaining", () => {
   const TODAY = `${todayKey()}T10:00:00.000Z`;
   const LAST_WEEK = "2026-07-01T10:00:00.000Z";
 
-  it("free: one lifetime drill — an old drill still counts", () => {
+  it("free: one drill a day during the trial week — an old drill doesn't count", () => {
     const s = defaultUserState();
     expect(drillsRemaining(s)).toBe(1);
     s.mockExams = [drillAttempt(LAST_WEEK)];
+    expect(drillsRemaining(s)).toBe(1); // refills daily now
+    s.mockExams = [drillAttempt(TODAY)];
     expect(drillsRemaining(s)).toBe(0);
   });
 

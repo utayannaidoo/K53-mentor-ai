@@ -8,6 +8,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import {
   trialExhausted,
+  trialDaysRemaining,
   poolRemaining,
   POOL_NOUN,
   POOL_HREF,
@@ -46,17 +47,31 @@ export function TrialEndCard({
     : null;
 
   const allDone = trialExhausted(state);
+  const daysLeft = trialDaysRemaining(state);
   const remainingPools = (["questions", "flashcards", "tutor"] as TrialPool[]).filter(
     (p) => p !== feature && poolRemaining(state, p) > 0,
   );
-  const headline =
-    allDone || !feature ? "Your free trial is done" : `You've used your free ${POOL_NOUN[feature]}`;
-  const remainingLine =
-    !allDone && remainingPools.length > 0
-      ? `Still free to use: ${remainingPools
-          .map((p) => `${poolRemaining(state, p)} ${POOL_NOUN[p]}`)
-          .join(" and ")}.`
-      : null;
+  const headline = allDone
+    ? "Your free week is over"
+    : feature
+      ? `That's today's free ${POOL_NOUN[feature]}`
+      : "Your free week";
+  // Hitting a daily cap is no longer the end of anything — say so, or the
+  // learner reads a temporary limit as a permanent wall and churns.
+  const remainingLine = allDone
+    ? null
+    : [
+        remainingPools.length > 0
+          ? `Still free today: ${remainingPools
+              .map((p) => `${poolRemaining(state, p)} ${POOL_NOUN[p]}`)
+              .join(" and ")}.`
+          : null,
+        Number.isFinite(daysLeft)
+          ? `Your allowance refills tomorrow — ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left of your free week.`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" ");
 
   const situation =
     daysToTest !== null

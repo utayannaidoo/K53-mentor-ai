@@ -20,6 +20,17 @@ describe("plan pricing", () => {
     }
   });
 
+  it("the paywall's \"from\" price is a real number", () => {
+    // Regression: monthly was once a per-track record, and the paywall derived
+    // its headline with Math.min(...Object.values(...)). Once monthly became a
+    // plain number that silently evaluated to Infinity, so every upgrade screen
+    // in the app read "From RInfinity/month".
+    const fromPrice = monthlyPrice(PLAN_MAP.premium);
+    expect(Number.isFinite(fromPrice)).toBe(true);
+    expect(fromPrice).toBe(60);
+    expect(`From R${fromPrice}/month`).toMatch(/^From R\d+\/month$/);
+  });
+
   it("one price per tier — nothing depends on which vehicle is studied", () => {
     expect(monthlyPrice(PLAN_MAP.free)).toBe(0);
     expect(isFreePlan(PLAN_MAP.free)).toBe(true);
@@ -42,10 +53,21 @@ describe("feature gates", () => {
     expect(hasFeature("premium_plus", "licencePrep")).toBe(true);
   });
 
-  it("tutor caps mirror the server allowances (3/15/40)", () => {
-    expect(dailyCap("free", "tutorPerDay")).toBe(3);
+  it("tutor caps mirror the server allowances (2/15/40)", () => {
+    // These must equal DAILY_ALLOWANCE.tutor in entitlements.server.ts. The two
+    // once disagreed on *shape* — the client metered free lifetime, the server
+    // per-day — so a free user was permanently walled by a limit the server
+    // would still have served.
+    expect(dailyCap("free", "tutorPerDay")).toBe(2);
     expect(dailyCap("premium", "tutorPerDay")).toBe(15);
     expect(dailyCap("premium_plus", "tutorPerDay")).toBe(40);
+  });
+
+  it("every tier meters per day; only free stops refilling", () => {
+    expect(PLAN_MAP.free.limits.reset).toBe("daily");
+    expect(PLAN_MAP.free.limits.trialDays).toBe(7);
+    expect(PLAN_MAP.premium.limits.trialDays).toBeUndefined();
+    expect(PLAN_MAP.premium_plus.limits.trialDays).toBeUndefined();
   });
 });
 
