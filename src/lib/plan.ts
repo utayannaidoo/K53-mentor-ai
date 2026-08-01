@@ -16,6 +16,7 @@ import { forCode } from "@/lib/content/vehicle";
 import { isDue } from "@/lib/srs/sm2";
 import { getTodayUsage, todayKey } from "@/lib/store/local-store";
 import { PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
+import { trialExhausted } from "@/lib/billing/trial";
 import { categoryName } from "@/lib/content/categories";
 import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 
@@ -54,8 +55,10 @@ export function countDueTomorrow(state: UserState, now = new Date()): number {
 }
 
 /**
- * How many full or mini mocks the learner has left: free counts lifetime
- * (the trial never resets), paid plans count today only.
+ * How many full or mini mocks the learner has left today.
+ *
+ * Every plan meters per day now; the free week simply stops refilling once it
+ * expires, which `trialExhausted` decides.
  */
 export function mocksRemaining(
   state: UserState,
@@ -65,29 +68,23 @@ export function mocksRemaining(
   const limits = PLAN_MAP[state.tier].limits;
   const cap = kind === "full" ? limits.mockExams : limits.miniMocks;
   if (cap === "unlimited") return Infinity;
+  if (trialExhausted(state, now.getTime())) return 0;
   // Section drills live under their own allowance — never count them here.
   const pool = state.mockExams.filter(
     (m) => !m.drill && Boolean(m.mini) === (kind === "mini"),
   );
-  const used =
-    limits.reset === "trial"
-      ? pool.length
-      : pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
+  const used = pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
   return Math.max(0, cap - used);
 }
 
-/**
- * How many single-section drills the learner has left: free counts lifetime
- * (one taste, like the mini mock), paid plans count today only.
- */
+/** How many single-section drills the learner has left today. */
 export function drillsRemaining(state: UserState, now = new Date()): number {
   const cap = PLAN_MAP[state.tier].limits.sectionDrills;
   if (cap === "unlimited") return Infinity;
-  const pool = state.mockExams.filter((m) => Boolean(m.drill));
-  const used =
-    PLAN_MAP[state.tier].limits.reset === "trial"
-      ? pool.length
-      : pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
+  if (trialExhausted(state, now.getTime())) return 0;
+  const used = state.mockExams.filter(
+    (m) => Boolean(m.drill) && m.at.slice(0, 10) === todayKey(now),
+  ).length;
   return Math.max(0, cap - used);
 }
 

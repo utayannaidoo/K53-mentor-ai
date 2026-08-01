@@ -203,9 +203,8 @@ export function touchStreak(streak: Streak, now = new Date()): Streak {
 }
 
 /**
- * Lifetime usage across every recorded day. The free plan is a once-off
- * trial (`reset: "trial"` in plans.ts), so its caps count against this, not
- * against a single day.
+ * Lifetime usage across every recorded day. Plan caps are all per-day now, so
+ * this is for reporting and progress totals — not for enforcing allowances.
  */
 export function totalUsage(state: UserState): Omit<DailyUsage, "date"> {
   const sum = { flashcards: 0, questions: 0, tutor: 0, scenarios: 0 };

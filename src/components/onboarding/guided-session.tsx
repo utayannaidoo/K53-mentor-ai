@@ -125,7 +125,7 @@ export function GuidedSession() {
               <Paywall
                 feature="guided_session"
                 title="That's the loop. Ready to run it daily?"
-                description={`You're at ${readiness.readiness}% readiness. The free trial gives you a taste — Premium runs this exact loop at full volume, every day you show up.`}
+                description={`You're at ${readiness.readiness}% readiness. Your free week runs this loop at a small daily size — Premium runs it at full volume, every day you show up.`}
                 cta="Unlock my full plan"
               />
               <button
@@ -133,7 +133,7 @@ export function GuidedSession() {
                 onClick={() => finish("/dashboard")}
                 className="mx-auto mt-5 block text-sm font-medium text-muted-foreground hover:text-foreground"
               >
-                Continue with the free trial for now
+                Continue with my free week
               </button>
             </div>
           )}
