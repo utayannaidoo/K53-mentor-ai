@@ -1,5 +1,6 @@
 import type { Question, RoadSign, SignCategory } from "@/types";
 import { SIGNS, hasVerifiedName } from "@/lib/content/signs";
+import { looksLike } from "@/lib/content/sign-traits";
 
 /**
  * Questions derived mechanically from the road-sign catalogue.
@@ -17,10 +18,12 @@ import { SIGNS, hasVerifiedName } from "@/lib/content/signs";
  * facts, just recombine verified ones.
  *
  * Two framings per sign keep the same fact from *feeling* like the same
- * question (see FORMS below). Distractors are drawn from the same sign category
- * so they stay plausibly confusable rather than trivially wrong. Both framings
- * show the sign, so paper building already treats them as one subject via the
- * shared image and won't put both in the same paper.
+ * question (see FORMS below). Distractors prefer signs that *look like* the
+ * target — same shape and colour — and fall back to the same category, so a red
+ * triangle is answered against other red triangles rather than against an
+ * octagon nobody would confuse it with. Both framings show the sign, so paper
+ * building already treats them as one subject via the shared image and won't
+ * put both in the same paper.
  */
 
 /*
@@ -158,7 +161,20 @@ function distinctEnough(a: string, b: string): boolean {
   return !x.startsWith(y.slice(0, 40)) && !y.startsWith(x.slice(0, 40));
 }
 
-/** Choose `n` distractors from the same category whose text is distinct. */
+/**
+ * Choose `n` distractors whose text is distinct from the answer and each other.
+ *
+ * Confusion pairs first. Same-category distractors are already plausible, but
+ * the mistakes learners actually make on the road are between signs that *look
+ * alike* — two red triangles, two blue discs. Those are the pairs worth drilling
+ * head to head, and the traits table now knows which signs share a silhouette.
+ * Candidates that look like the target are offered ahead of the rest, so a
+ * question about a red triangle is answered against other red triangles instead
+ * of against an octagon nobody would confuse it with.
+ *
+ * Falls back to the wider category pool whenever a look-alike group is too thin
+ * to fill four options — a slightly easier question beats no question.
+ */
 function distractors(
   target: RoadSign,
   pool: RoadSign[],
@@ -170,8 +186,14 @@ function distractors(
   const candidates = pool.filter(
     (s) => s.id !== target.id && distinctEnough(text(s), targetText),
   );
+  const lookalikes = candidates.filter((s) => looksLike(target, s));
+  const rest = candidates.filter((s) => !looksLike(target, s));
+  const ordered = [
+    ...pickSeeded(lookalikes, lookalikes.length, seed),
+    ...pickSeeded(rest, rest.length, seed),
+  ];
   const out: string[] = [];
-  for (const c of pickSeeded(candidates, candidates.length, seed)) {
+  for (const c of ordered) {
     const t = text(c);
     if (out.every((o) => distinctEnough(o, t))) out.push(t);
     if (out.length === n) break;
