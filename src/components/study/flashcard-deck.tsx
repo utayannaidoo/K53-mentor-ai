@@ -23,7 +23,7 @@ import { selectFlashcardQueue } from "@/lib/plan.queue";
 import { useContentPool } from "@/components/content/content-provider";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
-import { initialCardState, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
+import { initialCardState, isLeech, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
 import { categoryName } from "@/lib/content/categories";
 import { haptics } from "@/lib/haptics";
 import { formatDuration, cn } from "@/lib/utils";
@@ -41,7 +41,7 @@ export function FlashcardDeck() {
   const sp = useSearchParams();
   const categoryParam = (sp.get("category") as CategoryId | null) ?? undefined;
   const { state, reviewCard, recordSession, usageFor } = useStudyStore();
-  const { flashcards } = useContentPool();
+  const { flashcards, full } = useContentPool();
 
   const cap = usageFor("flashcards");
   const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : Infinity;
@@ -60,6 +60,28 @@ export function FlashcardDeck() {
   const [flipped, setFlipped] = React.useState(false);
   const [reviewed, setReviewed] = React.useState(0);
   const [againCount, setAgainCount] = React.useState(0);
+
+  /**
+   * The full deck arrives after mount, so a queue built while the pool is still
+   * the bundled starter pack silently omits every card outside it — including
+   * cards that are genuinely due. That renders "All caught up!" to a learner
+   * with reviews waiting, which is the one thing a spaced-repetition product
+   * must never say wrongly: they close the app and the schedule slips.
+   *
+   * Rebuild once when the pool upgrades, and only before the first review, so
+   * nobody loses their place mid-session.
+   */
+  const builtFromFullDeck = React.useRef(full);
+  React.useEffect(() => {
+    if (!full || builtFromFullDeck.current || reviewed > 0) return;
+    builtFromFullDeck.current = true;
+    setQueue(selectFlashcardQueue(flashcards, state, { categoryId: categoryParam, limit: sessionLimit }));
+    setI(0);
+    setFlipped(false);
+    // Rebuilding on anything but the pool upgrade would reshuffle the session
+    // under the learner as their own review history changes it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [full]);
 
   // Start a fresh session in place. "Review more" used to be a link back to
   // this same route, but navigating to the URL you're already on doesn't
@@ -219,11 +241,23 @@ export function FlashcardDeck() {
               </div>
             )}
             <p className="mt-4 flex-1 text-lg leading-relaxed text-foreground">{card.back}</p>
+            {/* A leech has been forgotten six times. Showing the same prompt a
+                seventh time is not the answer — say so, and point at the one
+                thing that might actually shift it. */}
+            {isLeech(cardState) && (
+              <p className="mt-3 rounded-lg border border-warning/30 bg-warning/[0.06] px-3 py-2 text-xs leading-relaxed text-foreground">
+                This one keeps slipping — you&apos;ve forgotten it {cardState.lapses} times.
+                Repeating it won&apos;t help much; ask for a different angle or a memory trick.
+              </p>
+            )}
             <Link
               href={`/tutor?card=${card.id}`}
               className="mt-3 inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary hover:underline"
             >
-              <Sparkles className="h-3.5 w-3.5" /> Ask the tutor to explain this
+              <Sparkles className="h-3.5 w-3.5" />{" "}
+              {isLeech(cardState)
+                ? "Give me a memory trick for this"
+                : "Ask the tutor to explain this"}
             </Link>
           </div>
         </div>

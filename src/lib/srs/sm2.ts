@@ -42,37 +42,88 @@ function computeMastery(intervalDays: number, reps: number, lapses: number) {
   return clamp(Math.round(base - lapses * 4), 0, 100);
 }
 
-/** Advance a card's schedule given the learner's self-rating. */
+/**
+ * Lapses before a card counts as a leech — it keeps being forgotten, so more
+ * repeats of the same prompt won't fix it. Anki's default is 8; 6 is tighter
+ * because a learner's licence has a test date and there isn't time to keep
+ * failing the same card.
+ */
+export const LEECH_LAPSES = 6;
+
+/** A card the learner keeps forgetting. Needs a different angle, not more reps. */
+export function isLeech(state: CardState | undefined): boolean {
+  return (state?.lapses ?? 0) >= LEECH_LAPSES;
+}
+
+/** Fraction of the pre-lapse interval a relearned card returns to. */
+const LAPSE_RECOVERY = 0.3;
+
+/** Spread of the random jitter applied to intervals of 2+ days. */
+const FUZZ = 0.15;
+
+/**
+ * Nudge an interval by ±15% so cards learned together don't all come back on
+ * the same day. Without it, one big session builds a review cliff a week later
+ * and the learner opens the app to 40 due cards — the classic reason people
+ * quit spaced repetition. Intervals of a day or less are left alone, because
+ * jittering one day is meaningless.
+ */
+function fuzzed(days: number, rand: () => number): number {
+  if (days < 2) return days;
+  const spread = days * FUZZ;
+  return Math.max(1, Math.round(days + (rand() * 2 - 1) * spread));
+}
+
+/**
+ * Advance a card's schedule given the learner's self-rating.
+ *
+ * `rand` is injectable purely so the fuzz is testable; callers should leave it.
+ */
 export function scheduleCard(
   state: CardState,
   rating: SrsRating,
   now = new Date(),
+  rand: () => number = Math.random,
 ): CardState {
   const q = RATING_QUALITY[rating];
   let { reps, lapses, ease, intervalDays } = state;
+  let lapsedFrom = state.lapsedFrom;
 
   // Update ease factor (never below 1.3).
   ease = Math.max(1.3, ease + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)));
 
   if (q < 3) {
-    // Lapse — relearn today.
+    // Lapse — relearn today, but remember how well established this card was.
     reps = 0;
     lapses += 1;
+    if (intervalDays >= 2) lapsedFrom = intervalDays;
     intervalDays = 0;
   } else {
     reps += 1;
-    if (reps === 1) intervalDays = rating === "easy" ? 2 : 1;
-    else if (reps === 2) intervalDays = 6;
-    else intervalDays = Math.round(intervalDays * ease);
+    if (reps === 1) {
+      // First success after a lapse returns toward the old interval rather than
+      // starting from scratch — the memory was there yesterday, it isn't gone.
+      intervalDays = lapsedFrom
+        ? Math.max(1, Math.round(lapsedFrom * LAPSE_RECOVERY))
+        : rating === "easy"
+          ? 2
+          : 1;
+      lapsedFrom = undefined;
+    } else if (reps === 2) {
+      // Never below the recovered interval: a relearned card that has just
+      // proved itself twice must not be dragged back to the fixed 6 days.
+      intervalDays = Math.max(6, intervalDays);
+    } else intervalDays = Math.round(intervalDays * ease);
     if (rating === "hard") intervalDays = Math.max(1, Math.round(intervalDays * 0.7));
     if (rating === "easy") intervalDays = Math.round(intervalDays * 1.15);
+    intervalDays = fuzzed(intervalDays, rand);
   }
 
   const due = new Date(now);
   if (intervalDays <= 0) due.setMinutes(due.getMinutes() + 10);
   else due.setDate(due.getDate() + intervalDays);
 
-  return {
+  const next: CardState = {
     ...state,
     reps,
     lapses,
@@ -82,6 +133,9 @@ export function scheduleCard(
     lastReviewed: now.toISOString(),
     mastery: computeMastery(intervalDays, reps, lapses),
   };
+  if (lapsedFrom === undefined) delete next.lapsedFrom;
+  else next.lapsedFrom = lapsedFrom;
+  return next;
 }
 
 export function isDue(state: CardState | undefined, now = new Date()) {
@@ -89,7 +143,18 @@ export function isDue(state: CardState | undefined, now = new Date()) {
   return new Date(state.due).getTime() <= now.getTime();
 }
 
-/** Human-friendly preview of the next interval for each rating (for the UI). */
+/**
+ * Human-friendly preview of the next interval for each rating (for the UI).
+ *
+ * Previews with the fuzz neutralised (`0.5` is the midpoint of the jitter), so
+ * the four buttons are stable across renders and are read against each other
+ * rather than against a fresh random draw each time. The actual schedule still
+ * jitters ±15% around the number shown — a "6 days" button can land on 7 — which
+ * is the point of the fuzz and well inside what "6 days" means to a learner.
+ * Without this the buttons would flicker between renders, which reads as broken.
+ */
+const noFuzz = () => 0.5;
+
 export function previewIntervals(state: CardState): Record<SrsRating, string> {
   const fmt = (s: CardState) => {
     if (s.intervalDays <= 0) return "<10 min";
@@ -98,10 +163,11 @@ export function previewIntervals(state: CardState): Record<SrsRating, string> {
     const months = Math.round(s.intervalDays / 30);
     return months === 1 ? "1 month" : `${months} months`;
   };
+  const now = new Date();
   return {
-    again: fmt(scheduleCard(state, "again")),
-    hard: fmt(scheduleCard(state, "hard")),
-    good: fmt(scheduleCard(state, "good")),
-    easy: fmt(scheduleCard(state, "easy")),
+    again: fmt(scheduleCard(state, "again", now, noFuzz)),
+    hard: fmt(scheduleCard(state, "hard", now, noFuzz)),
+    good: fmt(scheduleCard(state, "good", now, noFuzz)),
+    easy: fmt(scheduleCard(state, "easy", now, noFuzz)),
   };
 }
