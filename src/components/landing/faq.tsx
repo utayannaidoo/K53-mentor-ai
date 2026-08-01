@@ -38,9 +38,24 @@ const FAQ_ITEMS = [
   },
 ];
 
+/** Google's FAQ rich result reads this — the answers are already written. */
+const FAQ_SCHEMA = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ_ITEMS.map((item) => ({
+    "@type": "Question",
+    name: item.question,
+    acceptedAnswer: { "@type": "Answer", text: item.answer },
+  })),
+};
+
 export function Faq() {
   return (
     <section id="faq" className="border-t border-border bg-card/40">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+      />
       <div className="container scroll-mt-20 py-16 lg:py-24">
         <div className="mx-auto max-w-3xl">
           <div className="text-center">

@@ -44,15 +44,21 @@ export const metadata: Metadata = {
     "AI tutor",
     "driving test prep",
   ],
+  // "./" resolves against metadataBase per route, so every page emits its own
+  // canonical instead of none at all.
+  alternates: { canonical: "./" },
+  // Deliberately no openGraph.title / twitter.title here: hardcoding them meant
+  // every guide and the pricing page shared the homepage's card, so sharing a
+  // guide on WhatsApp — the SA sharing channel — showed the wrong headline.
+  // Omitted, Next derives them from each page's own title.
   openGraph: {
-    title: `${APP_NAME} — Pass your K53 licence faster`,
     description: APP_DESCRIPTION,
     url: SITE_URL,
     siteName: APP_NAME,
     locale: "en_ZA",
     type: "website",
   },
-  twitter: { card: "summary_large_image", title: APP_NAME, description: APP_DESCRIPTION },
+  twitter: { card: "summary_large_image", description: APP_DESCRIPTION },
   icons: {
     icon: "/favicon.svg",
     apple: "/apple-icon.png", // iOS home-screen (needs a real PNG, not SVG)
@@ -78,6 +84,14 @@ export default function RootLayout({
       className={`${inter.variable} ${overpass.variable} ${mono.variable}`}
     >
       <body className="min-h-dvh font-sans">
+        {/* Keyboard users faced ~38 tab stops of header before reaching content
+            on every page. Visible only once focused. */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2.5 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-soft-lg focus:outline-none focus:ring-4 focus:ring-ring/25"
+        >
+          Skip to main content
+        </a>
         <ThemeProvider>
           <StudyStoreProvider>
             <DataSaverInit />

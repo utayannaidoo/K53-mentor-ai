@@ -39,9 +39,8 @@ const DEMO_CARD = {
   back: "At least 2 seconds behind the vehicle ahead in dry conditions — double it to 4 seconds in rain or poor visibility.",
 };
 
+/** Starter prompt — the answer now comes from the real tutor, not a script. */
 const DEMO_TUTOR_Q = "Why did I get the yield sign question wrong?";
-const DEMO_TUTOR_A =
-  "Good question! A yield sign doesn't always mean stop — that's the trap. It means give right of way: slow down, and only stop if crossing traffic or pedestrians make it necessary. Examiners love testing the stop-vs-yield difference, so let's drill a few more of these.";
 
 type Tab = "practice" | "flashcard" | "tutor";
 
@@ -286,21 +285,62 @@ function DemoFlashcard({ onInteract }: { onInteract: () => void }) {
   );
 }
 
+/** Questions a visitor may ask before we ask them to sign up. */
+const DEMO_TUTOR_LIMIT = 2;
+
+type DemoTurn = { role: "user" | "tutor"; text: string };
+
+/**
+ * A real tutor, not a recording. The section promises "ask the AI tutor — no
+ * signup needed", so it has to accept an actual question.
+ *
+ * It answers through `localTutorReply`, the same rule-based fallback the live
+ * tutor uses when no provider key is set: it keyword-matches the whole question
+ * bank and returns that question's real explanation. No API call, no key, no
+ * session, no rate limit, and nothing to abuse — but the answers are drawn from
+ * the same content a paying learner gets.
+ *
+ * The content bank is ~1MB of source, so it is imported dynamically on the
+ * first question rather than shipped to everyone who merely loads the page.
+ */
 function DemoTutor({ onInteract }: { onInteract: () => void }) {
   const [dataSaver] = useDataSaver();
-  const [asked, setAsked] = React.useState(false);
+  const [turns, setTurns] = React.useState<DemoTurn[]>([]);
+  const [input, setInput] = React.useState("");
+  const [thinking, setThinking] = React.useState(false);
   const [shown, setShown] = React.useState(0);
+  const scrollRef = React.useRef<HTMLDivElement>(null);
 
-  // Typewriter reveal (skipped entirely in data-saver mode).
+  const asked = turns.filter((t) => t.role === "user").length;
+  const spent = asked >= DEMO_TUTOR_LIMIT;
+  const last = turns[turns.length - 1];
+  const typing = last?.role === "tutor" ? last.text : null;
+
+  async function ask(question: string) {
+    const text = question.trim();
+    if (!text || thinking || spent) return;
+    onInteract();
+    setInput("");
+    setTurns((t) => [...t, { role: "user", text }]);
+    setThinking(true);
+    setShown(0);
+
+    const { localTutorReply } = await import("@/lib/ai/fallback");
+    const reply = localTutorReply(text);
+    setThinking(false);
+    setTurns((t) => [...t, { role: "tutor", text: reply }]);
+  }
+
+  // Typewriter reveal of the newest tutor turn (skipped in data-saver mode).
   React.useEffect(() => {
-    if (!asked) return;
+    if (typing === null) return;
     if (dataSaver) {
-      setShown(DEMO_TUTOR_A.length);
+      setShown(typing.length);
       return;
     }
     const id = window.setInterval(() => {
       setShown((n) => {
-        if (n >= DEMO_TUTOR_A.length) {
+        if (n >= typing.length) {
           window.clearInterval(id);
           return n;
         }
@@ -308,7 +348,11 @@ function DemoTutor({ onInteract }: { onInteract: () => void }) {
       });
     }, 24);
     return () => window.clearInterval(id);
-  }, [asked, dataSaver]);
+  }, [typing, dataSaver]);
+
+  React.useEffect(() => {
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [turns, shown]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -319,39 +363,89 @@ function DemoTutor({ onInteract }: { onInteract: () => void }) {
         <p className="text-sm font-semibold">Your AI tutor</p>
       </div>
 
-      <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
-        {!asked ? (
+      <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">
+        {turns.length === 0 && (
           <>
             <p className="text-sm text-muted-foreground">
               Stuck on anything, any time — ask in plain language:
             </p>
             <button
               type="button"
-              onClick={() => {
-                onInteract();
-                setAsked(true);
-              }}
+              onClick={() => ask(DEMO_TUTOR_Q)}
               className="w-full rounded-xl border-2 border-border bg-card px-4 py-3 text-left text-sm font-medium transition-colors hover:border-primary/40"
             >
               &ldquo;{DEMO_TUTOR_Q}&rdquo;
             </button>
           </>
-        ) : (
-          <>
-            <div className="flex justify-end">
+        )}
+
+        {turns.map((turn, i) =>
+          turn.role === "user" ? (
+            <div key={i} className="flex justify-end">
               <p className="max-w-[85%] rounded-2xl rounded-tr-sm bg-primary px-4 py-2.5 text-sm text-primary-foreground">
-                {DEMO_TUTOR_Q}
+                {turn.text}
               </p>
             </div>
-            <div className="flex justify-start">
-              <p className="max-w-[90%] rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5 text-sm leading-relaxed">
-                {DEMO_TUTOR_A.slice(0, shown)}
-                {shown < DEMO_TUTOR_A.length && (
+          ) : (
+            <div key={i} className="flex justify-start">
+              <p className="max-w-[90%] whitespace-pre-line rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5 text-sm leading-relaxed">
+                {i === turns.length - 1 ? turn.text.slice(0, shown) : turn.text}
+                {i === turns.length - 1 && shown < turn.text.length && (
                   <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-primary/60 align-middle" />
                 )}
               </p>
             </div>
-          </>
+          ),
+        )}
+
+        {thinking && (
+          <div className="flex justify-start">
+            <p className="rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-2.5 text-sm text-muted-foreground">
+              Thinking…
+            </p>
+          </div>
+        )}
+      </div>
+
+      <div className="shrink-0 border-t border-border pt-3">
+        {spent ? (
+          <Link
+            href="/onboarding"
+            className={cn(buttonVariants({ size: "sm" }), "w-full rounded-xl")}
+          >
+            Keep asking — start free <ArrowRight />
+          </Link>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              ask(input);
+            }}
+            className="flex items-center gap-2"
+          >
+            <label htmlFor="demo-tutor-input" className="sr-only">
+              Ask the K53 tutor a question
+            </label>
+            <input
+              id="demo-tutor-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={thinking}
+              maxLength={300}
+              placeholder="Ask anything about the K53…"
+              className="min-w-0 flex-1 rounded-xl border border-input bg-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/60 focus-visible:border-primary focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/20"
+            />
+            <button
+              type="submit"
+              disabled={thinking || !input.trim()}
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "shrink-0 rounded-xl disabled:pointer-events-none disabled:opacity-50",
+              )}
+            >
+              Ask
+            </button>
+          </form>
         )}
       </div>
     </div>

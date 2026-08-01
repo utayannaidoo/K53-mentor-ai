@@ -34,15 +34,23 @@ export function RotatingWord() {
   }, []);
 
   return (
-    <span
-      aria-live="polite"
-      className="inline-block text-primary transition-[opacity,transform] duration-300 ease-soft"
-      style={{
-        opacity: shown ? 1 : 0,
-        transform: shown ? "translateY(0)" : "translateY(-10px)",
-      }}
-    >
-      {WORDS[index]}
-    </span>
+    <>
+      {/* Decorative, so it stays out of the accessibility tree. This span used
+          to carry aria-live="polite", which made every screen reader announce a
+          new word every 2.6 seconds for as long as the page was open —
+          interrupting whatever the user was actually trying to read. The
+          heading instead gets one stable phrase below. */}
+      <span
+        aria-hidden="true"
+        className="inline-block text-primary transition-[opacity,transform] duration-300 ease-soft"
+        style={{
+          opacity: shown ? 1 : 0,
+          transform: shown ? "translateY(0)" : "translateY(-10px)",
+        }}
+      >
+        {WORDS[index]}
+      </span>
+      <span className="sr-only">&nbsp;the K53 test</span>
+    </>
   );
 }

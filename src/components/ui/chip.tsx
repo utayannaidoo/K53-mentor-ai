@@ -8,6 +8,10 @@ export const Chip = React.forwardRef<
   <button
     ref={ref}
     type="button"
+    // Every Chip is a toggle — study-mode tabs, worry categories, attempt
+    // counts. Without this the selected state was colour-only, so a screen
+    // reader heard three identical buttons and no indication of which was on.
+    aria-pressed={active}
     className={cn(
       "inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
       active

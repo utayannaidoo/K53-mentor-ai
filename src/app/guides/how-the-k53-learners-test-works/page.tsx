@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 export default function GuidePage() {
   return (
     <LegalPage
+      articleSlug="how-the-k53-learners-test-works"
       title="How the K53 learner's licence test works"
       intro="If you've never sat the learner's test, here is the whole process — booking, test day, and what the test actually contains — without the folklore."
     >

@@ -18,6 +18,7 @@ const LINKS = [
 export function MarketingNav() {
   const [open, setOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
+  const headerRef = React.useRef<HTMLElement>(null);
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -26,8 +27,27 @@ export function MarketingNav() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  // Escape and tap-outside close the menu. Without these the only way out was
+  // tapping the hamburger again, which is not where anyone's thumb goes.
+  React.useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    const onPointer = (e: PointerEvent) => {
+      if (!headerRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    document.addEventListener("pointerdown", onPointer);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.removeEventListener("pointerdown", onPointer);
+    };
+  }, [open]);
+
   return (
     <header
+      ref={headerRef}
       className={cn(
         "sticky top-0 z-50 px-3 sm:px-4 transition-[padding] duration-500 ease-glass",
         scrolled ? "pt-1.5 sm:pt-2" : "pt-3 sm:pt-4",
@@ -74,19 +94,34 @@ export function MarketingNav() {
           </Link>
         </div>
 
-        <button
-          type="button"
-          className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25 md:hidden"
-          onClick={() => setOpen((o) => !o)}
-          aria-label="Toggle menu"
-          aria-expanded={open}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </button>
+        {/* Mobile: the header carried no CTA at all, so across ~17 screens of
+            landing page there was nothing to tap without scrolling back up. */}
+        <div className="flex items-center gap-1 md:hidden">
+          <Link
+            href="/onboarding"
+            className={cn(buttonVariants({ size: "sm" }), "rounded-full px-3.5")}
+          >
+            Start free
+          </Link>
+          <button
+            type="button"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+            onClick={() => setOpen((o) => !o)}
+            aria-label="Toggle menu"
+            aria-expanded={open}
+            aria-controls="marketing-mobile-menu"
+          >
+            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
 
       {open && (
-        <div className="glass-2 mx-auto mt-2 max-w-5xl overflow-hidden rounded-2xl border p-2 md:hidden animate-fade-in">
+        <nav
+          id="marketing-mobile-menu"
+          aria-label="Main"
+          className="glass-2 mx-auto mt-2 max-w-5xl overflow-hidden rounded-2xl border p-2 md:hidden animate-fade-in"
+        >
           <div className="flex flex-col gap-0.5">
             {LINKS.map((l) => (
               <Link
@@ -99,6 +134,9 @@ export function MarketingNav() {
               </Link>
             ))}
             <div className="mt-2 flex items-center gap-2">
+              {/* The toggle used to be desktop-only, so a phone in dark mode had
+                  no way to change theme on any marketing page. */}
+              <ThemeToggle />
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}
@@ -115,7 +153,7 @@ export function MarketingNav() {
               </Link>
             </div>
           </div>
-        </div>
+        </nav>
       )}
     </header>
   );

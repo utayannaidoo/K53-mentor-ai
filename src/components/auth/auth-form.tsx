@@ -254,7 +254,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           {enforcePassword && <PasswordRequirements password={password} className="pt-1" />}
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {/* role="alert" so screen readers actually announce the failure — this
+            was silent text before, and it's the only feedback on a bad login. */}
+        {error && (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        )}
 
         {unconfirmed && (
           <div className="rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">
@@ -288,6 +294,22 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           {mode === "signup" ? "Create account" : "Log in"}
           <ArrowRight />
         </Button>
+
+        {/* POPIA: consent belongs at the point of collection, not buried in a
+            footer. Shown on signup only — the account already exists at login. */}
+        {mode === "signup" && (
+          <p className="text-center text-xs leading-relaxed text-muted-foreground">
+            By creating an account you agree to our{" "}
+            <Link href="/terms" className="text-primary hover:underline">
+              Terms of Service
+            </Link>{" "}
+            and{" "}
+            <Link href="/privacy" className="text-primary hover:underline">
+              Privacy Policy
+            </Link>
+            .
+          </p>
+        )}
       </form>
 
       {/* Google OAuth — production only (needs the Supabase Google provider

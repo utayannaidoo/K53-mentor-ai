@@ -20,7 +20,7 @@ export default function HomePage() {
     <div className="relative flex min-h-dvh flex-col overflow-x-clip bg-aurora">
       <SmoothScroll />
       <MarketingNav />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <Hero />
 
         <Reveal>
