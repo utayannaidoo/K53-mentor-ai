@@ -30,7 +30,7 @@ const FAQ_ITEMS = [
   {
     question: "What if I don't pass?",
     answer:
-      "Nothing resets. Your progress, streak and readiness score stay exactly where they are, and your plan carries on — so you can go straight back to the categories that caught you out and book again. Your subscription is an ordinary monthly or annual plan: keep it running while you prepare for the retest, or cancel it yourself in a couple of taps. We can't promise a pass, and no honest study tool can — but you'll never lose a day of the work you've already put in.",
+      "Nothing resets. Your progress, streak and readiness score stay exactly where they are, and your plan carries on — so you can go straight back to the categories that caught you out and book again. Being straight with you: studying here doesn't guarantee a pass, no study tool can promise one, and we don't refund a subscription because a test didn't go your way. Your subscription is an ordinary monthly or annual plan — keep it running while you prepare for the retest, or cancel it yourself in a couple of taps. Plenty of people write more than once; you won't lose a day of the work you've already put in, so keep going.",
   },
   {
     question: "Can I cancel? Do you offer refunds?",

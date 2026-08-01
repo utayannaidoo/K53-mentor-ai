@@ -32,7 +32,12 @@ export default function TermsPage() {
           </li>
           <li>
             Using the app does <strong>not guarantee</strong> that you will pass any test. Your
-            result depends on your preparation and performance on the day.
+            result depends on your preparation and performance on the day, and{" "}
+            <strong>a test result is not a ground for a refund</strong> — see our{" "}
+            <a href="/refunds" className="underline">
+              Refund &amp; Cancellation Policy
+            </a>
+            .
           </li>
           <li>
             The app is a <strong>study aid, not a legal reference</strong>. Test content and road
