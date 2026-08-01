@@ -20,6 +20,16 @@ describe("plan pricing", () => {
     }
   });
 
+  it("the paywall's \"from\" price is a real number", () => {
+    // Regression: `monthly` used to be a per-track record, and the paywall
+    // derived its headline with Math.min(...Object.values(...)). Once it became
+    // a plain number that silently evaluated to Infinity, so every upgrade
+    // screen in the app read "From RInfinity/month".
+    const fromPrice = monthlyPrice(PLAN_MAP.premium);
+    expect(Number.isFinite(fromPrice)).toBe(true);
+    expect(`From R${fromPrice}/month`).toMatch(/^From R\d+\/month$/);
+  });
+
   it("one price per tier — nothing depends on which vehicle is studied", () => {
     expect(monthlyPrice(PLAN_MAP.free)).toBe(0);
     expect(isFreePlan(PLAN_MAP.free)).toBe(true);
