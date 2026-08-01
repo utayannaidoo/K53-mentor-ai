@@ -14,7 +14,7 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { sampleMockExam, sampleMiniMock, sampleSectionDrill, MINI_MOCK, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
+import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, miniMockConfig, MINI_MOCK, MINI_MOCK_LENGTHS, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { track } from "@/lib/analytics";
@@ -47,6 +47,13 @@ export function MockExam() {
   const sp = useSearchParams();
   // Mini mode: 15 questions at the real pass ratio, weighted to weak areas.
   const mini = sp.get("mode") === "mini";
+  // Length is chosen on the intro screen and carried in the URL, so a learner
+  // can bookmark or share the exact drill they like.
+  const nParam = Number(sp.get("n"));
+  const miniLength = MINI_MOCK_LENGTHS.some((l) => l.total === nParam) ? nParam : MINI_MOCK.total;
+  // Memoised so `submit`'s dependency array stays stable — a fresh object each
+  // render would rebuild the callback on every tick of the countdown.
+  const miniCfg = React.useMemo(() => miniMockConfig(miniLength), [miniLength]);
   // Drill mode: one exam section at its real size and pass mark.
   const drillParam = sp.get("section") as ExamSection | null;
   const drill: ExamSection | null =
@@ -56,7 +63,7 @@ export function MockExam() {
   const passMark = drill
     ? SECTION_DRILL[drill].passMark
     : mini
-      ? MINI_MOCK.passMark
+      ? miniCfg.passMark
       : EXAM_FORMAT.passMark;
   const [phase, setPhase] = React.useState<"intro" | "exam" | "results">("intro");
   const [questions, setQuestions] = React.useState<Question[]>([]);
@@ -67,6 +74,13 @@ export function MockExam() {
   // so nothing is written to state.mockExams.
   const [miniResult, setMiniResult] = React.useState<ExamResult | null>(null);
   const startRef = React.useRef(0);
+  /**
+   * Time spent on each question, accumulated across visits — an exam lets you
+   * go back, so a single render-to-tap stopwatch would be wrong. Feeds the
+   * pacing read on the results screen.
+   */
+  const questionMs = React.useRef<number[]>([]);
+  const enteredAt = React.useRef<number>(Date.now());
   // Pass probability before this exam's answers hit the readiness model —
   // shown against the recomputed value so the learner sees the number move.
   const preProbRef = React.useRef<number | null>(null);
@@ -83,14 +97,30 @@ export function MockExam() {
       const c = idxs.filter((x) => answers[x.idx] === x.q.correctIndex).length;
       perCategory[cat.id] = { correct: c, total: idxs.length, score: Math.round((c / idxs.length) * 100) };
     }
-    const mark = drill ? SECTION_DRILL[drill].passMark : mini ? MINI_MOCK.passMark : EXAM_FORMAT.passMark;
-    const passed = correct >= mark;
+    const mark = drill ? SECTION_DRILL[drill].passMark : mini ? miniCfg.passMark : EXAM_FORMAT.passMark;
+    // Minis and drills aren't sectioned, so they keep their single mark. A full
+    // paper goes through fullMockPassed, which requires every section's own
+    // mark as well as the total — see the note there.
+    const passed =
+      mini || drill
+        ? correct >= mark
+        : fullMockPassed(
+            Object.fromEntries(
+              EXAM_SECTIONS.map((s) => [
+                s,
+                questions.filter(
+                  (q, idx) => SECTION_OF[q.categoryId] === s && answers[idx] === q.correctIndex,
+                ).length,
+              ]),
+            ) as Record<ExamSection, number>,
+          );
     const durationSeconds = Math.round((Date.now() - startRef.current) / 1000);
     const responses = questions.map((q, idx) => ({
       questionId: q.id,
       categoryId: q.categoryId,
       correct: answers[idx] === q.correctIndex,
       selectedIndex: answers[idx],
+      ms: questionMs.current[idx],
     }));
     if (drill) {
       // Drills carry their section so the per-plan drill allowance can count
@@ -119,7 +149,7 @@ export function MockExam() {
     // Finishing a full mock is the biggest moment in the app — mark it.
     haptics.celebrate();
     setPhase("results");
-  }, [answers, questions, mini, drill, recordMockExam, recordSession]);
+  }, [answers, questions, mini, drill, miniCfg, recordMockExam, recordSession]);
 
   // Countdown timer.
   React.useEffect(() => {
@@ -132,17 +162,32 @@ export function MockExam() {
     return () => window.clearTimeout(id);
   }, [phase, secondsLeft, submit]);
 
+  // Bank the time spent on the question being left. The cleanup runs on every
+  // index change and on unmount, which is also the submit path — so the last
+  // question's time is counted too.
+  React.useEffect(() => {
+    if (phase !== "exam") return;
+    enteredAt.current = Date.now();
+    const index = i;
+    return () => {
+      const spent = Date.now() - enteredAt.current;
+      questionMs.current[index] = (questionMs.current[index] ?? 0) + spent;
+    };
+  }, [i, phase]);
+
   function start() {
     const qs = drill
       ? sampleSectionDrill(drill, state.attempts, studyCodeOf(state))
       : mini
-        ? sampleMiniMock(state.attempts, studyCodeOf(state), readiness.weakCategories)
+        ? sampleMiniMock(state.attempts, studyCodeOf(state), readiness.weakCategories, miniCfg.total)
         : sampleMockExam(state.attempts, studyCodeOf(state));
     if (drill) track("drill_started", { section: drill });
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));
+    questionMs.current = new Array(qs.length).fill(0);
+    enteredAt.current = Date.now();
     setI(0);
-    setSecondsLeft(drill ? SECTION_DRILL[drill].seconds : mini ? MINI_MOCK.seconds : EXAM_SECONDS);
+    setSecondsLeft(drill ? SECTION_DRILL[drill].seconds : mini ? miniCfg.seconds : EXAM_SECONDS);
     startRef.current = Date.now();
     preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
@@ -168,7 +213,7 @@ export function MockExam() {
           <Paywall
             feature="mock_exam"
             title="Full mock exams are a Premium feature"
-            description="The real 64-question exam experience — timed, scored and mapped to your weak areas. Your free trial includes one 15-question mini mock instead."
+            description="The real 64-question exam experience — timed, scored and mapped to your weak areas. Your free week includes a 15-question mini mock every day instead."
             cta="Unlock full mocks"
           />
         ) : free ? (
@@ -204,13 +249,13 @@ export function MockExam() {
             {drill
               ? `The real test's ${SECTION_LABEL[drill].toLowerCase()} section on its own — ${SECTION_DRILL[drill].total} questions at the real pace, and you need ${SECTION_DRILL[drill].passMark} to pass, exactly like on test day.`
               : mini
-                ? `${MINI_MOCK.total} questions at the real test's pass ratio, weighted toward your weakest areas. A pressure check that fits in a break.`
+                ? `${miniCfg.total} questions at the real test's pass ratio, weighted toward your weakest areas — pick a length below.`
                 : `${EXAM_FORMAT.totalQuestions} questions, just like the real test. You must reach the pass mark in every section. The clock starts when you begin.`}
           </p>
           <div className="mt-6 grid grid-cols-3 gap-3 text-sm">
-            <Stat label="Questions" value={`${drill ? SECTION_DRILL[drill].total : mini ? MINI_MOCK.total : EXAM_FORMAT.totalQuestions}`} />
+            <Stat label="Questions" value={`${drill ? SECTION_DRILL[drill].total : mini ? miniCfg.total : EXAM_FORMAT.totalQuestions}`} />
             <Stat label="To pass" value={`${passMark}`} />
-            <Stat label="Time" value={drill ? `${Math.round(SECTION_DRILL[drill].seconds / 60)} min` : mini ? "12 min" : "60 min"} />
+            <Stat label="Time" value={drill ? `${Math.round(SECTION_DRILL[drill].seconds / 60)} min` : mini ? `${Math.round(miniCfg.seconds / 60)} min` : "60 min"} />
           </div>
           {!mini && !drill && (
             <div className="mt-4 space-y-1.5 text-left">
@@ -227,6 +272,32 @@ export function MockExam() {
               ))}
             </div>
           )}
+          {/* Framed by intent, not by count — nobody sits down wanting "10
+              questions"; they want to know if they still remember it. */}
+          {mini && (
+            <div className="mt-5 grid grid-cols-2 gap-2 text-left">
+              {MINI_MOCK_LENGTHS.map((l) => (
+                <Link
+                  key={l.total}
+                  href={`/study/mock-exam?mode=mini&n=${l.total}`}
+                  scroll={false}
+                  className={cn(
+                    "press rounded-xl border-2 p-3 transition-colors",
+                    l.total === miniCfg.total
+                      ? "border-primary bg-primary/[0.05]"
+                      : "border-border hover:border-primary/40",
+                  )}
+                >
+                  <span className="block text-sm font-semibold text-foreground">{l.label}</span>
+                  <span className="block text-xs text-muted-foreground">{l.blurb}</span>
+                  <span className="mt-1 block font-mono text-2xs text-muted-foreground">
+                    {l.total} questions · pass {miniMockConfig(l.total).passMark}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+
           <Button size="xl" className="mt-7 w-full" onClick={start}>
             Start {drill ? "drill" : mini ? "mini mock" : "mock exam"} <ArrowRight />
           </Button>
@@ -284,6 +355,24 @@ export function MockExam() {
       .sort((a, b) => last.perCategory[a]!.score - last.perCategory[b]!.score)
       .slice(0, 2)
       .map(categoryName);
+
+    // Pacing is a coachable exam skill in its own right, and separate from
+    // knowing the material: the same score can come from calm and steady or
+    // from stalling then panicking. Only spoken when the evidence is clear.
+    const pacing = (() => {
+      const times = questionMs.current.filter((t) => typeof t === "number" && t > 0);
+      if (times.length < questions.length * 0.8) return null;
+      const rushed = times.filter((t) => t < 4000).length;
+      const dwelt = times.filter((t) => t > 60_000).length;
+      if (dwelt >= 3) {
+        const mins = Math.round(times.filter((t) => t > 60_000).reduce((a, b) => a + b, 0) / 60_000);
+        return `Pacing: ${dwelt} questions ate about ${mins} minute${mins === 1 ? "" : "s"} between them. On test day, flag a question like that and come back to it.`;
+      }
+      if (rushed >= Math.ceil(times.length / 2)) {
+        return "Pacing: you answered most of these in under four seconds. You had time in hand — reading each option once more is usually worth a mark or two.";
+      }
+      return null;
+    })();
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="p-8 text-center">
@@ -301,7 +390,9 @@ export function MockExam() {
                   : mini
                     ? "Mini mock passed 🎉"
                     : "You passed 🎉"
-                : `${passMark - last.score} short of passing`}
+                : last.score >= passMark
+                  ? "Failed on a section"
+                  : `${passMark - last.score} short of passing`}
             </Badge>
             {cpStartRef.current !== null && state.cp > cpStartRef.current && (
               <Badge variant="default" className="gap-1 font-mono text-sm">
@@ -321,6 +412,31 @@ export function MockExam() {
                 )}
               </span>
             </p>
+          )}
+
+          {/* Say the consequence out loud. The per-section table below is
+              accurate but silent — a learner reading "52/64" and a green ring
+              should not have to work out for themselves that the DLTC would
+              still have failed them. */}
+          {!mini && !drill && failedSections.length > 0 && (
+            <p className="mt-4 rounded-xl border border-warning/30 bg-warning/[0.06] px-4 py-3 text-sm leading-relaxed text-foreground">
+              {last.score >= passMark ? (
+                <>
+                  You cleared the overall mark ({last.score}/{last.total}) but missed the pass mark
+                  in <strong>{failedSections.join(" and ")}</strong>. On the real paper every
+                  section must pass on its own — this would have been a fail.
+                </>
+              ) : (
+                <>
+                  Below the mark in <strong>{failedSections.join(" and ")}</strong>. Each section has
+                  to clear its own pass mark on test day, so that&apos;s where the work is.
+                </>
+              )}
+            </p>
+          )}
+
+          {pacing && (
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{pacing}</p>
           )}
         </Card>
 
