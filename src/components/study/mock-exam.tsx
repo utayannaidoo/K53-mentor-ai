@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { MasteryBar } from "@/components/ui/mastery-bar";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
+import { signQuestionAlt } from "@/lib/content/sign-alt";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
@@ -498,7 +499,7 @@ export function MockExam() {
         <div key={i} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in">
           {(q.image || q.sign) && (
             <div className="mb-4">
-              <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-20 w-20" priority />
+              <SignVisual image={q.image} sign={q.sign} alt={signQuestionAlt(q.image, q.categoryId)} className="h-20 w-20" priority />
             </div>
           )}
           <SignPreload image={questions[i + 1]?.image} />

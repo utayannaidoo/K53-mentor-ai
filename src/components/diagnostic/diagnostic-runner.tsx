@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
+import { signQuestionAlt } from "@/lib/content/sign-alt";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { CATEGORIES } from "@/lib/content/categories";
 import { sampleDiagnostic } from "@/lib/diagnostic/select";
@@ -183,7 +184,7 @@ function DiagnosticQuiz() {
               <SignVisual
                 image={current.image}
                 sign={current.sign}
-                alt={`Road sign for this question about ${current.categoryId.replace(/_/g, " ")}`}
+                alt={signQuestionAlt(current.image, current.categoryId)}
                 className="h-20 w-20"
                 priority
               />
