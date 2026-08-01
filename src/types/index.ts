@@ -163,6 +163,16 @@ export interface CardState {
   due: string; // ISO date
   lastReviewed: string | null;
   mastery: number; // derived 0–100
+  /**
+   * The interval this card was on when it last lapsed.
+   *
+   * Plain SM-2 sends a lapsed card back to a one-day interval no matter how
+   * well established it was, so one bad morning costs two months of schedule.
+   * Keeping the old interval lets relearning return to a fraction of it
+   * instead. Cleared once the card is back on schedule; absent on cards that
+   * have never lapsed.
+   */
+  lapsedFrom?: number;
 }
 
 // ── User progress ────────────────────────────────────────────
