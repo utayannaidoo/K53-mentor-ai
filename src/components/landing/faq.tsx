@@ -27,9 +27,9 @@ const FAQ_ITEMS = [
       "Yes. K53 Mentor AI is built mobile-first and is light on data — there's no autoplay video, images are kept minimal, and a data-saver mode defers non-essential loads. It's designed for studying on the go in South African conditions.",
   },
   {
-    question: "How is my readiness score calculated?",
+    question: "How is my readiness score calculated — and why is my pass chance lower?",
     answer:
-      "It's a weighted blend of your accuracy across all seven categories (signs and rules count for the most, mirroring the real test) and your flashcard mastery. It updates after every session, so you can see your progress move in real time.",
+      "Two different numbers, on purpose. Readiness is how much you know — a weighted blend of your accuracy across all seven categories (signs and rules count for the most) and your flashcard mastery. Predicted pass is whether you'd actually pass tomorrow, and it's stricter, because the real test is: you must reach the pass mark in every section on its own, not just overall. So a learner sitting at 80% readiness with a weak signs section can still have a low pass chance — that's the gap worth closing, and it's exactly what the real paper would have caught.",
   },
   {
     question: "Do you cover the driver's licence too, not just the learner's?",

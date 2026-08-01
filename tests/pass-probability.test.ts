@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { passProbabilityFromSections } from "@/lib/diagnostic/scoring";
+import { passProbabilityFromSections, blockingSection } from "@/lib/diagnostic/scoring";
 import { CATEGORIES } from "@/lib/content/categories";
 import { SECTION_OF } from "@/lib/constants";
 import type { CategoryId } from "@/types";
@@ -58,5 +58,26 @@ describe("pass probability is section-aware", () => {
     // Parking is one of five categories feeding the rules section, so the same
     // dip there barely moves the paper; on signs it is decisive.
     expect(weakSigns).toBeLessThan(weakParking);
+  });
+});
+
+describe("blockingSection", () => {
+  it("names the section standing between the learner and a pass", () => {
+    expect(blockingSection(scores(100, { signs: 68 }))).toBe("signs");
+  });
+
+  it("is silent when every section clears its own mark", () => {
+    expect(blockingSection(scores(95))).toBeNull();
+  });
+
+  it("picks the section furthest below its mark, not just any one below", () => {
+    // Controls needs 75%, signs 82%. At 70 each, signs is further short.
+    expect(blockingSection(scores(100, { controls: 70, signs: 70 }))).toBe("signs");
+  });
+
+  it("reads the rules section from all five of its categories", () => {
+    // Parking alone can't sink rules; it is one of five contributors.
+    expect(blockingSection(scores(100, { parking: 60 }))).toBeNull();
+    expect(blockingSection(scores(60, { signs: 100, controls: 100 }))).toBe("rules");
   });
 });

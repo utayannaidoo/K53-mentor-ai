@@ -85,6 +85,28 @@ function sectionCompetence(
  * been a fail. Averages hide exactly the failure mode this exam is built to
  * catch.
  */
+/**
+ * The section standing between this learner and a pass, if there is one.
+ *
+ * Readiness and predicted pass can look contradictory — 80% readiness beside a
+ * 2% pass chance — and the reason is always a single section sitting under its
+ * own mark. Naming it turns a confusing pair of numbers into one instruction.
+ */
+export function blockingSection(
+  perCategory: Record<CategoryId, number>,
+): ExamSection | null {
+  let worst: { section: ExamSection; shortfall: number } | null = null;
+  for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {
+    const { questions, pass } = EXAM_FORMAT.sections[section];
+    const required = (pass / questions) * 100;
+    const shortfall = required - sectionCompetence(perCategory, section);
+    if (shortfall > 0 && (!worst || shortfall > worst.shortfall)) {
+      worst = { section, shortfall };
+    }
+  }
+  return worst?.section ?? null;
+}
+
 export function passProbabilityFromSections(perCategory: Record<CategoryId, number>): number {
   let p = 1;
   for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {

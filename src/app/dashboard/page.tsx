@@ -9,6 +9,7 @@ import { ReadinessCard } from "@/components/dashboard/readiness-card";
 import { CoachPlan } from "@/components/dashboard/coach-plan";
 import { ComebackCard } from "@/components/dashboard/comeback-card";
 import { isCramWindow, daysUntilTest } from "@/lib/learning/cram";
+import { blockingSection } from "@/lib/diagnostic/scoring";
 import { openMistakes } from "@/lib/learning/mistakes";
 import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
 import { RoadProgress } from "@/components/engagement/road-progress";
@@ -123,6 +124,7 @@ export default function DashboardPage() {
           readiness={readiness.readiness}
           passProbability={readiness.passProbability}
           delta={delta}
+          blocking={blockingSection(readiness.perCategory)}
         />
         <WeakAreas perCategory={readiness.perCategory} hasAttempts={state.attempts.length > 0} />
       </div>
