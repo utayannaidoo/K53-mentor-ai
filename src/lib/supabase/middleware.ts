@@ -51,14 +51,36 @@ export async function updateSession(request: NextRequest) {
     return copyCookies(response, NextResponse.redirect(url));
   }
 
-  // Signed-in user hitting an auth page → send to the dashboard.
+  // Signed-in user hitting an auth page → see signedInAuthPageDest.
   if (user && isAuthPage) {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    const dest = signedInAuthPageDest(url.searchParams);
+    url.pathname = dest.pathname;
+    url.search = dest.search;
     return copyCookies(response, NextResponse.redirect(url));
   }
 
   return response;
+}
+
+/**
+ * Where to send an already-signed-in user who landed on /login or /signup.
+ *
+ * The marketing pricing CTAs point at `/signup?plan=…&cycle=…` because they are
+ * statically rendered and can't know who is signed in. Dropping such a user on
+ * the dashboard loses the one thing they told us — that they were trying to buy
+ * — so carry the intent through to checkout instead.
+ */
+export function signedInAuthPageDest(params: URLSearchParams): {
+  pathname: string;
+  search: string;
+} {
+  const plan = params.get("plan");
+  if (plan === "premium" || plan === "premium_plus") {
+    const cycle = params.get("cycle") === "annual" ? "annual" : "monthly";
+    return { pathname: "/account/billing", search: `?buy=${plan}&cycle=${cycle}` };
+  }
+  return { pathname: "/dashboard", search: "" };
 }
 
 /** Carry the refreshed auth cookies onto a redirect response. */

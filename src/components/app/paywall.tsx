@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Lock, Check, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { PLAN_MAP } from "@/lib/billing/plans";
+import { PLAN_MAP, monthlyPrice } from "@/lib/billing/plans";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
@@ -45,7 +45,7 @@ export function Paywall({
     track("paywall_viewed", { feature: feature ?? "unknown" });
   }, [feature]);
 
-  const fromPrice = Math.min(...Object.values(PLAN_MAP.premium.monthly));
+  const fromPrice = monthlyPrice(PLAN_MAP.premium);
 
   return (
     <Card className={cn("mx-auto max-w-md overflow-hidden p-0", className)}>

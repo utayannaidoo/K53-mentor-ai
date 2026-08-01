@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { config } from "../middleware";
+// Imported from src/, not the repo root. Next only registers middleware at
+// src/middleware.ts when a src directory exists — at the root it is silently
+// ignored, which is exactly the bug this file could not catch: the matcher was
+// correct and asserted, and none of it ever ran.
+import { config } from "../src/middleware";
 
 /**
  * The matcher decides which requests get session refresh + route protection.
