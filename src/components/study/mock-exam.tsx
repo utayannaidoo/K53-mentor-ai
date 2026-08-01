@@ -176,10 +176,10 @@ export function MockExam() {
         {drill ? (
           <Paywall
             feature="section_drill"
-            title={free ? "You've used your free section drill" : "You've done today's 5 section drills"}
+            title={free ? "That's today's free section drill" : "You've done today's 5 section drills"}
             description={
               free
-                ? "One timed drill is included on the free plan. Premium gives you 5 section drills a day — signs, rules or controls, each at its real pass mark."
+                ? "One timed drill a day is included in your free week. Premium gives you 5 section drills a day — signs, rules or controls, each at its real pass mark."
                 : "Your daily allowance resets tomorrow. Premium Plus removes drill limits entirely."
             }
             cta={free ? "Keep drilling sections" : "See Premium Plus"}
@@ -188,14 +188,14 @@ export function MockExam() {
           <Paywall
             feature="mock_exam"
             title="Full mock exams are a Premium feature"
-            description="The real 64-question exam experience — timed, scored and mapped to your weak areas. Your free trial includes one 15-question mini mock instead."
+            description="The real 64-question exam experience — timed, scored and mapped to your weak areas. Your free week includes a 15-question mini mock every day instead."
             cta="Unlock full mocks"
           />
         ) : free ? (
           <Paywall
             feature="mini_mock"
-            title="You've used your free mini mock"
-            description="That pressure-check was a one-off on the free plan. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
+            title="That's today's free mini mock"
+            description="You get one a day through your free week. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
             cta="Keep testing yourself"
           />
         ) : (

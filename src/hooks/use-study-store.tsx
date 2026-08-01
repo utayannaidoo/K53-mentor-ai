@@ -23,12 +23,12 @@ import {
   loadState,
   saveState,
   todayKey,
-  totalUsage,
   touchStreak,
 } from "@/lib/store/local-store";
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
-import { PLAN_MAP, dailyCap, type CapKey } from "@/lib/billing/plans";
+import { dailyCap, type CapKey } from "@/lib/billing/plans";
+import { trialExhausted } from "@/lib/billing/trial";
 import { countDueFlashcards, generateTodayPlan, isTaskDone } from "@/lib/plan";
 import {
   computeRankIndex,
@@ -665,11 +665,12 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
       usageFor: (kind) => {
         const capKey = CAP_KEY[kind];
-        // Free is a once-off trial: its caps count lifetime usage, not a daily
-        // window (paid plans reset daily). Matches PlanLimits.reset.
-        const lifetime = PLAN_MAP[state.tier].limits.reset === "trial";
-        const used = lifetime ? totalUsage(state)[kind] : getTodayUsage(state)[kind];
-        const cap = capKey ? dailyCap(state.tier, capKey) : Infinity;
+        // Every plan meters per day now. Free additionally expires after its
+        // trial week, at which point the cap is 0 rather than the daily
+        // allowance — see PlanLimits.trialDays and trialExhausted().
+        const used = getTodayUsage(state)[kind];
+        const base = capKey ? dailyCap(state.tier, capKey) : Infinity;
+        const cap = trialExhausted(state) ? 0 : base;
         return { used, cap, allowed: used < cap };
       },
     }),

@@ -82,9 +82,10 @@ function seededShuffle(items, rand) {
  *    controls 8) — the "rules" section is rules + intersections + parking +
  *    following_distance + hazard_awareness, so 80 here against a need of 28.
  *
- * A free learner's lifetime allowance is ~15 practice questions, one 15-question
- * mini mock and one drill, so this is several times what they can consume — the
- * headroom is what stops the same questions recurring across those three.
+ * A free learner's allowance is ~10 practice questions, one 15-question mini
+ * mock and one drill PER DAY, for a seven-day week. This pack is sized well
+ * past that whole week's consumption — the headroom is what stops the same
+ * questions recurring across the three modes, and across the seven days.
  */
 const STARTER_QUESTIONS_BY_CATEGORY = {
   signs: 60,
@@ -282,9 +283,10 @@ export const CONTENT_VERSION = ${j(contentVersion)};
 // a paid entitlement. Everything else is served by /api/content/pack and cached
 // on the device.
 //
-// Sized so the free tier never notices the difference — a free learner's
-// lifetime allowance is one diagnostic, ~15 practice questions, one mini mock
-// and one section drill, all of which draw from this pack with room to rotate.
+// Sized so the free tier never notices the difference — a free learner's daily
+// allowance is one diagnostic, ~10 practice questions, one mini mock and one
+// section drill, across a seven-day week, all drawing from this pack with room
+// to rotate.
 // It is also what keeps the free tier working offline and zero-config demo mode
 // intact (CLAUDE.md rule 1).
 //
