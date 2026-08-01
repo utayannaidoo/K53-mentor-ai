@@ -14,7 +14,7 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { sampleMockExam, sampleMiniMock, sampleSectionDrill, MINI_MOCK, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
+import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, MINI_MOCK, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT } from "@/lib/constants";
@@ -88,7 +88,22 @@ export function MockExam() {
       perCategory[cat.id] = { correct: c, total: idxs.length, score: Math.round((c / idxs.length) * 100) };
     }
     const mark = drill ? SECTION_DRILL[drill].passMark : mini ? MINI_MOCK.passMark : EXAM_FORMAT.passMark;
-    const passed = correct >= mark;
+    // Minis and drills aren't sectioned, so they keep their single mark. A full
+    // paper goes through fullMockPassed, which requires each section's own mark
+    // as well as the total — the rule the DLTC actually applies.
+    const passed =
+      mini || drill
+        ? correct >= mark
+        : fullMockPassed(
+            Object.fromEntries(
+              EXAM_SECTIONS.map((s) => [
+                s,
+                questions.filter(
+                  (q, idx) => SECTION_OF[q.categoryId] === s && answers[idx] === q.correctIndex,
+                ).length,
+              ]),
+            ) as Record<ExamSection, number>,
+          );
     const durationSeconds = Math.round((Date.now() - startRef.current) / 1000);
     const responses = questions.map((q, idx) => ({
       questionId: q.id,
@@ -305,7 +320,9 @@ export function MockExam() {
                   : mini
                     ? "Mini mock passed 🎉"
                     : "You passed 🎉"
-                : `${passMark - last.score} short of passing`}
+                : last.score >= passMark
+                  ? "Failed on a section"
+                  : `${passMark - last.score} short of passing`}
             </Badge>
             {cpStartRef.current !== null && state.cp > cpStartRef.current && (
               <Badge variant="default" className="gap-1 font-mono text-sm">
@@ -324,6 +341,27 @@ export function MockExam() {
                   probDelta > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />
                 )}
               </span>
+            </p>
+          )}
+
+          {/* Say the consequence out loud. The per-section table below is
+              accurate but silent — a learner reading "52/64" beside a green
+              ring should not have to work out for themselves that the DLTC
+              would still have failed them. */}
+          {!mini && !drill && failedSections.length > 0 && (
+            <p className="mt-4 rounded-xl border border-warning/30 bg-warning/[0.06] px-4 py-3 text-sm leading-relaxed text-foreground">
+              {last.score >= passMark ? (
+                <>
+                  You cleared the overall mark ({last.score}/{last.total}) but missed the pass mark
+                  in <strong>{failedSections.join(" and ")}</strong>. On the real paper every
+                  section must pass on its own — this would have been a fail.
+                </>
+              ) : (
+                <>
+                  Below the mark in <strong>{failedSections.join(" and ")}</strong>. Each section
+                  has to clear its own pass mark on test day, so that&apos;s where the work is.
+                </>
+              )}
             </p>
           )}
         </Card>
