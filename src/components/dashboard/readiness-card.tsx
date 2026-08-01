@@ -29,6 +29,11 @@ export function ReadinessCard({
           {delta === null ? "New" : `${delta > 0 ? "+" : ""}${delta} this week`}
         </span>
       </div>
+      {/* Honesty note: the score is our estimate from in-app performance only —
+          it must never read as a prediction of the official DLTC result. */}
+      <p className="mt-3 max-w-[34ch] text-pretty text-xs leading-relaxed text-muted-foreground">
+        Our estimate from your practice here — not a prediction of your official test result.
+      </p>
     </Card>
   );
 }

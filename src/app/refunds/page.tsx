@@ -54,6 +54,14 @@ export default function RefundsPage() {
             email us (see section 4) and we&apos;ll investigate and refund any error in full.
           </li>
           <li>
+            <strong>Test results are not a refund ground.</strong> {APP_NAME} is a study aid and
+            cannot guarantee that you will pass — your result depends on your preparation and how
+            the day goes. We therefore don&apos;t refund a subscription because a test didn&apos;t
+            go your way. The 7-day money-back window above applies on its own terms either way, and
+            if you didn&apos;t pass, none of your progress is lost: keep studying and book again
+            when you&apos;re ready.
+          </li>
+          <li>
             <strong>One-off purchases</strong> (such as AI tutor top-up packs) are refundable only
             where the credits have not yet been used — email us and we&apos;ll sort it out.
           </li>

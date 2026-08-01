@@ -1,40 +1,60 @@
+import Link from "next/link";
 import { Accordion } from "@/components/ui/accordion";
 
 const FAQ_ITEMS = [
   {
     question: "Is this affiliated with the RTMC? Is the content official?",
     answer:
-      "No. K53 Mentor AI is an independent study tool and is not affiliated with or endorsed by the RTMC or any government body. Our content is carefully aligned to the structure of the official K53 manual, but it is not government-issued material.",
+      "No. K53 Mentor AI is an independent study tool and is not affiliated with or endorsed by the RTMC, your local DLTC, or any government body. Every question and flashcard is written to match the structure and content of the official K53 manual, and each fact traces back to a cited source — but it is study material, not government-issued material.",
   },
   {
     question: "Why pay when there are free K53 apps?",
     answer:
-      "Free apps give you the same question bank everyone else has. They can't tell you which categories you're failing, they don't space your revision so it sticks, and they don't have a tutor that explains your mistakes. You're paying for a diagnosis and a plan, not more questions.",
+      "Free apps hand you the same recycled question bank everyone else has and leave you to guess what to study. We have over 1,000 questions and nearly 800 flashcards, but volume isn't the point: a 15-question diagnostic finds which of the seven categories you're actually weak in, your daily plan puts those first, and spaced repetition brings them back just before you'd forget them. You're paying for a diagnosis and a plan, not more questions.",
   },
   {
-    question: "What if I don't pass?",
+    question: "Which licence codes does my subscription cover?",
     answer:
-      "Your subscription keeps working until your test date — and if you don't pass first time, message us and we'll extend your Premium access free until you do. We'd rather you pass than churn.",
-  },
-  {
-    question: "Can I cancel? Do you offer refunds?",
-    answer:
-      "Yes to both. Cancel yourself any time from Account → Billing — billing stops immediately and you keep all your progress. Cancel within 7 days of your first payment and you're refunded in full automatically, no email needed. We also always refund duplicate or incorrect charges. See our full Refund & Cancellation Policy for details.",
-  },
-  {
-    question: "Will it work on my phone with limited data?",
-    answer:
-      "Yes. K53 Mentor AI is built mobile-first and is light on data — there's no autoplay video, images are kept minimal, and a data-saver mode defers non-essential loads. It's designed for studying on the go in South African conditions.",
+      "All of them. One price covers Code 08 (car), Code A/A1 (motorcycle) and Code 10/14 (heavy vehicle) — the vehicle you study is a setting, not something you buy. Pick it during onboarding, change it any time under Account → Study profile, and your questions, signs, flashcards, mock exams and study plan all re-tune to that code. Switching costs nothing and never touches your progress.",
   },
   {
     question: "How is my readiness score calculated?",
     answer:
-      "It's a weighted blend of your accuracy across all seven categories (signs and rules count for the most, mirroring the real test) and your flashcard mastery. It updates after every session, so you can see your progress move in real time.",
+      "It blends two signals: your accuracy across all seven categories, weighted the way the real test weights them (signs and rules count for the most), and how well you've mastered your flashcards, scaled by how much of the deck you've actually worked through. It updates after every session, so you can watch it move in real time. Worth knowing: readiness and the predicted-pass figure are our own estimate of how you're tracking, based only on how you perform in this app. They're a target to study toward, not a prediction of your result on the day — the official learner's test is 64 questions across three sections, and you have to reach the pass mark in every section, not just overall.",
   },
   {
     question: "Do you cover the driver's licence too, not just the learner's?",
     answer:
-      "Yes — Premium Plus includes step-by-step yard-test modules for parallel parking, alley docking, three-point turns, the vehicle inspection and observation routines, so you're covered from learner's to licensed.",
+      "Yes — Premium Plus adds step-by-step yard-test modules covering parallel parking, alley docking, the three-point turn, the hill start, the pre-trip inspection and the observation routines examiners actually mark you on. They follow your licence code too: motorcycle learners get the slow ride, figure-of-eight and emergency swerve, and heavy learners get the air-brake check and trailer coupling.",
+  },
+  {
+    question: "What if I don't pass?",
+    answer:
+      "Nothing resets. Your progress, streak and readiness score stay exactly where they are, and your plan carries on — so you can go straight back to the categories that caught you out and book again. Being straight with you: studying here doesn't guarantee a pass, no study tool can promise one, and we don't refund a subscription because a test didn't go your way. Your subscription is an ordinary monthly or annual plan — keep it running while you prepare for the retest, or cancel it yourself in a couple of taps. Plenty of people write more than once; you won't lose a day of the work you've already put in, so keep going.",
+  },
+  {
+    question: "Can I cancel? Do you offer refunds?",
+    answer: (
+      <>
+        Yes to both, and neither needs an email. Cancel yourself any time from{" "}
+        <strong className="font-medium text-foreground">
+          Account → Billing &amp; plan → Cancel plan
+        </strong>
+        : future billing stops immediately, your account drops back to Free, and all your progress
+        is kept. Cancel within 7 days of your first payment and that payment is refunded in full,
+        automatically, as you cancel. Duplicate or incorrect charges are always refunded too. Full
+        details are in our{" "}
+        <Link href="/refunds" className="underline hover:text-foreground">
+          Refund &amp; Cancellation Policy
+        </Link>
+        .
+      </>
+    ),
+  },
+  {
+    question: "Will it work on my phone with limited data?",
+    answer:
+      "Yes — it's built for exactly that. The app is mobile-first with no autoplay video and minimal imagery, and Data saver mode (under Account → Preferences) drops decorative graphics and animations. You can also download the full study pack once, on your own terms, and then keep practising without pulling it down again.",
   },
 ];
 

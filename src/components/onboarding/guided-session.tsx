@@ -103,7 +103,7 @@ export function GuidedSession() {
               <p className="mx-auto mt-3 max-w-md text-muted-foreground">
                 You&apos;re at <span className="font-semibold text-primary">{readiness.readiness}% readiness</span>.
                 Before you explore on your own, here&apos;s a 2-minute guided first session — the
-                exact loop that gets learners to a pass.
+                exact loop you&apos;ll use to build toward your test.
               </p>
               <Button size="xl" className="mt-8 w-full sm:w-auto" onClick={() => advance(0)}>
                 Show me <ArrowRight />
@@ -125,7 +125,7 @@ export function GuidedSession() {
               <Paywall
                 feature="guided_session"
                 title="That's the loop. Ready to run it daily?"
-                description={`You're at ${readiness.readiness}% readiness. The free trial gives you a taste — Premium runs this exact loop at full volume every day until you pass.`}
+                description={`You're at ${readiness.readiness}% readiness. The free trial gives you a taste — Premium runs this exact loop at full volume, every day you show up.`}
                 cta="Unlock my full plan"
               />
               <button
