@@ -26,10 +26,17 @@ const bodySchema = z.object({
     .object({
       type: z.enum(["question", "card", "category", "none"]),
       id: z.string().optional(),
+      /** Which option the learner picked, so the tutor can address the misconception. */
+      chosenIndex: z.number().int().min(0).max(9).optional(),
     })
     .optional(),
-  /** Short, client-built, non-PII learner profile for personalisation. */
-  profile: z.string().max(400).optional(),
+  /**
+   * Short, client-built, non-PII learner profile for personalisation. Raised
+   * from 400 when the profile grew from one sentence to a handful of facts
+   * (recent misses with the wrong answer given, trend, pace, days to test).
+   * Still a hint, not a dossier — buildLearnerProfile caps it at 900.
+   */
+  profile: z.string().max(900).optional(),
   /** Photo attached to the latest user message (downscaled client-side). */
   image: z
     .object({

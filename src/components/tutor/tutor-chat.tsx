@@ -15,6 +15,7 @@ import { cn, formatDate, formatZar } from "@/lib/utils";
 import { hasFeature, TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
 import { defaultTutorPrompt, type TutorContextType } from "@/lib/ai/tutor-prompt";
 import { buildLearnerProfile } from "@/lib/ai/learner-profile";
+import { buildTutorOpener } from "@/lib/ai/tutor-opener";
 import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
 import { Markdown } from "@/components/tutor/markdown";
 
@@ -22,6 +23,8 @@ export interface InitialContext {
   type: TutorContextType;
   id?: string;
   label: string | null;
+  /** Option the learner picked when they got this wrong, if they did. */
+  chosenIndex?: number;
 }
 
 const CONTEXT_CHIPS = [
@@ -46,7 +49,9 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   // Pre-fill the composer when the tutor is opened from a question / card / topic,
   // so the learner has a sensible starting question instead of a blank box.
   const [input, setInput] = React.useState(() =>
-    initial ? defaultTutorPrompt(initial.type, initial.id, initial.label) : "",
+    initial
+      ? defaultTutorPrompt(initial.type, initial.id, initial.label, initial.chosenIndex)
+      : "",
   );
   const [loading, setLoading] = React.useState(false);
   // Text of the assistant reply as it streams in, before it's committed to the store.
@@ -167,7 +172,9 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           messages: history,
-          context: sessionCtx ? { type: sessionCtx.type, id: sessionCtx.id } : { type: "none" },
+          context: sessionCtx
+            ? { type: sessionCtx.type, id: sessionCtx.id, chosenIndex: sessionCtx.chosenIndex }
+            : { type: "none" },
           profile: buildLearnerProfile(state) ?? undefined,
           image: attached?.image,
         }),
@@ -255,6 +262,13 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   }
 
   const chips = sessionCtx ? CONTEXT_CHIPS : OPEN_CHIPS;
+  // Only on a fresh, context-free thread: arriving from a specific question
+  // already gives the tutor its opening, and re-opening an old thread should
+  // show that thread, not a greeting.
+  const opener = React.useMemo(
+    () => (sessionCtx ? null : buildTutorOpener(state)),
+    [sessionCtx, state],
+  );
 
   return (
     <div className="mx-auto flex h-[calc(100dvh-7.5rem)] max-w-5xl gap-5">
@@ -306,15 +320,30 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
 
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
-          {messages.length === 0 && (
-            <div className="flex h-full items-center justify-center p-6">
-              <EmptyState
-                icon={<MessageSquareText className="h-6 w-6" />}
-                title="Ask me anything about the K53"
-                description="I explain the why behind each rule, give real examples, and never just dump the answer. Try a prompt below."
-              />
-            </div>
-          )}
+          {messages.length === 0 &&
+            (opener ? (
+              // The tutor opens with what it noticed, rather than leaving the
+              // learner to invent a question about material they don't know.
+              <div className="flex h-full flex-col items-center justify-center gap-4 p-6">
+                <div className="glass-subtle max-w-[85%] animate-fade-in rounded-2xl rounded-tl-sm px-4 py-3">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
+                    <Sparkles className="h-3 w-3" /> Tutor
+                  </div>
+                  <p className="text-sm leading-relaxed text-foreground">{opener.line}</p>
+                </div>
+                <Button size="sm" onClick={() => setInput(opener.prompt)}>
+                  Yes, let&apos;s look at it
+                </Button>
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center p-6">
+                <EmptyState
+                  icon={<MessageSquareText className="h-6 w-6" />}
+                  title="Ask me anything about the K53"
+                  description="I explain the why behind each rule, give real examples, and never just dump the answer. Try a prompt below."
+                />
+              </div>
+            ))}
 
           {messages.map((m) => (
             <div key={m.id} className={cn("flex", m.role === "user" ? "justify-end" : "justify-start")}>

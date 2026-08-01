@@ -12,8 +12,15 @@ function TutorInner() {
   const card = sp.get("card");
   const category = sp.get("category");
 
-  let ctxInput: { type: "question" | "card" | "category"; id: string } | null = null;
-  if (question) ctxInput = { type: "question", id: question };
+  // `chose` is the option index the learner picked when they got it wrong —
+  // carried from the practice screen so the tutor opens on the misconception.
+  const choseRaw = sp.get("chose");
+  const chosenIndex = choseRaw !== null && /^\d+$/.test(choseRaw) ? Number(choseRaw) : undefined;
+
+  let ctxInput:
+    | { type: "question" | "card" | "category"; id: string; chosenIndex?: number }
+    | null = null;
+  if (question) ctxInput = { type: "question", id: question, chosenIndex };
   else if (card) ctxInput = { type: "card", id: card };
   else if (category) ctxInput = { type: "category", id: category };
 

@@ -21,7 +21,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueTomorrow, selectFlashcardQueue } from "@/lib/plan";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { STUDY_SESSION_SIZE } from "@/lib/billing/plans";
-import { initialCardState, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
+import { initialCardState, isLeech, previewIntervals, RATING_LABEL } from "@/lib/srs/sm2";
 import { categoryName } from "@/lib/content/categories";
 import { haptics } from "@/lib/haptics";
 import { formatDuration, cn } from "@/lib/utils";
@@ -216,11 +216,23 @@ export function FlashcardDeck() {
               </div>
             )}
             <p className="mt-4 flex-1 text-lg leading-relaxed text-foreground">{card.back}</p>
+            {/* A leech has been forgotten six times. Repeating the same prompt a
+                seventh time is not the answer — say so, and point at the one
+                thing that might actually shift it. */}
+            {isLeech(cardState) && (
+              <p className="mt-3 rounded-lg border border-warning/30 bg-warning/[0.06] px-3 py-2 text-xs leading-relaxed text-foreground">
+                This one keeps slipping — you&apos;ve forgotten it {cardState.lapses} times.
+                Repeating it won&apos;t help much; ask for a different angle or a memory trick.
+              </p>
+            )}
             <Link
               href={`/tutor?card=${card.id}`}
               className="mt-3 inline-flex w-fit items-center gap-1.5 text-xs font-medium text-primary hover:underline"
             >
-              <Sparkles className="h-3.5 w-3.5" /> Ask the tutor to explain this
+              <Sparkles className="h-3.5 w-3.5" />{" "}
+              {isLeech(cardState)
+                ? "Give me a memory trick for this"
+                : "Ask the tutor to explain this"}
             </Link>
           </div>
         </div>

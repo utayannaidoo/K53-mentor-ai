@@ -3,10 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { X, Check, ChevronLeft, ChevronRight, CornerDownRight, Sparkles, Target, Zap } from "lucide-react";
+import { X, Check, ChevronLeft, ChevronRight, CornerDownRight, SearchX, Sparkles, Target, Zap } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
 import { sourceFor } from "@/lib/content/provenance";
@@ -23,9 +24,13 @@ import { forCode } from "@/lib/content/vehicle";
 import {
   easyFirst,
   orderByFreshness,
+  subjectOf,
   takeDistinctSubjects,
   withShuffledOptions,
 } from "@/lib/diagnostic/select";
+import { dueMistakes } from "@/lib/learning/mistakes";
+import { abilityByCategory, interleave, withinReach } from "@/lib/learning/ability";
+import { cramQueue } from "@/lib/learning/cram";
 import { TrialMeter } from "@/components/app/trial-meter";
 import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
@@ -35,9 +40,17 @@ import type { CategoryId, Question } from "@/types";
 
 const LETTERS = ["A", "B", "C", "D"];
 
+/**
+ * Mistakes to lead a session with. Enough that review is felt, few enough that
+ * a session still teaches something new — a queue of nothing but past failures
+ * is demoralising, and new material is what moves readiness.
+ */
+const MISTAKES_PER_SESSION = 3;
+
 export function QuestionPractice() {
   const sp = useSearchParams();
   const categoryParam = (sp.get("category") as CategoryId | null) ?? undefined;
+  const cramMode = sp.get("mode") === "cram";
   const { state, recordQuestionAttempt, recordSession, usageFor } = useStudyStore();
 
   const cap = usageFor("questions");
@@ -47,12 +60,54 @@ export function QuestionPractice() {
   function buildQueue(): Question[] {
     const base = categoryParam ? questionsByCategory(categoryParam) : QUESTIONS;
     const pool = forCode(base, studyCodeOf(state));
-    let ordered = orderByFreshness(pool, state.attempts);
+
+    // Emergency Revision: with the test 48 hours away, spacing and difficulty
+    // laddering stop being the right advice. Every remaining minute goes on
+    // what they're still getting wrong, heaviest-weighted section first.
+    if (cramMode) {
+      const cram = cramQueue(state, pool, limit);
+      if (cram.length > 0) return cram.map(withShuffledOptions);
+      // Nothing left unresolved — fall through to ordinary practice rather
+      // than showing an empty screen on the most anxious day of the process.
+    }
+
+    // Mistakes lead. `orderByFreshness` alone sorts least-recently-seen first,
+    // which pushes a question you just got wrong to the *back* of the rotation —
+    // the one item you've proven you don't know is the one it hides. Re-testing
+    // it is the whole point of practising, so it goes in front.
+    const byId = new Map(pool.map((q) => [q.id, q]));
+    const mistakes = dueMistakes(state)
+      .map((m) => byId.get(m.questionId))
+      .filter((q): q is Question => Boolean(q))
+      .slice(0, Math.min(MISTAKES_PER_SESSION, Math.max(0, limit - 1)));
+
+    const mistakeIds = new Set(mistakes.map((q) => q.id));
+
+    // Difficulty ladder: keep new material at or just above what this learner
+    // is currently getting right in that category, rather than serving the
+    // whole bank regardless of whether they're drowning or bored.
+    const ability = abilityByCategory(state.attempts);
+    let ordered = orderByFreshness(
+      withinReach(
+        pool.filter((q) => !mistakeIds.has(q.id)),
+        ability,
+      ),
+      state.attempts,
+    );
     // Self-declared beginners open their first-ever session with easy questions.
     if (state.onboarding?.knowledgeLevel === "beginner" && state.attempts.length === 0) {
       ordered = easyFirst(ordered);
     }
-    return takeDistinctSubjects(ordered, limit).map(withShuffledOptions);
+
+    // Seed the subject set with the mistakes so the filler can't ask about the
+    // same road sign twice in one session.
+    const seen = new Set(mistakes.map(subjectOf));
+    const fresh = takeDistinctSubjects(ordered, Math.max(0, limit - mistakes.length), seen);
+
+    // Interleave only when the session spans categories — inside a single
+    // category there is nothing to interleave, and the learner chose that focus.
+    const queue = [...mistakes, ...fresh];
+    return (categoryParam ? queue : interleave(queue)).map(withShuffledOptions);
   }
 
   const [queue, setQueue] = React.useState<Question[]>(buildQueue);
@@ -63,6 +118,15 @@ export function QuestionPractice() {
     new Array(queue.length).fill(null),
   );
   const sessionRecorded = React.useRef(false);
+
+  // Must sit with the other hooks, above the early returns below — the cap
+  // paywall, the empty state and the summary all return before the question
+  // renders, and a hook declared after them runs conditionally.
+  // Timing measures thinking (render → tap), not page load.
+  const shownAt = React.useRef<number>(Date.now());
+  React.useEffect(() => {
+    shownAt.current = Date.now();
+  }, [i]);
 
   // Start a fresh session in place. "Practice more" used to link back to this
   // same route, but navigating to the URL you're already on doesn't remount
@@ -92,6 +156,31 @@ export function QuestionPractice() {
             cta="See plans"
           />
         )}
+      </div>
+    );
+  }
+
+  // No questions matched — an unknown ?category=, or a category with nothing
+  // left for this licence code. Without this the summary below renders for an
+  // empty queue and congratulates the learner on a "0/0, 0% accuracy" session
+  // they never sat, recap and all.
+  if (queue.length === 0) {
+    return (
+      <div className="mx-auto max-w-md py-10">
+        <EmptyState
+          icon={<SearchX className="h-6 w-6" />}
+          title="No questions here yet"
+          description={
+            categoryParam
+              ? "That category has nothing for your licence code right now. Try another one — or practise across everything."
+              : "We couldn't build a session from that link. Try practising across all categories."
+          }
+          action={
+            <Link href="/study/questions" className={cn(buttonVariants({ size: "sm" }))}>
+              Practise all categories
+            </Link>
+          }
+        />
       </div>
     );
   }
@@ -157,6 +246,7 @@ export function QuestionPractice() {
       correct: optionIndex === q.correctIndex,
       selectedIndex: optionIndex,
       context: "practice",
+      ms: Date.now() - shownAt.current,
     });
   }
 
@@ -272,7 +362,7 @@ export function QuestionPractice() {
                         {!isCorrect && (
                           <>
                             <Link
-                              href={`/tutor?question=${q.id}`}
+                              href={`/tutor?question=${q.id}&chose=${selected}`}
                               className="mt-2 flex items-center gap-1.5 font-medium text-primary hover:underline"
                             >
                               <Sparkles className="h-4 w-4" /> Ask the tutor why

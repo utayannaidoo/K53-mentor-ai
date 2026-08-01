@@ -8,6 +8,15 @@ export type TutorContextType = "question" | "card" | "category" | "none";
 export interface TutorContextInput {
   type: TutorContextType;
   id?: string;
+  /**
+   * The option the learner actually picked, when they got it wrong.
+   *
+   * This is the misconception itself. Knowing only the right answer, the tutor
+   * can explain why B is correct; knowing the learner chose D, it can explain
+   * why *D is tempting and wrong* — which is the thing that actually needs
+   * unlearning, and the difference between a textbook and an instructor.
+   */
+  chosenIndex?: number;
 }
 
 export interface ResolvedContext {
@@ -25,9 +34,15 @@ export function resolveContext(ctx?: TutorContextInput): ResolvedContext | null 
     const q = QUESTIONS_BY_ID[ctx.id];
     if (!q) return null;
     const opts = q.options.map((o, i) => `${LETTERS[i]}. ${o}`).join("\n");
+    const chose =
+      ctx.chosenIndex != null &&
+      ctx.chosenIndex !== q.correctIndex &&
+      q.options[ctx.chosenIndex] !== undefined
+        ? `\nTHE LEARNER ANSWERED: ${LETTERS[ctx.chosenIndex]}. ${q.options[ctx.chosenIndex]} — this is wrong. Address why that specific answer is tempting and where it breaks down, before confirming the correct one.`
+        : "";
     return {
       label: `Question · ${CATEGORY_MAP[q.categoryId].name}`,
-      text: `QUESTION: ${q.prompt}\nOPTIONS:\n${opts}\nCORRECT ANSWER: ${LETTERS[q.correctIndex]}. ${q.options[q.correctIndex]}\nOFFICIAL EXPLANATION: ${q.explanation}`,
+      text: `QUESTION: ${q.prompt}\nOPTIONS:\n${opts}\nCORRECT ANSWER: ${LETTERS[q.correctIndex]}. ${q.options[q.correctIndex]}\nOFFICIAL EXPLANATION: ${q.explanation}${chose}`,
     };
   }
 
@@ -61,13 +76,17 @@ export function defaultTutorPrompt(
   type: TutorContextType,
   id?: string,
   label?: string | null,
+  chosenIndex?: number,
 ): string {
   switch (type) {
     case "question": {
       const q = id ? QUESTIONS_BY_ID[id] : undefined;
-      return q
-        ? `Why is the correct answer to "${q.prompt}" the right one? Please explain it simply.`
-        : "Why is the correct answer to this question right? Please explain it simply.";
+      if (!q) return "Why is the correct answer to this question right? Please explain it simply.";
+      // Ask the question the learner actually has, not the generic one.
+      if (chosenIndex != null && chosenIndex !== q.correctIndex && q.options[chosenIndex]) {
+        return `I answered "${q.options[chosenIndex]}" for "${q.prompt}" and got it wrong. Why is that answer wrong?`;
+      }
+      return `Why is the correct answer to "${q.prompt}" the right one? Please explain it simply.`;
     }
     case "card": {
       const f = id ? FLASHCARDS_BY_ID[id] : undefined;
