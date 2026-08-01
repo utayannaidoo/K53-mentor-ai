@@ -3,10 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { X, Check, ChevronLeft, ChevronRight, CornerDownRight, Sparkles, Target, Zap } from "lucide-react";
+import { X, Check, ChevronLeft, ChevronRight, CornerDownRight, SearchX, Sparkles, Target, Zap } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
 import { sourceFor } from "@/lib/content/provenance";
@@ -23,9 +24,12 @@ import { useContentPool } from "@/components/content/content-provider";
 import {
   easyFirst,
   orderByFreshness,
+  subjectOf,
   takeDistinctSubjects,
   withShuffledOptions,
 } from "@/lib/diagnostic/select";
+import { dueMistakes } from "@/lib/learning/mistakes";
+import { abilityByCategory, interleave, withinReach } from "@/lib/learning/ability";
 import { TrialMeter } from "@/components/app/trial-meter";
 import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
@@ -35,11 +39,18 @@ import type { CategoryId, Question } from "@/types";
 
 const LETTERS = ["A", "B", "C", "D"];
 
+/**
+ * Mistakes to lead a session with. Enough that review is felt, few enough that
+ * a session still teaches something new — a queue of nothing but past failures
+ * is demoralising, and new material is what moves readiness.
+ */
+const MISTAKES_PER_SESSION = 3;
+
 export function QuestionPractice() {
   const sp = useSearchParams();
   const categoryParam = (sp.get("category") as CategoryId | null) ?? undefined;
   const { state, recordQuestionAttempt, recordSession, usageFor } = useStudyStore();
-  const { questions: bank } = useContentPool();
+  const { questions: bank, full } = useContentPool();
 
   const cap = usageFor("questions");
   const remaining = Number.isFinite(cap.cap) ? Math.max(0, cap.cap - cap.used) : STUDY_SESSION_SIZE;
@@ -48,12 +59,43 @@ export function QuestionPractice() {
   function buildQueue(): Question[] {
     const base = categoryParam ? bank.filter((q) => q.categoryId === categoryParam) : bank;
     const pool = forCode(base, studyCodeOf(state));
-    let ordered = orderByFreshness(pool, state.attempts);
+
+    // Mistakes lead. `orderByFreshness` alone sorts least-recently-seen first,
+    // which pushes a question you just got wrong to the *back* of the rotation —
+    // the one item you've proven you don't know is the one it hides. Re-testing
+    // it is the whole point of practising, so it goes in front.
+    const byId = new Map(pool.map((q) => [q.id, q]));
+    const mistakes = dueMistakes(state)
+      .map((m) => byId.get(m.questionId))
+      .filter((q): q is Question => Boolean(q))
+      .slice(0, Math.min(MISTAKES_PER_SESSION, Math.max(0, limit - 1)));
+    const mistakeIds = new Set(mistakes.map((q) => q.id));
+
+    // Difficulty ladder: keep new material at or just above what this learner
+    // is currently getting right in that category, rather than serving the
+    // whole pool regardless of whether they're drowning or bored.
+    const ability = abilityByCategory(state.attempts);
+    let ordered = orderByFreshness(
+      withinReach(
+        pool.filter((q) => !mistakeIds.has(q.id)),
+        ability,
+      ),
+      state.attempts,
+    );
     // Self-declared beginners open their first-ever session with easy questions.
     if (state.onboarding?.knowledgeLevel === "beginner" && state.attempts.length === 0) {
       ordered = easyFirst(ordered);
     }
-    return takeDistinctSubjects(ordered, limit).map(withShuffledOptions);
+
+    // Seed the subject set with the mistakes so the filler can't ask about the
+    // same road sign twice in one session.
+    const seen = new Set(mistakes.map(subjectOf));
+    const fresh = takeDistinctSubjects(ordered, Math.max(0, limit - mistakes.length), seen);
+
+    // Interleave only when the session spans categories — inside a single
+    // category there is nothing to interleave, and the learner chose that focus.
+    const queue = [...mistakes, ...fresh];
+    return (categoryParam ? queue : interleave(queue)).map(withShuffledOptions);
   }
 
   const [queue, setQueue] = React.useState<Question[]>(buildQueue);
@@ -64,6 +106,39 @@ export function QuestionPractice() {
     new Array(queue.length).fill(null),
   );
   const sessionRecorded = React.useRef(false);
+
+  // Must sit with the other hooks, above the early returns below — the cap
+  // paywall, the empty state and the summary all return before the question
+  // renders, and a hook declared after them would run conditionally.
+  // This measures thinking (question shown → answer tapped), not page load.
+  const shownAt = React.useRef<number>(Date.now());
+  React.useEffect(() => {
+    shownAt.current = Date.now();
+  }, [i]);
+
+  /**
+   * The full bank arrives after mount, so a queue built while the pool is still
+   * the bundled starter pack is a placeholder — it draws new material from ~100
+   * items instead of the whole bank, and it cannot contain a mistake that isn't
+   * in the starter pack at all, which is most of them.
+   *
+   * Rebuild once when the pool upgrades, and only while the session is still
+   * untouched: swapping the queue under someone mid-answer would lose their
+   * place, and every answer is already recorded either way.
+   */
+  const builtFromFullPool = React.useRef(full);
+  React.useEffect(() => {
+    if (!full || builtFromFullPool.current) return;
+    if (answers.some((a) => a !== null)) return;
+    builtFromFullPool.current = true;
+    const next = buildQueue();
+    setQueue(next);
+    setAnswers(new Array(next.length).fill(null));
+    setI(0);
+    // buildQueue reads the render's state and pool by design; re-running it on
+    // every state change would reshuffle the session under the learner.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [full]);
 
   // Start a fresh session in place. "Practice more" used to link back to this
   // same route, but navigating to the URL you're already on doesn't remount
@@ -93,6 +168,31 @@ export function QuestionPractice() {
             cta="See plans"
           />
         )}
+      </div>
+    );
+  }
+
+  // No questions matched — an unknown ?category=, or a category with nothing
+  // left for this licence code. Without this the summary below renders for an
+  // empty queue and congratulates the learner on a "0/0, 0% accuracy" session
+  // they never sat, recap and all.
+  if (queue.length === 0) {
+    return (
+      <div className="mx-auto max-w-md py-10">
+        <EmptyState
+          icon={<SearchX className="h-6 w-6" />}
+          title="No questions here yet"
+          description={
+            categoryParam
+              ? "That category has nothing for your licence code right now. Try another one — or practise across everything."
+              : "We couldn't build a session from that link. Try practising across all categories."
+          }
+          action={
+            <Link href="/study/questions" className={cn(buttonVariants({ size: "sm" }))}>
+              Practise all categories
+            </Link>
+          }
+        />
       </div>
     );
   }
@@ -158,6 +258,7 @@ export function QuestionPractice() {
       correct: optionIndex === q.correctIndex,
       selectedIndex: optionIndex,
       context: "practice",
+      ms: Date.now() - shownAt.current,
     });
   }
 

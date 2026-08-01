@@ -97,6 +97,8 @@ interface StudyStore {
     correct: boolean;
     selectedIndex: number;
     context?: StudyContext;
+    /** Thinking time, render to tap. Absent where a surface doesn't measure it. */
+    ms?: number;
   }) => void;
   recordScenarioAttempt: (a: Omit<ScenarioAttempt, "id" | "at">) => void;
   recordMockExam: (
