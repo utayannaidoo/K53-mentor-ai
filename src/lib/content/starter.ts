@@ -39,9 +39,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Hazard ahead. Slow down and approach with caution.",
-      "Road width regulatory restriction ahead (temporary version).",
-      "General warning sign, usually with an explanatory plate beneath it.",
-      "Surface step in the road surface ahead (temporary version)."
+      "Marked pedestrian crossing ahead.",
+      "Steep uphill ahead. You may not cross a No Overtaking line to overtake a slow moving vehicle.",
+      "Road ahead narrows from one side."
     ],
     "correctIndex": 0,
     "explanation": "This warning sign: Hazard ahead. Slow down and approach with caution.",
@@ -71,9 +71,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Height restriction ahead (temporary)",
-      "Slow-moving vehicles ahead",
-      "Danger plate — pass this side",
-      "Tunnel ahead"
+      "Width restriction ahead (temporary)",
+      "Loose stones ahead (temporary)",
+      "Uneven road ahead"
     ],
     "correctIndex": 0,
     "explanation": "This is the warning sign \"Height restriction ahead (temporary)\". Vehicle height regulatory restriction ahead (temporary version).",
@@ -119,9 +119,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Parking for the class shown",
-      "Parking reservation",
-      "Heavy goods vehicles only",
-      "No left turn"
+      "Bus lane reservation",
+      "Parking for police vehicles",
+      "Parking for people with disabilities"
     ],
     "correctIndex": 0,
     "explanation": "This is the regulatory sign \"Parking for the class shown\". This area is reserved for parking by the class of vehicle shown.",
@@ -166,9 +166,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Yield",
-      "No entry",
-      "Time-limited parking",
-      "Cyclists and pedestrians only"
+      "Pedestrian crossing (yield)",
+      "No right turn",
+      "End of residential area"
     ],
     "correctIndex": 0,
     "explanation": "This is the regulatory sign \"Yield\". Give way to all cross-traffic and to pedestrians crossing or about to cross. You need not stop if the way is clear, but must be ready to.",
@@ -198,9 +198,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Temporary lane reservation",
-      "Temporary parking reservation",
-      "Parking for authorised vehicles",
-      "End of residential area"
+      "Parking for the class shown",
+      "Bus lane reservation",
+      "Reserved stop zone"
     ],
     "correctIndex": 0,
     "explanation": "This is the regulatory sign \"Temporary lane reservation\". This portion of roadway is temporarily reserved for the exclusive use of the class of vehicle indicated.",
@@ -214,9 +214,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Temporary uneven, potholed, or bumpy road surface ahead.",
-      "Vehicle length regulatory restriction ahead (temporary version).",
-      "Danger plate. Marks the position of an overhead structure across the road.",
-      "Falling rocks ahead, especially after rain."
+      "Road width regulatory restriction ahead (temporary version).",
+      "Soft shoulder at road's edge ahead (temporary version).",
+      "Vehicle length regulatory restriction ahead (temporary version)."
     ],
     "correctIndex": 0,
     "explanation": "Uneven road ahead: Temporary uneven, potholed, or bumpy road surface ahead.",
@@ -276,9 +276,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Parking here is reserved for a vehicle carrying people with disabilities.",
-      "The curved yellow line indicates the start of a lane reserved for the exclusive use of the class of vehicle indicated.",
-      "To prohibit vehicles from turning left at an intersection.",
-      "Overtaking prohibited for the next 2km."
+      "The lane on the right of the yellow line is reserved for the exclusive use of the class of vehicle indicated.",
+      "The lane on the left of the yellow line is reserved for the exclusive use of authorized public transport vehicles.",
+      "This area is reserved for parking by authorized vehicles."
     ],
     "correctIndex": 0,
     "explanation": "Parking for people with disabilities: Parking here is reserved for a vehicle carrying people with disabilities.",
@@ -355,9 +355,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "End of headlights-on requirement",
-      "End of dual-carriage freeway",
-      "Traffic signal — green",
-      "Pedestrian priority"
+      "End of residential area",
+      "End of lane reservation",
+      "End of single-carriage freeway"
     ],
     "correctIndex": 0,
     "explanation": "This is the regulatory sign \"End of headlights-on requirement\". You no longer need to drive with your headlights switched on.",
@@ -371,9 +371,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "To prohibit motorcycles on a part of a carriageway for safety reasons.",
-      "To indicate that road users must drive to the side of an obstruction where the sign is displayed.",
-      "End of residential area and rules for a residential area no longer apply.",
-      "This is to indicate that there is a one-way carriageway straight ahead, proceed in the direction of the arrow indicated."
+      "To prohibit hawkers in this area during any time of the day or night.",
+      "To prohibit vehicles from turning around (u-turn) so that it faces the opposite direction.",
+      "To prohibit pedestrians and stationary vehicles."
     ],
     "correctIndex": 0,
     "explanation": "No motorcycles: To prohibit motorcycles on a part of a carriageway for safety reasons.",
@@ -419,9 +419,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Steep descent ahead",
-      "Crosswinds ahead",
-      "Width restriction ahead",
-      "Railway crossing"
+      "Cyclists ahead",
+      "Road narrows at a bridge",
+      "Priority road with crossroad ahead"
     ],
     "correctIndex": 0,
     "explanation": "This is the warning sign \"Steep descent ahead\". Steep downhill ahead. Change to a lower gear if necessary.",
@@ -466,9 +466,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Overtaking other vehicles is prohibited until you pass the sign that ends the restriction.",
-      "No vehicles may enter this road in this direction at any time.",
-      "Come to a complete stop behind the stop line every time — even if the road is empty — then move off only when it is safe.",
-      "Vehicle mass restriction no longer applies."
+      "To prohibit noise, if the noise level of your vehicle is high, you may not proceed past the sign.",
+      "To prohibit pedestrians from proceeding past this sign where they could cause danger to themselves and vehicles.",
+      "To prohibit hawkers in this area during any time of the day or night."
     ],
     "correctIndex": 0,
     "explanation": "No overtaking: Overtaking other vehicles is prohibited until you pass the sign that ends the restriction.",
@@ -482,8 +482,8 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Reduced visibility can be expected ahead (e.",
-      "Strong crosswinds can be expected ahead.",
-      "Vehicle length regulatory restriction ahead (temporary version).",
+      "Vehicle height regulatory restriction ahead.",
+      "Water crosses the road at a drift ahead.",
       "Motor gate ahead with cattle grid."
     ],
     "correctIndex": 0,
@@ -544,9 +544,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "End of single-carriage freeway",
-      "Reserved stop zone",
-      "One-way roadway (left)",
-      "Proceed in the direction shown"
+      "End of headlights-on requirement",
+      "End of dual-carriage freeway",
+      "End of lane reservation"
     ],
     "correctIndex": 0,
     "explanation": "This is the regulatory sign \"End of single-carriage freeway\". End of single carriage freeway and freeway rules no longer apply.",
@@ -560,9 +560,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "No pedestrians",
-      "Buses and minibuses only",
-      "No right turn",
-      "No entry"
+      "No parking",
+      "No motorcycles",
+      "No left turn"
     ],
     "correctIndex": 0,
     "explanation": "This is the regulatory sign \"No pedestrians\". To prohibit pedestrians from proceeding past this sign where they could cause danger to themselves and vehicles.",
@@ -592,9 +592,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Road width regulatory restriction ahead (temporary version).",
-      "Water crosses the road at a drift ahead.",
-      "Marks the place and direction of a sharp bend in the road.",
-      "Steep uphill ahead. You may not cross a No Overtaking line to overtake a slow moving vehicle."
+      "Temporary uneven, potholed, or bumpy road surface ahead.",
+      "Surface step in the road surface ahead (temporary version).",
+      "Vehicle length regulatory restriction ahead (temporary version)."
     ],
     "correctIndex": 0,
     "explanation": "Width restriction ahead (temporary): Road width regulatory restriction ahead (temporary version).",
@@ -638,9 +638,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Marked pedestrian crossing ahead.",
-      "Secondary road with priority crossroad ahead.",
-      "Surface step in the road surface ahead (temporary version).",
-      "Construction vehicles entering or crossing the road ahead."
+      "Priority road with secondary crossroad ahead.",
+      "Slippery road ahead, especially when wet.",
+      "Road narrows at a bridge ahead."
     ],
     "correctIndex": 0,
     "explanation": "Pedestrian crossing ahead: Marked pedestrian crossing ahead.",
@@ -654,9 +654,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "This is a manually operated sign, with the word STOP on one side and GO on the other.",
-      "You no longer need to drive with your headlights switched on.",
-      "Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow.",
-      "End of residential area and rules for a residential area no longer apply."
+      "Come to a complete stop behind the stop line every time — even if the road is empty — then move off only when it is safe.",
+      "To prohibit vehicles from turning left at an intersection.",
+      "This area is reserved for parking by authorized vehicles."
     ],
     "correctIndex": 0,
     "explanation": "Stop / Go (manually operated): This is a manually operated sign, with the word STOP on one side and GO on the other. Stop when necessary and proceed cautiously when GO is displayed.",
@@ -746,9 +746,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "To indicate that the road or part of it is set aside for use by buses and minibuses only.",
-      "The lane on the left of the yellow line is reserved for the exclusive use of authorized public transport vehicles.",
-      "Goods vehicles must travel at 50km/h or faster.",
-      "This area is temporarily reserved for parking by the class of vehicle shown."
+      "The maximum speed, in km/h, at which you may drive past this sign.",
+      "To indicate that road users must drive to the side of an obstruction where the sign is displayed.",
+      "Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow."
     ],
     "correctIndex": 0,
     "explanation": "Buses and minibuses only: To indicate that the road or part of it is set aside for use by buses and minibuses only.",
@@ -792,9 +792,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "No right turn at intersection",
-      "Parking for police vehicles",
-      "Alternative route to toll road",
-      "No motorcycles"
+      "No overtaking by goods vehicles",
+      "No motorcycles",
+      "No left turn at intersection"
     ],
     "correctIndex": 0,
     "explanation": "This is the regulatory sign \"No right turn at intersection\". To prohibit vehicles from turning right at an intersection.",
@@ -808,9 +808,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Speed humps ahead. Slow down and obey any speed limit sign.",
-      "Motor gate ahead with cattle grid.",
-      "Falling rocks ahead, especially after rain.",
-      "Slippery road ahead, especially when wet."
+      "Hazard ahead. Slow down and approach with caution.",
+      "Jetty edge or river bank ahead, close to the road.",
+      "General warning sign, usually with an explanatory plate beneath it."
     ],
     "correctIndex": 0,
     "explanation": "Speed humps ahead: Speed humps ahead. Slow down and obey any speed limit sign.",
@@ -824,9 +824,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Drift ahead",
-      "Steep descent ahead",
-      "Soft shoulder ahead (temporary)",
-      "Loose stones ahead (temporary)"
+      "Tunnel ahead",
+      "Cyclists ahead",
+      "Steep descent ahead"
     ],
     "correctIndex": 0,
     "explanation": "This is the warning sign \"Drift ahead\". Water crosses the road at a drift ahead. Go very slowly and test the brakes afterwards.",
@@ -840,9 +840,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "The maximum speed, in km/h, at which you may drive past this sign.",
-      "This area is reserved for parking by police vehicles.",
-      "This area is temporarily reserved for parking by the class of vehicle shown.",
-      "To prohibit motorcycles on a part of a carriageway for safety reasons."
+      "To indicate that the road or part of it is set aside for use by goods vehicles only.",
+      "To give drivers an opportunity to follow an alternate route or proceed on the route and pay toll fees.",
+      "Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow."
     ],
     "correctIndex": 0,
     "explanation": "Speed limit: The maximum speed, in km/h, at which you may drive past this sign. Exceeding it is an offence.",
@@ -856,9 +856,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Narrow structure ahead",
-      "Falling rocks ahead",
-      "Railway crossing",
-      "Agricultural vehicles ahead"
+      "Children ahead",
+      "Slow-moving vehicles ahead",
+      "Cattle grid ahead"
     ],
     "correctIndex": 0,
     "explanation": "This is the warning sign \"Narrow structure ahead\". Structure ahead that is less than 5m wide, e.g. bridge.",
@@ -948,9 +948,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Tunnel ahead. Switch your headlights on and don't overtake.",
-      "Water crosses the road at a drift ahead.",
-      "Loose stones on road surface ahead (temporary version).",
-      "Marks the place and direction of a sharp bend in the road."
+      "General warning sign, usually with an explanatory plate beneath it.",
+      "Marked pedestrian crossing ahead.",
+      "Steep uphill ahead. You may not cross a No Overtaking line to overtake a slow moving vehicle."
     ],
     "correctIndex": 0,
     "explanation": "Tunnel ahead: Tunnel ahead. Switch your headlights on and don't overtake.",

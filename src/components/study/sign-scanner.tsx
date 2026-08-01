@@ -12,7 +12,10 @@ import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
 import { cn, glass, glassFloat } from "@/lib/utils";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature } from "@/lib/billing/plans";
+import Image from "next/image";
 import { Paywall } from "@/components/app/paywall";
+import { SIGNS } from "@/lib/content/signs";
+import { findSignByName, similarSigns } from "@/lib/content/sign-traits";
 
 interface ScanResult {
   isSign: boolean;
@@ -44,6 +47,14 @@ export function SignScanner() {
   const [hint, setHint] = React.useState("");
   const cameraRef = React.useRef<HTMLInputElement>(null);
   const uploadRef = React.useRef<HTMLInputElement>(null);
+
+  // Tie the AI's answer back to the catalogue so we can show what it gets
+  // confused with. No match simply means no confusion panel — never a wrong one.
+  const matched =
+    phase.kind === "result" && phase.result?.isSign
+      ? findSignByName(phase.result.name, SIGNS)
+      : null;
+  const confusable = matched ? similarSigns(matched, SIGNS) : [];
 
   // Vision calls are the priciest AI in the app — paid plans only. The server
   // enforces the same rule (/api/vision → 403 for free), this is just the UX.
@@ -218,11 +229,52 @@ export function SignScanner() {
           ) : (
             <p className="text-sm leading-relaxed text-foreground">{phase.text}</p>
           )}
+
+          {/* A learner photographing a sign is standing in front of it, curious,
+              in the real world — the highest-motivation moment this product
+              will ever get. It used to end here with a definition. The signs it
+              gets confused with are the ones worth seeing right now. */}
+          {matched && confusable.length > 0 && (
+            <div className="mt-5 border-t border-border/60 pt-5">
+              <p className="text-sm font-semibold text-foreground">Don&apos;t mix it up with</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Same shape and colour — these are the ones people confuse it with.
+              </p>
+              <div className="mt-3 grid grid-cols-3 gap-3">
+                {confusable.map((s) => (
+                  <div key={s.id} className="flex flex-col items-center gap-2">
+                    <span className="flex h-16 w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-1.5">
+                      <Image
+                        src={s.image}
+                        alt={s.name}
+                        width={128}
+                        height={128}
+                        sizes="80px"
+                        className="h-full w-full object-contain"
+                      />
+                    </span>
+                    <span className="line-clamp-2 text-center text-2xs leading-snug text-muted-foreground">
+                      {s.name}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="mt-5 flex flex-wrap gap-3">
             <Button variant="outline" onClick={reset}>
               <Camera className="h-4 w-4" /> Scan another
             </Button>
-            <Link href="/tutor" className={cn(buttonVariants({ variant: "ai" }))}>
+            {/* Retrieval at the moment of maximum context beats reading a
+                definition and closing the app. */}
+            <Link
+              href="/study/questions?category=signs"
+              className={cn(buttonVariants({ variant: "default" }))}
+            >
+              <ScanLine className="h-4 w-4" /> Test me on signs
+            </Link>
+            <Link href="/tutor?category=signs" className={cn(buttonVariants({ variant: "ai" }))}>
               <Sparkles className="h-4 w-4" /> Ask the tutor about it
             </Link>
           </div>

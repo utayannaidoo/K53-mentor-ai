@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SIGNS, SIGN_CATEGORIES, signsByCategory } from "@/lib/content/signs";
+import {
+  traitsFor,
+  SHAPE_FILTERS,
+  COLOUR_FILTERS,
+  type SignShape,
+  type SignColour,
+} from "@/lib/content/sign-traits";
 import { cn } from "@/lib/utils";
 import type { RoadSign, SignCategory } from "@/types";
 
@@ -29,15 +36,25 @@ export function SignLibrary() {
   const [filter, setFilter] = React.useState<Filter>("regulatory");
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState<RoadSign | null>(null);
+  // Shape and colour are what a learner actually retains from a roadside
+  // glance — "it was a red triangle" — so they're the two filters that match
+  // how someone searches when they never knew the sign's name.
+  const [shape, setShape] = React.useState<SignShape | null>(null);
+  const [colour, setColour] = React.useState<SignColour | null>(null);
 
   const q = query.trim().toLowerCase();
   const results = React.useMemo(() => {
     return SIGNS.filter((s) => {
       if (filter !== "all" && s.category !== filter) return false;
+      if (shape || colour) {
+        const t = traitsFor(s);
+        if (shape && t.shape !== shape) return false;
+        if (colour && t.colour !== colour) return false;
+      }
       if (q && !`${s.name} ${s.meaning} ${s.subcategory}`.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [q, filter]);
+  }, [q, filter, shape, colour]);
 
   // group results by subcategory for tidy section headers
   const groups = React.useMemo(() => {
@@ -90,7 +107,50 @@ export function SignLibrary() {
         })}
       </div>
 
-      {filter !== "all" && !q && (
+      {/* "What did it look like?" — the way you search when you saw a sign on
+          the road and never knew its name. */}
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Shape
+        </span>
+        {SHAPE_FILTERS.map((s) => (
+          <Chip
+            key={s.id}
+            active={shape === s.id}
+            onClick={() => setShape(shape === s.id ? null : s.id)}
+          >
+            {s.label}
+          </Chip>
+        ))}
+      </div>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          Colour
+        </span>
+        {COLOUR_FILTERS.map((c) => (
+          <Chip
+            key={c.id}
+            active={colour === c.id}
+            onClick={() => setColour(colour === c.id ? null : c.id)}
+          >
+            {c.label}
+          </Chip>
+        ))}
+        {(shape || colour) && (
+          <button
+            type="button"
+            onClick={() => {
+              setShape(null);
+              setColour(null);
+            }}
+            className="text-xs font-medium text-primary hover:underline"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
+      {filter !== "all" && !q && !shape && !colour && (
         <p className="mt-4 text-sm text-muted-foreground">
           {SIGN_CATEGORIES.find((c) => c.id === filter)?.blurb}
         </p>
