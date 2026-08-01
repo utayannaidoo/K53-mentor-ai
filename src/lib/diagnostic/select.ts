@@ -8,7 +8,7 @@ import type {
 } from "@/types";
 import { forCode } from "@/lib/content/vehicle";
 import { CATEGORIES } from "@/lib/content/categories";
-import { EXAM_FORMAT } from "@/lib/constants";
+import { EXAM_FORMAT, SECTION_OF, type ExamSection } from "@/lib/constants";
 import { shuffle } from "@/lib/utils";
 
 /**
@@ -207,17 +207,33 @@ export function sampleMiniMock(
   return shuffle(picked).map(withShuffledOptions);
 }
 
-/** Maps the seven study categories onto the three official exam sections. */
-export type ExamSection = keyof typeof EXAM_FORMAT.sections;
-export const SECTION_OF: Record<CategoryId, ExamSection> = {
-  controls: "controls",
-  signs: "signs",
-  rules: "rules",
-  intersections: "rules",
-  parking: "rules",
-  following_distance: "rules",
-  hazard_awareness: "rules",
-};
+/**
+ * The category→section map now lives in constants.ts, beside the exam format it
+ * belongs to, because the readiness model needs it as well as the samplers.
+ * Re-exported here so every existing caller keeps importing it from the sampler.
+ */
+export { SECTION_OF, type ExamSection } from "@/lib/constants";
+
+/**
+ * Did this full mock paper actually pass?
+ *
+ * The real K53 requires the overall mark *and* each section's own mark — a
+ * 56/64 with 22/28 on signs is a fail at the DLTC. Scoring on the total alone
+ * told learners "You passed 🎉" for papers they would have failed, which is the
+ * most damaging thing a readiness product can get wrong: they book the test on
+ * it.
+ *
+ * Lives here rather than in the exam component so the rule has one definition
+ * and the tests exercise the same code the exam screen runs.
+ */
+export function fullMockPassed(perSectionCorrect: Record<ExamSection, number>): boolean {
+  const sections = Object.keys(EXAM_FORMAT.sections) as ExamSection[];
+  const total = sections.reduce((n, s) => n + perSectionCorrect[s], 0);
+  return (
+    total >= EXAM_FORMAT.passMark &&
+    sections.every((s) => perSectionCorrect[s] >= EXAM_FORMAT.sections[s].pass)
+  );
+}
 
 /**
  * Section drills: one exam section on its own, at the real section size, pass

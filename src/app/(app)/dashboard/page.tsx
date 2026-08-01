@@ -15,6 +15,7 @@ import { TrendChart } from "@/components/dashboard/trend-chart";
 import { TestCountdown } from "@/components/dashboard/test-countdown";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueFlashcards, generateTodayPlan, isTaskDone, planFocus } from "@/lib/plan";
+import { blockingSection } from "@/lib/diagnostic/scoring";
 import { categoryName } from "@/lib/content/categories";
 import { hasFeature, PLAN_MAP } from "@/lib/billing/plans";
 import { cn, daysUntil, glass } from "@/lib/utils";
@@ -93,6 +94,7 @@ export default function DashboardPage() {
           readiness={readiness.readiness}
           passProbability={readiness.passProbability}
           delta={delta}
+          blocking={blockingSection(readiness.perCategory)}
         />
         <WeakAreas perCategory={readiness.perCategory} hasAttempts={state.attempts.length > 0} />
       </div>

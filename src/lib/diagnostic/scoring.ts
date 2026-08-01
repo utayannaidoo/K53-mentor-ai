@@ -10,6 +10,7 @@ import { CATEGORIES } from "@/lib/content/categories";
 import { FLASHCARD_META } from "@/lib/content/meta";
 import { forCode } from "@/lib/content/vehicle";
 import { studyCodeOf } from "@/lib/billing/plans";
+import { EXAM_FORMAT, SECTION_OF, type ExamSection } from "@/lib/constants";
 import { clamp, uid } from "@/lib/utils";
 
 /**
@@ -37,10 +38,83 @@ export interface ReadinessBreakdown {
   strongCategories: CategoryId[];
 }
 
-/** Logistic map from readiness (0–100) to a pass-probability percentage. */
-export function passProbabilityFromReadiness(readiness: number) {
-  const p = 1 / (1 + Math.exp(-(readiness - 55) / 9));
+/**
+ * P(at least `k` of `n` correct) when each question is independent with
+ * probability `p`. Built up from the pmf term by term, so no factorial is ever
+ * materialised — n is only 28, but the recurrence is simpler than the
+ * alternative and can't overflow.
+ */
+function binomialAtLeast(n: number, k: number, p: number): number {
+  if (k <= 0) return 1;
+  if (k > n) return 0;
+  if (p <= 0) return 0;
+  if (p >= 1) return 1;
+  let pmf = Math.pow(1 - p, n); // P(X = 0)
+  let cumulativeBelow = pmf;
+  for (let i = 0; i < k - 1; i++) {
+    pmf = (pmf * (n - i) * p) / ((i + 1) * (1 - p));
+    cumulativeBelow += pmf;
+  }
+  return clamp(1 - cumulativeBelow, 0, 1);
+}
+
+/** Estimated 0–100 competence for an exam section, from its study categories. */
+function sectionCompetence(
+  perCategory: Record<CategoryId, number>,
+  section: ExamSection,
+): number {
+  let weighted = 0;
+  let weight = 0;
+  for (const cat of CATEGORIES) {
+    if (SECTION_OF[cat.id] !== section) continue;
+    weighted += perCategory[cat.id] * CATEGORY_WEIGHTS[cat.id];
+    weight += CATEGORY_WEIGHTS[cat.id];
+  }
+  return weight > 0 ? weighted / weight : BASELINE;
+}
+
+/**
+ * Probability of passing the real paper, as a percentage.
+ *
+ * The K53 is passed only by clearing **every** section's own mark as well as
+ * the total, so the honest model is the product of three section
+ * probabilities — each a binomial over that section's real question count and
+ * pass mark, with the learner's estimated accuracy as p.
+ *
+ * This replaced a logistic on the single weighted readiness score, which had no
+ * concept of sections. That model told a learner who was perfect on controls
+ * and rules but 68% on signs that they had a **94%** chance of passing —
+ * printed directly above a panel explaining that the paper they had just sat
+ * would have been a fail. Averages hide exactly the failure mode this exam is
+ * built to catch.
+ */
+export function passProbabilityFromSections(perCategory: Record<CategoryId, number>): number {
+  let p = 1;
+  for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {
+    const { questions, pass } = EXAM_FORMAT.sections[section];
+    p *= binomialAtLeast(questions, pass, clamp(sectionCompetence(perCategory, section)) / 100);
+  }
   return Math.round(clamp(p * 100));
+}
+
+/**
+ * The section standing between this learner and a pass, if there is one.
+ *
+ * Readiness and predicted pass can look contradictory — 80% readiness beside a
+ * 2% pass chance — and the reason is always a single section sitting under its
+ * own mark. Naming it turns a confusing pair of numbers into one instruction.
+ */
+export function blockingSection(perCategory: Record<CategoryId, number>): ExamSection | null {
+  let worst: { section: ExamSection; shortfall: number } | null = null;
+  for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {
+    const { questions, pass } = EXAM_FORMAT.sections[section];
+    const required = (pass / questions) * 100;
+    const shortfall = required - sectionCompetence(perCategory, section);
+    if (shortfall > 0 && (!worst || shortfall > worst.shortfall)) {
+      worst = { section, shortfall };
+    }
+  }
+  return worst?.section ?? null;
 }
 
 /**
@@ -73,6 +147,11 @@ export function scoreDiagnostic(
   }
   const readiness = weightSum > 0 ? Math.round(weighted / weightSum) : BASELINE;
 
+  // The section model needs every category, so categories this diagnostic
+  // didn't reach fall back to the same baseline the live model uses.
+  const competence = {} as Record<CategoryId, number>;
+  for (const cat of CATEGORIES) competence[cat.id] = perCategory[cat.id]?.score ?? BASELINE;
+
   const ranked = (Object.keys(perCategory) as CategoryId[]).sort(
     (a, b) => perCategory[a]!.score - perCategory[b]!.score,
   );
@@ -89,7 +168,7 @@ export function scoreDiagnostic(
     id: uid("diag"),
     at: now.toISOString(),
     readiness,
-    passProbability: passProbabilityFromReadiness(readiness),
+    passProbability: passProbabilityFromSections(competence),
     total,
     correct,
     perCategory,
@@ -152,7 +231,7 @@ export function computeReadiness(state: UserState): ReadinessBreakdown {
 
   return {
     readiness,
-    passProbability: passProbabilityFromReadiness(readiness),
+    passProbability: passProbabilityFromSections(perCategory),
     perCategory,
     weakCategories: ranked.filter((c) => perCategory[c] < 70).slice(0, 3),
     strongCategories: [...ranked].reverse().filter((c) => perCategory[c] >= 75).slice(0, 3),

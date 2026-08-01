@@ -1,3 +1,5 @@
+import type { CategoryId } from "@/types";
+
 export const APP_NAME = "K53 Mentor AI";
 export const APP_SHORT = "K53 Mentor";
 export const APP_TAGLINE =
@@ -27,6 +29,25 @@ export const EXAM_FORMAT = {
     rules: { questions: 28, pass: 22 },
   },
 } as const;
+
+export type ExamSection = keyof typeof EXAM_FORMAT.sections;
+
+/**
+ * Which exam section each study category is examined under.
+ *
+ * Lives beside the exam format rather than in the question sampler, because the
+ * readiness model needs it too — a pass probability that ignores the
+ * per-section rule is just the overall average wearing a percentage sign.
+ */
+export const SECTION_OF: Record<CategoryId, ExamSection> = {
+  controls: "controls",
+  signs: "signs",
+  rules: "rules",
+  intersections: "rules",
+  parking: "rules",
+  following_distance: "rules",
+  hazard_awareness: "rules",
+};
 
 // Interim support/refund inbox until a branded address is set up.
 export const SUPPORT_EMAIL = "utayan.naidoo@gmail.com";
