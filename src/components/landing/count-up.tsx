@@ -21,7 +21,12 @@ export function CountUp({
   className?: string;
 }) {
   const [ref, inView] = useInView<HTMLSpanElement>();
-  const [display, setDisplay] = React.useState(0);
+  // Starts at the FINAL value, not 0. These are the credibility numbers — "15
+  // question diagnostic", "64 question mock", "7 K53 categories" — and starting
+  // at 0 put a row of zeros in the server-rendered HTML, which is what a non-JS
+  // crawler and anyone on a slow connection actually saw. The animation is now
+  // a hydration-only flourish: it rewinds to 0 the moment it can, then counts.
+  const [display, setDisplay] = React.useState(value);
 
   React.useEffect(() => {
     if (!inView) return;
@@ -30,6 +35,7 @@ export function CountUp({
       setDisplay(value);
       return;
     }
+    setDisplay(0);
     let raf = 0;
     const duration = 1200;
     const start = performance.now();
@@ -40,7 +46,12 @@ export function CountUp({
       if (p < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // Background tabs throttle rAF to a standstill; don't leave the stat on 0.
+    const failsafe = window.setTimeout(() => setDisplay(value), duration + 400);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(failsafe);
+    };
   }, [value, inView]);
 
   return (

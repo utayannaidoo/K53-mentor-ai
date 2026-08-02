@@ -123,12 +123,32 @@ describe("mistakes lead the practice queue", () => {
   });
 
   it("mixed sessions come out interleaved, not blocked by category", () => {
-    const state = defaultUserState();
-    const queue = buildQueue(state, pool, 12);
-    let streak = 1;
-    for (let i = 1; i < queue.length; i++) {
-      streak = queue[i].categoryId === queue[i - 1].categoryId ? streak + 1 : 1;
-      expect(streak).toBeLessThanOrEqual(2);
+    // `interleave` caps a category run at two *where it can*. It cannot when
+    // everything left to place shares a category, and freshness ordering is
+    // shuffled — so a session that happens to draw seven signs questions ends
+    // on an unavoidable run. Asserting a flat "never more than 2" made this
+    // test a coin flip; the real contract is that any longer run is forced.
+    //
+    // Repeated because the queue is randomised: one pass proves very little.
+    for (let attempt = 0; attempt < 25; attempt++) {
+      const queue = buildQueue(defaultUserState(), pool, 12);
+      for (let i = 2; i < queue.length; i++) {
+        const isRunOfThree =
+          queue[i].categoryId === queue[i - 1].categoryId &&
+          queue[i].categoryId === queue[i - 2].categoryId;
+        if (!isRunOfThree) continue;
+        // Forced only if nothing of another category was still available to
+        // place here — i.e. the whole tail is this one category.
+        const tailIsHomogeneous = queue
+          .slice(i - 2)
+          .every((q) => q.categoryId === queue[i].categoryId);
+        expect(
+          tailIsHomogeneous,
+          `avoidable run of ${queue[i].categoryId} at index ${i}: ${queue
+            .map((q) => q.categoryId)
+            .join(" → ")}`,
+        ).toBe(true);
+      }
     }
   });
 });

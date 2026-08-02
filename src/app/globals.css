@@ -29,12 +29,15 @@
     --muted: 46 30% 90%;
     --muted-foreground: 44 10% 40%;
 
-    --success: 152 60% 30%;
-    /* Deep ochre: amber at 45% lightness only reached 2.6:1 on the cream
-       background — text-warning is real information (wrong answers, streak
-       risk), so it must clear WCAG AA (this is 4.6:1). */
-    --warning: 32 95% 34%;
-    --danger: 8 70% 48%;
+    /* These three are tuned against their own *tint*, not just the page. The
+       house pattern is coloured text on a bg-<token>/10 chip (Again / Hard /
+       Easy, "+6 this week", inline feedback), and a tint lifts the background
+       toward the text — so values that cleared AA on cream landed at 3.8–4.2:1
+       inside a chip. Each now clears 4.5:1 on the page and on tints from /6
+       through /20. Deep ochre rather than amber for the same reason. */
+    --success: 152 60% 26%;
+    --warning: 32 95% 28.5%;
+    --danger: 8 70% 39%;
 
     --border: 45 22% 80%;
     --input: 45 22% 78%;
@@ -73,9 +76,13 @@
     --muted: 158 8% 14%;
     --muted-foreground: 150 8% 62%;
 
-    --success: 150 50% 54%;
-    --warning: 36 90% 58%;
-    --danger: 4 78% 64%;
+    /* Same tint rule as light mode, mirrored: here a tint pulls the background
+       *up* toward the text, so the fix is more lightness rather than less.
+       --danger sat at 4.46:1 on a bg-danger/20 callout — under AA on exactly
+       the surface it is used on. Verified by tests/contrast.test.ts. */
+    --success: 150 50% 56%;
+    --warning: 36 90% 60%;
+    --danger: 4 78% 67%;
 
     --border: 158 9% 20%;
     --input: 158 9% 22%;

@@ -13,7 +13,7 @@ export default function PricingPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <MarketingNav />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1">
         <div className="container pt-16 text-center lg:pt-20">
           <h1 className="text-balance font-display text-4xl font-semibold tracking-tight">
             One plan to pass. One to keep driving well.

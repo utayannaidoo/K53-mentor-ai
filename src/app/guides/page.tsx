@@ -15,7 +15,7 @@ export default function GuidesIndexPage() {
   return (
     <>
       <MarketingNav />
-      <main className="container max-w-3xl py-16">
+      <main id="main-content" className="container max-w-3xl py-16">
         <h1 className="font-display text-3xl font-semibold tracking-tight">K53 guides</h1>
         <p className="mt-3 text-muted-foreground">
           Everything first-time test takers ask us, answered in plain English — no memorandum

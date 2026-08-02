@@ -31,7 +31,7 @@ export function AppShellSkeleton() {
             <Skeleton className="h-6 w-16 rounded-full" />
           </div>
         </header>
-        <main className="flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-10">
+        <main id="main-content" className="flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-10">
           <Skeleton className="h-7 w-56" />
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 3 }).map((_, i) => (
