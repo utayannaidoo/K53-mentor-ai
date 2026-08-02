@@ -14,6 +14,12 @@ function TutorInner() {
   const question = sp.get("question");
   const card = sp.get("card");
   const category = sp.get("category");
+  // ?chose=N — the option the learner picked when they got this wrong. It's
+  // what makes the reply about their misconception rather than about the
+  // correct answer in the abstract.
+  const choseParam = Number(sp.get("chose"));
+  const chosenIndex =
+    Number.isInteger(choseParam) && choseParam >= 0 && choseParam <= 3 ? choseParam : undefined;
 
   let ctxInput: { type: "question" | "card" | "category"; id: string } | null = null;
   if (question) ctxInput = { type: "question", id: question };
@@ -35,7 +41,12 @@ function TutorInner() {
     const categoryId =
       ctxInput.type === "category" ? (ctxInput.id as CategoryId) : (item?.categoryId ?? null);
     const label = contextLabel(ctxInput.type, categoryId);
-    initial = { ...ctxInput, label, prompt: starterPrompt(ctxInput.type, item, label) };
+    initial = {
+      ...ctxInput,
+      label,
+      chosenIndex,
+      prompt: starterPrompt(ctxInput.type, item, label, chosenIndex),
+    };
   }
 
   return <TutorChat initial={initial} />;

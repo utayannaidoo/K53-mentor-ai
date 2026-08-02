@@ -23,6 +23,15 @@ export type TutorContextType = "question" | "card" | "category" | "none";
 export interface TutorContextInput {
   type: TutorContextType;
   id?: string;
+  /**
+   * The option the learner actually picked, when they got it wrong.
+   *
+   * This is the misconception itself. Knowing only the right answer, the tutor
+   * can explain why B is correct; knowing the learner chose D, it can explain
+   * why *D is tempting and wrong* — which is the thing that actually needs
+   * unlearning, and the difference between a textbook and an instructor.
+   */
+  chosenIndex?: number;
 }
 
 /** The chip shown above the composer. Null when there is no anchor item. */
@@ -46,13 +55,18 @@ export function starterPrompt(
   type: TutorContextType,
   item: Question | Flashcard | null,
   label?: string | null,
+  chosenIndex?: number,
 ): string {
   switch (type) {
     case "question": {
-      const prompt = item && "prompt" in item ? item.prompt : null;
-      return prompt
-        ? `Why is the correct answer to "${prompt}" the right one? Please explain it simply.`
-        : "Why is the correct answer to this question right? Please explain it simply.";
+      const q = item && "prompt" in item ? item : null;
+      if (!q) return "Why is the correct answer to this question right? Please explain it simply.";
+      // Ask the question the learner actually has, not the generic one.
+      const chose =
+        chosenIndex != null && chosenIndex !== q.correctIndex ? q.options[chosenIndex] : undefined;
+      return chose
+        ? `I answered "${chose}" for "${q.prompt}" and got it wrong. Why is that answer wrong?`
+        : `Why is the correct answer to "${q.prompt}" the right one? Please explain it simply.`;
     }
     case "card": {
       const front = item && "front" in item ? item.front : null;
