@@ -61,8 +61,10 @@ export default function GuidePage() {
           a stretch of clean driving brings you back to zero and keeps you well under the threshold.
           The same knowledge that passes your learner's test — right-of-way order, stopping rules,
           speed limits — is what keeps demerit points off your record once you're on the road.{" "}
-          <Link href="/study/questions?category=rules">Practise the rules of the road</Link> to build
-          both at once.
+          {/* /study/* is auth-gated — organic readers landing here from search
+              were sent to a login screen. The free assessment is the public
+              entry point. */}
+          <Link href="/onboarding">Practise the rules of the road</Link> to build both at once.
         </p>
       </section>
       <section>

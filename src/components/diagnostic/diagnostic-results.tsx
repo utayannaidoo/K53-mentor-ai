@@ -148,6 +148,14 @@ export function DiagnosticResults() {
                   Create my free account <ArrowRight />
                 </Button>
                 <p className="mt-3 text-xs text-muted-foreground">No credit card required.</p>
+                {/* Someone who already has an account and re-ran the diagnostic
+                    had no way forward from here at all. */}
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Already have an account?{" "}
+                  <Link href="/login" className="font-medium text-primary hover:underline">
+                    Log in
+                  </Link>
+                </p>
               </Card>
             </div>
           )}
