@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/env";
 import { track } from "@/lib/analytics";
 import { isPasswordValid } from "@/lib/auth/password";
+import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
@@ -79,8 +80,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   // Already signed in — hand off to the post-auth destination (checkout if a
   // plan was chosen, otherwise the router that decides onboarding vs dashboard).
+  //
+  // Demo mode only. In production the middleware makes this call server-side
+  // before the page renders, and `isAuthed` is a localStorage flag that
+  // outlives the auth cookie — trusting it here loops /login → /continue →
+  // /dashboard → /login until WebKit's history throttle throws.
+  // See shouldAuthPageSelfRedirect.
   React.useEffect(() => {
-    if (ready && isAuthed) router.replace(postAuthDest());
+    if (shouldAuthPageSelfRedirect({ ready, isAuthed, supabaseConfigured: isSupabaseConfigured }))
+      router.replace(postAuthDest());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, isAuthed, router]);
 

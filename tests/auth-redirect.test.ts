@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { signedInAuthPageDest } from "@/lib/supabase/middleware";
+import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
 
 const dest = (qs: string) => signedInAuthPageDest(new URLSearchParams(qs));
 
@@ -37,5 +38,41 @@ describe("signed-in user on an auth page", () => {
   it("sends an ordinary signed-in visitor to the dashboard with a clean URL", () => {
     expect(dest("")).toEqual({ pathname: "/dashboard", search: "" });
     expect(dest("next=/study/mock-exam&ref=abc")).toEqual({ pathname: "/dashboard", search: "" });
+  });
+});
+
+describe("auth page self-redirect", () => {
+  it("never fires in production, however signed-in the local store looks", () => {
+    // The regression this guards: a stale localStorage profile with no Supabase
+    // cookie (iOS Safari evicts the cookie after ~7 days, ITP) sent /login to
+    // /continue, which sent /dashboard, which the middleware sent back to
+    // /login — ~180 history.replaceState calls a second. WebKit throws past 100
+    // per 10s, so the phone landed on Next's client-exception screen.
+    expect(
+      shouldAuthPageSelfRedirect({ ready: true, isAuthed: true, supabaseConfigured: true }),
+    ).toBe(false);
+  });
+
+  it("still fires in demo mode, where no middleware can do it instead", () => {
+    expect(
+      shouldAuthPageSelfRedirect({ ready: true, isAuthed: true, supabaseConfigured: false }),
+    ).toBe(true);
+  });
+
+  it("waits for the local store before deciding anything", () => {
+    // Pre-hydration `isAuthed` is false for everyone, so redirecting on it
+    // would be a guess rather than a fact.
+    expect(
+      shouldAuthPageSelfRedirect({ ready: false, isAuthed: true, supabaseConfigured: false }),
+    ).toBe(false);
+  });
+
+  it("leaves a signed-out visitor on the form", () => {
+    expect(
+      shouldAuthPageSelfRedirect({ ready: true, isAuthed: false, supabaseConfigured: false }),
+    ).toBe(false);
+    expect(
+      shouldAuthPageSelfRedirect({ ready: true, isAuthed: false, supabaseConfigured: true }),
+    ).toBe(false);
   });
 });
