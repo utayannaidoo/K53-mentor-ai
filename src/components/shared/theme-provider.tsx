@@ -10,7 +10,12 @@ export function ThemeProvider({
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="light"
+      // "system", not "light": enableSystem only takes effect when the resolved
+      // theme is "system", so a "light" default meant a first-time visitor whose
+      // phone is in dark mode still got the cream theme — while the dark
+      // theme-color meta turned their browser chrome dark. Cream page, dark
+      // chrome, no way to fix it on mobile.
+      defaultTheme="system"
       enableSystem
       disableTransitionOnChange
       {...props}
