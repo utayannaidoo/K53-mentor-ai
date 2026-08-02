@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
@@ -159,14 +160,25 @@ function DiagnosticQuiz() {
   return (
     <div className="flex min-h-dvh flex-col bg-background bg-app">
       <header className="flex items-center justify-between px-6 py-5">
-        <Logo />
+        {/* The only way off this screen used to be the browser's back button —
+            there was not a single link on the page. */}
+        <Link href="/" aria-label="K53 Mentor AI home">
+          <Logo />
+        </Link>
         <span className="font-mono text-sm text-muted-foreground">
           {index + 1}/{total}
         </span>
       </header>
 
       <div className="mx-auto w-full max-w-xl px-6">
-        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          role="progressbar"
+          aria-valuemin={1}
+          aria-valuemax={total}
+          aria-valuenow={index + 1}
+          aria-valuetext={`Question ${index + 1} of ${total}`}
+          className="h-1.5 overflow-hidden rounded-full bg-muted"
+        >
           <div
             className="h-full rounded-full bg-primary transition-[width] duration-300"
             style={{ width: `${((index + 1) / total) * 100}%` }}
@@ -174,7 +186,13 @@ function DiagnosticQuiz() {
         </div>
       </div>
 
-      <div className="flex flex-1 items-center justify-center px-6 py-8">
+      {/* Advancing a question swaps the whole panel with no announcement, so a
+          screen-reader user had no idea the question had changed. */}
+      <p aria-live="polite" className="sr-only">
+        Question {index + 1} of {total}. {current.prompt}
+      </p>
+
+      <main id="main-content" className="flex flex-1 items-center justify-center px-6 py-8">
         <div key={current.id} className="w-full max-w-xl animate-fade-in">
           <p className="text-sm font-medium uppercase tracking-wide text-primary">
             Question {index + 1}
@@ -185,7 +203,8 @@ function DiagnosticQuiz() {
                 image={current.image}
                 sign={current.sign}
                 alt={signQuestionAlt(current.image, current.categoryId)}
-                className="h-20 w-20"
+                // The sign *is* the question — 80px on a 375px phone was a squint.
+                className="h-32 w-32 sm:h-36 sm:w-36"
                 priority
               />
             </div>
@@ -226,7 +245,7 @@ function DiagnosticQuiz() {
             No pressure — there&apos;s no fail here, just useful signal.
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

@@ -254,7 +254,13 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
           {enforcePassword && <PasswordRequirements password={password} className="pt-1" />}
         </div>
 
-        {error && <p className="text-sm text-danger">{error}</p>}
+        {/* role="alert" so screen readers actually announce the failure — this
+            was silent text before, and it's the only feedback on a bad login. */}
+        {error && (
+          <p role="alert" className="text-sm text-danger">
+            {error}
+          </p>
+        )}
 
         {unconfirmed && (
           <div className="rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">

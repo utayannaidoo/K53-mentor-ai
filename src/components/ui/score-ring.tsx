@@ -46,12 +46,18 @@ export function ScoreRing({
   const radius = (size - stroke) / 2;
   const circumference = 2 * Math.PI * radius;
 
-  const [shown, setShown] = React.useState(animate ? 0 : pct);
+  // Starts at the real score, never 0. This is the headline number on the
+  // dashboard and on the diagnostic results screen — the conversion moment —
+  // and seeding it at 0 put "0%" in the server HTML and left it there for
+  // anyone whose rAF never ran. The count-up is a hydration flourish: rewind,
+  // then animate, so the honest value is what shows if the animation never does.
+  const [shown, setShown] = React.useState(pct);
   React.useEffect(() => {
-    if (!animate) {
+    if (!animate || window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setShown(pct);
       return;
     }
+    setShown(0);
     let raf = 0;
     const start = performance.now();
     const duration = 1100;
@@ -62,7 +68,14 @@ export function ScoreRing({
       if (k < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    // rAF is throttled to nothing in a background tab, and the score is the one
+    // number on this screen that must never lie. If the animation hasn't landed
+    // by the time it should have, snap to the truth.
+    const failsafe = window.setTimeout(() => setShown(pct), duration + 400);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.clearTimeout(failsafe);
+    };
   }, [pct, animate]);
 
   const offset = circumference - (shown / 100) * circumference;

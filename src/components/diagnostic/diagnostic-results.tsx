@@ -50,7 +50,7 @@ export function DiagnosticResults() {
         <ThemeToggle />
       </header>
 
-      <main className="mx-auto max-w-2xl px-6 pb-20">
+      <main id="main-content" className="mx-auto max-w-2xl px-6 pb-20">
         {/* Reward moment */}
         <div className="flex flex-col items-center text-center">
           <Badge variant="default" className="mb-4 gap-1">
@@ -96,7 +96,13 @@ export function DiagnosticResults() {
 
         {/* Full breakdown + plan (gated until signup) */}
         <div className="relative mt-6">
-          <div className={isAuthed ? "" : "pointer-events-none select-none blur-[6px]"}>
+          {/* aria-hidden as well as blurred: without it a screen reader read
+              the entire "locked" breakdown aloud, so the gate only existed for
+              sighted users. */}
+          <div
+            aria-hidden={!isAuthed}
+            className={isAuthed ? "" : "pointer-events-none select-none blur-[6px]"}
+          >
             <Card className="p-6">
               <h2 className="font-display text-lg font-semibold">Full category breakdown</h2>
               <div className="mt-5 grid gap-4 sm:grid-cols-2">
