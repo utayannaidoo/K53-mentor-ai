@@ -15,7 +15,7 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { SessionRecap } from "@/components/study/session-recap";
 import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, MINI_MOCK, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
+import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, miniMockConfig, MINI_MOCK, MINI_MOCK_LENGTHS, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT } from "@/lib/constants";
@@ -49,6 +49,13 @@ export function MockExam() {
   const sp = useSearchParams();
   // Mini mode: 15 questions at the real pass ratio, weighted to weak areas.
   const mini = sp.get("mode") === "mini";
+  // Length is chosen on the intro screen and carried in the URL, so a learner
+  // can bookmark or share the exact drill they like.
+  const nParam = Number(sp.get("n"));
+  const miniLength = MINI_MOCK_LENGTHS.some((l) => l.total === nParam) ? nParam : MINI_MOCK.total;
+  // Memoised so `submit`'s dependency array stays stable — a fresh object each
+  // render would rebuild the callback on every tick of the countdown.
+  const miniCfg = React.useMemo(() => miniMockConfig(miniLength), [miniLength]);
   // Drill mode: one exam section at its real size and pass mark.
   const drillParam = sp.get("section") as ExamSection | null;
   const drill: ExamSection | null =
@@ -58,7 +65,7 @@ export function MockExam() {
   const passMark = drill
     ? SECTION_DRILL[drill].passMark
     : mini
-      ? MINI_MOCK.passMark
+      ? miniCfg.passMark
       : EXAM_FORMAT.passMark;
   // Named `bank` deliberately: `questions` below is the paper currently being
   // sat, and sampling from that instead of the bank builds an empty exam.
@@ -88,7 +95,7 @@ export function MockExam() {
       const c = idxs.filter((x) => answers[x.idx] === x.q.correctIndex).length;
       perCategory[cat.id] = { correct: c, total: idxs.length, score: Math.round((c / idxs.length) * 100) };
     }
-    const mark = drill ? SECTION_DRILL[drill].passMark : mini ? MINI_MOCK.passMark : EXAM_FORMAT.passMark;
+    const mark = drill ? SECTION_DRILL[drill].passMark : mini ? miniCfg.passMark : EXAM_FORMAT.passMark;
     // Minis and drills aren't sectioned, so they keep their single mark. A full
     // paper goes through fullMockPassed, which requires each section's own mark
     // as well as the total — the rule the DLTC actually applies.
@@ -139,7 +146,7 @@ export function MockExam() {
     // Finishing a full mock is the biggest moment in the app — mark it.
     haptics.celebrate();
     setPhase("results");
-  }, [answers, questions, mini, drill, recordMockExam, recordSession]);
+  }, [answers, questions, mini, drill, miniCfg, recordMockExam, recordSession]);
 
   // Countdown timer.
   React.useEffect(() => {
@@ -156,13 +163,13 @@ export function MockExam() {
     const qs = drill
       ? sampleSectionDrill(bank, drill, state.attempts, studyCodeOf(state))
       : mini
-        ? sampleMiniMock(bank, state.attempts, studyCodeOf(state), readiness.weakCategories)
+        ? sampleMiniMock(bank, state.attempts, studyCodeOf(state), readiness.weakCategories, miniCfg.total)
         : sampleMockExam(bank, state.attempts, studyCodeOf(state));
     if (drill) track("drill_started", { section: drill });
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));
     setI(0);
-    setSecondsLeft(drill ? SECTION_DRILL[drill].seconds : mini ? MINI_MOCK.seconds : EXAM_SECONDS);
+    setSecondsLeft(drill ? SECTION_DRILL[drill].seconds : mini ? miniCfg.seconds : EXAM_SECONDS);
     startRef.current = Date.now();
     preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
@@ -224,13 +231,13 @@ export function MockExam() {
             {drill
               ? `The real test's ${SECTION_LABEL[drill].toLowerCase()} section on its own — ${SECTION_DRILL[drill].total} questions at the real pace, and you need ${SECTION_DRILL[drill].passMark} to pass, exactly like on test day.`
               : mini
-                ? `${MINI_MOCK.total} questions at the real test's pass ratio, weighted toward your weakest areas. A pressure check that fits in a break.`
+                ? `${miniCfg.total} questions at the real test's pass ratio, weighted toward your weakest areas — pick a length below.`
                 : `${EXAM_FORMAT.totalQuestions} questions, just like the real test. You must reach the pass mark in every section. The clock starts when you begin.`}
           </p>
           <div className="mt-6 grid grid-cols-3 gap-3 text-sm">
-            <Stat label="Questions" value={`${drill ? SECTION_DRILL[drill].total : mini ? MINI_MOCK.total : EXAM_FORMAT.totalQuestions}`} />
+            <Stat label="Questions" value={`${drill ? SECTION_DRILL[drill].total : mini ? miniCfg.total : EXAM_FORMAT.totalQuestions}`} />
             <Stat label="To pass" value={`${passMark}`} />
-            <Stat label="Time" value={drill ? `${Math.round(SECTION_DRILL[drill].seconds / 60)} min` : mini ? "12 min" : "60 min"} />
+            <Stat label="Time" value={drill ? `${Math.round(SECTION_DRILL[drill].seconds / 60)} min` : mini ? `${Math.round(miniCfg.seconds / 60)} min` : "60 min"} />
           </div>
           {!mini && !drill && (
             <div className="mt-4 space-y-1.5 text-left">
@@ -247,6 +254,34 @@ export function MockExam() {
               ))}
             </div>
           )}
+
+          {/* Framed by intent, not by count — nobody sits down wanting "10
+              questions"; they want to know if they still remember it. */}
+          {mini && (
+            <div className="mt-5 grid grid-cols-2 gap-2 text-left">
+              {MINI_MOCK_LENGTHS.map((l) => (
+                <Link
+                  key={l.total}
+                  href={`/study/mock-exam?mode=mini&n=${l.total}`}
+                  scroll={false}
+                  aria-current={l.total === miniCfg.total ? "true" : undefined}
+                  className={cn(
+                    "press rounded-xl border-2 p-3 transition-colors",
+                    l.total === miniCfg.total
+                      ? "border-primary bg-primary/[0.05]"
+                      : "border-border hover:border-primary/40",
+                  )}
+                >
+                  <span className="block text-sm font-semibold text-foreground">{l.label}</span>
+                  <span className="block text-xs text-muted-foreground">{l.blurb}</span>
+                  <span className="mt-1 block font-mono text-2xs text-muted-foreground">
+                    {l.total} questions · pass {miniMockConfig(l.total).passMark}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+
           <Button size="xl" className="mt-7 w-full" onClick={start}>
             Start {drill ? "drill" : mini ? "mini mock" : "mock exam"} <ArrowRight />
           </Button>

@@ -177,32 +177,57 @@ export function easyFirst(pool: Question[]): Question[] {
 }
 
 /**
- * Mini mock: a 15-question pressure check with the real test's pass ratio
- * (12/15 ≈ the official 77%). Weighted toward the learner's weakest
- * categories so it doubles as targeted revision.
+ * Mini mock: a pressure check at the real test's pass ratio, weighted toward
+ * the learner's weakest categories so it doubles as targeted revision.
  */
-export const MINI_MOCK = { total: 15, passMark: 12, seconds: 12 * 60 };
+/** Seconds a mini mock allows per question — the real paper's pace, tightened. */
+const MINI_SECONDS_PER_QUESTION = 48;
+/** The real test's pass ratio (51/64), which every mini length inherits. */
+const MINI_PASS_RATIO = 0.8;
+
+/**
+ * Mini lengths, framed by what the learner is trying to do rather than by
+ * question count. Nobody sits down wanting "10 questions"; they want to know
+ * whether they still remember it, or to feel the clock.
+ */
+export const MINI_MOCK_LENGTHS = [
+  { total: 5, label: "Quick check", blurb: "Am I still sharp?" },
+  { total: 10, label: "Focused drill", blurb: "A proper go at my weak areas." },
+  { total: 15, label: "Pressure test", blurb: "The standard mini, timed." },
+  { total: 20, label: "Deep run", blurb: "Closest thing to the real paper." },
+] as const;
+
+export function miniMockConfig(total: number) {
+  return {
+    total,
+    passMark: Math.ceil(total * MINI_PASS_RATIO),
+    seconds: total * MINI_SECONDS_PER_QUESTION,
+  };
+}
+
+/** Default mini — kept as a named export because several surfaces quote it. */
+export const MINI_MOCK = miniMockConfig(15);
 
 export function sampleMiniMock(
   pool: Question[],
   attempts: QuestionAttempt[],
   code: VehicleCode,
   weakCategories: CategoryId[] = [],
+  total: number = MINI_MOCK.total,
 ): Question[] {
   const bank = forCode(pool, code);
   const weakSet = new Set(weakCategories.slice(0, 3));
   const weakPool = bank.filter((q) => weakSet.has(q.categoryId));
   const restPool = bank.filter((q) => !weakSet.has(q.categoryId));
-  // ~60% weak-category questions, the rest spread across everything else.
-  const targetWeak = weakSet.size > 0 ? Math.min(9, weakPool.length) : 0;
+  // ~60% weak-category questions, the rest spread across everything else —
+  // scaled to the chosen length rather than fixed, so a 5-question check is
+  // still mostly weak-area and a 20-question run isn't overwhelmingly so.
+  const targetWeak =
+    weakSet.size > 0 ? Math.min(Math.round(total * 0.6), weakPool.length) : 0;
   const seen = new Set<string>();
   const picked = takeDistinctSubjects(orderByFreshness(weakPool, attempts), targetWeak, seen);
   picked.push(
-    ...takeDistinctSubjects(
-      orderByFreshness(restPool, attempts),
-      MINI_MOCK.total - picked.length,
-      seen,
-    ),
+    ...takeDistinctSubjects(orderByFreshness(restPool, attempts), total - picked.length, seen),
   );
   return shuffle(picked).map(withShuffledOptions);
 }
