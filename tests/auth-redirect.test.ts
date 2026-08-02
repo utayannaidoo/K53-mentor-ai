@@ -37,7 +37,36 @@ describe("signed-in user on an auth page", () => {
 
   it("sends an ordinary signed-in visitor to the dashboard with a clean URL", () => {
     expect(dest("")).toEqual({ pathname: "/dashboard", search: "" });
-    expect(dest("next=/study/mock-exam&ref=abc")).toEqual({ pathname: "/dashboard", search: "" });
+    expect(dest("ref=abc")).toEqual({ pathname: "/dashboard", search: "" });
+  });
+
+  it("carries a ?next= through /continue rather than straight to the page", () => {
+    // Someone bounced off a protected page, who then signed in elsewhere and
+    // reloaded the bounced URL, still asked for that page. It routes via
+    // /continue because the middleware runs server-side and cannot see whether
+    // this account has finished onboarding — /continue can, and gates it the
+    // same way the password and OAuth paths are gated.
+    expect(dest("next=/study/mock-exam&ref=abc")).toEqual({
+      pathname: "/continue",
+      search: "?next=%2Fstudy%2Fmock-exam",
+    });
+    expect(dest("next=/licence-prep")).toEqual({
+      pathname: "/continue",
+      search: "?next=%2Flicence-prep",
+    });
+  });
+
+  it("still prefers a purchase intent over wherever they were bounced from", () => {
+    expect(dest("plan=premium&next=/study/mock-exam")).toEqual({
+      pathname: "/account/billing",
+      search: "?buy=premium&cycle=monthly",
+    });
+  });
+
+  it("refuses a ?next= that would send them off-site", () => {
+    expect(dest("next=//evil.com")).toEqual({ pathname: "/dashboard", search: "" });
+    expect(dest("next=https://evil.com")).toEqual({ pathname: "/dashboard", search: "" });
+    expect(dest("next=/\\evil.com")).toEqual({ pathname: "/dashboard", search: "" });
   });
 });
 
