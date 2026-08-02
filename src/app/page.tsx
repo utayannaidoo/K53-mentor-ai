@@ -30,9 +30,9 @@ export default function HomePage() {
           <CategoryMarquee />
         </Reveal>
 
-        <Reveal>
-          <ProductPreview />
-        </Reveal>
+        {/* No Reveal wrapper: this section pins itself as you scroll through it,
+            and a sticky element can't be nested inside Reveal's transform. */}
+        <ProductPreview />
 
         <HowItWorks />
 

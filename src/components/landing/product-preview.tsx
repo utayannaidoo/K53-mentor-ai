@@ -58,63 +58,87 @@ export function ProductPreview() {
   }
 
   return (
-    <section className="px-6 py-20 sm:py-24">
-      {/* Mobile: centered stack (copy → tabs → demo → CTA). Desktop: the live
-          demo leads on the LEFT, copy/tabs/CTA on the right. */}
-      <div className="mx-auto flex max-w-[1120px] flex-col text-center lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:text-left">
-        <div className="order-2 lg:order-1">
-          {/* Device-ish frame. The height is FIXED so neither switching tabs nor
-              answering the question resizes it — a growing card used to shove
-              the rest of the page down mid-interaction. Each demo fills the
-              frame and scrolls internally on the rare overflow (long answer
-              explanation on a narrow phone). */}
-          <div
-            key={tab}
-            className="glass-2 mx-auto mt-6 flex h-[620px] w-full max-w-md animate-fade-in flex-col overflow-hidden rounded-2xl border border-border p-5 text-left shadow-[0_24px_60px_-24px_hsl(var(--shadow)/0.4)] sm:p-6 lg:mt-0 lg:ml-0"
-          >
-            {tab === "practice" && <DemoQuestion onInteract={() => noteInteraction("practice")} />}
-            {tab === "flashcard" && <DemoFlashcard onInteract={() => noteInteraction("flashcard")} />}
-            {tab === "tutor" && <DemoTutor onInteract={() => noteInteraction("tutor")} />}
+    /* Scroll hold. The section is worth a beat of attention — it is the only
+       place on the page where the product is actually usable — so on a screen
+       with room for it the whole thing pins for about two-thirds of a viewport
+       of scrolling before releasing. Below `board` (phones, short windows) it
+       scrolls past normally: pinning a section that doesn't fit its viewport
+       traps the reader instead of holding them.
+       The track must not sit inside a transformed ancestor, which is why the
+       page renders this section without a `Reveal` wrapper. */
+    <div className="board:h-[165vh]">
+      <div className="board:sticky board:top-0 board:flex board:h-dvh board:items-center">
+        <section className="w-full px-6 py-20 sm:py-24 board:py-0">
+          {/* Mobile: centered stack (copy → tabs → demo → CTA). Desktop: the live
+              demo leads on the LEFT, copy/tabs/CTA on the right. */}
+          <div className="mx-auto flex max-w-[1120px] flex-col text-center lg:grid lg:grid-cols-[1.1fr_0.9fr] lg:items-center lg:gap-12 lg:text-left">
+            <div className="order-2 lg:order-1">
+              {/* Device-ish frame. The height is FIXED so neither switching tabs
+                  nor answering the question resizes it — a growing card used to
+                  shove the rest of the page down mid-interaction.
+                  It is sized to sit beside the copy column rather than tower
+                  over it: at 620px the frame was 240px taller than the text it
+                  is paired with, which pushed its own bottom edge — where the
+                  answer explanation appears — below the fold. Each demo now
+                  fits the frame outright on a desktop column; the internal
+                  scroller only earns its keep on a narrow phone. */}
+              <div
+                key={tab}
+                className="glass-2 mx-auto mt-6 flex h-[540px] w-full max-w-md animate-fade-in flex-col overflow-hidden rounded-2xl border border-border p-5 text-left shadow-[0_24px_60px_-24px_hsl(var(--shadow)/0.4)] sm:p-6 lg:mt-0 lg:ml-0 lg:h-[500px]"
+              >
+                {tab === "practice" && (
+                  <DemoQuestion onInteract={() => noteInteraction("practice")} />
+                )}
+                {tab === "flashcard" && (
+                  <DemoFlashcard onInteract={() => noteInteraction("flashcard")} />
+                )}
+                {tab === "tutor" && <DemoTutor onInteract={() => noteInteraction("tutor")} />}
+              </div>
+            </div>
+
+            <div className="order-1 lg:order-2 lg:flex lg:flex-col lg:items-start">
+              <p className="text-sm font-semibold uppercase tracking-wider text-primary">
+                Try it now
+              </p>
+              <h2 className="mt-2 text-balance font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+                This is what studying feels like
+              </h2>
+              <p className="mx-auto mt-3 max-w-md text-muted-foreground lg:mx-0">
+                No signup needed — answer a real K53 question, flip a flashcard, ask the AI tutor.
+              </p>
+
+              <div className="mt-6 flex flex-wrap justify-center gap-2 lg:justify-start">
+                <Chip active={tab === "practice"} onClick={() => setTab("practice")}>
+                  Practice question
+                </Chip>
+                <Chip active={tab === "flashcard"} onClick={() => setTab("flashcard")}>
+                  Flashcard
+                </Chip>
+                <Chip active={tab === "tutor"} onClick={() => setTab("tutor")}>
+                  AI tutor
+                </Chip>
+              </div>
+
+              <div className="hidden lg:mt-10 lg:block">
+                <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "gap-2")}>
+                  Start free assessment <ArrowRight className="h-4 w-4" />
+                </Link>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Free · no credit card · 5 minutes
+                </p>
+              </div>
+            </div>
+
+            <div className="order-3 lg:hidden">
+              <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "mt-8 gap-2")}>
+                Start free assessment <ArrowRight className="h-4 w-4" />
+              </Link>
+              <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · 5 minutes</p>
+            </div>
           </div>
-        </div>
-
-        <div className="order-1 lg:order-2 lg:flex lg:flex-col lg:items-start">
-          <p className="text-sm font-semibold uppercase tracking-wider text-primary">Try it now</p>
-          <h2 className="mt-2 text-balance font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-            This is what studying feels like
-          </h2>
-          <p className="mx-auto mt-3 max-w-md text-muted-foreground lg:mx-0">
-            No signup needed — answer a real K53 question, flip a flashcard, ask the AI tutor.
-          </p>
-
-          <div className="mt-6 flex flex-wrap justify-center gap-2 lg:justify-start">
-            <Chip active={tab === "practice"} onClick={() => setTab("practice")}>
-              Practice question
-            </Chip>
-            <Chip active={tab === "flashcard"} onClick={() => setTab("flashcard")}>
-              Flashcard
-            </Chip>
-            <Chip active={tab === "tutor"} onClick={() => setTab("tutor")}>
-              AI tutor
-            </Chip>
-          </div>
-
-          <div className="hidden lg:mt-10 lg:block">
-            <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "gap-2")}>
-              Start free assessment <ArrowRight className="h-4 w-4" />
-            </Link>
-            <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · 5 minutes</p>
-          </div>
-        </div>
-
-        <div className="order-3 lg:hidden">
-          <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "mt-8 gap-2")}>
-            Start free assessment <ArrowRight className="h-4 w-4" />
-          </Link>
-          <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · 5 minutes</p>
-        </div>
+        </section>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -157,14 +181,21 @@ function DemoQuestion({ onInteract }: { onInteract: () => void }) {
         </div>
       </div>
 
-      <div className="mt-4">
-        <SignVisual image={DEMO_QUESTION.image} alt="Yield sign" className="h-16 w-16" />
+      {/* Sign beside the prompt rather than stacked above it — the same
+          information in ~50px less height, which is what buys the explanation
+          its place inside the frame. */}
+      <div className="mt-3.5 flex items-start gap-3">
+        <SignVisual
+          image={DEMO_QUESTION.image}
+          alt="Yield sign"
+          className="h-12 w-12 shrink-0"
+        />
+        <p className="font-display text-base font-semibold leading-snug tracking-tight">
+          {DEMO_QUESTION.prompt}
+        </p>
       </div>
-      <p className="mt-3 font-display text-lg font-semibold leading-snug tracking-tight">
-        {DEMO_QUESTION.prompt}
-      </p>
 
-      <div className="mt-4 space-y-2.5">
+      <div className="mt-3.5 space-y-2">
         {DEMO_QUESTION.options.map((opt, idx) => {
           const isThis = selected === idx;
           const showCorrect = answered && idx === DEMO_QUESTION.correctIndex;
@@ -179,7 +210,7 @@ function DemoQuestion({ onInteract }: { onInteract: () => void }) {
                 setSelected(idx);
               }}
               className={cn(
-                "flex w-full items-center gap-2.5 rounded-xl border-2 bg-card p-3 text-left text-sm transition-all",
+                "flex w-full items-center gap-2.5 rounded-xl border-2 bg-card px-3 py-2.5 text-left text-sm leading-snug transition-all",
                 !answered && "hover:border-primary/40",
                 showCorrect && "border-success bg-success/[0.06]",
                 showWrong && "border-warning bg-warning/[0.06]",
@@ -204,9 +235,9 @@ function DemoQuestion({ onInteract }: { onInteract: () => void }) {
       </div>
 
       {answered && (
-        <div className="mt-3 flex gap-2 animate-fade-in">
+        <div className="mt-2.5 flex gap-2 animate-fade-in">
           <CornerDownRight className="mt-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
-          <div className="flex-1 rounded-lg border border-success/30 bg-success/[0.05] p-3 text-sm leading-relaxed">
+          <div className="flex-1 rounded-lg border border-success/30 bg-success/[0.05] p-2.5 text-sm leading-snug">
             <span className={cn("font-semibold", isCorrect ? "text-success" : "text-warning")}>
               {isCorrect ? "Correct. " : "The correct answer. "}
             </span>
