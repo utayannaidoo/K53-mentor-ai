@@ -10,7 +10,10 @@ const GROUPS = [
       { href: "/#features", label: "Features" },
       { href: "/pricing", label: "Pricing" },
       { href: "/onboarding", label: "Free assessment" },
-      { href: "/licence-prep", label: "Driver's licence prep" },
+      // Not /licence-prep — that route is auth-gated, so every signed-out
+      // visitor who tapped this got a blank frame then an unexplained login
+      // screen. Pricing is where the yard-test modules are actually described.
+      { href: "/pricing", label: "Driver's licence prep" },
     ],
   },
   {
@@ -55,13 +58,16 @@ export function Footer() {
           </div>
           {GROUPS.map((g) => (
             <div key={g.title}>
-              <h4 className="text-sm font-semibold text-foreground">{g.title}</h4>
+              {/* h3, not h4 — the page's last heading before this is an h2, and
+                  skipping a level breaks heading-based navigation. */}
+              <h3 className="text-sm font-semibold text-foreground">{g.title}</h3>
               <ul className="mt-3 space-y-2">
                 {g.links.map((l) => (
                   <li key={l.label}>
                     <Link
                       href={l.href}
-                      className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                      // py-1 lifts these from a 17px tap target to ~28px.
+                      className="inline-block py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
                       {l.label}
                     </Link>
