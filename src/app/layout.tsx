@@ -43,15 +43,21 @@ export const metadata: Metadata = {
     "AI tutor",
     "driving test prep",
   ],
+  // "./" resolves against metadataBase per route, so every page emits its own
+  // canonical instead of none at all.
+  alternates: { canonical: "./" },
+  // Deliberately no openGraph.title / twitter.title here: hardcoding them meant
+  // every guide and the pricing page shared the homepage's card, so sharing a
+  // guide on WhatsApp — the SA sharing channel — showed the wrong headline.
+  // Omitted, Next derives them from each page's own title.
   openGraph: {
-    title: `${APP_NAME} — Pass your K53 licence faster`,
     description: APP_DESCRIPTION,
     url: SITE_URL,
     siteName: APP_NAME,
     locale: "en_ZA",
     type: "website",
   },
-  twitter: { card: "summary_large_image", title: APP_NAME, description: APP_DESCRIPTION },
+  twitter: { card: "summary_large_image", description: APP_DESCRIPTION },
   icons: {
     icon: "/favicon.svg",
     apple: "/apple-icon.png", // iOS home-screen (needs a real PNG, not SVG)

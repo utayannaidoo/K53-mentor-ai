@@ -16,9 +16,13 @@ export default function NotFound() {
           The page you&apos;re looking for was moved or never existed. Let&apos;s get you
           back on route.
         </p>
+        {/* Both destinations are public. A 404 is statically rendered, so it
+            can't know whether you're signed in — pointing the primary button at
+            /dashboard bounced every signed-out visitor straight to a login
+            screen they never asked for. */}
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href="/dashboard" className={buttonVariants({ variant: "default" })}>
-            Go to dashboard
+          <Link href="/onboarding" className={buttonVariants({ variant: "default" })}>
+            Start free assessment
           </Link>
           <Link href="/" className={buttonVariants({ variant: "outline" })}>
             Back to home
