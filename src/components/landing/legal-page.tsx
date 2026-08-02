@@ -1,20 +1,49 @@
 import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
+import { APP_NAME, SITE_URL } from "@/lib/constants";
 
 /** Shared chrome + prose layout for the legal/info pages linked from the footer. */
 export function LegalPage({
   title,
   intro,
   updated,
+  articleSlug,
   children,
 }: {
   title: string;
   intro: string;
   updated?: string;
+  /**
+   * Slug of the guide this page is, when it is one. Emits Article structured
+   * data so the guides can earn a rich result — they exist to rank, and shipped
+   * with no schema at all. Legal pages leave this unset.
+   */
+  articleSlug?: string;
   children: React.ReactNode;
 }) {
+  const articleSchema = articleSlug
+    ? {
+        "@context": "https://schema.org",
+        "@type": "Article",
+        headline: title,
+        description: intro,
+        url: `${SITE_URL}/guides/${articleSlug}`,
+        inLanguage: "en-ZA",
+        isAccessibleForFree: true,
+        author: { "@type": "Organization", name: APP_NAME, url: SITE_URL },
+        publisher: { "@type": "Organization", name: APP_NAME, url: SITE_URL },
+        mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}/guides/${articleSlug}` },
+      }
+    : null;
+
   return (
     <div className="flex min-h-dvh flex-col">
+      {articleSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema) }}
+        />
+      )}
       <MarketingNav />
       <main id="main-content" className="flex-1">
         <div className="container max-w-3xl py-16 lg:py-20">

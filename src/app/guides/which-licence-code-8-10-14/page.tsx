@@ -10,6 +10,7 @@ export const metadata: Metadata = {
 export default function GuidePage() {
   return (
     <LegalPage
+      articleSlug="which-licence-code-8-10-14"
       title="Code 8 vs Code 10 vs Code 14: which licence do you need?"
       intro="South Africans still use the old code numbers, the cards print the new letters, and the DLTC forms use both. Here's the translation table and what each code actually lets you drive."
     >

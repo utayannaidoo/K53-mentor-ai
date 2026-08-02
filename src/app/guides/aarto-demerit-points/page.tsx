@@ -11,6 +11,7 @@ export const metadata: Metadata = {
 export default function GuidePage() {
   return (
     <LegalPage
+      articleSlug="aarto-demerit-points"
       title="AARTO demerit points, explained"
       intro="From 1 September 2026, traffic infringements start adding demerit points to your driving record. Rack up too many and your licence is suspended — here's exactly how it works, and why learners need to care."
     >
