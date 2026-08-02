@@ -3,7 +3,13 @@
 import * as React from "react";
 import Link from "next/link";
 import { Check } from "lucide-react";
-import { PLANS, monthlyPrice, annualMonthlyPrice, isFreePlan } from "@/lib/billing/plans";
+import {
+  PLANS,
+  monthlyPrice,
+  annualMonthlyPrice,
+  annualPrice,
+  isFreePlan,
+} from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 
@@ -35,7 +41,13 @@ export function PricingSection({
       {/* Billing cadence — one price covers every licence code */}
       <div className="mt-2 flex flex-col items-center gap-3">
         {/* Sliding monthly / annual toggle */}
-        <div className="relative inline-grid grid-cols-2 items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]">
+        {/* A radiogroup, not two loose buttons — without the roles a screen
+            reader gets no signal about which cadence is currently selected. */}
+        <div
+          role="radiogroup"
+          aria-label="Billing cadence"
+          className="relative inline-grid grid-cols-2 items-center rounded-full bg-muted/60 p-[5px] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.07)]"
+        >
           <span
             aria-hidden
             className="absolute left-[5px] top-[5px] z-0 h-[calc(100%-10px)] w-[calc(50%-5px)] rounded-full bg-card/95 shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)] transition-transform duration-[450ms] ease-spring"
@@ -43,6 +55,8 @@ export function PricingSection({
           />
           <button
             type="button"
+            role="radio"
+            aria-checked={!annual}
             onClick={() => setAnnual(false)}
             className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
           >
@@ -50,6 +64,8 @@ export function PricingSection({
           </button>
           <button
             type="button"
+            role="radio"
+            aria-checked={annual}
             onClick={() => setAnnual(true)}
             className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
           >
@@ -96,8 +112,15 @@ export function PricingSection({
                 </span>
                 <span className="text-[0.9rem] text-muted-foreground">{isFree ? "forever" : "/mo"}</span>
               </div>
+              {/* Name the amount that actually leaves their account. "R40/mo
+                  billed yearly" without the R480 total is the kind of omission
+                  that reads as a trick the moment the card is charged. */}
               <div className="mt-1 h-3.5 text-[0.78rem] text-muted-foreground">
-                {isFree ? "No card needed" : annual ? "billed yearly" : "billed monthly"}
+                {isFree
+                  ? "No card needed"
+                  : annual
+                    ? `${formatZar(annualPrice(plan))} billed yearly`
+                    : "billed monthly"}
               </div>
 
               <Link
