@@ -1,38 +1,17 @@
 import { QUESTIONS, QUESTIONS_BY_ID } from "@/lib/content/questions";
 import { FLASHCARDS, FLASHCARDS_BY_ID } from "@/lib/content/flashcards";
 import { CATEGORY_MAP } from "@/lib/content/categories";
+import { bestQuestionFor } from "@/lib/ai/keyword-search";
 import type { TutorContextInput } from "@/lib/ai/tutor-prompt";
 import type { CategoryId } from "@/types";
 
-const STOP = new Set([
-  "what", "why", "how", "the", "are", "does", "explain", "this", "that", "when",
-  "should", "can", "you", "please", "tell", "about", "again", "another", "example",
-  "give", "with", "from", "have", "does", "your", "mean", "like",
-]);
+// The keyword matcher moved to ./keyword-search, which takes its pool as an
+// argument. This module resolves ids against the whole bank and so can never
+// run in a browser; the matching itself has no such constraint, and the
+// landing page's tutor demo needs it against the public starter pack.
+export { keywords } from "@/lib/ai/keyword-search";
 
-export function keywords(text: string): string[] {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .split(/\s+/)
-    .filter((w) => w.length > 3 && !STOP.has(w));
-}
-
-function searchExplanation(text: string) {
-  const kw = keywords(text);
-  if (!kw.length) return null;
-  let best: (typeof QUESTIONS)[number] | null = null;
-  let bestScore = 0;
-  for (const q of QUESTIONS) {
-    const hay = `${q.prompt} ${q.explanation} ${q.options.join(" ")}`.toLowerCase();
-    const score = kw.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
-    if (score > bestScore) {
-      bestScore = score;
-      best = q;
-    }
-  }
-  return bestScore >= 1 ? best : null;
-}
+const searchExplanation = (text: string) => bestQuestionFor(text, QUESTIONS);
 
 function intentPrefix(userText: string): string {
   if (/like i'?m 10|eli ?10|simpl|basic/i.test(userText)) return "Let me put it as simply as I can. ";

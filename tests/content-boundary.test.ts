@@ -91,12 +91,24 @@ describe("client / content boundary", () => {
   });
 
   it("the starter pack is the only content a client component may import", () => {
-    // Positive control: the provider is expected to import it, and nothing else
-    // should need to.
+    // Positive control, and a deliberately short list. The starter pack IS
+    // publicly shippable — that is its whole purpose — but every importer adds
+    // it to another bundle, so each one is a decision worth reviewing.
+    //
+    //  - content-provider: serves it as the pool until the full bank syncs.
+    //  - product-preview: the landing page's tutor demo answers from it. It
+    //    must never reach for the bank (via ai/fallback or otherwise), which
+    //    would hand the entire paid content set to anonymous visitors and make
+    //    the entitlement check on /api/content/pack pointless.
+    const SANCTIONED = ["content-provider.tsx", "product-preview.tsx"];
+    // Static AND dynamic form. product-preview loads it lazily so the landing
+    // page doesn't carry 31KB for a demo most visitors never open — matching
+    // only `from "..."` would quietly stop seeing this file at all.
+    const STARTER = /(?:from\s+|import\(\s*)["']@\/lib\/content\/starter["']/;
     const importers = files.filter((f) => {
       const src = readFileSync(f, "utf8");
-      return isClient(src) && /from\s+["']@\/lib\/content\/starter["']/.test(src);
+      return isClient(src) && STARTER.test(src);
     });
-    expect(importers.map((f) => path.basename(f))).toEqual(["content-provider.tsx"]);
+    expect(importers.map((f) => path.basename(f)).sort()).toEqual([...SANCTIONED].sort());
   });
 });
