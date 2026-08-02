@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 export const runtime = "nodejs";
 
@@ -34,10 +35,10 @@ const OTP_TYPES = new Set<EmailOtpType>([
  */
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
-  const next = searchParams.get("next") ?? "/dashboard";
-  // Only allow same-site relative redirects: a single leading slash, so
-  // protocol-relative ("//host") and scheme-ish ("/\") values are rejected.
-  const safeNext = /^\/(?![/\\])/.test(next) ? next : "/dashboard";
+  // Same-site relative paths only — see safeNextPath for what that rejects and
+  // why. Shared with the auth form and /continue so there is one rule, not
+  // three copies of a regex to keep in step.
+  const safeNext = safeNextPath(searchParams.get("next")) ?? "/dashboard";
 
   const fail = (reason: string) =>
     NextResponse.redirect(`${origin}/login?error=${reason}`);
