@@ -32,6 +32,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
+import { Cockpit } from "@/components/study/cockpit";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -186,6 +187,15 @@ export function ControlsGuide() {
         title="Car controls"
         description="What every control in the car is, what it does, and how to pull away — built on the K53 manual plus the everyday controls it leaves out."
       />
+
+      {/* Interactive first, reference second. The manual's diagram is accurate
+          but passive; the controls section of the test asks you to point at
+          things, and finding one yourself is what builds that memory. Sits on
+          the floating tier so it reads as the active surface above the
+          reference cards below it. */}
+      <div className="mb-5">
+        <Cockpit />
+      </div>
 
       {/* Labelled diagram from the manual */}
       <Card className={cn(glass, "p-4 sm:p-6")}>
