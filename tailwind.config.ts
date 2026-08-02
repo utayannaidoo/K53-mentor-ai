@@ -21,7 +21,18 @@ const config: Config = {
         // clipping. A width-only `lg` check left iPad portrait (820px wide,
         // ~1060 tall) on the cramped stacked layout while a short landscape
         // window at 1100px got the board and clipped it.
-        board: { raw: "(min-width: 768px) and (min-height: 620px)" },
+        //
+        // The floor is width-dependent, because how much height the board needs
+        // depends on how wide its two columns are: at 1366px the step bodies
+        // sit on two lines and the row is ~405px tall (~477px with the nav
+        // offset), while at 768px they wrap to three and it grows to ~488px
+        // (~560px). One flat 620px floor priced desktops out of a layout they
+        // fit comfortably — a short laptop window got the phone stack — so wide
+        // viewports now qualify from 500px of height and only genuinely narrow
+        // ones still have to clear 600px.
+        board: {
+          raw: "(min-width: 1024px) and (min-height: 500px), (min-width: 768px) and (min-height: 600px)",
+        },
       },
       colors: {
         border: "hsl(var(--border) / <alpha-value>)",

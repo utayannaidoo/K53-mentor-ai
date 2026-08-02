@@ -10,12 +10,15 @@ import {
   CornerDownRight,
   CheckCircle2,
   AlertTriangle,
+  RotateCcw,
   Sparkles,
   Zap,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -33,7 +36,7 @@ import { shuffle, cn } from "@/lib/utils";
 
 export function ScenarioPlayer() {
   const { state, recordScenarioAttempt, recordSession } = useStudyStore();
-  const { scenarios } = useContentPool();
+  const { scenarios, full, status, sync } = useContentPool();
   // Least-recently-seen first, then a session-sized slice — the two only work
   // together. Serving the whole pool (as this used to) replays every scenario
   // every session no matter how it is ordered; slicing without the rotation
@@ -55,6 +58,32 @@ export function ScenarioPlayer() {
     new Array(queue.length).fill(null),
   );
   const sessionRecorded = React.useRef(false);
+
+  /**
+   * Scenarios are the one mode with NOTHING in the bundled starter pack — the
+   * whole library is paid content behind /api/content/pack. The pool is always
+   * the starter pack on first render (the fetch, and even the Cache Storage
+   * read, resolve after mount), so a queue snapshotted there was always empty,
+   * `i >= queue.length` was true immediately, and the player opened on its own
+   * "0/0 scenarios judged correctly" summary. Tapping "New scenarios" rebuilt
+   * from the by-then-loaded pack, which is why it worked on the second go.
+   *
+   * Rebuild once when the pack lands, and only while the session is untouched
+   * so it can't swap the queue out from under someone mid-answer.
+   */
+  const builtFromFullPool = React.useRef(full);
+  React.useEffect(() => {
+    if (!full || builtFromFullPool.current) return;
+    if (chosen.some((c) => c !== null)) return;
+    builtFromFullPool.current = true;
+    const next = buildQueue();
+    setQueue(next);
+    setChosen(new Array(next.length).fill(null));
+    setI(0);
+    // buildQueue reads this render's state and pool by design; re-running it on
+    // every state change would reshuffle the session under the learner.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [full]);
 
   // Start a fresh session in place. A link back to this same route wouldn't
   // remount the component, so rebuild the queue from current state
@@ -80,6 +109,40 @@ export function ScenarioPlayer() {
           cta="Unlock scenarios"
           icon={<Sparkles className="h-6 w-6" />}
         />
+      </div>
+    );
+  }
+
+  /**
+   * An empty queue is never a finished session. Falling through to the summary
+   * below told a learner who had judged nothing that they were done, with a
+   * "New scenarios" button as the only way out.
+   */
+  if (queue.length === 0) {
+    return status === "error" ? (
+      <div className="mx-auto max-w-md py-10">
+        <EmptyState
+          icon={<AlertTriangle className="h-6 w-6" />}
+          title="Couldn't load the scenarios"
+          description="The scenario library lives on our servers and this device couldn't reach them. Your progress is safe — try again in a moment."
+          action={
+            <Button onClick={sync}>
+              <RotateCcw className="h-4 w-4" /> Try again
+            </Button>
+          }
+        />
+      </div>
+    ) : (
+      <div className="mx-auto max-w-2xl py-10" aria-busy="true">
+        <p className="sr-only">Loading scenarios…</p>
+        <Skeleton className="h-6 w-40" />
+        <Skeleton className="mt-4 h-9 w-3/4" />
+        <Skeleton className="mt-3 h-16 w-full" />
+        <div className="mt-6 space-y-3">
+          {[0, 1, 2].map((n) => (
+            <Skeleton key={n} className="h-16 w-full rounded-xl" />
+          ))}
+        </div>
       </div>
     );
   }
