@@ -10,7 +10,9 @@ npm run test       # vitest run
 npm run build      # next build
 node scripts/content-stats.mjs  # per-category question/flashcard counts
 ```
-CI (`.github/workflows/ci.yml`) runs typecheck + test + build on Node 22.
+CI (`.github/workflows/ci.yml`) runs typecheck + **lint** + test + build on Node 22.
+Run `npm run lint` locally too — it carries `react-hooks/rules-of-hooks`, which
+typecheck cannot catch and which a hook added below an early return will trip.
 
 ## Skills — use them
 - `k53-content-sprint` — adding questions/flashcards/scenarios (fact-file pipeline + gates)
