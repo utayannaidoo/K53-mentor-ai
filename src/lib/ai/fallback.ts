@@ -50,7 +50,16 @@ export function localTutorReply(userText: string, ctx?: TutorContextInput): stri
 
   if (ctx?.type === "question" && ctx.id && QUESTIONS_BY_ID[ctx.id]) {
     const q = QUESTIONS_BY_ID[ctx.id];
-    return `${prefix}${q.explanation}\n\nThe key thing to remember: the correct answer is “${q.options[q.correctIndex]}”. \n\nWant me to give you another example, or a quick way to remember this?`;
+    // Name the wrong answer they actually gave. Even without a model, "you
+    // picked X, and here's the trap in it" is a different lesson from "here is
+    // the correct answer" — and it's the one they came for.
+    const chosen =
+      ctx.chosenIndex != null &&
+      ctx.chosenIndex !== q.correctIndex &&
+      q.options[ctx.chosenIndex] !== undefined
+        ? `You picked “${q.options[ctx.chosenIndex]}” — that's the common trap here.\n\n`
+        : "";
+    return `${prefix}${chosen}${q.explanation}\n\nThe key thing to remember: the correct answer is “${q.options[q.correctIndex]}”. \n\nWant me to give you another example, or a quick way to remember this?`;
   }
 
   if (ctx?.type === "card" && ctx.id && FLASHCARDS_BY_ID[ctx.id]) {

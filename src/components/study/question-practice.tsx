@@ -31,6 +31,7 @@ import {
 } from "@/lib/diagnostic/select";
 import { dueMistakes } from "@/lib/learning/mistakes";
 import { abilityByCategory, interleave, withinReach } from "@/lib/learning/ability";
+import { cramQueue } from "@/lib/learning/cram";
 import { TrialMeter } from "@/components/app/trial-meter";
 import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
@@ -50,6 +51,7 @@ const MISTAKES_PER_SESSION = 3;
 export function QuestionPractice() {
   const sp = useSearchParams();
   const categoryParam = (sp.get("category") as CategoryId | null) ?? undefined;
+  const cramMode = sp.get("mode") === "cram";
   const { state, recordQuestionAttempt, recordSession, usageFor } = useStudyStore();
   const { questions: bank, full } = useContentPool();
 
@@ -60,6 +62,16 @@ export function QuestionPractice() {
   function buildQueue(): Question[] {
     const base = categoryParam ? bank.filter((q) => q.categoryId === categoryParam) : bank;
     const pool = forCode(base, studyCodeOf(state));
+
+    // Emergency Revision: with the test 48 hours away, spacing and difficulty
+    // laddering stop being the right advice. Every remaining minute goes on
+    // what they're still getting wrong, heaviest-weighted section first.
+    if (cramMode) {
+      const cram = cramQueue(state, pool, limit);
+      if (cram.length > 0) return cram.map(withShuffledOptions);
+      // Nothing left unresolved — fall through to ordinary practice rather
+      // than showing an empty screen on the most anxious day of the process.
+    }
 
     // Mistakes lead. `orderByFreshness` alone sorts least-recently-seen first,
     // which pushes a question you just got wrong to the *back* of the rotation —
@@ -375,7 +387,7 @@ export function QuestionPractice() {
                         {!isCorrect && (
                           <>
                             <Link
-                              href={`/tutor?question=${q.id}`}
+                              href={`/tutor?question=${q.id}&chose=${selected}`}
                               className="mt-2 flex items-center gap-1.5 font-medium text-primary hover:underline"
                             >
                               <Sparkles className="h-4 w-4" /> Ask the tutor why

@@ -26,10 +26,17 @@ const bodySchema = z.object({
     .object({
       type: z.enum(["question", "card", "category", "none"]),
       id: z.string().optional(),
+      /** Which option the learner picked, so the reply can address that trap. */
+      chosenIndex: z.number().int().min(0).max(3).optional(),
     })
     .optional(),
-  /** Short, client-built, non-PII learner profile for personalisation. */
-  profile: z.string().max(400).optional(),
+  /**
+   * Short, client-built, non-PII learner profile for personalisation. Raised
+   * from 400 to 900 chars when the profile grew from one sentence to a handful
+   * of facts (trend, pace, unresolved misses) — still a hint, not a dossier,
+   * and still never trusted for anything security-sensitive.
+   */
+  profile: z.string().max(900).optional(),
   /** Photo attached to the latest user message (downscaled client-side). */
   image: z
     .object({

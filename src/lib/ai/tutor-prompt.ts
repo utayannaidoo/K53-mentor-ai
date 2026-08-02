@@ -31,9 +31,18 @@ export function resolveContext(ctx?: TutorContextInput): ResolvedContext | null 
     const q = QUESTIONS_BY_ID[ctx.id];
     if (!q) return null;
     const opts = q.options.map((o, i) => `${LETTERS[i]}. ${o}`).join("\n");
+    // Naming the distractor they actually picked turns "here is why B is right"
+    // into "here is why D is tempting and wrong" — the thing that needs
+    // unlearning, and the difference between a textbook and an instructor.
+    const chose =
+      ctx.chosenIndex != null &&
+      ctx.chosenIndex !== q.correctIndex &&
+      q.options[ctx.chosenIndex] !== undefined
+        ? `\nTHE LEARNER ANSWERED: ${LETTERS[ctx.chosenIndex]}. ${q.options[ctx.chosenIndex]} — this is wrong. Address why that specific answer is tempting and where it breaks down, before confirming the correct one.`
+        : "";
     return {
       label: `Question · ${CATEGORY_MAP[q.categoryId].name}`,
-      text: `QUESTION: ${q.prompt}\nOPTIONS:\n${opts}\nCORRECT ANSWER: ${LETTERS[q.correctIndex]}. ${q.options[q.correctIndex]}\nOFFICIAL EXPLANATION: ${q.explanation}`,
+      text: `QUESTION: ${q.prompt}\nOPTIONS:\n${opts}\nCORRECT ANSWER: ${LETTERS[q.correctIndex]}. ${q.options[q.correctIndex]}\nOFFICIAL EXPLANATION: ${q.explanation}${chose}`,
     };
   }
 
