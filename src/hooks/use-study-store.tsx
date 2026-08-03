@@ -45,7 +45,7 @@ import { uid } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { loadAccount, saveAccount } from "@/lib/supabase/account";
 import { pullProgress, pushProgress } from "@/lib/supabase/progress";
-import { hydrateAccountState } from "@/lib/store/account-hydrate";
+import { hydrateAccountState, hydrateSessionOnly } from "@/lib/store/account-hydrate";
 import { shouldClearCachedProfile } from "@/lib/auth/session-absent";
 import { persistOnboarding } from "@/lib/store/persist-onboarding";
 
@@ -346,7 +346,24 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         if (!cancelled)
           setState((s) => hydrateAccountState(s, account, progress, user.email ?? null));
       } catch {
-        // Network/RLS hiccup — keep whatever the local cache holds.
+        // Network/RLS hiccup. Keeping only the local cache is what this used to
+        // do, and on a browser with no cached profile it left isAuthed false
+        // against a session that is plainly alive — AppShell then bounced to
+        // /login, the middleware bounced straight back, and Safari died on the
+        // history throttle. The read failing says nothing about whether they
+        // are signed in; the session already answered that. See
+        // hydrateSessionOnly.
+        if (!cancelled)
+          setState((s) =>
+            hydrateSessionOnly(s, {
+              id: user.id,
+              email: user.email ?? null,
+              fullName:
+                typeof user.user_metadata?.full_name === "string"
+                  ? user.user_metadata.full_name
+                  : null,
+            }),
+          );
       } finally {
         if (!cancelled) setAccountHydrated(true);
       }
