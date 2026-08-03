@@ -12,6 +12,8 @@ import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/env";
 import { track } from "@/lib/analytics";
 import { isPasswordValid } from "@/lib/auth/password";
+import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
+import { safeNextPath } from "@/lib/auth/safe-next";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
@@ -48,12 +50,20 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     const p = new URLSearchParams(window.location.search);
     const plan = p.get("plan");
     if (plan === "premium" || plan === "premium_plus") {
+      // A plan beats a `next`: clicking a pricing CTA is a deliberate purchase
+      // intent, where `next` is only ever wherever the middleware bounced them.
       const q = new URLSearchParams({ buy: plan });
       const c = p.get("cycle");
       if (c) q.set("cycle", c);
       return `/account/billing?${q.toString()}`;
     }
-    return "/continue";
+    // Someone who asked for a protected page and got bounced to /login carries
+    // it in `?next=`. Hand it to /continue rather than jumping there directly —
+    // it still has to clear onboarding and the diagnostic first, and a brand new
+    // account that skipped straight to a deep link would land on a page it has
+    // no context for (or, for licence-prep, no plan for).
+    const next = safeNextPath(p.get("next"));
+    return next ? `/continue?next=${encodeURIComponent(next)}` : "/continue";
   }
 
   // Preserve the plan choice when switching between the login / signup links.
@@ -79,8 +89,15 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
   // Already signed in — hand off to the post-auth destination (checkout if a
   // plan was chosen, otherwise the router that decides onboarding vs dashboard).
+  //
+  // Demo mode only. In production the middleware makes this call server-side
+  // before the page renders, and `isAuthed` is a localStorage flag that
+  // outlives the auth cookie — trusting it here loops /login → /continue →
+  // /dashboard → /login until WebKit's history throttle throws.
+  // See shouldAuthPageSelfRedirect.
   React.useEffect(() => {
-    if (ready && isAuthed) router.replace(postAuthDest());
+    if (shouldAuthPageSelfRedirect({ ready, isAuthed, supabaseConfigured: isSupabaseConfigured }))
+      router.replace(postAuthDest());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, isAuthed, router]);
 

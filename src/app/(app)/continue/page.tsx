@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Logo } from "@/components/shared/logo";
 import { Spinner } from "@/components/ui/spinner";
 import { useStudyStore } from "@/hooks/use-study-store";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 /**
  * Post-auth router. Every sign-in (password, Google, demo) lands here, waits
@@ -21,6 +22,10 @@ export default function ContinuePage() {
   React.useEffect(() => {
     if (!ready || !accountHydrated || routed.current) return;
     routed.current = true;
+    // Where they were headed before the middleware bounced them to /login.
+    // Re-validated here, not trusted from the auth form: /continue?next=… is a
+    // URL anyone can craft, and this is the hop that actually acts on it.
+    const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
     if (!isAuthed) {
       router.replace("/login");
     } else if (!hasOnboarded && !hasDiagnostic) {
@@ -31,7 +36,9 @@ export default function ContinuePage() {
       // Brand-new account fresh off the diagnostic: guided first session.
       router.replace("/welcome");
     } else {
-      router.replace("/dashboard");
+      // Only a fully set-up account gets sent on to `next` — every branch above
+      // is a step they still owe, and the deep link would skip it.
+      router.replace(next ?? "/dashboard");
     }
   }, [ready, accountHydrated, isAuthed, hasOnboarded, hasDiagnostic, state, router]);
 

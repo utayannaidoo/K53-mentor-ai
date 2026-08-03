@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
 import { assertSupabaseConfiguredInProduction, isSupabaseConfigured, supabaseConfig } from "@/lib/env";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 // A hosted deploy missing Supabase would silently skip every check below.
 assertSupabaseConfiguredInProduction();
@@ -70,6 +71,14 @@ export async function updateSession(request: NextRequest) {
  * statically rendered and can't know who is signed in. Dropping such a user on
  * the dashboard loses the one thing they told us — that they were trying to buy
  * — so carry the intent through to checkout instead.
+ *
+ * A `?next=` is carried the same way, for the same reason: someone bounced off
+ * a protected page who then signs in elsewhere and reloads the bounced URL
+ * still asked for that page. It goes via /continue rather than straight there,
+ * because this runs on the server and cannot see whether the account has
+ * finished onboarding — /continue can, and applies the same gating the password
+ * and OAuth paths get. Without that a half-set-up account would land on a deep
+ * link it has no context for.
  */
 export function signedInAuthPageDest(params: URLSearchParams): {
   pathname: string;
@@ -77,8 +86,13 @@ export function signedInAuthPageDest(params: URLSearchParams): {
 } {
   const plan = params.get("plan");
   if (plan === "premium" || plan === "premium_plus") {
+    // A deliberate purchase intent outranks wherever they were bounced from.
     const cycle = params.get("cycle") === "annual" ? "annual" : "monthly";
     return { pathname: "/account/billing", search: `?buy=${plan}&cycle=${cycle}` };
+  }
+  const next = safeNextPath(params.get("next"));
+  if (next) {
+    return { pathname: "/continue", search: `?next=${encodeURIComponent(next)}` };
   }
   return { pathname: "/dashboard", search: "" };
 }
