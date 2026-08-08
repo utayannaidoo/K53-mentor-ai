@@ -102,6 +102,47 @@ export function verifyTransaction(reference: string): Promise<VerifyTransactionR
   );
 }
 
+/**
+ * A transaction as returned by the list endpoint. Same shape as verify, with
+ * one wrinkle: the list endpoint sometimes returns `metadata` as a JSON
+ * *string* rather than an object, so callers must go through
+ * `normaliseTransaction` instead of reading it directly.
+ */
+export interface PaystackTransaction {
+  id: number;
+  status: string;
+  reference: string;
+  amount?: number;
+  currency?: string;
+  paid_at?: string | null;
+  customer: { customer_code: string; email: string; first_name?: string | null };
+  metadata?: Record<string, string> | string | null;
+  plan?: { plan_code?: string } | string | null;
+}
+
+/**
+ * List transactions, newest first. Used by the reconciliation cron to find
+ * charges Paystack took that never landed as an applied event on our side.
+ *
+ * `from` is an ISO date/time string; Paystack treats it as inclusive.
+ * Pagination is by page number because `paystackFetch` unwraps the envelope
+ * and drops the `meta` block — callers page until a short page comes back.
+ */
+export function listTransactions(params: {
+  from: string;
+  page?: number;
+  perPage?: number;
+  status?: "success" | "failed" | "abandoned";
+}): Promise<PaystackTransaction[]> {
+  const q = new URLSearchParams({
+    from: params.from,
+    page: String(params.page ?? 1),
+    perPage: String(params.perPage ?? 50),
+  });
+  if (params.status) q.set("status", params.status);
+  return paystackFetch<PaystackTransaction[]>(`/transaction?${q.toString()}`);
+}
+
 export interface PaystackCustomer {
   customer_code: string;
   email: string;

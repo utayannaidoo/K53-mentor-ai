@@ -118,6 +118,90 @@ export async function POST(req: Request) {
         break;
       }
 
+      case "subscription.not_renew": {
+        // Auto-renew switched off. The learner has paid through the current
+        // period, so this must NOT touch tier or status — setting a status
+        // outside active/trialing/past_due would make entitlements fail closed
+        // and revoke access they are still owed. Paystack sends
+        // subscription.disable when the period actually ends; that is the
+        // downgrade. This only records the intent so the billing page can say
+        // "renews: no" instead of implying another charge is coming.
+        const data = payload.data as SubscriptionEventData;
+        const customerCode = data.customer?.customer_code;
+        if (!customerCode) break;
+        const { error } = await admin
+          .from("subscriptions")
+          .update({ cancel_at_period_end: true })
+          .eq("provider_customer_id", customerCode);
+        if (error) throw new Error(`not_renew flag failed: ${error.message}`);
+        break;
+      }
+
+      case "charge.dispute.create": {
+        // A chargeback was opened. Deliberately does not downgrade: a dispute
+        // is a claim, not an outcome, and banks open them in error often
+        // enough that auto-revoking access would punish real customers. If it
+        // resolves against us Paystack issues a refund, and refund.processed
+        // below does the downgrade.
+        //
+        // What matters is that it stops being invisible — it currently lands
+        // in the default branch and is acknowledged with no trace anywhere.
+        const data = payload.data as {
+          transaction?: { reference?: string };
+          customer?: { customer_code?: string };
+          amount?: number;
+          status?: string;
+        };
+        const customerCode = data.customer?.customer_code;
+        console.error(
+          "[dispute] chargeback opened",
+          JSON.stringify({
+            reference: data.transaction?.reference,
+            customer: customerCode,
+            amount: data.amount,
+            status: data.status,
+          }),
+        );
+        if (!customerCode) break;
+        const { error } = await admin
+          .from("subscriptions")
+          .update({ disputed_at: new Date().toISOString() })
+          .eq("provider_customer_id", customerCode);
+        if (error) throw new Error(`dispute flag failed: ${error.message}`);
+        break;
+      }
+
+      case "refund.processed": {
+        // The money is back with the customer, so the tier goes with it.
+        //
+        // Our own 7-day money-back flow already downgrades before refunding,
+        // which makes this a no-op there — writing tier: "free" twice is
+        // harmless. The case this exists for is a refund issued from the
+        // Paystack dashboard, which previously left the account paid forever.
+        //
+        // Matched on the refunded transaction's reference rather than the
+        // customer, so refunding a one-off tutor top-up cannot strip someone's
+        // subscription: only the charge recorded as the subscription's own
+        // last_charge_reference downgrades it.
+        const data = payload.data as {
+          transaction?: { reference?: string };
+          transaction_reference?: string;
+          status?: string;
+        };
+        const reference = data.transaction?.reference ?? data.transaction_reference;
+        if (!reference) break;
+        const { error } = await admin
+          .from("subscriptions")
+          .update({
+            tier: "free",
+            status: "canceled",
+            refunded_at: new Date().toISOString(),
+          })
+          .eq("last_charge_reference", reference);
+        if (error) throw new Error(`refund downgrade failed: ${error.message}`);
+        break;
+      }
+
       default:
         // Unhandled event types are acknowledged so Paystack stops retrying them.
         break;
