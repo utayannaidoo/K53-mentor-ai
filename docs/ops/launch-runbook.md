@@ -94,11 +94,14 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 - [ ] Redeploy so the new `NEXT_PUBLIC_*` values are baked in
 - [ ] Only then cut DNS
 
-> `assertSiteUrlConfiguredInProduction()` now throws if a **production** deployment
+> `assertSiteUrlConfiguredInProduction()` throws if a **production** deployment
 > (`VERCEL_ENV=production`) has `NEXT_PUBLIC_SITE_URL` unset, pointed at a `*.vercel.app`
-> host, or missing its scheme. Preview deployments are exempt from the vercel.app half —
-> they legitimately live there, and they run with `NODE_ENV=production` too, so the check
-> keys off `VERCEL_ENV` rather than `NODE_ENV`.
+> host, or missing its scheme. **Preview deployments are exempt entirely** — they run with
+> `NODE_ENV=production` and `VERCEL=1` as well, so a guard keyed off those alone takes
+> every preview down the moment the Preview scope has no `NEXT_PUBLIC_SITE_URL` of its
+> own. (It did exactly that once; `tests/env-guard.test.ts` now pins the behaviour.)
+> Setting a Preview value is therefore optional — do it only if you want preview
+> canonicals to be accurate.
 >
 > This was added after the live site was found publishing canonicals, a sitemap and a
 > robots.txt pointing at `k53-mentor-ai.vercel.app` while serving on the custom domain.

@@ -61,18 +61,18 @@ export function assertSupabaseConfiguredInProduction() {
  * surface as "why is nothing indexed and why do the receipt links go somewhere
  * else".
  *
- * Two distinct failures, because they have different blast radii:
+ * Three ways to get it wrong, all caught here: unset (falls back to
+ * `http://localhost:3000`), pointed at the `*.vercel.app` deploy URL, or
+ * missing its scheme.
  *
- * 1. **Unset** — falls back to `http://localhost:3000`. Broken on any hosted
- *    deploy, preview included, so this is checked on all of them.
- *
- * 2. **Pointed at the deploy URL** — `https://<project>.vercel.app` is a
- *    perfectly valid origin, which is exactly what makes it dangerous: nothing
- *    errors, and production quietly publishes canonicals telling Google the
- *    real site lives on a hostname you intend to abandon. That is only wrong
- *    on *production* — a preview deployment genuinely does live on vercel.app
- *    and must keep working — so this half gates on `VERCEL_ENV` rather than
- *    the broader hosted-production check.
+ * **Production deployments only.** Preview deployments also run with
+ * `NODE_ENV=production` and `VERCEL=1`, so the broader hosted-production check
+ * catches them too — and an earlier version of this guard did, which took every
+ * preview deployment down with a 500 the moment it shipped, because the Preview
+ * scope has no `NEXT_PUBLIC_SITE_URL` of its own. That trade is wrong in both
+ * directions: a preview genuinely does live on vercel.app, and a preview with a
+ * localhost canonical is cosmetic. Production is where a wrong origin costs
+ * real search ranking and sends customers to the wrong host.
  *
  * `NEXT_PUBLIC_*` is inlined at build time, so this reads the value baked in
  * during `next build`, not the one sitting in the dashboard now. That is the
@@ -80,7 +80,7 @@ export function assertSupabaseConfiguredInProduction() {
  * app was never rebuilt.
  */
 export function assertSiteUrlConfiguredInProduction() {
-  if (!isHostedProduction()) return;
+  if (!isHostedProduction() || process.env.VERCEL_ENV !== "production") return;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (!siteUrl) {
@@ -90,8 +90,6 @@ export function assertSiteUrlConfiguredInProduction() {
         "http://localhost:3000. Set it in Vercel and redeploy (NEXT_PUBLIC_* is inlined at build time).",
     );
   }
-
-  if (process.env.VERCEL_ENV !== "production") return;
 
   let host: string;
   try {

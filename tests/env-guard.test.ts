@@ -107,17 +107,34 @@ describe("assertSiteUrlConfiguredInProduction", () => {
   const siteUrl = async (vars: EnvVars) =>
     (await envUnder(vars)).assertSiteUrlConfiguredInProduction;
 
-  it("throws on a hosted production deploy with no site URL", async () => {
-    expect(await siteUrl({ NODE_ENV: "production", VERCEL: "1" })).toThrow(
-      /NEXT_PUBLIC_SITE_URL/,
-    );
+  it("throws on a production deployment with no site URL", async () => {
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+    });
+    expect(guard).toThrow(/NEXT_PUBLIC_SITE_URL/);
   });
 
   it("stays quiet once the site URL is set", async () => {
     const guard = await siteUrl({
       NODE_ENV: "production",
       VERCEL: "1",
-      NEXT_PUBLIC_SITE_URL: "https://k53mentor.co.za",
+      VERCEL_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "https://k53mentorai.co.za",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("does not break a preview deployment that has no site URL of its own", async () => {
+    // Regression: an earlier version keyed off NODE_ENV + VERCEL alone, which
+    // are both set on previews too, so it 500'd every preview deployment on the
+    // first request — the Preview scope carries no NEXT_PUBLIC_SITE_URL. A
+    // preview with a localhost canonical is cosmetic; a dead preview is not.
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "preview",
     });
     expect(guard).not.toThrow();
   });
