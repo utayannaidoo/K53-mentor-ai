@@ -11,6 +11,7 @@ import {
 } from "@/lib/billing/plans";
 import { initializeTransaction } from "@/lib/paystack/client";
 import { callbackOrigin } from "@/lib/billing/callback-origin";
+import { SITE_DOMAIN } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
@@ -97,7 +98,7 @@ export async function POST(req: Request) {
     }
   }
   // Paystack needs an email even in demo-without-auth; it's never charged.
-  const email = userEmail ?? "guest@k53mentor.ai";
+  const email = userEmail ?? `guest@${SITE_DOMAIN}`;
   // Return the buyer to whatever domain they checked out from (see helper).
   const returnOrigin = callbackOrigin(req);
 

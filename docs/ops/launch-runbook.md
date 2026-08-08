@@ -1,0 +1,322 @@
+# Launch runbook — k53mentor.co.za
+
+Written for the **hard public launch**: live domain, live Paystack money, marketing from
+day one.
+
+Work top to bottom. Sections 1–6 are the critical path (nothing is live until they're
+done); 7–10 must be done before you drive traffic; 11–12 are the day-of.
+
+> **Related docs**
+> - [`supabase-auth-setup.md`](./supabase-auth-setup.md) — SMTP, redirect allowlist, `token_hash` templates. Read it in full at §4; it is not duplicated here.
+> - [`production-hardening-spec.md`](./production-hardening-spec.md) — **stale.** Written against Stripe (S5 names `checkout.session.completed`) before the Paystack migration in `0008_paystack.sql`. All eight invariants S1–S8 *are* implemented, but the document describes a provider the app no longer uses. **Do not use it as the go-live gate.** Rewriting it against Paystack is post-launch work.
+
+---
+
+## Where the app already stands
+
+Worth knowing what you *don't* have to build, so the checklist below reads as short
+rather than alarming. Already in place and tested:
+
+- **Billing** — server-truth tier resolution from `subscriptions` failing closed to free; HMAC-SHA512 webhook signature verification with `timingSafeEqual`; a `payment_events` idempotency ledger shared by the webhook and the callback-verify path; self-serve cancel with auto-refund inside 7 days.
+- **Auth** — Supabase SSR with middleware session refresh, prefix-matched route protection, an open-redirect allowlist (`safe-next.ts`), cross-device email confirmation via `token_hash`, and full password reset.
+- **Security** — RLS on every user table; `payment_events` and `account_deletion_codes` are service-role-only; `security definer` functions with pinned `search_path` and `execute` revoked from `public`; CSP + HSTS + `X-Frame-Options: DENY` + `Permissions-Policy`; empty `images.remotePatterns` closing the sharp/libvips fetch path; the service-role key confined to `src/lib/supabase/admin.ts` behind `import "server-only"`.
+- **Rate limiting** — per-IP *and* per-user daily limits on every AI route, with a production boot-throw if an AI key is set without Upstash, and vision failing closed on limiter outage.
+- **SEO** — sitemap, robots, manifest, OG image, per-page metadata with canonicals, FAQ + Article JSON-LD, all guarded by `tests/seo.test.ts` and `tests/public-links.test.ts`.
+- **Content** — 1,060 questions, 68 scenarios, ~14 distinct mock papers (`node scripts/content-stats.mjs`).
+
+---
+
+## 1. Buy the domain
+
+`.co.za` is administered by ZACR/ZADNA. **Neither Cloudflare Registrar nor Vercel Domains
+sells `.co.za`** — this is where people get stuck. Use a South African registrar
+(Xneelo, Afrihost, domains.co.za, Register Domain SA). Roughly R80–R150/year.
+
+- [ ] Register `k53mentor.co.za`
+- [ ] **Auto-renew ON** and **registrar lock ON**
+- [ ] Registrant email is an address you control that is **not** on this domain (avoid the
+      lockout where the only recovery address lives on the domain you lost)
+- [ ] Decline registrar-bundled hosting and email — you need neither
+- [ ] Decide the canonical host **now**: apex `k53mentor.co.za`, with `www` 301-redirecting
+      to it. Supabase Site URL, the Paystack webhook, Search Console and the OG tags must
+      all agree on this one choice.
+
+---
+
+## 2. DNS + Vercel
+
+- [ ] Point nameservers at Cloudflare (free) — fastest path to the TXT records needed for
+      Resend, DMARC and Search Console below. Registrar DNS also works if you'd rather
+      keep it simple.
+- [ ] Vercel → Project → Settings → Domains → add `k53mentor.co.za` **and**
+      `www.k53mentor.co.za`
+- [ ] Use the exact A/CNAME values **Vercel's dashboard shows you** — not values copied
+      from a blog post; they have changed over time
+- [ ] If proxying through Cloudflare, the records pointing at Vercel must be **DNS-only
+      (grey cloud)**
+- [ ] Wait for certificate issuance; confirm `https://k53mentor.co.za` loads
+- [ ] Confirm the `www` → apex redirect works
+- [ ] Vercel → Deployment Protection is **off for production** (leave it on for previews)
+
+> `next.config.mjs` already sends `Strict-Transport-Security: max-age=63072000;
+> includeSubDomains` in production. Every subdomain you ever add must therefore be HTTPS.
+> **Do not submit to the HSTS preload list** at launch — it is effectively irreversible.
+
+---
+
+## 3. Environment variables — then rebuild, *then* cut DNS
+
+`NEXT_PUBLIC_*` values are **inlined at build time**. Setting them and switching DNS
+without a redeploy leaves every email link, sitemap URL and canonical pointing at the old
+origin. Order matters: **set env → redeploy → cut DNS.**
+
+Set these in Vercel → Settings → Environment Variables, **Production** scope:
+
+| Var | Value | Why it matters |
+|---|---|---|
+| `NEXT_PUBLIC_SITE_URL` | `https://k53mentor.co.za` | **Blocker.** `src/lib/constants.ts:11` falls back to `http://localhost:3000`. Unset ⇒ every canonical, the whole sitemap, the `robots.txt` sitemap line, both JSON-LD blocks and every transactional email link say localhost. Silently. |
+| `NEXT_PUBLIC_POSTHOG_HOST` | `https://eu.i.posthog.com` | **Blocker.** Your PostHog project is in the **EU** region; `src/lib/analytics.ts:13` defaults to `us.i.posthog.com`. Wrong host ⇒ zero events, no error. |
+| `NEXT_PUBLIC_POSTHOG_KEY` | project key | |
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | | Guarded — the app throws at boot on Vercel prod without them |
+| `SUPABASE_SERVICE_ROLE_KEY` | | Server-only. Never `NEXT_PUBLIC_`. |
+| `PAYSTACK_SECRET_KEY` | **`sk_live_…`** | Nothing in code enforces live-vs-test. A `sk_test_` production deploy accepts test cards and grants real Premium tiers. **Verify by eye.** |
+| `PAYSTACK_PLAN_PREMIUM_MONTHLY` / `_ANNUAL` / `_PLUS_MONTHLY` / `_PLUS_ANNUAL` | live plan codes | Missing ⇒ 500 "Price not configured for this plan" at checkout |
+| `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | | Guarded. Without them the in-memory fallback resets per lambda — i.e. no real rate limiting |
+| `ANTHROPIC_API_KEY` | | Preferred provider |
+| `OPENAI_API_KEY` | | Fallback in the cascade |
+| `RESEND_API_KEY` | | Without it, receipts and dunning are skipped and the reminder cron runs dry |
+| `NOTIFY_FROM_EMAIL` | `K53 Mentor <coach@k53mentor.co.za>` | Default is `onboarding@resend.dev` — Resend's shared sandbox sender. Spam-folder magnet. |
+| `CRON_SECRET` | long random string | Otherwise `/api/cron/notifications` is open |
+
+- [ ] All of the above set on **Production**
+- [ ] `NEXT_PUBLIC_SITE_URL` set separately on **Preview** — it must **not** be the
+      production origin
+- [ ] Redeploy so the new `NEXT_PUBLIC_*` values are baked in
+- [ ] Only then cut DNS
+
+> Both `src/lib/billing/callback-origin.ts` (Paystack return URL) and the auth flows
+> (which use `window.location.origin`) are already domain-change-safe by design. It is the
+> *build-time* vars that need the redeploy.
+
+---
+
+## 4. Supabase
+
+- [ ] Every migration `0001` → `0018` applied
+- [ ] **Auth → URL Configuration → Site URL** = `https://k53mentor.co.za`
+- [ ] **Auth → URL Configuration → Redirect URLs** include:
+      - `https://k53mentor.co.za/auth/callback`
+      - the preview wildcard (`https://*-<your-vercel-scope>.vercel.app/auth/callback`)
+      - `http://localhost:3000/auth/callback`
+
+      Supabase silently falls back to Site URL when a redirect isn't allowlisted — that's
+      the "the link works but dumps me on the landing page" failure.
+- [ ] **Google Cloud OAuth client** — add `https://k53mentor.co.za` as an authorised
+      JavaScript origin and the Supabase callback as an authorised redirect URI; put the
+      live privacy and terms URLs on the consent screen
+- [ ] **Custom SMTP configured** (point it at Resend). The built-in mailer is capped at a
+      handful of messages an hour and will strand launch-day signups
+- [ ] **Email templates** use `token_hash` for Confirm signup / Magic link / Change email;
+      Reset password keeps `{{ .ConfirmationURL }}`. Exact markup in
+      [`supabase-auth-setup.md`](./supabase-auth-setup.md) §3
+- [ ] Security + performance **advisors** run, nothing critical outstanding
+- [ ] Leaked-password protection enabled
+- [ ] Backup/PITR situation confirmed and the restore path understood
+
+> None of the above is verified by CI. It is entirely dashboard-side, which is exactly why
+> it needs ticking off by hand.
+
+---
+
+## 5. Email that actually lands
+
+Resend is **send-only**. You need both a verified sending domain and a receiving inbox.
+
+- [ ] Verify `k53mentor.co.za` in Resend — add the **SPF** and **DKIM** records
+- [ ] Add **DMARC**: `v=DMARC1; p=none; rua=mailto:you@…` to start. Tighten to
+      `p=quarantine` once you've watched reports for a couple of weeks
+- [ ] Receiving inbox for `support@k53mentor.co.za` — **Cloudflare Email Routing** (free)
+      forwarding to your Gmail is the cheapest credible option. Zoho Mail free tier or
+      Google Workspace if you want a real mailbox
+- [ ] `NOTIFY_FROM_EMAIL` points at the verified sender
+- [ ] Test-send to **Gmail, Outlook and Yahoo** — check **spam placement**, not just
+      delivery
+- [ ] Send yourself a real payment receipt and a reminder email; confirm every link in
+      them resolves to `k53mentor.co.za` (this is the acid test that §3's rebuild worked)
+
+Known gaps, post-launch:
+- No Resend bounce/complaint webhook — hard bounces accumulate invisibly.
+- No welcome email for free signups; the only welcome is bundled into the payment receipt
+  (`src/lib/notify/templates.ts:89`).
+
+---
+
+## 6. Paystack go-live
+
+- [ ] Merchant activation complete (business docs + bank account), live keys issued
+- [ ] Four ZAR Plans created and their codes copied into env:
+      - Premium — **R60/mo**, **R480/yr**
+      - Premium Plus — **R70/mo**, **R600/yr**
+- [ ] **Reconcile each Plan's dashboard amount against `src/lib/billing/plans.ts`**
+      (`monthly: 60` at line 148, `monthly: 70` at line 183; annual = `(monthly − 20) × 12`
+      via `ANNUAL_MONTHLY_SAVING` at line 40).
+
+      This one deserves a beat: checkout sends *both* an amount and a plan code, but for a
+      subscription **Paystack bills the Plan's dashboard amount**, not the amount we send.
+      Nothing in code or CI asserts they agree. If the dashboard says R99 and `plans.ts`
+      says R60, the site advertises R60 and the card is charged R99 — silently, and it's a
+      consumer-protection problem, not just a bug.
+- [ ] Webhook URL → `https://k53mentor.co.za/api/paystack/webhook` (update it from any
+      vercel.app URL used during testing)
+- [ ] **Live end-to-end with a real card:** pay → webhook writes `subscriptions` → tier
+      unlocks in the app → receipt email arrives → cancel → refund lands
+- [ ] Declined-card path tested
+- [ ] Settlement account and schedule confirmed
+
+Known gaps, post-launch — worth reading before you take real money:
+
+- **No reconciliation job.** The webhook and `/api/paystack/verify` share the
+  `payment_events` ledger. If the webhook lands first and returns `duplicate`, then
+  `verify`'s apply throws and releases the row, Paystack has already been ACKed and will
+  **not** retry. Money taken, tier never granted, and the only recovery is reading Vercel
+  logs. This is the single most likely real-money incident at launch. A cron that lists
+  recent Paystack transactions and re-runs `applyChargeSuccess` for any `charge.success`
+  not reflected in `subscriptions` would close it.
+- **Unhandled webhook events.** `src/app/api/paystack/webhook/route.ts` handles
+  `charge.success`, `invoice.payment_failed` and `subscription.disable`. It does **not**
+  handle `charge.dispute.create` (chargebacks land silently), `refund.processed` (a refund
+  issued from the Paystack dashboard never downgrades the tier), or
+  `subscription.not_renew`.
+- **No card-update flow.** The billing page tells users to cancel and resubscribe, which
+  will churn people whose cards expire.
+- `subscriptions.provider_subscription_id` is never written; cancellation depends wholly
+  on `provider_customer_id` plus a live Paystack customer fetch.
+- `applyChargeSuccess` grants tier from `metadata.plan` without comparing `amount` or
+  `currency` to the expected price. Metadata is server-set so it isn't directly
+  exploitable, but an underpaid charge still grants the tier.
+
+---
+
+## 7. Legal / SA compliance
+
+Most of this shipped on 8 Aug 2026:
+
+- [x] **`/contact` route added** — footer-linked and in the sitemap. Gives a signed-out
+      visitor a route to make a POPIA request, which `/privacy` previously answered with
+      "use your account page".
+- [x] **Processors named in the privacy policy** — Supabase, Vercel, Paystack, Anthropic,
+      OpenAI, Resend, PostHog, Upstash, each with what it receives.
+- [x] **Cross-border transfer section added**, relying on the POPIA s72
+      contract-necessity ground.
+- [x] **PostHog disclosed** in the cookies section, including that autocapture is off.
+- [x] **ECTA s44 cooling-off named** on `/refunds`, framed as the 7-day money-back window
+      meeting it automatically. **Auto-renewal now disclosed explicitly** in section 1.
+- [x] "Last updated" refreshed on privacy, terms and refunds.
+
+Still outstanding — these need information only you have:
+
+- [ ] **Fill in `BUSINESS` in `src/lib/constants.ts`**: legal name (or your own name if
+      trading as a sole proprietor), CIPC registration number, **street address** (a PO
+      box does not satisfy ECTA s43), and the Information Officer's name. `/contact` and
+      `/privacy` render these the moment they are set, and omit the sections while blank.
+- [ ] **Register with the Information Regulator** as an Information Officer (POPIA s55).
+      This is a queue — start it early.
+- [ ] **Have a South African lawyer read the three legal pages.** They are written to be
+      honest and specific, not to be legal advice, and you are about to take real money
+      from consumers under the CPA.
+
+A cookie consent banner is arguably not required under POPIA (which is
+consent-at-collection rather than ePrivacy-style), and consent is already taken at signup
+(`src/components/auth/auth-form.tsx`). **Disclosure** is the obligation here, not a banner.
+
+---
+
+## 8. Code defects
+
+Fixed on 8 Aug 2026 — kept here as the record of what changed and why.
+
+| # | Where | Issue | Status |
+|---|---|---|---|
+| 1 | `src/lib/constants.ts` | `SUPPORT_EMAIL` is a personal Gmail address, rendered publicly on `/refunds` and now `/contact` | **Open — deliberately.** Flip it to `support@k53mentor.co.za` the same day Cloudflare Email Routing exists (§5). Doing it sooner advertises a dead address, which is worse than the Gmail |
+| 2 | `src/components/engagement/share-card.tsx` | Share image read "…with k53mentor.ai", a domain you don't own, on the WhatsApp share path | Fixed — now derives from `SITE_DOMAIN` |
+| 3 | `src/app/api/checkout/route.ts` | Guest placeholder `guest@k53mentor.ai` sent to Paystack | Fixed — `SITE_DOMAIN` |
+| 4 | `src/components/auth/auth-form.tsx` | Demo-mode `demo@k53mentor.ai` | Fixed — `SITE_DOMAIN` |
+| 5 | `docs/ops/supabase-auth-setup.md` | Worked examples used `k53mentor.ai` | Fixed |
+| 6 | `src/lib/env.ts` | No production assertion for `SITE_URL` | Fixed — `assertSiteUrlConfiguredInProduction()`, called from middleware so it covers every page request |
+| 7 | `src/lib/env.ts` | No assertion that `PAYSTACK_SECRET_KEY` is a live key | Fixed — `assertLivePaystackKeyInProduction()`, scoped to `paystack/client.ts` so a test-key deploy breaks checkout loudly without taking the study app down |
+| 8 | `src/app/sitemap.ts` | `/refunds` missing though footer-linked and public | Fixed — `/refunds` and `/contact` added, plus three `tests/seo.test.ts` ratchets: every public legal page is listed, no sitemap entry points at a non-existent route, and nothing is both submitted and disallowed |
+| 9 | `src/components/landing/faq.tsx` | `FAQPage` JSON-LD emitted on both `/` and `/pricing` | Fixed — schema is now opt-in via `withSchema`, only `/` opts in, and a test pins the count at one |
+| 10 | `public/favicon.ico` | Missing; only `favicon.svg` existed | Fixed — generated by wrapping `icon-192.png` in an ICO container (no image dependency added). Declared after the SVG so modern browsers still prefer the vector |
+| 11 | `src/app/opengraph-image.tsx` | Slate/blue, not the product's Road Atlas green | Fixed — repainted from the dark-mode tokens in `globals.css`. Also corrected "500+ real questions" to **1,000+**; the bank is at 1,060 |
+| 12 | `src/lib/report-error.ts` | Client errors went only to `console.error` — no grouping, no alerting, short retention | Fixed — also calls `captureException` via the already-loaded `posthog-js`. Both sinks kept: the log line survives when analytics is blocked, PostHog adds grouping |
+
+**New follow-up from this work:** `src/lib/constants.ts` now exports a `BUSINESS` object
+(legal name, registration number, street address, Information Officer) that `/contact`
+and `/privacy` render **only when set**. They are currently blank, so the ECTA s43 and
+POPIA s55 disclosures are still outstanding — filling them in is a one-place edit.
+
+---
+
+## 9. Cost control + monitoring
+
+Non-optional for a hard launch — `/api/tutor` and `/api/vision` are the cost blast radius,
+and the Upstash limits are the only thing standing between a scraper and your card.
+
+- [ ] **Hard spend cap set in the Anthropic dashboard**
+- [ ] **Hard spend cap set in the OpenAI dashboard**
+- [ ] Upstash Redis live and reachable from production
+- [ ] Vercel spend limit + billing alerts configured
+- [ ] Uptime monitor (UptimeRobot / BetterStack, both free) on `/` and `/pricing`
+- [ ] Supabase usage alerts
+
+Note for later: the Supabase and Upstash boot guards both gate on `process.env.VERCEL`, so
+they only fire on Vercel. Fine for this launch — worth remembering if hosting ever moves,
+because on another host a missing Supabase config would silently serve everyone
+`premium_plus` with route protection disabled.
+
+---
+
+## 10. SEO + launch marketing
+
+- [ ] **Google Search Console** — verify `k53mentor.co.za` by DNS TXT, submit
+      `https://k53mentor.co.za/sitemap.xml`
+- [ ] **Bing Webmaster Tools** — imports directly from Search Console
+- [ ] **Test the OG card in WhatsApp**, not just Twitter/LinkedIn. It's the SA sharing
+      channel. Check a **guide** URL as well as the homepage — `layout.tsx` deliberately
+      omits `openGraph.title` so each page resolves its own
+- [ ] PageSpeed / Core Web Vitals pass once the domain is live
+- [ ] Optional: `Organization` + `SoftwareApplication`/`Offer` JSON-LD on `/pricing`
+      (prices already live in `src/lib/billing/plans.ts`)
+
+Lead organic acquisition with the four articles under `/guides` — they're the indexable
+surface. The content bank (1,060 questions, 68 scenarios, ~14 non-repeating mock papers) is
+a real differentiator against the Play Store competition; say so on the landing page.
+
+---
+
+## 11. Pre-flight
+
+```bash
+npm run typecheck && npm run lint && npm test && npm run build
+```
+
+- [ ] Green on all four (CI runs the same set on Node 22)
+- [ ] Stale remote `claude/*` branches audited — merge or delete, so the first hotfix
+      branches off something clean
+- [ ] **Full manual sweep on the live domain:** signup → confirm the email **on a different
+      device** → onboarding → diagnostic → hit the paywall → real payment → tier unlocks →
+      tutor replies → cancel
+- [ ] Demo mode still works with no env — open the app, "Continue as demo guest"
+- [ ] Real Android Chrome **and** iOS Safari, including PWA install and `/offline`
+- [ ] Password reset end to end
+- [ ] Google sign-in end to end on the new domain
+
+---
+
+## 12. Day one
+
+- [ ] Vercel runtime logs open, filtered for `[client-error]`
+- [ ] Paystack dashboard watched for failed charges and disputes
+- [ ] PostHog funnel confirmed to be receiving events (this is your first proof the EU host
+      is right)
+- [ ] Vercel instant-rollback kept in reach

@@ -59,7 +59,14 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", description: APP_DESCRIPTION },
   icons: {
-    icon: "/favicon.svg",
+    // SVG first so modern browsers take the crisp one. The .ico exists because
+    // older crawlers and some social scrapers request /favicon.ico literally
+    // and 404 on anything else — it wraps icon-192.png rather than being a
+    // separate drawing, so there is nothing to keep in sync.
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "192x192" },
+    ],
     apple: "/apple-icon.png", // iOS home-screen (needs a real PNG, not SVG)
   },
 };

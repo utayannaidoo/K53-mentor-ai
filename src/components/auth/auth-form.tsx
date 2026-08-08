@@ -15,6 +15,7 @@ import { isPasswordValid } from "@/lib/auth/password";
 import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
 import { safeNextPath } from "@/lib/auth/safe-next";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
+import { SITE_DOMAIN } from "@/lib/constants";
 
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
@@ -188,12 +189,12 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
 
     // Demo path / mirror profile into the local store.
     if (mode === "signup") track("signup_completed", { method: "password" });
-    signInLocal(name || email.split("@")[0] || "Learner", email || "demo@k53mentor.ai");
+    signInLocal(name || email.split("@")[0] || "Learner", email || `demo@${SITE_DOMAIN}`);
     router.push(postAuthDest());
   }
 
   function continueAsGuest() {
-    signInLocal("Demo learner", "demo@k53mentor.ai");
+    signInLocal("Demo learner", `demo@${SITE_DOMAIN}`);
     router.push("/continue");
   }
 

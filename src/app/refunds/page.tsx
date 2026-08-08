@@ -12,12 +12,17 @@ export default function RefundsPage() {
   return (
     <LegalPage
       title="Refund & cancellation policy"
-      updated="13 July 2026"
+      updated="8 August 2026"
       intro={`This policy explains how to cancel your ${APP_NAME} subscription, when you can get a refund, and how we handle billing disputes. The short version: you can cancel yourself at any time in a couple of taps, we never bill you again after that, and if something went wrong with a charge we'll make it right.`}
     >
       <section>
         <h2>1. Cancelling your subscription</h2>
         <ul>
+          <li>
+            <strong>Your subscription renews automatically</strong> at the end of each billing
+            cycle — monthly or annual, whichever you chose — at the same price, until you cancel.
+            We will always email you a receipt when a renewal is charged.
+          </li>
           <li>
             You can cancel <strong>at any time</strong>, yourself, from{" "}
             <strong>Account → Billing &amp; plan → Cancel plan</strong>. No email, phone call or
@@ -85,7 +90,11 @@ export default function RefundsPage() {
         <p>
           Nothing in this policy limits the rights you have under the South African{" "}
           <strong>Consumer Protection Act</strong> or the{" "}
-          <strong>Electronic Communications and Transactions Act</strong>.
+          <strong>Electronic Communications and Transactions Act</strong>. In particular, section
+          44 of the ECT Act gives you a <strong>7-day cooling-off period</strong> on an electronic
+          transaction, during which you may cancel without reason and without penalty. Our 7-day
+          money-back window above is designed to meet that right and give it to you automatically,
+          rather than making you ask.
         </p>
       </section>
 

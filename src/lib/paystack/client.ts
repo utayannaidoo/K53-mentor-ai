@@ -1,5 +1,10 @@
 import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { assertLivePaystackKeyInProduction } from "@/lib/env";
+
+// Every billing path routes through this module, so a test-key production
+// deploy fails here — loudly, and without taking the rest of the app down.
+assertLivePaystackKeyInProduction();
 
 /**
  * Thin Paystack REST wrapper — no SDK dependency, same pattern as the Resend

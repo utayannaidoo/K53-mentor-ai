@@ -49,7 +49,7 @@ export default function HomePage() {
           <PricingSection />
         </Reveal>
         <Reveal>
-          <Faq />
+          <Faq withSchema />
         </Reveal>
         <Reveal>
           <CtaBand />

@@ -21,6 +21,7 @@ vi.mock("@/lib/env", () => ({
   isSupabaseConfigured: true,
   supabaseConfig: { url: "https://stub.supabase.co", anonKey: "stub-anon-key" },
   assertSupabaseConfiguredInProduction: () => {},
+  assertSiteUrlConfiguredInProduction: () => {},
 }));
 
 const signedIn = { data: { user: { id: "user-1", email: "learner@test.com" } } };

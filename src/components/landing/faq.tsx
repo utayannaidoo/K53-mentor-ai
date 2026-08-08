@@ -74,13 +74,24 @@ const FAQ_SCHEMA = {
   })),
 };
 
-export function Faq() {
+/**
+ * `withSchema` is opt-in, and exactly one page may opt in.
+ *
+ * This section renders on both `/` and `/pricing`, which meant the same
+ * FAQPage block was emitted at two URLs — Google reads that as competing
+ * candidates for the same rich result and can pick neither. Defaulting to off
+ * means a third page rendering the FAQ can't silently reintroduce the
+ * duplicate; `tests/seo.test.ts` holds the count at one.
+ */
+export function Faq({ withSchema = false }: { withSchema?: boolean }) {
   return (
     <section id="faq" className="border-t border-border bg-card/40">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
-      />
+      {withSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(FAQ_SCHEMA) }}
+        />
+      )}
       <div className="container scroll-mt-20 py-16 lg:py-24">
         <div className="mx-auto max-w-3xl">
           <div className="text-center">
