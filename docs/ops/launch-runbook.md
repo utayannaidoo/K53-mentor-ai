@@ -90,9 +90,18 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 
 - [ ] All of the above set on **Production**
 - [ ] `NEXT_PUBLIC_SITE_URL` set separately on **Preview** — it must **not** be the
-      production origin
+      production origin. A `*.vercel.app` value is correct here.
 - [ ] Redeploy so the new `NEXT_PUBLIC_*` values are baked in
 - [ ] Only then cut DNS
+
+> `assertSiteUrlConfiguredInProduction()` now throws if a **production** deployment
+> (`VERCEL_ENV=production`) has `NEXT_PUBLIC_SITE_URL` unset, pointed at a `*.vercel.app`
+> host, or missing its scheme. Preview deployments are exempt from the vercel.app half —
+> they legitimately live there, and they run with `NODE_ENV=production` too, so the check
+> keys off `VERCEL_ENV` rather than `NODE_ENV`.
+>
+> This was added after the live site was found publishing canonicals, a sitemap and a
+> robots.txt pointing at `k53-mentor-ai.vercel.app` while serving on the custom domain.
 
 > Both `src/lib/billing/callback-origin.ts` (Paystack return URL) and the auth flows
 > (which use `window.location.origin`) are already domain-change-safe by design. It is the

@@ -19,6 +19,7 @@ const ENV_KEYS = [
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "NEXT_PUBLIC_SITE_URL",
   "PAYSTACK_SECRET_KEY",
+  "VERCEL_ENV",
 ] as const;
 
 // NODE_ENV is typed readonly on ProcessEnv; tests legitimately need to move it.
@@ -132,6 +133,50 @@ describe("assertSiteUrlConfiguredInProduction", () => {
 
   it("stays quiet in local development", async () => {
     expect(await siteUrl({ NODE_ENV: "development" })).not.toThrow();
+  });
+
+  it("rejects the deploy URL on a production deployment", async () => {
+    // A vercel.app origin is valid, serves fine, and quietly publishes
+    // canonicals pointing away from the custom domain. Nothing else catches it.
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "https://k53-mentor-ai.vercel.app",
+    });
+    expect(guard).toThrow(/deploy URL/);
+  });
+
+  it("allows the deploy URL on a preview deployment, which genuinely lives there", async () => {
+    // Previews run with NODE_ENV=production and VERCEL=1 too, so gating this on
+    // the broader hosted-production check would break every preview build.
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "preview",
+      NEXT_PUBLIC_SITE_URL: "https://k53-mentor-ai-git-branch.vercel.app",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("does not mistake a lookalike host for the deploy URL", async () => {
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "https://notvercel.app.k53mentorai.co.za",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("rejects a value missing its scheme, which would break every URL built from it", async () => {
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "k53mentorai.co.za",
+    });
+    expect(guard).toThrow(/valid absolute URL/);
   });
 });
 

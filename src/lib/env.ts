@@ -52,26 +52,63 @@ export function assertSupabaseConfiguredInProduction() {
 }
 
 /**
- * Guard against deploying with no site origin configured.
+ * Guard against deploying with the wrong site origin.
  *
- * `SITE_URL` falls back to `http://localhost:3000`, and that fallback is not
- * cosmetic: it becomes `metadataBase`, every canonical, all of `sitemap.xml`,
- * the sitemap line in `robots.txt`, both JSON-LD blocks, and the link in every
- * transactional email we send. All of it wrong, none of it throwing — the
- * failure surfaces weeks later as "why is nothing indexed and why do the
- * receipt links not work".
+ * `SITE_URL` feeds `metadataBase`, every canonical, all of `sitemap.xml`, the
+ * sitemap line in `robots.txt`, both JSON-LD blocks, and the link in every
+ * transactional email we send. Getting it wrong is silent in a way that is
+ * worse than a crash: the site keeps serving, and only weeks later does it
+ * surface as "why is nothing indexed and why do the receipt links go somewhere
+ * else".
  *
- * Worth knowing when this fires: `NEXT_PUBLIC_*` is inlined at build time, so
- * this reads the value baked in during `next build`, not the one in the
- * dashboard now. That is the right check — it catches exactly the case where
- * the var was added to Vercel but the app was never rebuilt.
+ * Two distinct failures, because they have different blast radii:
+ *
+ * 1. **Unset** — falls back to `http://localhost:3000`. Broken on any hosted
+ *    deploy, preview included, so this is checked on all of them.
+ *
+ * 2. **Pointed at the deploy URL** — `https://<project>.vercel.app` is a
+ *    perfectly valid origin, which is exactly what makes it dangerous: nothing
+ *    errors, and production quietly publishes canonicals telling Google the
+ *    real site lives on a hostname you intend to abandon. That is only wrong
+ *    on *production* — a preview deployment genuinely does live on vercel.app
+ *    and must keep working — so this half gates on `VERCEL_ENV` rather than
+ *    the broader hosted-production check.
+ *
+ * `NEXT_PUBLIC_*` is inlined at build time, so this reads the value baked in
+ * during `next build`, not the one sitting in the dashboard now. That is the
+ * right check: it catches the case where the var was fixed in Vercel but the
+ * app was never rebuilt.
  */
 export function assertSiteUrlConfiguredInProduction() {
-  if (isHostedProduction() && !process.env.NEXT_PUBLIC_SITE_URL) {
+  if (!isHostedProduction()) return;
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
+  if (!siteUrl) {
     throw new Error(
       "NEXT_PUBLIC_SITE_URL must be set in production — without it every canonical, " +
         "sitemap entry, robots.txt sitemap line and transactional email link points at " +
         "http://localhost:3000. Set it in Vercel and redeploy (NEXT_PUBLIC_* is inlined at build time).",
+    );
+  }
+
+  if (process.env.VERCEL_ENV !== "production") return;
+
+  let host: string;
+  try {
+    host = new URL(siteUrl).host;
+  } catch {
+    throw new Error(
+      `NEXT_PUBLIC_SITE_URL is not a valid absolute URL (got "${siteUrl}") — ` +
+        "it needs the scheme too, e.g. https://k53mentorai.co.za.",
+    );
+  }
+
+  if (host === "vercel.app" || host.endsWith(".vercel.app")) {
+    throw new Error(
+      `NEXT_PUBLIC_SITE_URL points at the deploy URL (${host}) on a production deployment. ` +
+        "Every canonical, sitemap entry and email link would tell search engines and customers " +
+        "that the site lives there rather than on the custom domain. Set it to the custom " +
+        "domain and redeploy.",
     );
   }
 }
