@@ -10,6 +10,16 @@ export const APP_DESCRIPTION =
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 
+/**
+ * Bare host, for copy that reads as a domain rather than a link — the share
+ * card, placeholder addresses. Derived from SITE_URL rather than written out,
+ * because the hardcoded version drifted: the share image spent months telling
+ * WhatsApp recipients to visit a domain the project does not own.
+ * Regex rather than `new URL()` so a malformed env value degrades instead of
+ * throwing at module scope in a client bundle.
+ */
+export const SITE_DOMAIN = SITE_URL.replace(/^https?:\/\//, "").replace(/\/+$/, "");
+
 /** National first-time pass-rate figure used as the core marketing hook. */
 export const PASS_RATE_NOW = 40;
 export const PASS_RATE_BEFORE = 68;
@@ -51,3 +61,24 @@ export const SECTION_OF: Record<CategoryId, ExamSection> = {
 
 // Interim support/refund inbox until a branded address is set up.
 export const SUPPORT_EMAIL = "utayan.naidoo@gmail.com";
+
+/**
+ * Operator details disclosed on /contact.
+ *
+ * ECTA s43 requires an electronic-commerce provider to publish its legal name,
+ * registration number and street address; POPIA s55 requires a named
+ * Information Officer to receive access and deletion requests. Both are
+ * rendered only when set, so an unfilled field degrades to a shorter page
+ * rather than an empty heading — but shipping with them blank means the
+ * disclosure obligation is still outstanding.
+ */
+export const BUSINESS = {
+  /** Registered company name, or your full name if trading as a sole proprietor. */
+  legalName: "",
+  /** CIPC registration number. Omit if trading as a sole proprietor. */
+  registrationNumber: "",
+  /** Street address — a postal box does not satisfy ECTA s43. */
+  address: "",
+  /** POPIA s55 Information Officer. Usually the owner for a business this size. */
+  informationOfficer: "",
+} as const;

@@ -19,7 +19,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/signup", 0.7),
     page("/login", 0.4),
     page("/sources", 0.4),
+    page("/contact", 0.3),
     page("/privacy", 0.2),
     page("/terms", 0.2),
+    page("/refunds", 0.2),
   ];
 }

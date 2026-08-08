@@ -5,6 +5,7 @@ import { Share2, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { RANKS } from "@/lib/engagement";
+import { SITE_DOMAIN } from "@/lib/constants";
 
 /**
  * WhatsApp-ready progress card: rendered on a canvas in Road Atlas colours
@@ -90,7 +91,7 @@ function draw(canvas: HTMLCanvasElement, d: { name: string; rank: string; readin
   // Footer
   ctx.fillStyle = C.muted;
   ctx.font = "500 26px system-ui, sans-serif";
-  ctx.fillText("Studying for my learner's with k53mentor.ai — come pass with me 🚗", 56, 560);
+  ctx.fillText(`Studying for my learner's with ${SITE_DOMAIN} — come pass with me 🚗`, 56, 560);
 }
 
 export function ShareCard() {

@@ -21,8 +21,8 @@ const siteHost = new URL(SITE_URL).host;
 describe("callbackOrigin", () => {
   it("uses the proxy-set host, which is what identifies the deployment", () => {
     expect(
-      callbackOrigin(req({ "x-forwarded-host": "k53mentor.ai", "x-forwarded-proto": "https" })),
-    ).toBe("https://k53mentor.ai");
+      callbackOrigin(req({ "x-forwarded-host": "k53mentor.co.za", "x-forwarded-proto": "https" })),
+    ).toBe("https://k53mentor.co.za");
   });
 
   it("keeps a preview checkout on the preview deployment", () => {
@@ -33,14 +33,14 @@ describe("callbackOrigin", () => {
 
   it("honours Origin when it agrees with the proxy host (the browser case)", () => {
     expect(
-      callbackOrigin(req({ origin: "https://k53mentor.ai", "x-forwarded-host": "k53mentor.ai" })),
-    ).toBe("https://k53mentor.ai");
+      callbackOrigin(req({ origin: "https://k53mentor.co.za", "x-forwarded-host": "k53mentor.co.za" })),
+    ).toBe("https://k53mentor.co.za");
   });
 
   it("discards a forged Origin and falls back to the trusted host", () => {
     expect(
-      callbackOrigin(req({ origin: "https://evil.example", "x-forwarded-host": "k53mentor.ai" })),
-    ).toBe("https://k53mentor.ai");
+      callbackOrigin(req({ origin: "https://evil.example", "x-forwarded-host": "k53mentor.co.za" })),
+    ).toBe("https://k53mentor.co.za");
   });
 
   it("discards a forged Origin even when no proxy host is present", () => {
@@ -49,14 +49,14 @@ describe("callbackOrigin", () => {
 
   it("is not fooled by a lookalike subdomain", () => {
     expect(
-      callbackOrigin(req({ origin: "https://k53mentor.ai.evil.example", "x-forwarded-host": "k53mentor.ai" })),
-    ).toBe("https://k53mentor.ai");
+      callbackOrigin(req({ origin: "https://k53mentor.co.za.evil.example", "x-forwarded-host": "k53mentor.co.za" })),
+    ).toBe("https://k53mentor.co.za");
   });
 
   it("ignores a non-http scheme", () => {
     expect(
-      callbackOrigin(req({ origin: "javascript:alert(1)", "x-forwarded-host": "k53mentor.ai" })),
-    ).toBe("https://k53mentor.ai");
+      callbackOrigin(req({ origin: "javascript:alert(1)", "x-forwarded-host": "k53mentor.co.za" })),
+    ).toBe("https://k53mentor.co.za");
   });
 
   it("still accepts an Origin matching the configured site", () => {
@@ -73,8 +73,8 @@ describe("callbackOrigin", () => {
       "http://localhost:1337",
       "https://paystack.co.evil.example",
     ]) {
-      const out = callbackOrigin(req({ origin: evil, "x-forwarded-host": "k53mentor.ai" }));
-      expect(new URL(out).host === "k53mentor.ai" || new URL(out).host === siteHost).toBe(true);
+      const out = callbackOrigin(req({ origin: evil, "x-forwarded-host": "k53mentor.co.za" }));
+      expect(new URL(out).host === "k53mentor.co.za" || new URL(out).host === siteHost).toBe(true);
     }
   });
 });

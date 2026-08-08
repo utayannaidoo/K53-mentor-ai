@@ -22,12 +22,12 @@ or dropped.
 
 Dashboard → **Authentication → URL Configuration**:
 
-- **Site URL** — the production origin, e.g. `https://k53mentor.ai`. Supabase falls back
+- **Site URL** — the production origin, e.g. `https://k53mentor.co.za`. Supabase falls back
   to this whenever a requested redirect isn't allowlisted, which is why a link can
   "work" but dump the user on the marketing page instead of the app.
 - **Redirect URLs** — must include every origin the app runs on:
   ```
-  https://k53mentor.ai/auth/callback
+  https://k53mentor.co.za/auth/callback
   https://*-<your-vercel-scope>.vercel.app/auth/callback   ← preview deployments
   http://localhost:3000/auth/callback
   ```

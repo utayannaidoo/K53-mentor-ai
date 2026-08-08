@@ -17,6 +17,9 @@ const ENV_KEYS = [
   "NEXT_PHASE",
   "NEXT_PUBLIC_SUPABASE_URL",
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+  "NEXT_PUBLIC_SITE_URL",
+  "PAYSTACK_SECRET_KEY",
+  "VERCEL_ENV",
 ] as const;
 
 // NODE_ENV is typed readonly on ProcessEnv; tests legitimately need to move it.
@@ -32,15 +35,21 @@ afterEach(() => {
   vi.resetModules();
 });
 
-/** Load a fresh copy of the guard under a given environment. */
-async function guardUnder(vars: Partial<Record<(typeof ENV_KEYS)[number], string>>) {
+type EnvVars = Partial<Record<(typeof ENV_KEYS)[number], string>>;
+
+/** Load a fresh copy of the env module under a given environment. */
+async function envUnder(vars: EnvVars) {
   vi.resetModules();
   for (const k of ENV_KEYS) delete env[k];
   for (const [k, v] of Object.entries(vars)) {
     if (v !== undefined) env[k] = v;
   }
-  const { assertSupabaseConfiguredInProduction } = await import("@/lib/env");
-  return assertSupabaseConfiguredInProduction;
+  return import("@/lib/env");
+}
+
+/** Load a fresh copy of the guard under a given environment. */
+async function guardUnder(vars: EnvVars) {
+  return (await envUnder(vars)).assertSupabaseConfiguredInProduction;
 }
 
 const SUPABASE_SET = {
@@ -85,5 +94,145 @@ describe("assertSupabaseConfiguredInProduction", () => {
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
     });
     expect(guard).toThrow(/NEXT_PUBLIC_SUPABASE_URL/);
+  });
+});
+
+/**
+ * SITE_URL's fallback is http://localhost:3000, and it feeds metadataBase,
+ * every canonical, the whole sitemap, robots.txt and every transactional email
+ * link. Shipping without it is silent, so the guard is the only thing that
+ * turns "nothing is indexed and the receipt links are dead" into a boot error.
+ */
+describe("assertSiteUrlConfiguredInProduction", () => {
+  const siteUrl = async (vars: EnvVars) =>
+    (await envUnder(vars)).assertSiteUrlConfiguredInProduction;
+
+  it("throws on a production deployment with no site URL", async () => {
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+    });
+    expect(guard).toThrow(/NEXT_PUBLIC_SITE_URL/);
+  });
+
+  it("stays quiet once the site URL is set", async () => {
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "https://k53mentorai.co.za",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("does not break a preview deployment that has no site URL of its own", async () => {
+    // Regression: an earlier version keyed off NODE_ENV + VERCEL alone, which
+    // are both set on previews too, so it 500'd every preview deployment on the
+    // first request — the Preview scope carries no NEXT_PUBLIC_SITE_URL. A
+    // preview with a localhost canonical is cosmetic; a dead preview is not.
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "preview",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("stays quiet during the production build", async () => {
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      NEXT_PHASE: "phase-production-build",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("stays quiet in local development", async () => {
+    expect(await siteUrl({ NODE_ENV: "development" })).not.toThrow();
+  });
+
+  it("rejects the deploy URL on a production deployment", async () => {
+    // A vercel.app origin is valid, serves fine, and quietly publishes
+    // canonicals pointing away from the custom domain. Nothing else catches it.
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "https://k53-mentor-ai.vercel.app",
+    });
+    expect(guard).toThrow(/deploy URL/);
+  });
+
+  it("allows the deploy URL on a preview deployment, which genuinely lives there", async () => {
+    // Previews run with NODE_ENV=production and VERCEL=1 too, so gating this on
+    // the broader hosted-production check would break every preview build.
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "preview",
+      NEXT_PUBLIC_SITE_URL: "https://k53-mentor-ai-git-branch.vercel.app",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("does not mistake a lookalike host for the deploy URL", async () => {
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "https://notvercel.app.k53mentorai.co.za",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("rejects a value missing its scheme, which would break every URL built from it", async () => {
+    const guard = await siteUrl({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      NEXT_PUBLIC_SITE_URL: "k53mentorai.co.za",
+    });
+    expect(guard).toThrow(/valid absolute URL/);
+  });
+});
+
+/**
+ * A production deploy carrying sk_test_ accepts Paystack's test cards, and the
+ * webhook grants a real paid tier for them — the product is quietly free to
+ * anyone who knows the test card numbers.
+ */
+describe("assertLivePaystackKeyInProduction", () => {
+  const paystack = async (vars: EnvVars) =>
+    (await envUnder(vars)).assertLivePaystackKeyInProduction;
+
+  it("throws when production carries a test key", async () => {
+    const guard = await paystack({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      PAYSTACK_SECRET_KEY: "sk_test_abc123",
+    });
+    expect(guard).toThrow(/sk_live_/);
+  });
+
+  it("stays quiet on a live key", async () => {
+    const guard = await paystack({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      PAYSTACK_SECRET_KEY: "sk_live_abc123",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("stays quiet when Paystack is unconfigured — billing is optional", async () => {
+    expect(await paystack({ NODE_ENV: "production", VERCEL: "1" })).not.toThrow();
+  });
+
+  it("stays quiet in local development, where a test key is the point", async () => {
+    const guard = await paystack({
+      NODE_ENV: "development",
+      PAYSTACK_SECRET_KEY: "sk_test_abc123",
+    });
+    expect(guard).not.toThrow();
   });
 });

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/landing/legal-page";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, BUSINESS } from "@/lib/constants";
 
 export const metadata: Metadata = {
   title: "Privacy policy",
@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="2 July 2026"
+      updated="8 August 2026"
       intro={`This policy explains what ${APP_NAME} collects, why we collect it, and the choices you have. We collect as little as we can get away with — your study data exists to teach you, not to sell you.`}
     >
       <section>
@@ -67,8 +67,71 @@ export default function PrivacyPage() {
         <h2>Cookies & local storage</h2>
         <p>
           We use local storage for the things that make the app work: your session, your study
-          progress cache, and preferences like dark mode and data-saver. We do not run third-party
-          advertising trackers.
+          progress cache, and preferences like dark mode and data-saver.
+        </p>
+        <p>
+          We also use PostHog for product analytics, which stores an identifier in your browser&apos;s
+          local storage so we can tell whether the same person finished onboarding, and count how
+          many people get stuck where. It records the pages you open and a short list of named
+          actions (signing up, finishing a diagnostic, starting a checkout). We have turned off its
+          automatic capture of every click and keystroke, so it only receives events we have named
+          deliberately. We do not run advertising trackers and we do not sell or share your data
+          with advertisers.
+        </p>
+      </section>
+
+      <section>
+        <h2>Who processes your data</h2>
+        <p>
+          We are a small operation and rely on established providers rather than running our own
+          infrastructure. Each of these receives only what it needs to do its job:
+        </p>
+        <ul>
+          <li>
+            <strong>Supabase</strong> — database and sign-in. Holds your account details and study
+            data.
+          </li>
+          <li>
+            <strong>Vercel</strong> — hosting. Processes the requests your browser makes, including
+            your IP address.
+          </li>
+          <li>
+            <strong>Paystack</strong> — payments and subscription status. Handles your card details
+            directly; we never receive them.
+          </li>
+          <li>
+            <strong>Anthropic</strong> and <strong>OpenAI</strong> — the AI tutor. Receive your
+            question and a short summary of your study context, without your name, email or payment
+            details.
+          </li>
+          <li>
+            <strong>Resend</strong> — transactional and reminder email. Receives your email address
+            and the message we are sending you.
+          </li>
+          <li>
+            <strong>PostHog</strong> — product analytics, as described above.
+          </li>
+          <li>
+            <strong>Upstash</strong> — usage limits. Holds a counter keyed to your account ID so the
+            AI features can enforce a daily allowance.
+          </li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>Sending data outside South Africa</h2>
+        <p>
+          Every provider listed above operates outside South Africa, so using this service means
+          your personal information is processed abroad — principally in the European Union and the
+          United States. Section 72 of POPIA allows this where the transfer is necessary to perform
+          the contract between us, which is the basis we rely on: we cannot host your account,
+          process your payment, or generate a tutor reply without sending the relevant data to the
+          provider that does it.
+        </p>
+        <p>
+          We choose providers that publish a data-processing agreement and commit to protection
+          comparable to POPIA. We do not transfer your personal information to anyone else, and we
+          do not sell it.
         </p>
       </section>
 
@@ -79,6 +142,20 @@ export default function PrivacyPage() {
           hold about you, ask us to correct it, or ask us to delete it. You can delete your study
           progress yourself at any time from Account → Reset all progress, and deleting your
           account removes your personal information from our systems within a reasonable period.
+        </p>
+        <p>
+          You do not need an account, or access to one, to make a request — email us from the{" "}
+          <a href="/contact" className="underline">
+            contact page
+          </a>{" "}
+          and we will handle it. We do not charge for this.
+          {BUSINESS.informationOfficer
+            ? ` Our Information Officer is ${BUSINESS.informationOfficer}.`
+            : ""}
+        </p>
+        <p>
+          If you are not satisfied with how we have handled a request, you may complain to the
+          Information Regulator of South Africa, which oversees POPIA.
         </p>
       </section>
 
@@ -103,7 +180,11 @@ export default function PrivacyPage() {
         <h2>Changes & contact</h2>
         <p>
           If this policy changes materially we&apos;ll note it here with a new date. Questions or
-          requests about your personal information can be sent to us via your account page.
+          requests about your personal information can be sent to us from the{" "}
+          <a href="/contact" className="underline">
+            contact page
+          </a>
+          , or from your account page if you have one.
         </p>
       </section>
     </LegalPage>

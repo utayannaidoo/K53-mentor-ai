@@ -28,6 +28,7 @@ const GROUPS = [
   {
     title: "Legal",
     links: [
+      { href: "/contact", label: "Contact us" },
       { href: "/privacy", label: "Privacy policy" },
       { href: "/terms", label: "Terms of service" },
       { href: "/refunds", label: "Refund & cancellation" },

@@ -2,11 +2,19 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 type CookieToSet = { name: string; value: string; options: CookieOptions };
-import { assertSupabaseConfiguredInProduction, isSupabaseConfigured, supabaseConfig } from "@/lib/env";
+import {
+  assertSiteUrlConfiguredInProduction,
+  assertSupabaseConfiguredInProduction,
+  isSupabaseConfigured,
+  supabaseConfig,
+} from "@/lib/env";
 import { safeNextPath } from "@/lib/auth/safe-next";
 
 // A hosted deploy missing Supabase would silently skip every check below.
 assertSupabaseConfiguredInProduction();
+// Middleware runs on every page request, so this is the broadest place to
+// catch a deploy built without a site origin.
+assertSiteUrlConfiguredInProduction();
 
 /** App areas that require a signed-in user (prefix match). */
 const PROTECTED = ["/dashboard", "/study", "/tutor", "/licence-prep", "/account"];

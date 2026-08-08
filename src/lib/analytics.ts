@@ -10,6 +10,10 @@ import posthog from "posthog-js";
  */
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
+// Must match the region the PostHog project was created in — a project on
+// eu.i.posthog.com receiving events at the US host drops them silently, with
+// no error anywhere. Set NEXT_PUBLIC_POSTHOG_HOST explicitly in production
+// rather than relying on this fallback.
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
 
 let initialized = false;
@@ -51,6 +55,20 @@ export type AnalyticsEvent =
 export function track(event: AnalyticsEvent, props?: Record<string, string | number | boolean>): void {
   if (!KEY || !initialized) return;
   posthog.capture(event, props);
+}
+
+/**
+ * Send an exception to PostHog's error tracking, which groups repeats into one
+ * issue and can alert on a spike.
+ *
+ * This runs alongside the POST to /api/log rather than replacing it: the log
+ * line is the only report that still works when analytics is unconfigured or
+ * blocked, and ad blockers drop a meaningful share of PostHog traffic on SA
+ * mobile. Two sinks, neither load-bearing on its own.
+ */
+export function captureException(error: Error, props?: Record<string, string>): void {
+  if (!KEY || !initialized) return;
+  posthog.captureException(error, props);
 }
 
 /** Tie events to the account (called after sign-in). */
