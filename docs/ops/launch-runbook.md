@@ -79,7 +79,7 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 | `NEXT_PUBLIC_POSTHOG_KEY` | project key | |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | | Guarded — the app throws at boot on Vercel prod without them |
 | `SUPABASE_SERVICE_ROLE_KEY` | | Server-only. Never `NEXT_PUBLIC_`. |
-| `PAYSTACK_SECRET_KEY` | **`sk_live_…`** | Nothing in code enforces live-vs-test. A `sk_test_` production deploy accepts test cards and grants real Premium tiers. **Verify by eye.** |
+| `PAYSTACK_SECRET_KEY` | **`sk_live_…`** | A `sk_test_` key on a *production* deployment now throws in `paystack/client.ts`, so checkout breaks loudly rather than accepting test cards for real tiers. Preview keeps using test keys — that is the merchant-review setup. |
 | `PAYSTACK_PLAN_PREMIUM_MONTHLY` / `_ANNUAL` / `_PLUS_MONTHLY` / `_PLUS_ANNUAL` | live plan codes | Missing ⇒ 500 "Price not configured for this plan" at checkout |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | | Guarded. Without them the in-memory fallback resets per lambda — i.e. no real rate limiting |
 | `ANTHROPIC_API_KEY` | | Preferred provider |
