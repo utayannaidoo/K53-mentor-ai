@@ -19,6 +19,7 @@ const ENV_KEYS = [
   "NEXT_PUBLIC_SUPABASE_ANON_KEY",
   "NEXT_PUBLIC_SITE_URL",
   "PAYSTACK_SECRET_KEY",
+  "PAYSTACK_ALLOW_TEST_KEY",
   "VERCEL_ENV",
 ] as const;
 
@@ -241,6 +242,45 @@ describe("assertLivePaystackKeyInProduction", () => {
       PAYSTACK_SECRET_KEY: "sk_test_abc123",
     });
     expect(guard).not.toThrow();
+  });
+
+  it("allows a test key in production when explicitly opted in", async () => {
+    // Real window: before merchant activation there is no live key to hold, and
+    // throwing there takes checkout, cancellation and the webhook down for a
+    // state the operator cannot yet fix. Opt-in, never a default.
+    const guard = await paystack({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      PAYSTACK_SECRET_KEY: "sk_test_abc123",
+      PAYSTACK_ALLOW_TEST_KEY: "1",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("only accepts an exact opt-in value, so a stray truthy string is not enough", async () => {
+    for (const value of ["true", "yes", "0", ""]) {
+      const guard = await paystack({
+        NODE_ENV: "production",
+        VERCEL: "1",
+        VERCEL_ENV: "production",
+        PAYSTACK_SECRET_KEY: "sk_test_abc123",
+        PAYSTACK_ALLOW_TEST_KEY: value,
+      });
+      expect(guard, `PAYSTACK_ALLOW_TEST_KEY=${value} must not disable the guard`).toThrow(
+        /sk_live_/,
+      );
+    }
+  });
+
+  it("names the escape hatch in the error, so the reader knows the options", async () => {
+    const guard = await paystack({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      PAYSTACK_SECRET_KEY: "sk_test_abc123",
+    });
+    expect(guard).toThrow(/PAYSTACK_ALLOW_TEST_KEY/);
   });
 
   it("allows a test key on a preview deployment — that is the merchant-review setup", async () => {
