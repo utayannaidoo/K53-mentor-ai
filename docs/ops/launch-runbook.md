@@ -79,7 +79,7 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 | `NEXT_PUBLIC_POSTHOG_KEY` | project key | |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | | Guarded — the app throws at boot on Vercel prod without them |
 | `SUPABASE_SERVICE_ROLE_KEY` | | Server-only. Never `NEXT_PUBLIC_`. |
-| `PAYSTACK_SECRET_KEY` | **`sk_live_…`** | Nothing in code enforces live-vs-test. A `sk_test_` production deploy accepts test cards and grants real Premium tiers. **Verify by eye.** |
+| `PAYSTACK_SECRET_KEY` | **`sk_live_…`** | A `sk_test_` key on a *production* deployment now throws in `paystack/client.ts`, so checkout breaks loudly rather than accepting test cards for real tiers. Preview keeps using test keys — that is the merchant-review setup. |
 | `PAYSTACK_PLAN_PREMIUM_MONTHLY` / `_ANNUAL` / `_PLUS_MONTHLY` / `_PLUS_ANNUAL` | live plan codes | Missing ⇒ 500 "Price not configured for this plan" at checkout |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | | Guarded. Without them the in-memory fallback resets per lambda — i.e. no real rate limiting |
 | `ANTHROPIC_API_KEY` | | Preferred provider |
@@ -114,7 +114,9 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 
 ## 4. Supabase
 
-- [ ] Every migration `0001` → `0018` applied
+- [ ] Every migration `0001` → `0019` applied (0019 adds the dispute/refund/non-renewal
+      columns the webhook now writes — without it those three events throw and Paystack
+      retries them forever)
 - [ ] **Auth → URL Configuration → Site URL** = `https://k53mentor.co.za`
 - [ ] **Auth → URL Configuration → Redirect URLs** include:
       - `https://k53mentor.co.za/auth/callback`
@@ -185,22 +187,34 @@ Known gaps, post-launch:
 - [ ] Declined-card path tested
 - [ ] Settlement account and schedule confirmed
 
-Known gaps, post-launch — worth reading before you take real money:
+**Closed on 8 Aug 2026:**
 
-- **No reconciliation job.** The webhook and `/api/paystack/verify` share the
-  `payment_events` ledger. If the webhook lands first and returns `duplicate`, then
-  `verify`'s apply throws and releases the row, Paystack has already been ACKed and will
-  **not** retry. Money taken, tier never granted, and the only recovery is reading Vercel
-  logs. This is the single most likely real-money incident at launch. A cron that lists
-  recent Paystack transactions and re-runs `applyChargeSuccess` for any `charge.success`
-  not reflected in `subscriptions` would close it.
-- **Unhandled webhook events.** `src/app/api/paystack/webhook/route.ts` handles
-  `charge.success`, `invoice.payment_failed` and `subscription.disable`. It does **not**
-  handle `charge.dispute.create` (chargebacks land silently), `refund.processed` (a refund
-  issued from the Paystack dashboard never downgrades the tier), or
-  `subscription.not_renew`.
+- [x] **Reconciliation job** — `GET /api/cron/reconcile-payments`, daily at 03:00 UTC
+      (`vercel.json`). Lists Paystack's successful transactions for the last 3 days and
+      grants anything with no `payment_events` row, reusing the webhook's idempotency via
+      `applyChargeOnce`. It exists because the webhook and `/api/paystack/verify` share
+      that ledger: if the webhook lands first and returns `duplicate`, then `verify`'s
+      apply throws and releases the row, Paystack has already been ACKed and will **not**
+      retry — money taken, tier never granted. Every repair logs `[reconcile] granted a
+      charge the webhook never applied`; **make that a log alert.**
+- [x] **`refund.processed`** — downgrades to free and stamps `refunded_at`. Matched on the
+      refunded charge's reference, not the customer, so refunding a one-off tutor top-up
+      can't strip somebody's subscription.
+- [x] **`charge.dispute.create`** — stamps `disputed_at` and logs loudly. Deliberately
+      does *not* downgrade: a dispute is a claim, not an outcome. If it resolves against
+      you, Paystack issues a refund and `refund.processed` does the downgrade.
+- [x] **`subscription.not_renew`** — sets `cancel_at_period_end`. Deliberately does *not*
+      touch tier or status; the learner paid through the period, and any status outside
+      active/trialing/past_due makes entitlements fail closed and revokes access early.
+      `subscription.disable` is still the actual cutoff.
+
+Requires **migration 0019** and `CRON_SECRET` (the same one the notifications cron uses).
+
+Still open, post-launch:
+
 - **No card-update flow.** The billing page tells users to cancel and resubscribe, which
-  will churn people whose cards expire.
+  will churn people whose cards expire. With disputes and refunds now handled, this is
+  the largest remaining support-load item.
 - `subscriptions.provider_subscription_id` is never written; cancellation depends wholly
   on `provider_customer_id` plus a live Paystack customer fetch.
 - `applyChargeSuccess` grants tier from `metadata.plan` without comparing `amount` or

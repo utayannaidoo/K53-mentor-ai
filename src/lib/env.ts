@@ -27,6 +27,22 @@ function isHostedProduction() {
 }
 
 /**
+ * The *production* deployment specifically — not a preview of it.
+ *
+ * `isHostedProduction()` is true on previews too: they run with
+ * NODE_ENV=production and VERCEL=1. That is correct for guards protecting
+ * something a preview also needs (Supabase, whose absence would serve
+ * premium_plus to anonymous callers on a publicly reachable URL), and wrong for
+ * guards about what the *live* deployment must look like. Previews legitimately
+ * run on vercel.app hosts and legitimately use Paystack test keys — the
+ * merchant-review flow depends on exactly that — so those checks need this
+ * narrower signal.
+ */
+function isProductionDeployment() {
+  return isHostedProduction() && process.env.VERCEL_ENV === "production";
+}
+
+/**
  * Guard a real deployment against shipping without Supabase.
  *
  * Demo mode (no Supabase env) is a deliberate, supported mode — but it is only
@@ -80,7 +96,7 @@ export function assertSupabaseConfiguredInProduction() {
  * app was never rebuilt.
  */
 export function assertSiteUrlConfiguredInProduction() {
-  if (!isHostedProduction() || process.env.VERCEL_ENV !== "production") return;
+  if (!isProductionDeployment()) return;
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL;
   if (!siteUrl) {
@@ -121,10 +137,19 @@ export function assertSiteUrlConfiguredInProduction() {
  * Deliberately scoped to the billing module rather than a global boot guard:
  * a test-key deploy should break checkout loudly, not take the study app down
  * with it. Unset stays legal — billing is an optional integration.
+ *
+ * **Production deployments only**, and that is not a detail. A test key on a
+ * preview is the *supported* setup — the Paystack merchant-review flow is
+ * explicitly "test keys on a Vercel preview deployment", so a preview is where
+ * `sk_test_` belongs. An earlier version keyed off `isHostedProduction()`,
+ * which matches previews too, and 500'd every route importing this module on
+ * every preview: checkout, verify, the webhook, and the reconciliation cron.
+ * The site itself stayed up, which is exactly why it went unnoticed until a
+ * billing route was called.
  */
 export function assertLivePaystackKeyInProduction() {
   const key = process.env.PAYSTACK_SECRET_KEY;
-  if (isHostedProduction() && key && !key.startsWith("sk_live_")) {
+  if (isProductionDeployment() && key && !key.startsWith("sk_live_")) {
     throw new Error(
       "PAYSTACK_SECRET_KEY must be a live key (sk_live_…) in production — " +
         "a test key accepts Paystack test cards and grants real paid tiers for them.",

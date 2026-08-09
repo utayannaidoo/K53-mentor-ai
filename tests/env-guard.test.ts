@@ -210,6 +210,7 @@ describe("assertLivePaystackKeyInProduction", () => {
     const guard = await paystack({
       NODE_ENV: "production",
       VERCEL: "1",
+      VERCEL_ENV: "production",
       PAYSTACK_SECRET_KEY: "sk_test_abc123",
     });
     expect(guard).toThrow(/sk_live_/);
@@ -219,18 +220,39 @@ describe("assertLivePaystackKeyInProduction", () => {
     const guard = await paystack({
       NODE_ENV: "production",
       VERCEL: "1",
+      VERCEL_ENV: "production",
       PAYSTACK_SECRET_KEY: "sk_live_abc123",
     });
     expect(guard).not.toThrow();
   });
 
   it("stays quiet when Paystack is unconfigured — billing is optional", async () => {
-    expect(await paystack({ NODE_ENV: "production", VERCEL: "1" })).not.toThrow();
+    const guard = await paystack({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+    });
+    expect(guard).not.toThrow();
   });
 
   it("stays quiet in local development, where a test key is the point", async () => {
     const guard = await paystack({
       NODE_ENV: "development",
+      PAYSTACK_SECRET_KEY: "sk_test_abc123",
+    });
+    expect(guard).not.toThrow();
+  });
+
+  it("allows a test key on a preview deployment — that is the merchant-review setup", async () => {
+    // Regression: keyed off NODE_ENV + VERCEL alone, this threw at module scope
+    // in paystack/client.ts and 500'd every route importing it on every
+    // preview — checkout, verify, the webhook and the reconciliation cron —
+    // while the site itself stayed up, so nothing surfaced it until a billing
+    // route was actually called.
+    const guard = await paystack({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "preview",
       PAYSTACK_SECRET_KEY: "sk_test_abc123",
     });
     expect(guard).not.toThrow();

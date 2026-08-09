@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildPaymentReceiptEmail } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
-import { fetchCustomer, disableSubscription } from "@/lib/paystack/client";
+import { fetchCustomer, disableSubscription, type PaystackTransaction } from "@/lib/paystack/client";
 
 /**
  * The shape of a successful charge, as it arrives either on the `charge.success`
@@ -18,6 +18,93 @@ export interface ChargeSuccessData {
   customer: { customer_code: string; email: string; first_name?: string | null };
   metadata?: Record<string, string> | null;
   plan?: { plan_code?: string } | null;
+}
+
+/** The `payment_events` id every path uses for a successful charge. */
+export function chargeLedgerId(transactionId: number | string): string {
+  return `charge.success:${transactionId}`;
+}
+
+/**
+ * Coerce a transaction from the list endpoint into the shape the grant expects.
+ *
+ * Two quirks, both load-bearing. `metadata` comes back as a JSON *string*
+ * rather than an object on some responses, and it carries the `user_id` that
+ * ties a charge to an account — lose it and the grant silently treats a real
+ * payment as a renewal with no owner. `plan` comes back as a bare code rather
+ * than `{ plan_code }`, and without a plan code `applyChargeSuccess` decides
+ * the charge "isn't one of ours" and returns having done nothing.
+ *
+ * Both failures are silent, which is why this is shared rather than inlined.
+ */
+export function normaliseTransaction(tx: PaystackTransaction): ChargeSuccessData {
+  let metadata: Record<string, string> | null = null;
+  if (typeof tx.metadata === "string") {
+    try {
+      const parsed = JSON.parse(tx.metadata) as unknown;
+      if (parsed && typeof parsed === "object") metadata = parsed as Record<string, string>;
+    } catch {
+      metadata = null;
+    }
+  } else if (tx.metadata && typeof tx.metadata === "object") {
+    metadata = tx.metadata;
+  }
+
+  const planCode = typeof tx.plan === "string" ? tx.plan : tx.plan?.plan_code;
+
+  return {
+    id: tx.id,
+    reference: tx.reference,
+    amount: tx.amount,
+    customer: tx.customer,
+    metadata,
+    plan: planCode ? { plan_code: planCode } : null,
+  };
+}
+
+export type ApplyOnceOutcome = "applied" | "already_applied" | "failed";
+
+/**
+ * `applyChargeSuccess` wrapped in the `payment_events` ledger dance: claim the
+ * row, apply, and release the row again if applying threw so a later retry
+ * isn't swallowed as a duplicate.
+ *
+ * Used by the reconciliation cron. The webhook and verify routes keep their own
+ * inline copies of this sequence — not duplication for its own sake: each needs
+ * to distinguish "ledger unreachable" from "apply failed" in its HTTP response,
+ * and verify continues on to return the resulting tier. This wrapper exists so
+ * the cron, which only needs applied/skipped/failed, cannot drift from the
+ * idempotency rules those two encode.
+ */
+export async function applyChargeOnce(
+  admin: SupabaseClient,
+  data: ChargeSuccessData,
+): Promise<ApplyOnceOutcome> {
+  const ledgerId = chargeLedgerId(data.id);
+  const { error: ledgerError } = await admin
+    .from("payment_events")
+    .insert({ id: ledgerId, type: "charge.success" });
+
+  if (ledgerError?.code === "23505") return "already_applied";
+  if (ledgerError) {
+    console.error("applyChargeOnce: ledger insert failed", ledgerId, ledgerError.message);
+    return "failed";
+  }
+
+  try {
+    await applyChargeSuccess(admin, data);
+    return "applied";
+  } catch (err) {
+    console.error("applyChargeOnce: apply failed, releasing ledger row", ledgerId, err);
+    await admin
+      .from("payment_events")
+      .delete()
+      .eq("id", ledgerId)
+      .then(({ error }) => {
+        if (error) console.error("applyChargeOnce: ledger release failed", ledgerId, error.message);
+      });
+    return "failed";
+  }
 }
 
 /**
