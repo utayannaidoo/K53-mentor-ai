@@ -1,4 +1,4 @@
-# Launch runbook — k53mentor.co.za
+# Launch runbook — k53mentorai.co.za
 
 Written for the **hard public launch**: live domain, live Paystack money, marketing from
 day one.
@@ -26,20 +26,48 @@ rather than alarming. Already in place and tested:
 
 ---
 
-## 1. Buy the domain
+## 0. Status as of 9 Aug 2026
 
-`.co.za` is administered by ZACR/ZADNA. **Neither Cloudflare Registrar nor Vercel Domains
-sells `.co.za`** — this is where people get stuck. Use a South African registrar
-(Xneelo, Afrihost, domains.co.za, Register Domain SA). Roughly R80–R150/year.
+**Live:** `https://k53mentorai.co.za` serves the app from Vercel. `www` resolves and
+serves too (200, not a redirect — the canonical tag points at the apex, so Google
+consolidates, but a 308 would be tidier). Canonicals, sitemap, robots and OG all emit
+the correct origin. Migrations `0001` → `0020` applied and verified.
 
-- [ ] Register `k53mentor.co.za`
-- [ ] **Auto-renew ON** and **registrar lock ON**
-- [ ] Registrant email is an address you control that is **not** on this domain (avoid the
-      lockout where the only recovery address lives on the domain you lost)
-- [ ] Decline registrar-bundled hosting and email — you need neither
-- [ ] Decide the canonical host **now**: apex `k53mentor.co.za`, with `www` 301-redirecting
-      to it. Supabase Site URL, the Paystack webhook, Search Console and the OG tags must
-      all agree on this one choice.
+**Paystack is live-keyed** and the five billing routes respond correctly
+(`/api/checkout`, `/api/billing/cancel`, `/api/paystack/verify`, `/api/paystack/webhook`,
+`/api/cron/reconcile-payments`).
+
+**Still blocking a real launch:**
+
+| Blocker | Where |
+|---|---|
+| No mail DNS at all — no MX, SPF, DKIM or DMARC | §5 |
+| Supabase custom SMTP not configured (blocked on the above) | §4 |
+| Supabase `token_hash` email templates not applied | §4 — **do this now, it isn't blocked** |
+| `BUSINESS` in `src/lib/constants.ts` is blank → ECTA s43 / POPIA s55 disclosures don't render | §7 |
+| `SUPPORT_EMAIL` is still a personal Gmail, public on `/contact` and `/refunds` | §8 |
+| Upstash, Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
+
+> ⚠️ **Set Upstash *before* the AI keys.** `src/lib/ai/rate-limit.ts` throws at boot when
+> an AI key is present without Upstash, so adding `ANTHROPIC_API_KEY` first takes
+> production down.
+
+**Do not reference `k53mentor.co.za` or `k53mentor.com`.** Both were front-run on
+2026-08-06 — registered two seconds apart to a third party via domains.co.za, minutes
+after the name was typed into a registrar search box. They are not ours and never will be.
+
+---
+
+## 1. ~~Buy the domain~~ — done
+
+`k53mentorai.co.za` is registered at **domains.co.za**, DNS served by ClouDNS
+(`ns1–4.anycast-ns.com/.net`, SOA admin `dns-admin.domains.co.za`). Manage records in the
+domains.co.za panel — not HOSTAFRICA, and not Vercel's DNS tab, which is inert here.
+
+Kept for the next time: `.co.za` is administered by ZACR/ZADNA, and **neither Cloudflare
+Registrar nor Vercel Domains sells it** — you need a South African registrar. And never
+type a candidate name into a registrar's public search box before you are ready to buy in
+the same session; plain DNS lookups against `8.8.8.8` are safe, registrar searches are not.
 
 ---
 
@@ -48,13 +76,13 @@ sells `.co.za`** — this is where people get stuck. Use a South African registr
 - [ ] Point nameservers at Cloudflare (free) — fastest path to the TXT records needed for
       Resend, DMARC and Search Console below. Registrar DNS also works if you'd rather
       keep it simple.
-- [ ] Vercel → Project → Settings → Domains → add `k53mentor.co.za` **and**
-      `www.k53mentor.co.za`
+- [ ] Vercel → Project → Settings → Domains → add `k53mentorai.co.za` **and**
+      `www.k53mentorai.co.za`
 - [ ] Use the exact A/CNAME values **Vercel's dashboard shows you** — not values copied
       from a blog post; they have changed over time
 - [ ] If proxying through Cloudflare, the records pointing at Vercel must be **DNS-only
       (grey cloud)**
-- [ ] Wait for certificate issuance; confirm `https://k53mentor.co.za` loads
+- [ ] Wait for certificate issuance; confirm `https://k53mentorai.co.za` loads
 - [ ] Confirm the `www` → apex redirect works
 - [ ] Vercel → Deployment Protection is **off for production** (leave it on for previews)
 
@@ -74,7 +102,7 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 
 | Var | Value | Why it matters |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | `https://k53mentor.co.za` | **Blocker.** `src/lib/constants.ts:11` falls back to `http://localhost:3000`. Unset ⇒ every canonical, the whole sitemap, the `robots.txt` sitemap line, both JSON-LD blocks and every transactional email link say localhost. Silently. |
+| `NEXT_PUBLIC_SITE_URL` | `https://k53mentorai.co.za` | **Blocker.** `src/lib/constants.ts:11` falls back to `http://localhost:3000`. Unset ⇒ every canonical, the whole sitemap, the `robots.txt` sitemap line, both JSON-LD blocks and every transactional email link say localhost. Silently. |
 | `NEXT_PUBLIC_POSTHOG_HOST` | `https://eu.i.posthog.com` | **Blocker.** Your PostHog project is in the **EU** region; `src/lib/analytics.ts:13` defaults to `us.i.posthog.com`. Wrong host ⇒ zero events, no error. |
 | `NEXT_PUBLIC_POSTHOG_KEY` | project key | |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | | Guarded — the app throws at boot on Vercel prod without them |
@@ -86,7 +114,7 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 | `ANTHROPIC_API_KEY` | | Preferred provider |
 | `OPENAI_API_KEY` | | Fallback in the cascade |
 | `RESEND_API_KEY` | | Without it, receipts and dunning are skipped and the reminder cron runs dry |
-| `NOTIFY_FROM_EMAIL` | `K53 Mentor <coach@k53mentor.co.za>` | Default is `onboarding@resend.dev` — Resend's shared sandbox sender. Spam-folder magnet. |
+| `NOTIFY_FROM_EMAIL` | `K53 Mentor <coach@k53mentorai.co.za>` | Default is `onboarding@resend.dev` — Resend's shared sandbox sender. Spam-folder magnet. |
 | `CRON_SECRET` | long random string | Otherwise `/api/cron/notifications` is open |
 
 - [ ] All of the above set on **Production**
@@ -119,15 +147,15 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
       columns the webhook writes — without it those three events throw and Paystack
       retries them forever. 0020 makes `profiles.referral_code` / `referred_by`
       server-owned. Both applied and verified on 8 Aug 2026.
-- [ ] **Auth → URL Configuration → Site URL** = `https://k53mentor.co.za`
+- [ ] **Auth → URL Configuration → Site URL** = `https://k53mentorai.co.za`
 - [ ] **Auth → URL Configuration → Redirect URLs** include:
-      - `https://k53mentor.co.za/auth/callback`
+      - `https://k53mentorai.co.za/auth/callback`
       - the preview wildcard (`https://*-<your-vercel-scope>.vercel.app/auth/callback`)
       - `http://localhost:3000/auth/callback`
 
       Supabase silently falls back to Site URL when a redirect isn't allowlisted — that's
       the "the link works but dumps me on the landing page" failure.
-- [ ] **Google Cloud OAuth client** — add `https://k53mentor.co.za` as an authorised
+- [ ] **Google Cloud OAuth client** — add `https://k53mentorai.co.za` as an authorised
       JavaScript origin and the Supabase callback as an authorised redirect URI; put the
       live privacy and terms URLs on the consent screen
 - [ ] **Custom SMTP configured** (point it at Resend). The built-in mailer is capped at a
@@ -148,17 +176,17 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 
 Resend is **send-only**. You need both a verified sending domain and a receiving inbox.
 
-- [ ] Verify `k53mentor.co.za` in Resend — add the **SPF** and **DKIM** records
+- [ ] Verify `k53mentorai.co.za` in Resend — add the **SPF** and **DKIM** records
 - [ ] Add **DMARC**: `v=DMARC1; p=none; rua=mailto:you@…` to start. Tighten to
       `p=quarantine` once you've watched reports for a couple of weeks
-- [ ] Receiving inbox for `support@k53mentor.co.za` — **Cloudflare Email Routing** (free)
+- [ ] Receiving inbox for `support@k53mentorai.co.za` — **Cloudflare Email Routing** (free)
       forwarding to your Gmail is the cheapest credible option. Zoho Mail free tier or
       Google Workspace if you want a real mailbox
 - [ ] `NOTIFY_FROM_EMAIL` points at the verified sender
 - [ ] Test-send to **Gmail, Outlook and Yahoo** — check **spam placement**, not just
       delivery
 - [ ] Send yourself a real payment receipt and a reminder email; confirm every link in
-      them resolves to `k53mentor.co.za` (this is the acid test that §3's rebuild worked)
+      them resolves to `k53mentorai.co.za` (this is the acid test that §3's rebuild worked)
 
 Known gaps, post-launch:
 - No Resend bounce/complaint webhook — hard bounces accumulate invisibly.
@@ -182,7 +210,7 @@ Known gaps, post-launch:
       Nothing in code or CI asserts they agree. If the dashboard says R99 and `plans.ts`
       says R60, the site advertises R60 and the card is charged R99 — silently, and it's a
       consumer-protection problem, not just a bug.
-- [ ] Webhook URL → `https://k53mentor.co.za/api/paystack/webhook` (update it from any
+- [ ] Webhook URL → `https://k53mentorai.co.za/api/paystack/webhook` (update it from any
       vercel.app URL used during testing)
 - [ ] **Live end-to-end with a real card:** pay → webhook writes `subscriptions` → tier
       unlocks in the app → receipt email arrives → cancel → refund lands
@@ -265,7 +293,7 @@ Fixed on 8 Aug 2026 — kept here as the record of what changed and why.
 
 | # | Where | Issue | Status |
 |---|---|---|---|
-| 1 | `src/lib/constants.ts` | `SUPPORT_EMAIL` is a personal Gmail address, rendered publicly on `/refunds` and now `/contact` | **Open — deliberately.** Flip it to `support@k53mentor.co.za` the same day Cloudflare Email Routing exists (§5). Doing it sooner advertises a dead address, which is worse than the Gmail |
+| 1 | `src/lib/constants.ts` | `SUPPORT_EMAIL` is a personal Gmail address, rendered publicly on `/refunds` and now `/contact` | **Open — deliberately.** Flip it to `support@k53mentorai.co.za` the same day Cloudflare Email Routing exists (§5). Doing it sooner advertises a dead address, which is worse than the Gmail |
 | 2 | `src/components/engagement/share-card.tsx` | Share image read "…with k53mentor.ai", a domain you don't own, on the WhatsApp share path | Fixed — now derives from `SITE_DOMAIN` |
 | 3 | `src/app/api/checkout/route.ts` | Guest placeholder `guest@k53mentor.ai` sent to Paystack | Fixed — `SITE_DOMAIN` |
 | 4 | `src/components/auth/auth-form.tsx` | Demo-mode `demo@k53mentor.ai` | Fixed — `SITE_DOMAIN` |
@@ -306,8 +334,8 @@ because on another host a missing Supabase config would silently serve everyone
 
 ## 10. SEO + launch marketing
 
-- [ ] **Google Search Console** — verify `k53mentor.co.za` by DNS TXT, submit
-      `https://k53mentor.co.za/sitemap.xml`
+- [ ] **Google Search Console** — verify `k53mentorai.co.za` by DNS TXT, submit
+      `https://k53mentorai.co.za/sitemap.xml`
 - [ ] **Bing Webmaster Tools** — imports directly from Search Console
 - [ ] **Test the OG card in WhatsApp**, not just Twitter/LinkedIn. It's the SA sharing
       channel. Check a **guide** URL as well as the homepage — `layout.tsx` deliberately
@@ -348,3 +376,50 @@ npm run typecheck && npm run lint && npm test && npm run build
 - [ ] PostHog funnel confirmed to be receiving events (this is your first proof the EU host
       is right)
 - [ ] Vercel instant-rollback kept in reach
+
+---
+
+## Handover — work in flight (9 Aug 2026)
+
+Branch **`claude/tutor-cost-controls`** is pushed with one commit and **no PR opened**.
+It is green (typecheck, lint, 458 tests, build) and safe to merge as-is.
+
+### What that commit already does
+
+Cuts tutor cost before the AI keys go live: escalation threshold 220→500 chars, smart
+model `claude-sonnet-4-6`→`claude-sonnet-5`, `TUTOR_MAX_TOKENS` 500→350, free tier served
+by the local rule-based explainer, and removal of a `cache_control` marker that was a
+silent no-op (the persona is ~350 tokens; the minimum cacheable prefix is 4096 on Haiku
+4.5, 1024 on Sonnet 5 — a breakpoint below the minimum returns
+`cache_creation_input_tokens: 0` rather than erroring).
+
+### The unfinished task
+
+The free tier is **also the 7-day trial** (`PLAN_MAP.free.limits.trialDays`, 2 tutor
+messages/day). Serving it the local explainer therefore removes the demo of the headline
+feature from exactly the people deciding whether to pay. The agreed fix: **real AI during
+the trial, local once it expires** — roughly R0.59 per trialling signup (14 messages ×
+~R0.042).
+
+Everything needed was already traced:
+
+- `src/app/api/tutor/route.ts` currently passes `forceLocal: ent.tier === "free"`. That
+  becomes something like `ent.tier === "free" && !withinTrial`.
+- The trial anchor lives client-side in `src/lib/billing/trial.ts` → `trialStartedAt()`,
+  which takes the first of `onboarding.completedAt`, `diagnostics[0].at`,
+  `profile.createdAt`. **The tutor route cannot see any of that** — it only has
+  `ent.tier` and `ent.userId` from `resolveEntitlement`.
+- So the trial start has to be resolved **server-side**. `profiles.onboarded_at` is the
+  closest match to the client's primary anchor, with `profiles.created_at` as the
+  fallback. Both already exist — no migration needed.
+- Suggested shape: a `isWithinFreeTrial(userId)` helper in
+  `src/lib/billing/entitlements.server.ts` (it already holds the admin client and the
+  tier logic), reading those two columns and comparing against `FREE_TRIAL_DAYS` from
+  `src/lib/billing/plans.ts`.
+- Match the client's forgiving behaviour: when **nothing** anchors the trial (fresh
+  account, wizard unfinished), `trialDaysRemaining` treats the week as *untouched* rather
+  than expired. Server-side must do the same, or a brand-new signup gets the local
+  explainer on their very first message.
+- `tests/tutor-cost-controls.test.ts` pins the current behaviour; extend it rather than
+  rewriting — the "free tier never reaches a provider" block becomes "free tier reaches a
+  provider during the trial, and stops after it".
