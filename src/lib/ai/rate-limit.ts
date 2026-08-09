@@ -198,6 +198,33 @@ export async function limitUserDaily(
   }
 }
 
+/**
+ * Per-user daily caps for the account-management actions.
+ *
+ * These routes shared exactly one bucket — `limitCheckout`, keyed on IP — and
+ * that is the wrong axis for them. Cancelling, deleting and claiming a referral
+ * are per-account actions, and South African mobile traffic is heavily CGNAT'd:
+ * one person hammering the endpoint from a campus or mobile network took the
+ * whole IP's budget, so a stranger could stop somebody else from cancelling
+ * their own subscription or deleting their own account. The IP limit stays as
+ * the outer abuse guard; these are the per-account ones underneath it.
+ *
+ * Deliberately generous. Nobody legitimately cancels five times in a day, but
+ * this cap must never be the reason a person cannot stop being billed — that
+ * failure is worse than the abuse it prevents.
+ */
+export const ACCOUNT_DAILY_LIMIT = {
+  /** Self-serve cancellation (and the auto-refund it can trigger). */
+  cancel: 5,
+  /** Irreversible account deletion. */
+  delete: 5,
+  /** Deletion-code emails. Doubles as the anti-email-bombing cap. */
+  deletion_code: 5,
+  /** Referral claims. The GET stays IP-limited only — it is a cheap read the
+   *  dashboard makes on load, and a per-user cap there would break heavy use. */
+  referral_claim: 20,
+} as const;
+
 /** Client error reports: tight per-IP cap so the log can't be flooded. */
 export async function limitLog(ip: string): Promise<LimitResult> {
   return memLimit(`log:${ip}`, 10, 60_000);

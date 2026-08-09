@@ -1,7 +1,7 @@
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
+import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/lib/ai/rate-limit";
 import { generateDeletionCode, storeDeletionCode } from "@/lib/account/deletion-code";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildAccountDeletionCodeEmail } from "@/lib/notify/templates";
@@ -35,6 +35,16 @@ export async function POST(req: Request) {
   } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!user || !supabase) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // This one sends mail, so the per-account cap is also the anti-email-bombing
+  // cap — the per-IP limit alone let one caller keep mailing a stranger's inbox.
+  const userRl = await limitUserDaily("deletion_code", user.id, ACCOUNT_DAILY_LIMIT.deletion_code);
+  if (!userRl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: userRl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(userRl.retryAfter) } },
+    );
   }
 
   const admin = createAdminClient();

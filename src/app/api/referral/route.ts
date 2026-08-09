@@ -2,7 +2,7 @@ import { z } from "zod";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
+import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/lib/ai/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -54,6 +54,17 @@ export async function POST(req: Request) {
   }
   const user = await requireUser();
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+  // Claims only. The GET stays on the per-IP limit alone — it is a cheap read
+  // the dashboard makes on load, and a per-account cap there would bite normal
+  // use long before it bit abuse.
+  const userRl = await limitUserDaily("referral_claim", user.id, ACCOUNT_DAILY_LIMIT.referral_claim);
+  if (!userRl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: userRl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(userRl.retryAfter) } },
+    );
+  }
 
   let code: string;
   try {
