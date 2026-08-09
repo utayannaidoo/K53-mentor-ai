@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * /api/content/pack is the paywall. Before it, every content gate was
@@ -30,10 +30,23 @@ beforeEach(() => {
   limitUserDaily.mockResolvedValue(OK);
 });
 
-const get = async () => {
-  const { GET } = await import("@/app/api/content/pack/route");
-  return GET(new Request("https://k53.test/api/content/pack"));
-};
+/**
+ * Loaded once, in beforeAll, rather than inside each test.
+ *
+ * This route imports the whole question bank — a thousand-odd questions plus
+ * flashcards and scenarios — and that first cold import can take longer than
+ * vitest's 5s per-test timeout when the full suite is competing for CPU. Paying
+ * it inside a test made the first case in this file fail intermittently on a
+ * timing artefact rather than on anything it asserts. beforeAll carries its own
+ * timeout, so the cost lands somewhere it belongs.
+ */
+let route: typeof import("@/app/api/content/pack/route");
+
+beforeAll(async () => {
+  route = await import("@/app/api/content/pack/route");
+}, 60_000);
+
+const get = async () => route.GET(new Request("https://k53.test/api/content/pack"));
 
 describe("/api/content/pack", () => {
   it("rate-limits before resolving the tier", async () => {

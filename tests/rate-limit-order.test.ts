@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * The per-IP limiter must be the FIRST thing an AI route does.
@@ -49,9 +49,23 @@ const routes = [
 ] as const;
 
 describe.each(routes)("/api/$name rate-limit ordering", ({ load, limiter }) => {
+  /**
+   * Loaded once rather than per test. These routes pull in the question bank,
+   * Supabase and the AI provider cascade, and the first cold import can exceed
+   * vitest's 5s per-test timeout when the whole suite is competing for CPU —
+   * which made the first case here fail intermittently on module-load speed
+   * rather than on the ordering it actually asserts. The mocks above are
+   * module-level `vi.fn()`s reached through closures, so a single import still
+   * sees whatever `beforeEach` sets up.
+   */
+  let POST: (req: Request) => Promise<Response>;
+
+  beforeAll(async () => {
+    ({ POST } = await load());
+  }, 60_000);
+
   it("returns 429 without resolving entitlement or reading the body", async () => {
     limiter.mockResolvedValue(RATE_LIMITED);
-    const { POST } = await load();
     const { req, json } = fakeRequest();
 
     const res = await POST(req);
@@ -75,7 +89,6 @@ describe.each(routes)("/api/$name rate-limit ordering", ({ load, limiter }) => {
       return { userId: "u1", tier: "premium_plus", allowance: 10 };
     });
 
-    const { POST } = await load();
     const { req } = fakeRequest();
     await POST(req).catch(() => {
       /* a malformed body 400s or the provider is absent — ordering is the assertion */

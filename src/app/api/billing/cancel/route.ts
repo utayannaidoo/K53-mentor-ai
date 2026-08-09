@@ -1,7 +1,7 @@
 import { isPaystackConfigured, isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { clientIp, limitCheckout } from "@/lib/ai/rate-limit";
+import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/lib/ai/rate-limit";
 import { refundTransaction } from "@/lib/paystack/client";
 import { disableActiveSubscriptions, refundEligible } from "@/lib/billing/subscription-cancel";
 
@@ -39,6 +39,16 @@ export async function POST(req: Request) {
   } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!user || !supabase) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Per-account cap under the per-IP one, so a shared NAT can't stop somebody
+  // else from cancelling their own subscription.
+  const userRl = await limitUserDaily("cancel", user.id, ACCOUNT_DAILY_LIMIT.cancel);
+  if (!userRl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: userRl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(userRl.retryAfter) } },
+    );
   }
 
   const { data } = await supabase
