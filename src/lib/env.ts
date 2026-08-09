@@ -146,15 +146,37 @@ export function assertSiteUrlConfiguredInProduction() {
  * every preview: checkout, verify, the webhook, and the reconciliation cron.
  * The site itself stayed up, which is exactly why it went unnoticed until a
  * billing route was called.
+ *
+ * **The escape hatch.** There is a legitimate window — before Paystack merchant
+ * activation completes — where production genuinely has no live key to hold.
+ * Throwing there takes checkout, cancellation and the webhook down for a state
+ * the operator cannot yet fix, so `PAYSTACK_ALLOW_TEST_KEY=1` downgrades the
+ * throw to a warning on every boot.
+ *
+ * It is opt-in rather than a default, and it is deliberately noisy: a test key
+ * in production means test cards grant real paid tiers, so this must be a
+ * decision someone made and can see in the logs, never a state the app drifts
+ * into quietly.
  */
 export function assertLivePaystackKeyInProduction() {
   const key = process.env.PAYSTACK_SECRET_KEY;
-  if (isProductionDeployment() && key && !key.startsWith("sk_live_")) {
-    throw new Error(
-      "PAYSTACK_SECRET_KEY must be a live key (sk_live_…) in production — " +
-        "a test key accepts Paystack test cards and grants real paid tiers for them.",
+  if (!isProductionDeployment() || !key || key.startsWith("sk_live_")) return;
+
+  if (process.env.PAYSTACK_ALLOW_TEST_KEY === "1") {
+    console.error(
+      "[billing] Production is running a Paystack TEST key. Test cards are accepted " +
+        "and grant real paid tiers. Allowed only because PAYSTACK_ALLOW_TEST_KEY=1 is " +
+        "set — remove it as soon as merchant activation completes.",
     );
+    return;
   }
+
+  throw new Error(
+    "PAYSTACK_SECRET_KEY must be a live key (sk_live_…) in production — " +
+      "a test key accepts Paystack test cards and grants real paid tiers for them. " +
+      "If merchant activation is still pending and you accept that trade-off, set " +
+      "PAYSTACK_ALLOW_TEST_KEY=1 to proceed with a warning instead.",
+  );
 }
 
 /** Server-only — do not read NEXT_PUBLIC here. */

@@ -79,7 +79,8 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 | `NEXT_PUBLIC_POSTHOG_KEY` | project key | |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | | Guarded — the app throws at boot on Vercel prod without them |
 | `SUPABASE_SERVICE_ROLE_KEY` | | Server-only. Never `NEXT_PUBLIC_`. |
-| `PAYSTACK_SECRET_KEY` | **`sk_live_…`** | A `sk_test_` key on a *production* deployment now throws in `paystack/client.ts`, so checkout breaks loudly rather than accepting test cards for real tiers. Preview keeps using test keys — that is the merchant-review setup. |
+| `PAYSTACK_SECRET_KEY` | **`sk_live_…`** | A `sk_test_` key on a *production* deployment throws in `paystack/client.ts`, so checkout breaks loudly rather than accepting test cards for real tiers. Preview keeps using test keys — that is the merchant-review setup. |
+| `PAYSTACK_ALLOW_TEST_KEY` | unset (or `1` **temporarily**) | Escape hatch for the window before merchant activation completes, when there is no live key to hold. Exactly `1` downgrades the throw above to a per-boot warning. **Remove it the day you get an `sk_live_` key** — while it is set, anyone who knows Paystack's test card numbers gets a paid tier free. |
 | `PAYSTACK_PLAN_PREMIUM_MONTHLY` / `_ANNUAL` / `_PLUS_MONTHLY` / `_PLUS_ANNUAL` | live plan codes | Missing ⇒ 500 "Price not configured for this plan" at checkout |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | | Guarded. Without them the in-memory fallback resets per lambda — i.e. no real rate limiting |
 | `ANTHROPIC_API_KEY` | | Preferred provider |
@@ -114,9 +115,10 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 
 ## 4. Supabase
 
-- [ ] Every migration `0001` → `0019` applied (0019 adds the dispute/refund/non-renewal
-      columns the webhook now writes — without it those three events throw and Paystack
-      retries them forever)
+- [x] Every migration `0001` → `0020` applied. 0019 adds the dispute/refund/non-renewal
+      columns the webhook writes — without it those three events throw and Paystack
+      retries them forever. 0020 makes `profiles.referral_code` / `referred_by`
+      server-owned. Both applied and verified on 8 Aug 2026.
 - [ ] **Auth → URL Configuration → Site URL** = `https://k53mentor.co.za`
 - [ ] **Auth → URL Configuration → Redirect URLs** include:
       - `https://k53mentor.co.za/auth/callback`
