@@ -13,7 +13,13 @@ import Anthropic from "@anthropic-ai/sdk";
 
 export type Provider = "anthropic" | "openai" | "local";
 
-const MAX_TOKENS = Number(process.env.TUTOR_MAX_TOKENS ?? 500);
+/**
+ * Reply length cap. Output is 5× the price of input on the fast model, so this
+ * is the dominant term in the tutor bill — 350 tokens is roughly 250 words,
+ * which is more than enough for a K53 answer and keeps replies scannable on a
+ * phone. Raise it if answers start getting cut off mid-sentence.
+ */
+const MAX_TOKENS = Number(process.env.TUTOR_MAX_TOKENS ?? 350);
 const TEMPERATURE = 0.4;
 const encoder = new TextEncoder();
 
@@ -42,10 +48,22 @@ export function chooseProvider(): Provider {
   return "local";
 }
 
+/**
+ * Length above which a question is treated as complex enough for the pricier
+ * model. The smart tier costs 3× the fast tier on both input and output, so
+ * this threshold is the single biggest lever on the AI bill.
+ *
+ * It was 220 characters, which is about two sentences — "I don't understand
+ * why you stop at a stop sign when nobody is coming, my instructor said
+ * something different" clears it comfortably. Most ordinary questions were
+ * being escalated, which is the opposite of what a fast/smart split is for.
+ */
+const COMPLEX_LENGTH = 500;
+
 /** Heuristic: only escalate to the stronger (pricier) model when warranted. */
 function isComplex(userText: string): boolean {
   return (
-    userText.length > 220 ||
+    userText.length > COMPLEX_LENGTH ||
     /in depth|step by step|don'?t understand|confused|prove|why exactly|explain (?:it )?again/i.test(userText)
   );
 }
@@ -54,7 +72,7 @@ export function modelFor(provider: Provider, userText: string): string {
   const complex = isComplex(userText);
   if (provider === "anthropic") {
     return complex
-      ? process.env.ANTHROPIC_MODEL_SMART ?? "claude-sonnet-4-6"
+      ? process.env.ANTHROPIC_MODEL_SMART ?? "claude-sonnet-5"
       : process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001";
   }
   if (provider === "openai") {
@@ -162,6 +180,17 @@ export interface StreamArgs {
   localReply: string;
   /** Optional photo attached to the LAST user message (tutor image input). */
   image?: AttachedImage;
+  /**
+   * Serve the rule-based reply without calling a provider at all.
+   *
+   * Set for the free tier. Free accounts get 2 tutor messages a day purely as
+   * a taste of the feature, and paying a provider for them buys nothing: the
+   * cost lands on every signup including the ones that never convert, and the
+   * gap between the local explainer and a real model IS the upgrade pitch.
+   * Kept as a flag rather than a tier check so this module stays unaware of
+   * billing — the route owns that decision.
+   */
+  forceLocal?: boolean;
 }
 
 function localStream(text: string): ReadableStream<Uint8Array> {
@@ -230,15 +259,28 @@ export async function completeCoachText(args: {
 export async function streamTutorReply(
   args: StreamArgs,
 ): Promise<{ stream: ReadableStream<Uint8Array>; model: string; provider: Provider }> {
+  // Free tier never reaches a provider — no key is read, no request is made.
+  if (args.forceLocal) {
+    return { stream: localStream(args.localReply), model: "local", provider: "local" };
+  }
+
   const provider = chooseProvider();
   const model = modelFor(provider, args.userText);
 
   try {
     if (provider === "anthropic") {
       const client = anthropic()!;
-      // Stable persona is cached; dynamic grounding is a separate, uncached block.
+      // Persona first, then dynamic grounding — stable content ahead of
+      // volatile is the right order regardless.
+      //
+      // No cache_control: this prompt is far too short to cache. The persona is
+      // ~350 tokens and the minimum cacheable prefix is 4096 on Haiku 4.5 and
+      // 1024 on Sonnet 5. A breakpoint under the minimum does not error — it
+      // silently returns cache_creation_input_tokens: 0 — so the marker that
+      // used to sit here read as a working optimisation while doing nothing.
+      // Revisit only if the persona grows past the model's minimum.
       const system = [
-        { type: "text" as const, text: args.persona, cache_control: { type: "ephemeral" as const } },
+        { type: "text" as const, text: args.persona },
         ...(args.grounding ? [{ type: "text" as const, text: args.grounding }] : []),
       ];
       const lastUserIdx = args.messages.length - 1;

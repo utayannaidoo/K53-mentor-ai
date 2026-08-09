@@ -124,6 +124,10 @@ export async function POST(req: Request) {
     userText: lastUser,
     localReply,
     image,
+    // Free accounts get the rule-based explainer, never a paid provider call.
+    // Their 2/day allowance is a taste of the feature; the difference between
+    // this and a real model is what the paid tier sells.
+    forceLocal: ent.tier === "free",
   });
 
   return new Response(stream, {
