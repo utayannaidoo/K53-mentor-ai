@@ -233,12 +233,22 @@ The zone is two records:
 
 ### 5.2 Receiving — Cloudflare Email Routing
 
-- [ ] Email → Email Routing → enable. Cloudflare adds its own apex MX records and an SPF
-      TXT; let it
-- [ ] Destination address `support.k53mentor@gmail.com`, then **click the verification
-      link Cloudflare mails to it** — routing silently does nothing until you do
-- [ ] Custom address `support@k53mentorai.co.za` → that destination
-- [ ] Custom address `dmarc@k53mentorai.co.za` → same destination (see 5.4)
+**Two independent gates, and only one of them is waiting on DNS.** Attempting the DNS half
+early returns *"This zone must be active before you can enable Email Service"*, and the
+routing rules refuse a destination that hasn't been verified — the address picker simply
+reports "No verified destination addresses found" with nothing selectable.
+
+- [x] Destination address `support.k53mentor@gmail.com` added 10 Aug 2026 — status
+      **Pending**
+- [ ] **Click the verification link Cloudflare mailed to that Gmail.** Not blocked on
+      anything; do it now. Nothing else in this section can proceed until it is done
+- [ ] *(needs the zone active)* Settings → DNS records → **Add missing records**. Adds
+      three apex MX (`route1–3.mx.cloudflare.net`), a DKIM TXT at
+      `cf2024-1._domainkey`, and an apex SPF `v=spf1 include:_spf.mx.cloudflare.net ~all`
+- [ ] *(needs both)* Routing rule `support@k53mentorai.co.za` → that destination
+- [ ] *(needs both)* Routing rule `dmarc@k53mentorai.co.za` → same destination (see 5.4)
+- [ ] Leave the **Catch-all** rule disabled. Enabled, every typo and every address a
+      scraper invents forwards to the same inbox
 - [ ] Send a test mail to `support@k53mentorai.co.za` from an unrelated account and
       confirm it lands
 - [ ] Then flip `SUPPORT_EMAIL` in `src/lib/constants.ts` to `support@k53mentorai.co.za`
@@ -265,6 +275,13 @@ The zone is two records:
 > records — one at the apex for forwarding, one at `send` for sending. What you must never
 > do is publish **two SPF TXT records on the same name**; that is a permerror, and it
 > fails every message rather than only the ambiguous ones.
+>
+> **Do not "fix" the apex SPF by adding Resend to it.** It will look wrong — mail goes out
+> as `coach@k53mentorai.co.za`, yet the apex SPF names only Cloudflare. It is correct.
+> SPF is evaluated against the Return-Path, which Resend sets to `send.k53mentorai.co.za`,
+> and DMARC's relaxed alignment accepts a subdomain of the From: domain. DKIM signs with
+> `d=k53mentorai.co.za` and aligns directly. Both mechanisms pass. Editing the apex record
+> is how you end up with two SPF records on one name, which is the permerror above.
 
 ### 5.4 DMARC
 
