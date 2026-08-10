@@ -120,7 +120,7 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 | `ANTHROPIC_API_KEY` | | Preferred provider |
 | `OPENAI_API_KEY` | | Fallback in the cascade |
 | `RESEND_API_KEY` | | Without it, receipts and dunning are skipped and the reminder cron runs dry |
-| `NOTIFY_FROM_EMAIL` | `K53 Mentor <coach@k53mentorai.co.za>` | Default is `onboarding@resend.dev` — Resend's shared sandbox sender. Spam-folder magnet. |
+| `NOTIFY_FROM_EMAIL` | `K53 Mentor <support@k53mentorai.co.za>` | Default is `onboarding@resend.dev` — Resend's shared sandbox sender. Spam-folder magnet. Must be an address §5.2 actually routes, because no `reply_to` is sent and replies go here. |
 | `CRON_SECRET` | long random string | Otherwise `/api/cron/notifications` is open |
 
 - [ ] All of the above set on **Production**
@@ -342,8 +342,19 @@ reports "No verified destination addresses found" with nothing selectable.
 
 ### 5.5 Then, and only then
 
-- [ ] `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` (`K53 Mentor <coach@k53mentorai.co.za>`)
-      set in Vercel Production, and redeploy
+- [ ] `RESEND_API_KEY` set in Vercel Production. Create it at Resend → **API Keys** →
+      Create, with **Sending access** only and scoped to `k53mentorai.co.za` — a key that
+      can only send cannot delete your domain or read your logs if it leaks. Resend shows
+      it once; copy it straight into Vercel
+- [ ] `NOTIFY_FROM_EMAIL` = **`K53 Mentor <support@k53mentorai.co.za>`**, and redeploy —
+      Vercel only picks up env changes on a new deployment
+
+> **The From address is also the reply address.** `src/lib/notify/email.ts:22` sends no
+> `reply_to`, so whatever `NOTIFY_FROM_EMAIL` names is where a learner's reply goes. Use
+> `support@`, which §5.2 already routes. The `coach@` address this runbook used to suggest
+> has **no routing rule**, and with catch-all disabled a reply to it is rejected outright —
+> silently, from the sender's point of view, on a payment receipt. If you want the `coach@`
+> branding, add a routing rule for it first, or add a `reply_to` to the sender.
 - [ ] **Supabase custom SMTP** (§4) → host `smtp.resend.com`, port `465`, user `resend`,
       password = the Resend API key. Raise the per-hour cap under Auth → Rate Limits
 - [ ] **Then the `token_hash` email templates** (§4) — the editor stays read-only until
