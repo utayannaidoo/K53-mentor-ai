@@ -183,12 +183,12 @@ export interface StreamArgs {
   /**
    * Serve the rule-based reply without calling a provider at all.
    *
-   * Set for the free tier. Free accounts get 2 tutor messages a day purely as
-   * a taste of the feature, and paying a provider for them buys nothing: the
-   * cost lands on every signup including the ones that never convert, and the
-   * gap between the local explainer and a real model IS the upgrade pitch.
-   * Kept as a flag rather than a tier check so this module stays unaware of
-   * billing — the route owns that decision.
+   * Set for free accounts whose seven-day trial has lapsed. Spending a provider
+   * call on them buys nothing — the cost lands on every stale signup forever,
+   * and the gap between the local explainer and a real model IS the upgrade
+   * pitch. Accounts still inside the week do reach a provider: that is when the
+   * tutor is being evaluated. Kept as a flag rather than a tier check so this
+   * module stays unaware of billing — the route owns that decision.
    */
   forceLocal?: boolean;
 }

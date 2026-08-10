@@ -4,7 +4,11 @@ import { localTutorReply } from "@/lib/ai/fallback";
 import { retrieveRelated } from "@/lib/ai/retrieve";
 import { chooseProvider, streamTutorReply } from "@/lib/ai/provider";
 import { clientIp, limitTutor, limitUserDaily } from "@/lib/ai/rate-limit";
-import { resolveEntitlement, spendTutorCredit } from "@/lib/billing/entitlements.server";
+import {
+  isWithinFreeTrial,
+  resolveEntitlement,
+  spendTutorCredit,
+} from "@/lib/billing/entitlements.server";
 import { hasFeature } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
@@ -117,6 +121,17 @@ export async function POST(req: Request) {
   while (trimmed.length && trimmed[0].role !== "user") trimmed = trimmed.slice(1);
   if (trimmed.length === 0) trimmed = [{ role: "user", content: lastUser }];
 
+  // ── Which engine answers ───────────────────────────────────────────────────
+  // The free tier IS the seven-day trial, so "free" splits into two different
+  // people. Inside the week, the AI tutor is the single feature the learner is
+  // deciding whether to pay for — answering with the rule-based explainer hides
+  // the product from exactly the audience the week exists to convince, and the
+  // 2/day cap already bounds it to roughly R0.59 per trialling signup. Once the
+  // week lapses, the local explainer takes over, and the gap between the two is
+  // the upgrade pitch. Only the free tier pays for the extra lookup.
+  const forceLocal =
+    ent.tier === "free" && !(ent.userId !== null && (await isWithinFreeTrial(ent.userId)));
+
   const { stream, model } = await streamTutorReply({
     persona: TUTOR_PERSONA,
     grounding,
@@ -124,10 +139,7 @@ export async function POST(req: Request) {
     userText: lastUser,
     localReply,
     image,
-    // Free accounts get the rule-based explainer, never a paid provider call.
-    // Their 2/day allowance is a taste of the feature; the difference between
-    // this and a real model is what the paid tier sells.
-    forceLocal: ent.tier === "free",
+    forceLocal,
   });
 
   return new Response(stream, {

@@ -7,7 +7,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  *   1. Which model an ordinary question routes to. The smart tier costs 3x the
  *      fast tier on both input and output, so the escalation threshold matters
  *      more than the model choice does.
- *   2. That the free tier never reaches a paid provider at all.
+ *   2. That `forceLocal` short-circuits before any provider call. Who gets that
+ *      flag is a billing question the route answers — see
+ *      `tests/tutor-trial-routing.test.ts` — but the guarantee that the flag
+ *      costs nothing lives here.
  *   3. The reply-length cap — output is 5x the price of input on the fast
  *      model, which makes it the dominant term.
  */
@@ -88,7 +91,7 @@ describe("model routing", () => {
   });
 });
 
-describe("free tier never reaches a provider", () => {
+describe("forceLocal never reaches a provider", () => {
   const base = {
     persona: "persona",
     grounding: "",

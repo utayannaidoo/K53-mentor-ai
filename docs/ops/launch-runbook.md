@@ -379,47 +379,46 @@ npm run typecheck && npm run lint && npm test && npm run build
 
 ---
 
-## Handover — work in flight (9 Aug 2026)
+## Tutor cost controls (10 Aug 2026)
 
-Branch **`claude/tutor-cost-controls`** is pushed with one commit and **no PR opened**.
-It is green (typecheck, lint, 458 tests, build) and safe to merge as-is.
+Landed before the AI keys go live, so the first real invoice is the shape you chose
+rather than the shape you inherited.
 
-### What that commit already does
+**The levers.** Escalation threshold 220→500 chars (at 220, "I don't understand why you
+stop at a stop sign when nobody is coming" cleared it — nearly every ordinary question
+was reaching the pricier model, which is the opposite of what a fast/smart split is
+for), smart model `claude-sonnet-4-6`→`claude-sonnet-5`, `TUTOR_MAX_TOKENS` 500→350
+(output is 5× the price of input, so this is the dominant term), and removal of a
+`cache_control` marker that was a silent no-op — the persona is ~350 tokens and the
+minimum cacheable prefix is 4096 on Haiku 4.5, 1024 on Sonnet 5, and a breakpoint below
+the minimum returns `cache_creation_input_tokens: 0` rather than erroring. It read as a
+working optimisation while doing nothing.
 
-Cuts tutor cost before the AI keys go live: escalation threshold 220→500 chars, smart
-model `claude-sonnet-4-6`→`claude-sonnet-5`, `TUTOR_MAX_TOKENS` 500→350, free tier served
-by the local rule-based explainer, and removal of a `cache_control` marker that was a
-silent no-op (the persona is ~350 tokens; the minimum cacheable prefix is 4096 on Haiku
-4.5, 1024 on Sonnet 5 — a breakpoint below the minimum returns
-`cache_creation_input_tokens: 0` rather than erroring).
+**Who gets a real model.** The free tier *is* the seven-day trial
+(`PLAN_MAP.free.limits.trialDays`, 2 tutor messages/day), so `tier === "free"` covers two
+people with opposite economics. Inside the week the learner is deciding whether to pay
+for exactly this feature, so they reach a provider — about **R0.59 per trialling signup**
+(14 messages × ~R0.042), bounded by the daily cap. Once the week lapses, the rule-based
+explainer takes over, and the gap between the two is the upgrade pitch.
 
-### The unfinished task
+`isWithinFreeTrial()` in `src/lib/billing/entitlements.server.ts` resolves the week
+server-side from `profiles.created_at` and `profiles.onboarded_at` (both exist since
+`0001` — no migration). Two decisions worth keeping:
 
-The free tier is **also the 7-day trial** (`PLAN_MAP.free.limits.trialDays`, 2 tutor
-messages/day). Serving it the local explainer therefore removes the demo of the headline
-feature from exactly the people deciding whether to pay. The agreed fix: **real AI during
-the trial, local once it expires** — roughly R0.59 per trialling signup (14 messages ×
-~R0.042).
+- It anchors on the **earliest** timestamp, mirroring `trialStartedAt()` in
+  `src/lib/billing/trial.ts`. That client function renders "3 days left in your free
+  week"; if the server resolved the window differently, the banner and the tutor would
+  disagree about the same seven days.
+- It is **forgiving on failure** — a missing profile, an unreadable one, or no admin
+  client all resolve to *within* trial. Deliberately the opposite of `resolveTier`, which
+  fails closed: that one decides what somebody paid for, this one only decides which
+  engine answers a message already capped at 2/day. Failing closed here would serve the
+  worse tutor to new signups during an outage.
 
-Everything needed was already traced:
+Pinned by `tests/tutor-trial-routing.test.ts` (route → real entitlement → real trial
+logic, only Supabase stubbed) and `tests/tutor-cost-controls.test.ts` (the thresholds,
+and that `forceLocal` short-circuits before any provider call).
 
-- `src/app/api/tutor/route.ts` currently passes `forceLocal: ent.tier === "free"`. That
-  becomes something like `ent.tier === "free" && !withinTrial`.
-- The trial anchor lives client-side in `src/lib/billing/trial.ts` → `trialStartedAt()`,
-  which takes the first of `onboarding.completedAt`, `diagnostics[0].at`,
-  `profile.createdAt`. **The tutor route cannot see any of that** — it only has
-  `ent.tier` and `ent.userId` from `resolveEntitlement`.
-- So the trial start has to be resolved **server-side**. `profiles.onboarded_at` is the
-  closest match to the client's primary anchor, with `profiles.created_at` as the
-  fallback. Both already exist — no migration needed.
-- Suggested shape: a `isWithinFreeTrial(userId)` helper in
-  `src/lib/billing/entitlements.server.ts` (it already holds the admin client and the
-  tier logic), reading those two columns and comparing against `FREE_TRIAL_DAYS` from
-  `src/lib/billing/plans.ts`.
-- Match the client's forgiving behaviour: when **nothing** anchors the trial (fresh
-  account, wizard unfinished), `trialDaysRemaining` treats the week as *untouched* rather
-  than expired. Server-side must do the same, or a brand-new signup gets the local
-  explainer on their very first message.
-- `tests/tutor-cost-controls.test.ts` pins the current behaviour; extend it rather than
-  rewriting — the "free tier never reaches a provider" block becomes "free tier reaches a
-  provider during the trial, and stops after it".
+**Watch after the keys go live:** cost per trialling signup against the R0.59 estimate,
+and what share of questions escalate to Sonnet. Both move the bill more than any other
+knob here.
