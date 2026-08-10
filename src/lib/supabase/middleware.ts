@@ -17,7 +17,7 @@ assertSupabaseConfiguredInProduction();
 assertSiteUrlConfiguredInProduction();
 
 /** App areas that require a signed-in user (prefix match). */
-const PROTECTED = ["/dashboard", "/study", "/tutor", "/licence-prep", "/account"];
+const PROTECTED = ["/dashboard", "/study", "/tutor", "/licence-prep", "/account", "/eye-test"];
 /** Auth pages a signed-in user shouldn't see. */
 const AUTH_PAGES = ["/login", "/signup"];
 
