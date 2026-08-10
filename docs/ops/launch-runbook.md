@@ -204,24 +204,32 @@ way to receive at the domain, and because every remaining TXT record in this run
 
 ### 5.1 Move DNS to Cloudflare *without* dropping the site
 
-The zone is two records. Recreate them **before** touching nameservers — a cutover to an
-empty zone takes the site down for the length of propagation.
+The zone is two records:
 
 | Type | Name | Value | Proxy |
 |---|---|---|---|
 | A | `k53mentorai.co.za` | `216.198.79.1` | **DNS only (grey cloud)** |
 | CNAME | `www` | `17a3707dc089cda5.vercel-dns-017.com` | **DNS only (grey cloud)** |
 
-- [ ] Add the domain to Cloudflare (Free plan), let the scan import, then check both
-      records against the table above — the scanner misses records more often than you'd
-      think
-- [ ] Both records **grey cloud**. Orange-cloud proxying breaks Vercel's certificate
-      issuance and renewal, and §2's HSTS header makes a broken cert a hard outage rather
-      than a warning
-- [ ] Only then change the nameservers at **domains.co.za** to the two Cloudflare gave you
-      (replacing `ns1–4.anycast-ns.com/.net`). ZACR can take a few hours
-- [ ] Confirm `https://k53mentorai.co.za` and `https://www.k53mentorai.co.za` still serve
-      before going further
+- [x] Added to Cloudflare (Free plan). The add-site scan imported both records with the
+      correct values — an empty zone was never the risk here.
+- [x] **Both switched from Proxied to DNS only, 10 Aug 2026.** This is the part that
+      nearly went wrong: the scan imports everything **orange-cloud proxied** and does not
+      ask. Proxied, Vercel cannot complete its certificate challenges, and an SSL/TLS mode
+      below Full gives an HTTP→HTTPS redirect loop — with §2's HSTS header already served,
+      a bad certificate is a hard failure with no click-through for any returning visitor.
+- [x] Nameservers changed at **domains.co.za**. ZACR can take a few hours; the zone shows
+      *pending* in Cloudflare until it verifies.
+- [ ] Once the delegation lands, confirm `https://k53mentorai.co.za` and
+      `https://www.k53mentorai.co.za` still serve, and that the apex still answers
+      `216.198.79.1` rather than a Cloudflare anycast address (`104.x` / `172.67.x`) —
+      a Cloudflare IP means something got re-proxied
+
+> **The ordering advice that actually matters.** "Recreate the zone before switching
+> nameservers" is the usual warning, and it is not wrong — but the scan makes an empty
+> zone unlikely, while *proxy status* is silently wrong every time. Check the cloud
+> colour, not just the record values, and check it before the delegation lands rather
+> than after.
 
 ### 5.2 Receiving — Cloudflare Email Routing
 
