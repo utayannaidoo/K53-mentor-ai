@@ -43,7 +43,7 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 |---|---|
 | No mail DNS at all — no MX, SPF, DKIM or DMARC | §5 |
 | Supabase custom SMTP not configured (blocked on the above) | §4 |
-| Supabase `token_hash` email templates not applied | §4 — **do this now, it isn't blocked** |
+| Supabase `token_hash` email templates not applied — **also blocked on custom SMTP**, see below | §4 |
 | `BUSINESS` in `src/lib/constants.ts` is blank → ECTA s43 / POPIA s55 disclosures don't render | §7 |
 | `SUPPORT_EMAIL` is still a personal Gmail, public on `/contact` and `/refunds` | §8 |
 | Upstash, Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
@@ -51,6 +51,12 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 > ⚠️ **Set Upstash *before* the AI keys.** `src/lib/ai/rate-limit.ts` throws at boot when
 > an AI key is present without Upstash, so adding `ANTHROPIC_API_KEY` first takes
 > production down.
+
+> **Mail DNS is one blocker wearing three hats.** It gates Resend, which gates custom
+> SMTP, which gates the email templates (Supabase disables template editing entirely on
+> the built-in mailer — confirmed on the live project 10 Aug 2026) and the `support@`
+> inbox that `SUPPORT_EMAIL` is waiting on. Nothing else in §4 or §5 moves until the
+> records exist, so start there.
 
 **Do not reference `k53mentor.co.za` or `k53mentor.com`.** Both were front-run on
 2026-08-06 — registered two seconds apart to a third party via domains.co.za, minutes
@@ -161,10 +167,23 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 - [ ] **Custom SMTP configured** (point it at Resend). The built-in mailer is capped at a
       handful of messages an hour and will strand launch-day signups
 - [ ] **Email templates** use `token_hash` for Confirm signup / Magic link / Change email;
-      Reset password keeps `{{ .ConfirmationURL }}`. Exact markup in
-      [`supabase-auth-setup.md`](./supabase-auth-setup.md) §3
-- [ ] Security + performance **advisors** run, nothing critical outstanding
-- [ ] Leaked-password protection enabled
+      Reset password keeps `{{ .ConfirmationURL }}`. Exact markup, ready to paste, in
+      [`supabase-auth-setup.md`](./supabase-auth-setup.md) §3 — all three verified against
+      the `OTP_TYPES` allowlist and `safeNextPath()` in `src/app/auth/callback/route.ts`.
+
+      **Do this immediately after the SMTP step above, not before:** Supabase disables
+      template editing on the built-in mailer, so the page is a read-only preview until
+      custom SMTP is saved. Every signup before that point gets the default PKCE `?code=`
+      link, which fails for anyone who opens the mail on a different device than they
+      signed up on.
+- [x] Security + performance **advisors** run, nothing critical outstanding (10 Aug 2026).
+      The only WARN is the leaked-password one below; the two `rls_enabled_no_policy`
+      INFOs are `payment_events` and `account_deletion_codes`, which are service-role-only
+      by design — RLS on with no policy is exactly right for them.
+- [~] **Leaked-password protection — deliberately skipped.** It needs a paid Supabase
+      plan, and the decision is to launch without it. The advisors will keep flagging it;
+      that is expected, not an outstanding task. Revisit when the project moves off the
+      free tier.
 - [ ] Backup/PITR situation confirmed and the restore path understood
 
 > None of the above is verified by CI. It is entirely dashboard-side, which is exactly why
