@@ -41,8 +41,9 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 
 | Blocker | Where |
 |---|---|
-| ~~No mail DNS~~ — **done 10 Aug 2026.** DNS on Cloudflare, Email Routing live, MX/SPF/DKIM/DMARC published. Remaining: **Resend** sending domain | §5.3 |
-| Supabase custom SMTP not configured (blocked on Resend, no longer on DNS) | §4 |
+| ~~No mail DNS~~ — **done 10 Aug 2026.** DNS on Cloudflare, Email Routing live, MX/SPF/DKIM/DMARC published, **Resend domain Verified** | §5 |
+| `RESEND_API_KEY` + `NOTIFY_FROM_EMAIL` not set in Vercel → receipts and dunning silently skipped | §5.5 |
+| Supabase custom SMTP not configured — **now unblocked**, point it at Resend | §4 |
 | Supabase `token_hash` email templates not applied — **also blocked on custom SMTP**, see below | §4 |
 | `BUSINESS` in `src/lib/constants.ts` is blank → ECTA s43 / POPIA s55 disclosures don't render | §7 |
 | Upstash, Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
@@ -287,18 +288,29 @@ reports "No verified destination addresses found" with nothing selectable.
 
 ### 5.3 Sending — Resend
 
-- [ ] Add `k53mentorai.co.za` in Resend. Pick the **`eu-west-1`** region — same region as
-      the Supabase project, and the closest one to South Africa
-- [ ] Add the three records Resend shows you, **copying the values from the dashboard**
-      (the DKIM key is unique to your domain). They look like:
+- [x] `k53mentorai.co.za` added in Resend, region **Ireland (`eu-west-1`)** — same region
+      as the Supabase project and the closest to South Africa
+- [x] Three records added in Cloudflare and confirmed resolving:
 
       | Type | Name | Value |
       |---|---|---|
-      | MX | `send` | `feedback-smtp.eu-west-1.amazonses.com` (priority 10) |
+      | TXT | `resend._domainkey` | `p=MIGfMA0GCSqGSIb3…` (DKIM, unique per domain) |
       | TXT | `send` | `v=spf1 include:amazonses.com ~all` |
-      | TXT | `resend._domainkey` | `p=MIGfMA0GCSq…` |
+      | MX | `send` | `feedback-smtp.eu-west-1.amazonses.com`, priority 10 |
 
-- [ ] Wait for Resend to report **Verified**
+- [x] **Resend reports Verified** (10 Aug 2026)
+
+> ⚠️ **Do not add Resend's "Enable Receiving" record.** Alongside the three above, Resend
+> offers a fourth — an MX on the **apex** pointing at `inbound-smtp.eu-west-1.amazonaws.com`.
+> Adding it puts a second receiver on the apex alongside Cloudflare Email Routing's
+> `route1–3.mx.cloudflare.net`, and inbound mail starts landing at whichever one wins the
+> priority race. **Receiving is Cloudflare's job here; Resend only sends.** The three
+> records above are the complete set.
+
+> **Choose "Manual setup", not "Auto configure".** Auto configure asks to authorise
+> Resend against your DNS provider, which grants it write access to the whole Cloudflare
+> zone — including the Vercel A/CNAME records and the Email Routing MX. Pasting three
+> records by hand takes two minutes and keeps that blast radius at zero.
 
 > **Two MX records is correct here and not a mistake.** Cloudflare's are on the apex and
 > receive your mail; Resend's is on the `send.` subdomain and only collects bounce
