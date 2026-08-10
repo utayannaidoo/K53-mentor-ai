@@ -266,8 +266,22 @@ reports "No verified destination addresses found" with nothing selectable.
       `cf2024-1._domainkey`, and an apex SPF `v=spf1 include:_spf.mx.cloudflare.net ~all`.
       All four verified live against `ali.ns.cloudflare.com`
 - [x] **Email Routing status: Enabled**, DNS records Locked
-- [ ] Send a test mail to `support@k53mentorai.co.za` from an unrelated account and
-      confirm it lands
+- [x] Test mail sent 10 Aug 2026 — Cloudflare logged it **Forwarded**
+- [ ] Find it in the Gmail. First forwarded message usually lands in **Spam**: the forward
+      preserves the original `From:`, so gmail.com's SPF does not match Cloudflare's
+      sending IP. Mark it "Not spam" once and it settles
+
+> **When a forward "doesn't arrive", check Email Routing → Activity Log first.** It says
+> whether Cloudflare ever received the message and what it did with it, which splits the
+> problem cleanly in two: no row at all is a DNS/MX problem on the sender's side, while
+> **Forwarded** means Cloudflare did its job and the message is sitting in a spam folder.
+> Guessing at DNS when the log already says *Forwarded* wastes the hour.
+>
+> Related but separate: the apex had no MX until the records were added, and a NODATA
+> answer is negatively cached for the SOA minimum — **7200s, two hours**. Any sender that
+> looked up `k53mentorai.co.za` MX in that window keeps failing until its cache expires,
+> and per RFC 5321 falls back to the A record, i.e. tries to deliver SMTP to Vercel.
+> Nothing to fix; it ages out.
 - [ ] Then flip `SUPPORT_EMAIL` in `src/lib/constants.ts` to `support@k53mentorai.co.za`
       and redeploy
 
