@@ -218,8 +218,18 @@ The zone is two records:
       ask. Proxied, Vercel cannot complete its certificate challenges, and an SSL/TLS mode
       below Full gives an HTTP→HTTPS redirect loop — with §2's HSTS header already served,
       a bad certificate is a hard failure with no click-through for any returning visitor.
-- [x] Nameservers changed at **domains.co.za**. ZACR can take a few hours; the zone shows
-      *pending* in Cloudflare until it verifies.
+- [ ] ⚠️ **Nameservers at domains.co.za — attempted, did not take.** Cloudflare assigned
+      **`ali.ns.cloudflare.com`** and **`drew.ns.cloudflare.com`**; both must replace all
+      four `ns1–4.anycast-ns.com/.net` entries.
+
+      This is not propagation lag. Querying the `.co.za` registry directly
+      (`nslookup -norecurse -type=NS k53mentorai.co.za coza1.dnsnode.net`) still returns
+      the four ClouDNS names, and the registry is the parent — it has no cache to be stale.
+      Resolver answers can lag a change; the registry cannot. So the edit did not save,
+      is queued for manual processing, or went somewhere that is not the delegation
+      (editing DNS *records* in the panel is not the same as changing *nameservers*).
+      Check for a registrar lock, an emailed confirmation, or a separate "Manage
+      nameservers" screen.
 - [ ] Once the delegation lands, confirm `https://k53mentorai.co.za` and
       `https://www.k53mentorai.co.za` still serve, and that the apex still answers
       `216.198.79.1` rather than a Cloudflare anycast address (`104.x` / `172.67.x`) —
@@ -238,17 +248,16 @@ early returns *"This zone must be active before you can enable Email Service"*, 
 routing rules refuse a destination that hasn't been verified — the address picker simply
 reports "No verified destination addresses found" with nothing selectable.
 
-- [x] Destination address `support.k53mentor@gmail.com` added 10 Aug 2026 — status
-      **Pending**
-- [ ] **Click the verification link Cloudflare mailed to that Gmail.** Not blocked on
-      anything; do it now. Nothing else in this section can proceed until it is done
+- [x] Destination address `support.k53mentor@gmail.com` added and **Verified**
+- [x] Routing rule `support@k53mentorai.co.za` → that destination — **Active**
+- [x] Routing rule `dmarc@k53mentorai.co.za` → same destination — **Active** (see 5.4)
+- [x] **Catch-all** left **disabled**. Enabled, every typo and every address a scraper
+      invents forwards to the same inbox
 - [ ] *(needs the zone active)* Settings → DNS records → **Add missing records**. Adds
       three apex MX (`route1–3.mx.cloudflare.net`), a DKIM TXT at
-      `cf2024-1._domainkey`, and an apex SPF `v=spf1 include:_spf.mx.cloudflare.net ~all`
-- [ ] *(needs both)* Routing rule `support@k53mentorai.co.za` → that destination
-- [ ] *(needs both)* Routing rule `dmarc@k53mentorai.co.za` → same destination (see 5.4)
-- [ ] Leave the **Catch-all** rule disabled. Enabled, every typo and every address a
-      scraper invents forwards to the same inbox
+      `cf2024-1._domainkey`, and an apex SPF `v=spf1 include:_spf.mx.cloudflare.net ~all`.
+      Until then Email Routing reads *Syncing / Not configured* and delivers nothing —
+      the rules are stored, not live
 - [ ] Send a test mail to `support@k53mentorai.co.za` from an unrelated account and
       confirm it lands
 - [ ] Then flip `SUPPORT_EMAIL` in `src/lib/constants.ts` to `support@k53mentorai.co.za`
