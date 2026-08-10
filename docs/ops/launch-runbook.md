@@ -42,9 +42,10 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 | Blocker | Where |
 |---|---|
 | ~~No mail DNS~~ — **done 10 Aug 2026.** DNS on Cloudflare, Email Routing live, MX/SPF/DKIM/DMARC published, **Resend domain Verified** | §5 |
-| `RESEND_API_KEY` + `NOTIFY_FROM_EMAIL` not set in Vercel → receipts and dunning silently skipped | §5.5 |
-| Supabase custom SMTP not configured — **now unblocked**, point it at Resend | §4 |
-| Supabase `token_hash` email templates not applied — **also blocked on custom SMTP**, see below | §4 |
+| ~~`RESEND_API_KEY` + `NOTIFY_FROM_EMAIL`~~ — set in Vercel and redeployed, 10 Aug 2026 | §5.5 |
+| ~~Supabase custom SMTP~~ — configured against Resend, 10 Aug 2026 | §4 |
+| ~~`token_hash` email templates~~ — applied and verified, 10 Aug 2026 | §4 |
+| **Nothing has actually been sent yet.** No transactional email has left the building end to end — the whole chain is configured but unproven | §5.5 |
 | `BUSINESS` in `src/lib/constants.ts` is blank → ECTA s43 / POPIA s55 disclosures don't render | §7 |
 | Upstash, Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
 
@@ -166,16 +167,11 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
       live privacy and terms URLs on the consent screen
 - [ ] **Custom SMTP configured** (point it at Resend). The built-in mailer is capped at a
       handful of messages an hour and will strand launch-day signups
-- [ ] **Email templates** use `token_hash` for Confirm signup / Magic link / Change email;
-      Reset password keeps `{{ .ConfirmationURL }}`. Exact markup, ready to paste, in
-      [`supabase-auth-setup.md`](./supabase-auth-setup.md) §3 — all three verified against
-      the `OTP_TYPES` allowlist and `safeNextPath()` in `src/app/auth/callback/route.ts`.
-
-      **Do this immediately after the SMTP step above, not before:** Supabase disables
-      template editing on the built-in mailer, so the page is a read-only preview until
-      custom SMTP is saved. Every signup before that point gets the default PKCE `?code=`
-      link, which fails for anyone who opens the mail on a different device than they
-      signed up on.
+- [x] **Email templates applied 10 Aug 2026.** Confirm signup (`type=email` → `/continue`),
+      Magic link (`type=magiclink` → `/continue`) and Change email (`type=email_change` →
+      `/account`) now use `token_hash`; Reset password deliberately still uses
+      `{{ .ConfirmationURL }}`. Each re-read after a fresh page load to confirm it
+      persisted. Markup in [`supabase-auth-setup.md`](./supabase-auth-setup.md) §3.
 - [x] Security + performance **advisors** run, nothing critical outstanding (10 Aug 2026).
       The only WARN is the leaked-password one below; the two `rls_enabled_no_policy`
       INFOs are `payment_events` and `account_deletion_codes`, which are service-role-only

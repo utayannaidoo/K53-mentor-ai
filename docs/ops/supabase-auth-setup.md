@@ -45,15 +45,18 @@ the single most common false report of "verification is broken".
 `token_hash` is verified server-side by `/auth/callback`, so the link works from any
 device or mail client.
 
-> ⚠️ **Blocked until §1 is done.** Supabase no longer lets a project on the built-in
-> mailer edit these at all — the template page shows "Set up custom SMTP to edit
-> templates" and renders a read-only preview with no editor and no save button. Verified
-> on the live project, 10 Aug 2026. So the real order is **mail DNS → Resend → custom
-> SMTP → these templates**, and until custom SMTP exists, every confirmation email goes
-> out as the default PKCE `?code=` link with the cross-device failure described above.
+> ✅ **Applied on the live project, 10 Aug 2026**, and re-read after a fresh page load to
+> confirm each one persisted. Kept below as the record of what is deployed.
+>
+> Supabase will not let a project on the built-in mailer edit these at all — the page
+> shows "Set up custom SMTP to edit templates" and renders a read-only preview with no
+> editor and no save button. The order is therefore **mail DNS → Resend → custom SMTP →
+> these templates**; before custom SMTP exists, every confirmation email goes out as the
+> default PKCE `?code=` link with the cross-device failure described above.
 
 Dashboard → **Authentication → Emails → Templates**. Three of the four templates change;
-the fourth must not.
+the fourth must not. The dashboard slugs are `confirm-sign-up`, `magic-link-or-otp`,
+`change-email-address` and `reset-password` — not the names shown in the UI.
 
 **Confirm signup** — `type=email`, landing on `/continue`:
 
@@ -80,6 +83,11 @@ onboarded, so the post-auth router has nothing to decide.
   Confirm your new email address
 </a>
 ```
+
+Keep this template's other two lines: the `{{ .NewEmail }}` reference, which is the only
+place the learner sees *which* address they are confirming, and the "if you didn't request
+this change, you can safely ignore this email" line, which is the security notice for an
+address takeover attempt.
 
 **Reset Password** — **leave as `{{ .ConfirmationURL }}`.** That flow starts and finishes
 in the same browser, and the recovery session the PKCE exchange produces is what
