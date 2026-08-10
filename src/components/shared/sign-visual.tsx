@@ -4,6 +4,7 @@ import * as React from "react";
 import Image from "next/image";
 import type { SignKey } from "@/types";
 import { SignGlyph } from "./sign-glyph";
+import { signImageDimensions } from "@/lib/content/signs";
 import { cn } from "@/lib/utils";
 
 /**
@@ -24,12 +25,29 @@ export function SignVisual({
   alt = "Road sign",
   className,
   priority,
+  detail,
 }: {
   image?: string;
   sign?: SignKey;
   alt?: string;
   className?: string;
   priority?: boolean;
+  /**
+   * Render large enough to read fine print on the sign itself.
+   *
+   * The default 80px thumbnail is right for a symbol in a disc or a triangle,
+   * and wrong for a sign shown with its qualifier plate — "06:30–09:00", "For
+   * 2km", "15 MAX". `object-contain` renders those at roughly 14% of full size,
+   * putting the plate text a couple of pixels high and making any question
+   * about what it says unanswerable.
+   *
+   * Opt-in per question (`Question.imageDetail`) rather than inferred from the
+   * image, because the deciding factor is whether the *question* asks the
+   * reader to read the sign, and aspect ratio predicts that badly in both
+   * directions: the "15 MAX" plate is nearly square and still unreadable, while
+   * plenty of tall marking strips are perfectly clear small.
+   */
+  detail?: boolean;
 }) {
   const imgRef = React.useRef<HTMLImageElement>(null);
   const [loaded, setLoaded] = React.useState(false);
@@ -41,11 +59,16 @@ export function SignVisual({
   }, [image]);
 
   if (image) {
+    const dims = signImageDimensions(image);
+
     return (
       <span
         className={cn(
           "relative inline-flex aspect-square h-16 w-16 items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-1.5 shadow-sm",
           className,
+          // Last, so it beats the caller's h-20 w-20 for the few signs that
+          // genuinely cannot be read at that size.
+          detail && "aspect-auto h-40 w-auto min-w-20 max-w-full sm:h-52",
         )}
       >
         {/* Span-based shimmer rather than <Skeleton>: this wrapper is a span
@@ -59,9 +82,9 @@ export function SignVisual({
           ref={imgRef}
           src={image}
           alt={alt}
-          width={160}
-          height={160}
-          sizes="80px"
+          width={dims?.w ?? 160}
+          height={dims?.h ?? 160}
+          sizes={detail ? "208px" : "80px"}
           priority={priority}
           onLoad={() => setLoaded(true)}
           // Even a failed load should drop the shimmer — alt text beats a

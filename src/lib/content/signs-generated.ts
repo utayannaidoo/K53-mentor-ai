@@ -1,5 +1,5 @@
 import type { Question, RoadSign, SignCategory } from "@/types";
-import { SIGNS, hasVerifiedName } from "@/lib/content/signs";
+import { SIGNS, hasVerifiedName, hasCompositeImage } from "@/lib/content/signs";
 import { looksLike } from "@/lib/content/sign-traits";
 
 /**
@@ -93,7 +93,11 @@ function hasUsableName(s: RoadSign): boolean {
 const QUIZZABLE_CATEGORIES: SignCategory[] = ["regulatory", "warning", "information", "marking"];
 
 function isQuizzable(s: RoadSign): boolean {
-  return QUIZZABLE_CATEGORIES.includes(s.category) && Boolean(s.image);
+  // hasCompositeImage: the picture holds two or three different signs, so
+  // "what does this sign mean?" has no single answer. See signs.ts.
+  return (
+    QUIZZABLE_CATEGORIES.includes(s.category) && Boolean(s.image) && !hasCompositeImage(s)
+  );
 }
 
 /** Stable string hash → PRNG seed, so distractors never change between renders. */

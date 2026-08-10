@@ -534,7 +534,7 @@ export function MockExam() {
         <div key={i} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in">
           {(q.image || q.sign) && (
             <div className="mb-4">
-              <SignVisual image={q.image} sign={q.sign} alt={signQuestionAlt(q.image, q.categoryId)} className="h-20 w-20" priority />
+              <SignVisual image={q.image} sign={q.sign} alt={signQuestionAlt(q.image, q.categoryId)} className="h-20 w-20" detail={q.imageDetail} priority />
             </div>
           )}
           <SignPreload image={questions[i + 1]?.image} />
