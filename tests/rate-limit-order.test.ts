@@ -27,6 +27,9 @@ vi.mock("@/lib/ai/rate-limit", () => ({
 vi.mock("@/lib/billing/entitlements.server", () => ({
   resolveEntitlement: (...a: unknown[]) => resolveEntitlement(...a),
   spendTutorCredit: vi.fn(async () => false),
+  // Unreached at premium_plus (the tutor route short-circuits on tier), but the
+  // mock has to export it or the route's import resolves to undefined.
+  isWithinFreeTrial: vi.fn(async () => true),
 }));
 
 const RATE_LIMITED = { success: false, retryAfter: 42 };

@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertSupabaseConfiguredInProduction, isSupabaseConfigured } from "@/lib/env";
+import { FREE_TRIAL_DAYS, PLAN_MAP } from "@/lib/billing/plans";
 import type { SubscriptionTier } from "@/types";
 
 // The demo-mode branch below grants premium_plus with no account. That must
@@ -108,6 +109,61 @@ export async function resolveTier(): Promise<ResolvedTier | Response> {
   }
 
   return { userId: user.id, tier };
+}
+
+const DAY_MS = 86_400_000;
+
+/**
+ * Is this free account still inside its free week?
+ *
+ * The free tier *is* the trial (`PLAN_MAP.free.limits.trialDays`), so `tier ===
+ * "free"` on its own doesn't separate a prospect three days into evaluating the
+ * product from an account that lapsed months ago. Callers that want to spend
+ * money on someone — a real model call rather than the rule-based explainer —
+ * need that distinction.
+ *
+ * Deliberately mirrors `trialStartedAt()` in `src/lib/billing/trial.ts`, which
+ * anchors on the **earliest** timestamp it can see. That client function is
+ * what renders "3 days left in your free week"; if the server resolved the
+ * window differently, the banner and the tutor would disagree about the same
+ * seven days, which is worse than either answer alone.
+ *
+ * `created_at` is normally the floor (it is `not null` and precedes onboarding),
+ * but `onboarded_at` is read too so a profile row that was ever backfilled or
+ * recreated can't hand someone a second free week.
+ *
+ * **Forgiving on failure, unlike the tier lookup above.** A missing profile, an
+ * unreadable one, or no admin client all resolve to *within* trial — matching
+ * the client, which treats an unanchored week as untouched rather than expired.
+ * The asymmetry is deliberate: `resolveTier` fails closed because it decides
+ * what someone paid for, whereas this only decides which engine answers a
+ * message that is already capped at `DAILY_ALLOWANCE.tutor.free` a day. Failing
+ * closed here would silently serve the worse tutor to new signups during an
+ * outage — the exact people the week exists to convince.
+ */
+export async function isWithinFreeTrial(userId: string, now = Date.now()): Promise<boolean> {
+  const admin = createAdminClient();
+  if (!admin) return true;
+
+  const days = PLAN_MAP.free.limits.trialDays ?? FREE_TRIAL_DAYS;
+  try {
+    const { data } = await admin
+      .from("profiles")
+      .select("onboarded_at,created_at")
+      .eq("id", userId)
+      .maybeSingle();
+    const row = data as { onboarded_at: string | null; created_at: string | null } | null;
+    if (!row) return true;
+
+    const started = [row.created_at, row.onboarded_at]
+      .map((v) => (typeof v === "string" ? Date.parse(v) : NaN))
+      .filter((t) => Number.isFinite(t));
+    if (started.length === 0) return true;
+
+    return now - Math.min(...started) < days * DAY_MS;
+  } catch {
+    return true;
+  }
 }
 
 /**
