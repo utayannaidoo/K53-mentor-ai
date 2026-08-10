@@ -41,8 +41,8 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 
 | Blocker | Where |
 |---|---|
-| No mail DNS at all — no MX, SPF, DKIM or DMARC. **Plan agreed, records not yet added** | §5 |
-| Supabase custom SMTP not configured (blocked on the above) | §4 |
+| ~~No mail DNS~~ — **done 10 Aug 2026.** DNS on Cloudflare, Email Routing live, MX/SPF/DKIM/DMARC published. Remaining: **Resend** sending domain | §5.3 |
+| Supabase custom SMTP not configured (blocked on Resend, no longer on DNS) | §4 |
 | Supabase `token_hash` email templates not applied — **also blocked on custom SMTP**, see below | §4 |
 | `BUSINESS` in `src/lib/constants.ts` is blank → ECTA s43 / POPIA s55 disclosures don't render | §7 |
 | Upstash, Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
@@ -218,18 +218,26 @@ The zone is two records:
       ask. Proxied, Vercel cannot complete its certificate challenges, and an SSL/TLS mode
       below Full gives an HTTP→HTTPS redirect loop — with §2's HSTS header already served,
       a bad certificate is a hard failure with no click-through for any returning visitor.
-- [ ] ⚠️ **Nameservers at domains.co.za — attempted, did not take.** Cloudflare assigned
-      **`ali.ns.cloudflare.com`** and **`drew.ns.cloudflare.com`**; both must replace all
-      four `ns1–4.anycast-ns.com/.net` entries.
+- [x] **Nameservers changed at domains.co.za to `ali.ns.cloudflare.com` and
+      `drew.ns.cloudflare.com`.** Delegation confirmed at the registry, zone active,
+      10 Aug 2026.
+- [x] Apex still answers `216.198.79.1` and `www` still resolves through
+      `vercel-dns-017.com` with Cloudflare authoritative — the grey-cloud fix held through
+      the cutover. Both hostnames return 200 with a valid certificate.
 
-      This is not propagation lag. Querying the `.co.za` registry directly
-      (`nslookup -norecurse -type=NS k53mentorai.co.za coza1.dnsnode.net`) still returns
-      the four ClouDNS names, and the registry is the parent — it has no cache to be stale.
-      Resolver answers can lag a change; the registry cannot. So the edit did not save,
-      is queued for manual processing, or went somewhere that is not the delegation
-      (editing DNS *records* in the panel is not the same as changing *nameservers*).
-      Check for a registrar lock, an emailed confirmation, or a separate "Manage
-      nameservers" screen.
+> **How to tell "not saved" from "still propagating".** Query the `.co.za` registry
+> directly rather than a resolver:
+>
+> ```bash
+> nslookup -norecurse -type=NS k53mentorai.co.za coza1.dnsnode.net
+> ```
+>
+> The registry is the parent delegation — resolver answers can trail a change by hours,
+> but the registry has no cache. Once it shows the new names, the change is real and
+> everything downstream is only waiting. During this cutover the registry lagged the
+> registrar's own panel by several minutes, so a single early check showing the old
+> nameservers is not evidence the edit failed. Check twice, a few minutes apart, before
+> concluding anything.
 - [ ] Once the delegation lands, confirm `https://k53mentorai.co.za` and
       `https://www.k53mentorai.co.za` still serve, and that the apex still answers
       `216.198.79.1` rather than a Cloudflare anycast address (`104.x` / `172.67.x`) —
@@ -253,11 +261,11 @@ reports "No verified destination addresses found" with nothing selectable.
 - [x] Routing rule `dmarc@k53mentorai.co.za` → same destination — **Active** (see 5.4)
 - [x] **Catch-all** left **disabled**. Enabled, every typo and every address a scraper
       invents forwards to the same inbox
-- [ ] *(needs the zone active)* Settings → DNS records → **Add missing records**. Adds
-      three apex MX (`route1–3.mx.cloudflare.net`), a DKIM TXT at
+- [x] Settings → DNS records → **Add missing records** — done. Three apex MX
+      (`route1–3.mx.cloudflare.net`, priorities 18/27/83), a DKIM TXT at
       `cf2024-1._domainkey`, and an apex SPF `v=spf1 include:_spf.mx.cloudflare.net ~all`.
-      Until then Email Routing reads *Syncing / Not configured* and delivers nothing —
-      the rules are stored, not live
+      All four verified live against `ali.ns.cloudflare.com`
+- [x] **Email Routing status: Enabled**, DNS records Locked
 - [ ] Send a test mail to `support@k53mentorai.co.za` from an unrelated account and
       confirm it lands
 - [ ] Then flip `SUPPORT_EMAIL` in `src/lib/constants.ts` to `support@k53mentorai.co.za`
@@ -294,7 +302,9 @@ reports "No verified destination addresses found" with nothing selectable.
 
 ### 5.4 DMARC
 
-- [ ] TXT `_dmarc` → `v=DMARC1; p=none; rua=mailto:dmarc@k53mentorai.co.za; fo=1`
+- [x] TXT `_dmarc` → `v=DMARC1; p=none; rua=mailto:dmarc@k53mentorai.co.za; fo=1` —
+      published and verified live, 10 Aug 2026. `p=none` is monitor-only: it cannot cause
+      a message to fail, it only asks receivers to report
 - [ ] Tighten to `p=quarantine` once you have watched reports for a couple of weeks
 
 > **Why not point `rua` straight at the Gmail?** A `rua` address outside the policy domain
