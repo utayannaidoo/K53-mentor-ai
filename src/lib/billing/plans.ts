@@ -203,6 +203,7 @@ export const PLANS: PlanDef[] = [
       "AI tutor — 40 messages a day (cheap top-ups available)",
       "Unlimited mock exams",
       "Driver's-licence yard-test modules",
+      "DLTC eye-test screener",
       "Advanced analytics & trends",
       "Priority new-content access",
     ],

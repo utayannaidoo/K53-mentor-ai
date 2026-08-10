@@ -17,24 +17,24 @@ import type { CategoryId } from "@/types";
  * catch accidental loss, not to force us to keep bad questions.
  */
 const MIN_QUESTIONS: Record<CategoryId, number> = {
-  signs: 418,
-  rules: 170,
-  controls: 184,
-  hazard_awareness: 83,
+  signs: 498,
+  rules: 228,
+  controls: 263,
+  hazard_awareness: 85,
   intersections: 86,
-  parking: 63,
+  parking: 80,
   following_distance: 56,
 };
 
 // Includes cards derived from the question bank (flashcards-derived.ts), which
 // top each category up to ~75% of its question count. Bump, never lower.
 const MIN_FLASHCARDS: Record<CategoryId, number> = {
-  signs: 314,
-  rules: 128,
-  controls: 138,
-  hazard_awareness: 63,
+  signs: 374,
+  rules: 171,
+  controls: 198,
+  hazard_awareness: 64,
   intersections: 65,
-  parking: 48,
+  parking: 60,
   following_distance: 42,
 };
 

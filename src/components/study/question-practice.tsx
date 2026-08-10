@@ -326,7 +326,7 @@ export function QuestionPractice() {
           </Badge>
           {(q.image || q.sign) && (
             <div className="mt-4">
-              <SignVisual image={q.image} sign={q.sign} alt={signQuestionAlt(q.image, q.categoryId)} className="h-20 w-20" priority />
+              <SignVisual image={q.image} sign={q.sign} alt={signQuestionAlt(q.image, q.categoryId)} className="h-20 w-20" detail={q.imageDetail} priority />
             </div>
           )}
           {/* Fetch the next question's sign while this one is being answered,

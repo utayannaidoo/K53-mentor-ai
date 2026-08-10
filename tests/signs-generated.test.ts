@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { GENERATED_SIGN_QUESTIONS } from "@/lib/content/signs-generated";
 import { QUESTIONS } from "@/lib/content/questions";
-import { SIGNS_BY_ID, hasVerifiedName } from "@/lib/content/signs";
+import {
+  SIGNS_BY_ID,
+  hasVerifiedName,
+  hasCompositeImage,
+  COMPOSITE_IMAGE_IDS,
+} from "@/lib/content/signs";
 import type { Question } from "@/types";
 
 /**
@@ -126,5 +131,37 @@ describe("generated sign questions", () => {
   it("introduces no duplicate ids into the bank", () => {
     const ids = QUESTIONS.map((q: Question) => q.id);
     expect(ids.length).toBe(new Set(ids).size);
+  });
+
+  /**
+   * Six catalogue entries pair a multi-sign image with a single sign's meaning,
+   * because the extractor sliced a stacked column of signs as one picture. Three
+   * of them were reaching learners as "what does this sign mean?" over a picture
+   * of two or three different signs — and warning-027-06's stated meaning
+   * ("Slow moving vehicles ahead") belongs to neither sign shown.
+   *
+   * Asked of the whole bank, not just the generated pack, because the same
+   * images are reachable through signImg() from a hand-authored question.
+   */
+  it("never asks about an image that contains more than one sign", () => {
+    const bad = QUESTIONS.filter((q: Question) => {
+      const sign = q.sign ? SIGNS_BY_ID[q.sign] : undefined;
+      if (sign && hasCompositeImage(sign)) return true;
+      // Hand-authored items carry the path rather than the id.
+      return Boolean(
+        q.image &&
+          [...COMPOSITE_IMAGE_IDS].some((id) => q.image === SIGNS_BY_ID[id]?.image),
+      );
+    });
+    expect(bad.map((q) => `${q.id} → ${q.sign ?? q.image}`)).toEqual([]);
+  });
+
+  it("keeps the composite quarantine documented and non-empty", () => {
+    // If this ever empties, it means the images were re-extracted (good) or the
+    // set was deleted without fixing them (bad). Either way it deserves a look.
+    expect(COMPOSITE_IMAGE_IDS.size).toBeGreaterThan(0);
+    for (const id of COMPOSITE_IMAGE_IDS) {
+      expect(SIGNS_BY_ID[id], `${id} is quarantined but not in the catalogue`).toBeDefined();
+    }
   });
 });

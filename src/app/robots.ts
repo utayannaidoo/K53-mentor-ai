@@ -15,6 +15,7 @@ export default function robots(): MetadataRoute.Robots {
           "/tutor",
           "/account",
           "/licence-prep",
+          "/eye-test",
           "/onboarding",
           "/diagnostic",
           "/welcome",

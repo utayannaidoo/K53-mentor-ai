@@ -16,6 +16,9 @@ interface RawSign {
   meaning: string;
   image: string;
   page: number;
+  /** Intrinsic pixel size of the extracted crop. */
+  w?: number;
+  h?: number;
 }
 
 /** Hand-verified names (and corrected meanings) for common / quiz-linked signs. */
@@ -187,7 +190,161 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-014-02": { name: "Parking for the class shown" },
   "regulatory-014-04": { name: "Temporary parking reservation" },
   "marking-081-01": { name: "Exclusive parking bay" },
+
+  // Batch 8 — moving-hazard animals, junction layouts, and the stop/command
+  // signs. Every name below was confirmed against the rendered PNG rather than
+  // taken from the OCR meaning, because several catalogue meanings are captions
+  // belonging to a neighbouring sign (see COMPOSITE_IMAGE_IDS).
+  //
+  // Deliberately left unnamed:
+  //  - warning-036-01 / 036-02, a left/right mirror pair whose catalogue
+  //    meanings are both exactly "Sharp junction ahead." — same reason as the
+  //    040-02/03 pair above.
+  //  - The regulatory-022/023 traffic-signal series. Their meanings are caption
+  //    fragments ("Steady red man", "Flashing green arrow") and several of the
+  //    images are near-identical, so any name question between them is a coin
+  //    toss on a detail the meaning never states.
+  //  - regulatory-007-05 (red/black arrow pair). The catalogue meaning reads
+  //    "two-way traffic ahead" but the pictogram is the yield-to-oncoming
+  //    sign; the two have opposite obligations, so it needs a source check
+  //    before it can be quizzed either way.
+  "warning-035-01": { name: "Crossroad ahead" },
+  "warning-035-04": { name: "T-junction ahead" },
+  "warning-035-05": { name: "Skew T-junction ahead" },
+  "warning-037-05": { name: "Horses and riders ahead" },
+  "warning-037-06": { name: "Horses ahead" },
+  "warning-037-07": { name: "Cattle ahead" },
+  "warning-038-01": { name: "Sheep ahead" },
+  "warning-038-02": { name: "Wild animals ahead" },
+  "warning-038-03": { name: "Warthogs ahead" },
+  "warning-038-04": { name: "Elephants ahead" },
+  "warning-038-05": { name: "Hippos ahead" },
+  "warning-038-06": { name: "Trams ahead" },
+  "warning-039-01": { name: "Road works ahead" },
+  "warning-039-02": { name: "Grader working ahead" },
+  "regulatory-006-03": { name: "Three-way stop" },
+  "regulatory-006-04": { name: "Four-way stop" },
+  "regulatory-007-02": { name: "Stop, or turn left without stopping" },
+  "regulatory-009-01": { name: "Headlights on" },
+  "regulatory-009-06": { name: "Proceed in the direction shown (temporary)" },
+  "regulatory-010-01": { name: "Taxis only" },
+  "regulatory-011-06": { name: "No stopping" },
+  "regulatory-012-04": { name: "No picking up of passengers" },
+  "regulatory-017-01": { name: "End of toll road" },
+
+  // Batch 9 — road markings, the comprehensive signs and a few information
+  // plates. Each confirmed against the rendered PNG.
+  //
+  // Road markings are the largest untouched block in the catalogue and their
+  // captions read as names already ("Stop line:", "Box junction:"), but the
+  // trailing colon fails the meaning gate, so before this batch not one of them
+  // could be quizzed at all.
+  //
+  // Deliberately left unnamed, with reasons:
+  //  - marking-079-01/02/03 ("Painted island" three times), 082-01 + 083-01
+  //    ("Lane reserved for trams only" twice), 084-05 + 085-01..04 ("Exclusive
+  //    use lane symbol" five times), 087-04 + 088-01 ("End of exclusive use
+  //    lane"), 089-01/02 ("Arrestor bed ahead"), 090-01..05 ("Gives extra
+  //    guidance"): identical catalogue meanings across two or more images.
+  //  - marking-081-02, whose meaning duplicates the already-named 081-01.
+  //  - marking-078-02 ("direction:") and 080-01 ("Taxis Mini-buses in an only"):
+  //    OCR wreckage.
+  //  - marking-082-02: a diamond marking captioned "hazardous goods vehicles".
+  //    The diamond is the generic exclusive-use symbol here, so the caption may
+  //    be misattributed — it needs a SARTSM check before it can be an answer.
+  //  - marking-086-02/03/04 (continuity / lane / dividing line). These are
+  //    genuinely different markings and a real thing to know, but the captions
+  //    run sparsest→densest as continuity→lane→dividing, which is the reverse
+  //    of the SARTSM ordering. Rather than teach three names that may be
+  //    shuffled, they wait for a source check. See the roadmap.
+  //  - marking-087-02 and 088-03: arrow markings whose names ("Mandatory
+  //    direction arrows ahead", "Direction of travel indicators") sit too close
+  //    to 081-03 to be fair options against it.
+  //  - information-045-03/04 ("For the next 12km" / "For the next 5km"): differ
+  //    only by a number the thumbnail cannot render legibly.
+  "marking-077-01": { name: "Stop line" },
+  "marking-077-02": { name: "Yield line" },
+  "marking-077-03": { name: "Pedestrian crossing markings" },
+  "marking-077-04": { name: "Block pedestrian crossing" },
+  "marking-077-05": { name: "No-overtaking line" },
+  "marking-078-01": { name: "No-crossing double line" },
+  "marking-079-04": { name: "Parking bay markings" },
+  "marking-081-03": { name: "Mandatory direction arrows" },
+  "marking-081-04": { name: "Lane reserved for buses" },
+  "marking-082-03": { name: "Lane reserved for bicycles" },
+  "marking-082-04": { name: "Box junction" },
+  "marking-083-02": { name: "No stopping — solid red line" },
+  "marking-083-03": { name: "No stopping — broken red line" },
+  "marking-083-04": { name: "No parking — solid yellow line" },
+  "marking-084-01": { name: "No parking — broken yellow line" },
+  "marking-084-02": { name: "No motorcycles marking" },
+  "marking-084-03": { name: "Mini-circle marking" },
+  "marking-084-04": { name: "Disabled persons parking bay" },
+  "marking-086-01": { name: "Railway crossing ahead marking" },
+  "marking-087-01": { name: "Reversible lane double lines" },
+  "marking-087-03": { name: "No-overtaking line ahead" },
+  "marking-088-02": { name: "Furcation arrows" },
+  "marking-088-04": { name: "Cycle crossing" },
+  "marking-088-05": { name: "Yield ahead marking" },
+  "marking-089-03": { name: "Escape road ahead" },
+  "regulatory-016-01": { name: "Residential area" },
+  "regulatory-016-02": { name: "Dual-carriage freeway begins" },
+  "regulatory-016-03": { name: "Single-carriage freeway begins" },
+  "information-045-02": { name: "Recommended speed plate" },
+  "information-045-06": { name: "Blind people plate" },
+  "information-045-07": { name: "Accident plate (temporary)" },
 };
+
+/**
+ * Catalogue entries whose image contains **more than one sign**.
+ *
+ * scripts/extract_signs.py slices sign images out of the manual's page scans by
+ * bounding box, and where the manual stacks two or three related signs in one
+ * column the slicer takes them as a single image. The catalogue then pairs that
+ * multi-sign picture with only one of their meanings — and in warning-027-06's
+ * case, with a meaning belonging to neither of the two signs shown.
+ *
+ * That is fine for a library thumbnail and fatal for a quiz: "what does THIS
+ * sign mean?" has no answer when the picture holds three of them. So these are
+ * excluded from question generation entirely.
+ *
+ * Found by rendering every quizzable image with an unusual aspect ratio and
+ * looking at it; aspect ratio alone is not the test, since plenty of legitimate
+ * signs (road-marking strips, traffic-signal heads) are tall and narrow.
+ *
+ * The real fix is re-extracting these six from the source pages, which is
+ * scripts/extract_signs.py work rather than content work — until then this set
+ * keeps them out of the bank.
+ */
+export const COMPOSITE_IMAGE_IDS: ReadonlySet<string> = new Set([
+  "warning-027-06", // steep descent + level crossing; meaning says "slow moving vehicles"
+  "warning-030-05", // crosswind + low-flying aircraft + electric hazard
+  "warning-031-06", // height restriction + queuing traffic
+  "warning-036-03", // four junction-layout variants in one strip
+  "warning-039-04", // collision + queuing traffic
+  "marking-089-04", // speed-hump marking + kerb strip
+  // Found during the batch-9 naming sweep, by looking at every remaining
+  // unnamed image rather than only the tall ones. Both of these carry meanings
+  // long enough to clear the gate, so unlike the six above they were being
+  // asked about.
+  "information-043-04", // two no-through-road signs (left variant + right variant)
+  "information-044-02", // a "3 PHASE" signal sign + the park-and-ride sign
+]);
+
+export function hasCompositeImage(sign: { id: string }): boolean {
+  return COMPOSITE_IMAGE_IDS.has(sign.id);
+}
+
+/** Intrinsic dimensions of every extracted crop, keyed by its public path. */
+const IMAGE_DIMENSIONS: Record<string, { w: number; h: number }> = Object.fromEntries(
+  (rawCatalog as RawSign[])
+    .filter((r) => r.image && r.w && r.h)
+    .map((r) => [r.image, { w: r.w as number, h: r.h as number }]),
+);
+
+export function signImageDimensions(image: string): { w: number; h: number } | undefined {
+  return IMAGE_DIMENSIONS[image];
+}
 
 function deriveName(raw: RawSign): string {
   const c = CURATED[raw.id];
@@ -309,6 +466,34 @@ const SIGN_KEY_TO_ID = {
   no_overtaking_trucks: "regulatory-012-02",
   no_hooter: "regulatory-012-03",
   reserved_lane_bus: "regulatory-013-01",
+  // Batch 8 — qualifier ("selective restriction") plates and the main signs
+  // they hang under. These images are the whole point of the sign-plus-plate
+  // questions in motus-signs-pack.ts: the plate is what changes the meaning,
+  // so the learner has to see both together.
+  qual_uturn_night: "regulatory-020-02",
+  qual_right_turn_times: "regulatory-020-03",
+  qual_speed_motorcycles: "regulatory-020-04",
+  qual_no_right_buses: "regulatory-021-01",
+  qual_min_speed_goods: "regulatory-021-02",
+  qual_no_overtaking_2km: "regulatory-021-03",
+  qual_max_15: "regulatory-019-03",
+  qual_pay_parking: "regulatory-019-04",
+  qual_local_access: "regulatory-019-06",
+  qual_for_5km: "regulatory-019-07",
+  qual_daytime: "regulatory-018-06",
+  qual_night: "regulatory-018-07",
+  three_way_stop: "regulatory-006-03",
+  four_way_stop: "regulatory-006-04",
+  stop_go_left: "regulatory-007-02",
+  taxis_only: "regulatory-010-01",
+  no_stopping: "regulatory-011-06",
+  no_passenger_pickup: "regulatory-012-04",
+  end_toll_road: "regulatory-017-01",
+  crossroad_ahead: "warning-035-01",
+  t_junction_ahead: "warning-035-04",
+  cattle_ahead: "warning-037-07",
+  wild_animals_ahead: "warning-038-02",
+  road_works_ahead: "warning-039-01",
 } as const;
 
 export type SignImgKey = keyof typeof SIGN_KEY_TO_ID;

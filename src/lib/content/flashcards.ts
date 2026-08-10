@@ -14,6 +14,9 @@ import { HPF_PACK_FLASHCARDS } from "./hpf-pack";
 import { BIKE_HEAVY_PACK_FLASHCARDS } from "./bike-heavy-pack";
 import { CONVERTED_PACK_FLASHCARDS } from "./converted-pack";
 import { AARTO_PACK_FLASHCARDS } from "./aarto-pack";
+import { MOTUS_YARD_FLASHCARDS } from "./motus-yard-pack";
+import { MOTUS_SIGNS_FLASHCARDS } from "./motus-signs-pack";
+import { MOTUS_RULES_FLASHCARDS } from "./motus-rules-pack";
 
 /**
  * Spaced-repetition flashcards covering the K53 learner's syllabus. Sign cards
@@ -115,7 +118,7 @@ const CORE_FLASHCARDS: Flashcard[] = [
  * Hand-authored cards: core (universal) plus the vehicle-code–specific and
  * themed packs. These are the source-of-truth wording a learner sees first.
  */
-const HAND_AUTHORED_FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS, ...VEHICLE_EXTRA_FLASHCARDS, ...SIGNS_PACK_FLASHCARDS, ...RULES_PACK_FLASHCARDS, ...MARKINGS_PACK_FLASHCARDS, ...INTERSECTIONS_PACK_FLASHCARDS, ...CONTROLS_PACK_FLASHCARDS, ...HPF_PACK_FLASHCARDS, ...BIKE_HEAVY_PACK_FLASHCARDS, ...CONVERTED_PACK_FLASHCARDS, ...AARTO_PACK_FLASHCARDS];
+const HAND_AUTHORED_FLASHCARDS: Flashcard[] = [...CORE_FLASHCARDS, ...VEHICLE_FLASHCARDS, ...EXTRA_FLASHCARDS, ...VEHICLE_EXTRA_FLASHCARDS, ...SIGNS_PACK_FLASHCARDS, ...RULES_PACK_FLASHCARDS, ...MARKINGS_PACK_FLASHCARDS, ...INTERSECTIONS_PACK_FLASHCARDS, ...CONTROLS_PACK_FLASHCARDS, ...HPF_PACK_FLASHCARDS, ...BIKE_HEAVY_PACK_FLASHCARDS, ...CONVERTED_PACK_FLASHCARDS, ...AARTO_PACK_FLASHCARDS, ...MOTUS_YARD_FLASHCARDS, ...MOTUS_SIGNS_FLASHCARDS, ...MOTUS_RULES_FLASHCARDS];
 
 /**
  * Hand-authored cards plus cards derived from the question bank (de-duplicated
