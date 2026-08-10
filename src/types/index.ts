@@ -87,6 +87,15 @@ export interface Question {
   sign?: SignKey;
   /** Real road-sign image path (preferred over `sign` glyph). */
   image?: string;
+  /**
+   * Show the image large enough to read fine print on the sign.
+   *
+   * Set this when answering requires reading the sign itself — a qualifier
+   * plate's times, distance or vehicle class. The default 80px thumbnail
+   * renders those at roughly 14% of full size, which makes the question
+   * unanswerable rather than merely hard.
+   */
+  imageDetail?: boolean;
   /** Vehicle codes this item is specific to. Omitted = applies to all codes. */
   codes?: VehicleCode[];
   /**

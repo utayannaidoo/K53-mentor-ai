@@ -315,7 +315,7 @@ function GuidedQuestions({
         </Badge>
         {(q.image || q.sign) && (
           <div className="mt-3">
-            <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-16 w-16" priority />
+            <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-16 w-16" detail={q.imageDetail} priority />
           </div>
         )}
         <h2 className="mt-3 text-balance font-display text-lg font-semibold leading-snug tracking-tight">

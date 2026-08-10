@@ -58,10 +58,99 @@ What users praise elsewhere: questions "very similar to the real test", per-sect
 
 | Sprint | Result |
 |---|---|
+| Signs — naming sweep of the remaining catalogue (batch 9 in `signs.ts`) | +31 questions / +23 flashcards, entirely from **31 new verified names** — no new hand-authored pack. Bank **1 265 → 1 296 Q / 951 → 974 FC**; signs 467 → **498**, generated pool 224 → **255**. Ceiling: code 08 16.5 → **17.0**, A 16.5 → **17.6**, code 14 16.6 → **17.7**. The block that mattered was **road markings**, the largest untouched part of the catalogue: their captions already read as names ("Stop line:", "Box junction:") but the trailing colon fails the meaning gate, so before this batch not a single road marking could be quizzed. 25 markings named, plus the three comprehensive signs (residential area, dual- and single-carriage freeway begins) and three information plates. Verified names 123 → **154** of 239 quizzable signs; unnamed 111 → **80**, and the remainder are now almost entirely *principled* exclusions rather than unexamined ones — each documented inline in `signs.ts`. The largest remaining block is the 21 selective-restriction plates, which are modifiers rather than standalone signs (12 of them already carry `signImg` keys and are quizzed by `motus-signs-pack.ts` as sign-plus-plate combinations, which is the useful framing); then 28 markings and 12 traffic signals held back for the reasons recorded above. **Two more composite images found and one was live** — see below. |
+| Rules — duties, freeway law, towing, lights, accidents (`motus-rules-pack.ts`) | +63 questions / +46 flashcards. Bank **1 202 → 1 265 Q / 905 → 951 FC**; rules 170 → **228**, hazard 83 → 85, parking 77 → 80. **The biggest ceiling gain of any sprint so far: code 08 14.8 → 16.5, A 15.8 → 16.5, code 14 15.6 → 16.6** — because `rules` is a *section*, not a category (SECTION_OF pools rules + intersections + parking + following_distance + hazard_awareness into the 28 a paper draws), so every universal item lifts all three codes at once. Material from `motus-manual-11ed.md` pp. 61–66, most of which nothing quizzed: the **general duties of drivers** (engine running while unattended or refuelling, people on the roof, body protruding, entering a moving vehicle, letting someone else steer, smoke, refuse, sidewalk driving), **freeway law** (the eight classes barred, the three lawful reasons to stop, no hand signals, and the learner-with-supervision rule), **towing** (3,5 m, tow-bar above 30 km/h, no passengers), **lights** (45 m dipped / 100 m main, parking lights beyond 12 m from a streetlight, spotlights restricted to doctors/vets/breakdowns/official vehicles), **abandoned vehicles** (24 h rural / 7 days urban), the **accident procedure**, and the tyre standards including the 80% rule for ≤50 cc motorcycles and the retread ban. The cap is back on **signs** for all three codes. |
+| Signs — qualifier plates, sign classes, +23 verified names (`motus-signs-pack.ts`) | +49 signs questions / +37 flashcards. Bank **1 153 → 1 202 Q / 868 → 905 FC**; signs 436 → **467**, flashcards 314 → **351**. Two halves. (1) **23 new verified names** in `CURATED` — the animal and junction-layout warnings, and the stop/command regulatory signs — each confirmed against the rendered PNG rather than the OCR meaning, lifting the generated pool 206 → 224. (2) A hand-authored pack covering what a generator structurally cannot teach: the **selective-restriction (qualifier) plate system**, which is 21 catalogue entries and was quizzed by *nothing*, plus the blue-disc-commands / red-ring-prohibits distinction and the minimum-vs-maximum speed trap that follows from it. Ceiling: code 08 14.7 → **14.8**, A 14.8 → **15.8**, code 14 14.9 → **15.6** — and all three are **rules-limited again**, so the next ceiling sprint is rules. **A live defect was found and fixed** — see below. Names deliberately withheld: the 022/023 traffic-signal series (caption-fragment meanings, near-identical images), the 036-01/02 mirror pair, and regulatory-007-05 (catalogue meaning says "two-way traffic", pictogram is yield-to-oncoming — opposite obligations, needs a source check). |
+| Controls + parking — the K53 *score sheet* (`motus-yard-pack.ts`) | +93 questions (79 controls, 14 parking) and +70 flashcards (34 hand-authored, 36 auto-derived). Bank **1 060 → 1 153 Q / 798 → 868 FC**. Controls 184 → **263**, parking 63 → **77**. First sprint written from the owner's scanned [Official Motus/Safeways K53 manual, 11th ed.](./facts/motus-manual-11ed.md), which prints the examiner's actual yard- and road-test sheets — so this is the first content in the bank that teaches *what each fault costs* rather than only what the manoeuvre is: the 50-point yard total, black-box instant fails, the SIM sequence, the pre-trip inspection's anti-clockwise order and its four spoken declarations, manoeuvre geometry (two attempts, ½ m from the poles, pole B in line with your head, the white dot at your shoulder), and the road-test penalties (mirror every 5–8 s at 5 points, eyes-down 5, cornering gear change 4, gear coasting 3). Ceiling: code 08 14.3 → **14.7**, and **the cap moved off rules onto signs** — code 08 is now signs-limited for the first time, so the next ceiling work is a signs sprint. "Controls only" drill pool 143 → **222**. `scripts/gen-content-meta.mjs` had to be re-run (`tests/content-meta.test.ts` catches the drift). Two figures were deliberately left un-authored because sources disagree — see the fact file's "Conflicts to resolve". |
 | Controls + rules + signs (all three) | +104 (37 controls, 39 rules-group, 16 signs, plus 15 auto-generated from 16 newly verified names). Bank passes **1 000** at 1 060. Ceiling: code 08 12.9 → **14.3**, A 13.7 → **14.8**, code 14 13.8 → **14.9**. Controls was requested but had stopped being a constraint — it was written for the "Controls only" section drill instead (code 08: 13.5 → 17.9 distinct drills), and that reason is recorded in the pack header so it is not mistaken for ceiling work later. |
 | Rules — offence principles, plus a controls top-up | +55 (42 rules-group, 12 controls, 1 removed as a duplicate). Rules 131 → 149. Ceiling: code 08 11.4 → **12.9**, A 12.4 → 13.7, code 14 12.3 → 13.8. Controls was included because the rules work pushed past it and it became the cap at exactly 12.00 for code 08. The duplicate-prompt gate caught a restatement of an existing stopping-distance question; it was removed rather than reworded. |
 | Signs — junctions, restriction warnings, temporary twins, reservations | +55 signs (27 hand-authored + 28 auto-generated from newly verified names). Signs 332 → 387; verified sign names 56 → 84 of 439. Mock ceiling: code A 11.7 → 12.4, code 14 11.8 → 12.3. **Code 08 unchanged at 11.4 — it is rules-capped**, so the next signs sprint gains it nothing until rules grows. |
 | Flashcards ← question bank (derived) | +404 flashcards, **394 → 798** (≈75% of the 1 060-question bank, up from 37%), via `flashcards-derived.ts` — a deterministic, de-duplicated derivation, not a new fact source (each card seeds from a question's vetted answer + explanation, so provenance is unchanged). Per-category top-up to ~75% coverage: signs **93 → 314** (was only 22% covered), controls 73 → 138, rules 82 → 128, intersections 42 → 65, hazard 45 → 63, parking 31 → 48, following 28 → 42. Questions needing their options to be answerable are skipped; a sign already carried by a hand-authored card, or a fact already covered, is never duplicated. Ratchet minimums in `tests/content-coverage.test.ts` bumped to the new counts. |
+
+### A saturated topic (rules sprint)
+
+The duplicate-prompt gate rejected "Another vehicle is overtaking you. You should:" against
+`q_rules_being_overtaken`. Checking why turned up **four** existing questions on that single
+fact — in `questions.ts`, `rules-pack.ts`, `rules-lane-pack.ts` and `rules-lift-pack.ts`.
+
+Removed rather than reworded, per the precedent below: a fifth phrasing of one fact is worse
+for a learner drilling than no new question at all. Worth a future pass to find other
+over-covered facts — the gate only catches near-identical *prompts*, not four different
+prompts teaching the same thing.
+
+---
+
+### Sign images that need reading, not just recognising (signs sprint)
+
+The qualifier-plate questions exposed a limit in `SignVisual`: it renders every sign into a
+fixed 80px square with `object-contain`. That is right for a symbol in a disc or a triangle,
+and wrong for a sign shown *with its plate* — "06:30–09:00", "For 2km", "15 MAX" — which
+comes out at about **14% of full size**, putting the plate text a couple of pixels high. The
+questions would have been unanswerable rather than merely hard.
+
+Fixed with an opt-in `Question.imageDetail` flag, passed through to `SignVisual` by the
+three question surfaces (practice, mock, guided session). It swaps the square box for
+`h-40 sm:h-52 w-auto`, taking the render to **41%**.
+
+Opt-in per question rather than inferred from the image, which was the first attempt and is
+wrong in both directions: a 1.35 aspect-ratio threshold caught 94 of 239 quizzable signs
+(changing the look of many that were perfectly legible), while *missing* the "15 MAX" and
+"and Local Access Only" plates, which are nearly square and still unreadable at 80px. The
+deciding factor is whether the question asks the reader to read the sign — which only the
+question knows.
+
+`SignVisual` also now passes each crop's true intrinsic dimensions to `next/image` instead
+of a hardcoded 160×160.
+
+---
+
+### Composite sign images — a live defect, found and fixed (signs sprint)
+
+`scripts/extract_signs.py` slices sign images out of the manual's page scans by bounding
+box. Where the manual stacks two or three related signs in one column, the slicer took them
+as **a single image**, and the catalogue then paired that multi-sign picture with only one
+of their meanings.
+
+**Five questions were shipping this way** — asking "what does this sign mean?" over a
+picture of two or three different signs:
+
+| Sign | Image actually contains | Stated meaning |
+|---|---|---|
+| `warning-027-06` | steep descent **+** level crossing | "Slow moving vehicles ahead" — **belongs to neither** |
+| `warning-030-05` | crosswind **+** low-flying aircraft **+** electric hazard | "Strong crosswinds can be expected ahead" |
+| `warning-031-06` | height restriction **+** queuing traffic | "Height restriction ahead (temporary)" |
+
+Three more (`warning-036-03`, `warning-039-04`, `marking-089-04`) were composites that
+happened to escape the quiz only because their meanings failed an unrelated length gate.
+
+**A second sweep during the batch-9 naming pass found two more**, by looking at every
+remaining unnamed image rather than only the tall ones:
+
+| Sign | Image actually contains | Live? |
+|---|---|---|
+| `information-043-04` | two no-through-road signs, left variant **+** right variant | **Yes** — was generating a meaning question |
+| `information-044-02` | a "3 PHASE" signal sign **+** the park-and-ride sign | No |
+
+Total across both sweeps: **eight composite images, six live questions**. The lesson for
+next time is that aspect ratio was a poor detector — it found the first batch but missed
+these two, which are wide rather than tall. The reliable method is to render every candidate
+onto a contact sheet and look, which is cheap enough to be the default.
+
+Fixed by quarantining all six in `COMPOSITE_IMAGE_IDS` (`signs.ts`), which
+`signs-generated.ts` now excludes. `tests/signs-generated.test.ts` asserts that **no
+question in the bank** — generated or hand-authored — points at one of those images; the
+test was confirmed non-vacuous by reverting the guard and watching it name all five.
+
+They were found by rendering every quizzable image with an unusual aspect ratio onto a
+contact sheet and looking at it. Aspect ratio alone is not the test: plenty of legitimate
+signs (road-marking strips, traffic-signal heads) are tall and narrow, so the shortlist has
+to be eyeballed.
+
+**Follow-up, not done here:** the real fix is re-extracting those six from the source pages,
+which is `extract_signs.py` work. Until then they remain in the sign *library* with a
+misleading caption — visible when browsing, just never asked about.
+
+---
 
 Two guards fired during this sprint and both were fixed rather than relaxed:
 - The generated pack's difficulty had drifted to 83% "easy", because difficulty keyed off *"has a verified name"* as a proxy for *"is a common sign"*. Verifying the long tail broke the proxy. Difficulty now keys off an explicit core-sign set, independent of naming progress (23/31/46 across the three bands).
@@ -88,6 +177,13 @@ Sprint = pick category → verify/refresh its fact file (WebSearch for changes) 
 - Sign images: extend the existing manual-extraction script to the full R/W/temporary sets so new sign items ship with real images (competitors' pixelated images are a top complaint).
 
 ### Targets (runtime counts; enforced as minimums by tests/content-coverage.test.ts)
+
+> **Historical.** Every target in this table has been met or passed — as of the
+> `motus-yard-pack.ts` sprint, controls is at 263 against a target of 120 and parking at 77
+> against 80, and the bank is at 1 153 Q / 868 FC against ~900 / ~500. Trust
+> `node scripts/content-stats.mjs`, not the "Now" column below. What limits the product now
+> is the mock-paper ceiling and the per-section drill pools, not these category totals.
+
 | Category | Now (Q) | Target | Category | Now (Q) | Target |
 |---|---|---|---|---|---|
 | signs | 98 | 220 | intersections | 31 | 100 |

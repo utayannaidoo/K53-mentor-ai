@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Car, Bike, Truck, Clock, ArrowRight, Lock, Sparkles, CheckCircle2 } from "lucide-react";
+import { Car, Bike, Truck, Clock, ArrowRight, Lock, Sparkles, CheckCircle2, Eye } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -57,6 +57,38 @@ export default function LicencePrepPage() {
           </Link>
         </Card>
       )}
+
+      {/*
+        Not a MODULE_META entry — the eye test is a DLTC admin step, not a
+        yard-test manoeuvre, so it doesn't fit that content model. Same
+        unlocked/locked treatment as the module cards below it: routes to the
+        real thing when unlocked, to billing otherwise.
+      */}
+      <Link href={unlocked ? "/eye-test" : "/account/billing"} className="group mb-4 block">
+        <Card
+          className={cn(
+            glass,
+            "hover-elevate flex items-center justify-between gap-4 p-5",
+          )}
+        >
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Eye className="h-5 w-5" />
+            </span>
+            <div>
+              <h3 className="font-display text-base font-semibold tracking-tight">Eye test</h3>
+              <p className="text-sm text-muted-foreground">
+                The tumbling-E screener the DLTC uses before they&apos;ll book your test
+              </p>
+            </div>
+          </div>
+          {unlocked ? (
+            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          ) : (
+            <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
+          )}
+        </Card>
+      </Link>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {modules.map((m) => {
