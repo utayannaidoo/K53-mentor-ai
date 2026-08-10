@@ -41,11 +41,10 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 
 | Blocker | Where |
 |---|---|
-| No mail DNS at all — no MX, SPF, DKIM or DMARC | §5 |
+| No mail DNS at all — no MX, SPF, DKIM or DMARC. **Plan agreed, records not yet added** | §5 |
 | Supabase custom SMTP not configured (blocked on the above) | §4 |
 | Supabase `token_hash` email templates not applied — **also blocked on custom SMTP**, see below | §4 |
 | `BUSINESS` in `src/lib/constants.ts` is blank → ECTA s43 / POPIA s55 disclosures don't render | §7 |
-| `SUPPORT_EMAIL` is still a personal Gmail, public on `/contact` and `/refunds` | §8 |
 | Upstash, Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
 
 > ⚠️ **Set Upstash *before* the AI keys.** `src/lib/ai/rate-limit.ts` throws at boot when
@@ -193,19 +192,98 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 
 ## 5. Email that actually lands
 
-Resend is **send-only**. You need both a verified sending domain and a receiving inbox.
+**This is the critical path.** Resend is send-only, so you need a verified sending domain
+*and* a receiving inbox, and everything else waiting on mail — Supabase custom SMTP, the
+`token_hash` templates in §4, the public support address — is downstream of these records.
 
-- [ ] Verify `k53mentorai.co.za` in Resend — add the **SPF** and **DKIM** records
-- [ ] Add **DMARC**: `v=DMARC1; p=none; rua=mailto:you@…` to start. Tighten to
-      `p=quarantine` once you've watched reports for a couple of weeks
-- [ ] Receiving inbox for `support@k53mentorai.co.za` — **Cloudflare Email Routing** (free)
-      forwarding to your Gmail is the cheapest credible option. Zoho Mail free tier or
-      Google Workspace if you want a real mailbox
-- [ ] `NOTIFY_FROM_EMAIL` points at the verified sender
+Decided 10 Aug 2026: **move DNS to Cloudflare**, because Email Routing is the only free
+way to receive at the domain, and because every remaining TXT record in this runbook
+(Resend, DMARC, Search Console) then lives in one panel. The interim support inbox is
+`support.k53mentor@gmail.com` — a role address, already live, already shipped as
+`SUPPORT_EMAIL`, and the destination the domain address forwards to once §5.2 is done.
+
+### 5.1 Move DNS to Cloudflare *without* dropping the site
+
+The zone is two records. Recreate them **before** touching nameservers — a cutover to an
+empty zone takes the site down for the length of propagation.
+
+| Type | Name | Value | Proxy |
+|---|---|---|---|
+| A | `k53mentorai.co.za` | `216.198.79.1` | **DNS only (grey cloud)** |
+| CNAME | `www` | `17a3707dc089cda5.vercel-dns-017.com` | **DNS only (grey cloud)** |
+
+- [ ] Add the domain to Cloudflare (Free plan), let the scan import, then check both
+      records against the table above — the scanner misses records more often than you'd
+      think
+- [ ] Both records **grey cloud**. Orange-cloud proxying breaks Vercel's certificate
+      issuance and renewal, and §2's HSTS header makes a broken cert a hard outage rather
+      than a warning
+- [ ] Only then change the nameservers at **domains.co.za** to the two Cloudflare gave you
+      (replacing `ns1–4.anycast-ns.com/.net`). ZACR can take a few hours
+- [ ] Confirm `https://k53mentorai.co.za` and `https://www.k53mentorai.co.za` still serve
+      before going further
+
+### 5.2 Receiving — Cloudflare Email Routing
+
+- [ ] Email → Email Routing → enable. Cloudflare adds its own apex MX records and an SPF
+      TXT; let it
+- [ ] Destination address `support.k53mentor@gmail.com`, then **click the verification
+      link Cloudflare mails to it** — routing silently does nothing until you do
+- [ ] Custom address `support@k53mentorai.co.za` → that destination
+- [ ] Custom address `dmarc@k53mentorai.co.za` → same destination (see 5.4)
+- [ ] Send a test mail to `support@k53mentorai.co.za` from an unrelated account and
+      confirm it lands
+- [ ] Then flip `SUPPORT_EMAIL` in `src/lib/constants.ts` to `support@k53mentorai.co.za`
+      and redeploy
+
+### 5.3 Sending — Resend
+
+- [ ] Add `k53mentorai.co.za` in Resend. Pick the **`eu-west-1`** region — same region as
+      the Supabase project, and the closest one to South Africa
+- [ ] Add the three records Resend shows you, **copying the values from the dashboard**
+      (the DKIM key is unique to your domain). They look like:
+
+      | Type | Name | Value |
+      |---|---|---|
+      | MX | `send` | `feedback-smtp.eu-west-1.amazonses.com` (priority 10) |
+      | TXT | `send` | `v=spf1 include:amazonses.com ~all` |
+      | TXT | `resend._domainkey` | `p=MIGfMA0GCSq…` |
+
+- [ ] Wait for Resend to report **Verified**
+
+> **Two MX records is correct here and not a mistake.** Cloudflare's are on the apex and
+> receive your mail; Resend's is on the `send.` subdomain and only collects bounce
+> feedback. They are different names, so they never compete. The same goes for the two SPF
+> records — one at the apex for forwarding, one at `send` for sending. What you must never
+> do is publish **two SPF TXT records on the same name**; that is a permerror, and it
+> fails every message rather than only the ambiguous ones.
+
+### 5.4 DMARC
+
+- [ ] TXT `_dmarc` → `v=DMARC1; p=none; rua=mailto:dmarc@k53mentorai.co.za; fo=1`
+- [ ] Tighten to `p=quarantine` once you have watched reports for a couple of weeks
+
+> **Why not point `rua` straight at the Gmail?** A `rua` address outside the policy domain
+> is an *external destination*, and RFC 7489 §7.1 requires the receiving domain to publish
+> a matching authorisation record. `gmail.com` publishes no such record for your domain, so
+> compliant reporters are entitled to drop the reports — silently. Routing through
+> `dmarc@k53mentorai.co.za` keeps the address inside the domain, and Email Routing
+> forwards it to the same Gmail anyway.
+
+### 5.5 Then, and only then
+
+- [ ] `RESEND_API_KEY` and `NOTIFY_FROM_EMAIL` (`K53 Mentor <coach@k53mentorai.co.za>`)
+      set in Vercel Production, and redeploy
+- [ ] **Supabase custom SMTP** (§4) → host `smtp.resend.com`, port `465`, user `resend`,
+      password = the Resend API key. Raise the per-hour cap under Auth → Rate Limits
+- [ ] **Then the `token_hash` email templates** (§4) — the editor stays read-only until
+      the SMTP step above is saved
 - [ ] Test-send to **Gmail, Outlook and Yahoo** — check **spam placement**, not just
       delivery
 - [ ] Send yourself a real payment receipt and a reminder email; confirm every link in
       them resolves to `k53mentorai.co.za` (this is the acid test that §3's rebuild worked)
+- [ ] Signup → confirm the email **on a different device**, which is the whole point of
+      the `token_hash` templates
 
 Known gaps, post-launch:
 - No Resend bounce/complaint webhook — hard bounces accumulate invisibly.
@@ -312,7 +390,7 @@ Fixed on 8 Aug 2026 — kept here as the record of what changed and why.
 
 | # | Where | Issue | Status |
 |---|---|---|---|
-| 1 | `src/lib/constants.ts` | `SUPPORT_EMAIL` is a personal Gmail address, rendered publicly on `/refunds` and now `/contact` | **Open — deliberately.** Flip it to `support@k53mentorai.co.za` the same day Cloudflare Email Routing exists (§5). Doing it sooner advertises a dead address, which is worse than the Gmail |
+| 1 | `src/lib/constants.ts` | `SUPPORT_EMAIL` is a personal Gmail address, rendered publicly on `/refunds` and now `/contact` | Fixed on 10 Aug 2026 — now `support.k53mentor@gmail.com`. A role address rather than someone's name, which was the part that mattered; a learner disputing a charge should not be mailing an individual. It becomes `support@k53mentorai.co.za` the day Email Routing forwards it (§5.2), with the same inbox behind it. Shipping the domain address first would advertise one that bounces |
 | 2 | `src/components/engagement/share-card.tsx` | Share image read "…with k53mentor.ai", a domain you don't own, on the WhatsApp share path | Fixed — now derives from `SITE_DOMAIN` |
 | 3 | `src/app/api/checkout/route.ts` | Guest placeholder `guest@k53mentor.ai` sent to Paystack | Fixed — `SITE_DOMAIN` |
 | 4 | `src/components/auth/auth-form.tsx` | Demo-mode `demo@k53mentor.ai` | Fixed — `SITE_DOMAIN` |

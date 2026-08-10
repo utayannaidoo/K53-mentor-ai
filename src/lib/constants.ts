@@ -59,8 +59,16 @@ export const SECTION_OF: Record<CategoryId, ExamSection> = {
   hazard_awareness: "rules",
 };
 
-// Interim support/refund inbox until a branded address is set up.
-export const SUPPORT_EMAIL = "utayan.naidoo@gmail.com";
+/**
+ * Public support/refund inbox, rendered on /contact and /refunds.
+ *
+ * Interim: a role address rather than a personal one, which is the part that
+ * mattered — a learner emailing about a refund should not be mailing someone's
+ * name. Swap to `support@k53mentorai.co.za` once Cloudflare Email Routing
+ * forwards it (see docs/ops/launch-runbook.md §5); the Gmail stays the
+ * destination behind it, so nothing breaks on the day it changes.
+ */
+export const SUPPORT_EMAIL = "support.k53mentor@gmail.com";
 
 /**
  * Operator details disclosed on /contact.
