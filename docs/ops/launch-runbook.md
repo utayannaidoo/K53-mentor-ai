@@ -356,7 +356,18 @@ reports "No verified destination addresses found" with nothing selectable.
 > silently, from the sender's point of view, on a payment receipt. If you want the `coach@`
 > branding, add a routing rule for it first, or add a `reply_to` to the sender.
 - [ ] **Supabase custom SMTP** (§4) → host `smtp.resend.com`, port `465`, user `resend`,
-      password = the Resend API key. Raise the per-hour cap under Auth → Rate Limits
+      password = a Resend API key, sender `support@k53mentorai.co.za` (it **must** be on
+      the verified domain, or Resend rejects the message and it looks like Supabase
+      silently not sending)
+- [ ] **Raise the per-hour cap** under Auth → **Rate Limits**. The built-in mailer's low
+      limit stays in force until you change it — this is the "custom SMTP is configured
+      but mail still isn't arriving" trap
+
+> **Use a separate API key per consumer** — one for Vercel, one named `supabase-smtp` —
+> each with Sending access only and scoped to the domain. Resend hashes keys on creation
+> and will never show one again, so a shared key that goes missing means rotating every
+> system at once. Separate keys mean the name tells you what to rotate, and revoking one
+> cannot take the other down. They are free and unlimited.
 - [ ] **Then the `token_hash` email templates** (§4) — the editor stays read-only until
       the SMTP step above is saved
 - [ ] Test-send to **Gmail, Outlook and Yahoo** — check **spam placement**, not just
