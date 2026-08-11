@@ -10,7 +10,7 @@ ordering of what is left.
 ## Where the product stands
 
 Live on `https://k53mentorai.co.za` (Vercel). Migrations `0001`→`0020` applied;
-**`0021` is written and not yet applied** — see §2.
+**`0021` and `0022` are written and not yet applied** — see §2 and §5.
 Paystack on live keys. 1,296 questions, 974 flashcards, 68 scenarios, ~17 distinct
 mock papers per licence code (re-counted 11 Aug 2026 with `node
 scripts/content-stats.mjs`; the 1,060/~14 figures carried in this doc were stale).
@@ -139,14 +139,16 @@ DeepSeek, so until the key is set, Premium Plus runs at 88% of revenue.
 ever gets cleared, `DEEPSEEK_API_KEY` now trips the same throw the other two keys
 do.
 
-### 2. Apply migration `0021_ai_usage_daily.sql`
+### 2. Apply migrations `0021_ai_usage_daily.sql` and `0022_email_suppressions.sql`
 
 - [ ] Run it in the Supabase SQL editor (or `supabase db push`). Until it exists,
       `recordAiUsage` logs an error per AI request and records nothing — the
       routes keep working, but the data everyone keeps asking for is not being
       collected.
 - [ ] Then `npm run usage:report` should print an empty table rather than an
-      error. That is the check that it landed.
+      error. That is the check that 0021 landed.
+- [ ] 0022 creates the email suppression list. Until it exists, every send logs
+      a lookup error and no bounce is ever suppressed.
 
 ### 3. Cost control — do before driving any traffic
 
@@ -196,6 +198,14 @@ cheap and they are the difference between a bad week and a bad month.
       strand launch-day signups
 - [ ] Test-send to Gmail, Outlook **and** Yahoo; check spam placement
 - [ ] Tighten DMARC to `p=quarantine` after ~2 weeks of reports
+- [ ] **Resend → Webhooks**: add `https://k53mentorai.co.za/api/resend/webhook`,
+      subscribe to `email.bounced` and `email.complained`, and put the signing
+      secret in `RESEND_WEBHOOK_SECRET` on Vercel. Until then the route answers
+      501 and bounces keep accumulating unseen
+- [ ] Apply migration `0022_email_suppressions.sql` — without it every send
+      logs a lookup error and nothing is ever suppressed
+- [ ] Sign up a throwaway account and confirm the **welcome email** arrives
+      (both paths: email confirmation and Google)
 
 ### 6. SEO — I can do most of this
 
@@ -288,8 +298,14 @@ reading before touching the relevant area.
   compares against `plans.ts` and alerts on a mismatch. It deliberately still
   grants: metadata is server-set and Paystack sets the amount, so there is no
   underpayment attack to stop, only our own misconfiguration to catch.
-- No Resend bounce/complaint webhook — hard bounces accumulate invisibly.
-- No welcome email for free signups; the only welcome is bundled into the
-  payment receipt.
+- ~~No Resend bounce/complaint webhook~~ — `/api/resend/webhook` now verifies the
+  Svix signature and suppresses hard bounces and complaints (migration 0022);
+  `sendEmail` checks the list before every send. **Needs `RESEND_WEBHOOK_SECRET`
+  and an endpoint configured in Resend** — see §5. Note it cannot cover
+  Supabase's auth emails, which go over SMTP and never pass through `sendEmail`;
+  their bounces are still recorded, which is what matters for reputation.
+- ~~No welcome email for free signups~~ — sent once per account from the auth
+  callback, covering both the `token_hash` confirmation and the OAuth code
+  exchange, deduped through the `notifications` ledger.
 - `OPENAI_MODEL_FAST` still defaults to `gpt-4o-mini`, well behind the current
   budget tier.

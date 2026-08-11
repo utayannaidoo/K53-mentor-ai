@@ -124,6 +124,52 @@ export function buildPaymentReceiptEmail(input: {
 }
 
 /**
+ * Welcome, sent once when an account is first confirmed.
+ *
+ * Free signups previously got nothing — the only welcome in the system was
+ * bundled into the payment receipt, so the people still deciding whether to pay
+ * were the ones who heard from us least. This is also the email that sets the
+ * expectation the whole product rests on: ten minutes a day, not cramming.
+ *
+ * Deliberately not a sales pitch. It names the free week honestly, including
+ * that it ends, and points at the one action worth taking first. The upgrade
+ * argument is the product working, not this email.
+ */
+export function buildWelcomeEmail(input: {
+  firstName: string;
+  trialDays: number;
+}): EmailContent {
+  const name = esc(input.firstName) || "there";
+  const days = input.trialDays;
+  const subject = "Welcome to K53 Mentor AI — start with the diagnostic";
+  const text =
+    `Hi ${input.firstName || "there"} — welcome aboard.\n\n` +
+    `Start with the diagnostic. It takes about five minutes and works out which topics ` +
+    `you're actually weak on, so your daily practice goes there instead of spreading thin.\n\n` +
+    `Your free week: full flashcards and questions every day for ${days} days, a mini mock ` +
+    `daily, and the AI tutor. It refills each morning and stops after ${days} days.\n\n` +
+    `What passes this test is ten minutes a day, not one long cram the night before. ` +
+    `The whole app is built around that.\n\nStart here: ${SITE_URL}/dashboard`;
+  const html = wrap(
+    h("Welcome — let's find what you actually need to study") +
+      p(`Hi ${name}, good to have you.`) +
+      p(
+        "<strong>Start with the diagnostic.</strong> It takes about five minutes and works out which topics you're actually weak on, so your daily practice goes there instead of spreading thin across everything.",
+      ) +
+      p(
+        `Your free week gives you full flashcards and questions every day for ${days} days, a mini mock daily, and the AI tutor. It refills each morning and stops after ${days} days.`,
+      ) +
+      p(
+        "One thing worth knowing: what passes this test is ten minutes a day, not one long cram the night before. The whole app is built around that.",
+      ),
+    "Start the diagnostic",
+    "/dashboard",
+    "transactional",
+  );
+  return { subject, html, text };
+}
+
+/**
  * Dunning nudge, sent when a subscription renewal charge fails.
  *
  * `manageUrl` is Paystack's hosted card-update page for this exact

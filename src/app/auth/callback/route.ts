@@ -1,9 +1,30 @@
 import { NextResponse } from "next/server";
-import type { EmailOtpType } from "@supabase/supabase-js";
+import type { EmailOtpType, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/safe-next";
+import { sendWelcomeOnce } from "@/lib/notify/welcome";
 
 export const runtime = "nodejs";
+
+/** An account confirmed within this window of creation counts as brand new. */
+const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Send the welcome email if this callback just finished a signup.
+ *
+ * The OAuth path gives no signal that an account is new, so age is the proxy: a
+ * `created_at` inside the last day. It is a heuristic, and it does not need to
+ * be better than one — `sendWelcomeOnce` is idempotent through the
+ * `notifications` ledger, so guessing "new" for a returning user costs a lookup
+ * and nothing else. Awaited rather than fired and forgotten, because a
+ * serverless function can be frozen the moment it returns the redirect; it
+ * never throws, so a mail problem cannot block someone reaching their account.
+ */
+async function welcomeIfNew(user: User): Promise<void> {
+  const created = user.created_at ? Date.parse(user.created_at) : NaN;
+  if (Number.isFinite(created) && Date.now() - created > NEW_ACCOUNT_WINDOW_MS) return;
+  await sendWelcomeOnce(user.id);
+}
 
 /** OTP link types Supabase can send us; anything else is rejected. */
 const OTP_TYPES = new Set<EmailOtpType>([
@@ -56,15 +77,26 @@ export async function GET(request: Request) {
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   if (tokenHash && type && OTP_TYPES.has(type)) {
-    const { error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
-    if (!error) return NextResponse.redirect(`${origin}${safeNext}`);
+    const { data, error } = await supabase.auth.verifyOtp({ type, token_hash: tokenHash });
+    if (!error) {
+      // Confirming a signup is the one moment we know an account is new.
+      // Recovery and email_change land here too and must not trigger it.
+      if (type === "signup" && data.user) await welcomeIfNew(data.user);
+      return NextResponse.redirect(`${origin}${safeNext}`);
+    }
     return fail(/expired|invalid/i.test(error.message) ? "expired" : "auth");
   }
 
   const code = searchParams.get("code");
   if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return NextResponse.redirect(`${origin}${safeNext}`);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error) {
+      // OAuth signups never carry `type=signup`, so without this every Google
+      // account would silently miss the welcome. `welcomeIfNew` decides from
+      // the account's age, and the ledger makes a wrong guess harmless.
+      if (data.user) await welcomeIfNew(data.user);
+      return NextResponse.redirect(`${origin}${safeNext}`);
+    }
     // The verifier cookie is missing — the link was opened somewhere other than
     // the browser that requested it. Worth its own message: the account is
     // fine, the user just has to finish where they started.
