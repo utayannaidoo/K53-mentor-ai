@@ -143,15 +143,27 @@ export function listTransactions(params: {
   return paystackFetch<PaystackTransaction[]>(`/transaction?${q.toString()}`);
 }
 
+export interface PaystackSubscription {
+  subscription_code: string;
+  email_token: string;
+  /** "active" | "non-renewing" | "attention" | "cancelled" | "completed". */
+  status: string;
+  plan: { plan_code: string };
+  /**
+   * When Paystack will charge next — the end of the period already paid for,
+   * and therefore how long access is owed after someone stops renewing.
+   *
+   * Paystack sets this to null once a subscription stops renewing, so it must
+   * be captured while the subscription is still active. That is why it is read
+   * on charge success rather than at cancellation time, when it is already gone.
+   */
+  next_payment_date?: string | null;
+}
+
 export interface PaystackCustomer {
   customer_code: string;
   email: string;
-  subscriptions: {
-    subscription_code: string;
-    email_token: string;
-    status: string;
-    plan: { plan_code: string };
-  }[];
+  subscriptions: PaystackSubscription[];
 }
 
 /** Fetch a customer (with embedded subscriptions) by their Paystack customer code. */

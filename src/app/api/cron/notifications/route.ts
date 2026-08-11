@@ -1,7 +1,13 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAuthorizedCron } from "@/lib/cron/auth";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
-import { buildEmail, type NotificationType } from "@/lib/notify/templates";
+import {
+  buildEmail,
+  buildSubscriptionEndingEmail,
+  type NotificationType,
+} from "@/lib/notify/templates";
+import { PLAN_MAP } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
 // One email per user, sent sequentially — allow the full minute available on
@@ -177,10 +183,112 @@ export async function GET(req: Request) {
     if (profiles.length < PAGE) break;
   }
 
+  const endingSent = await sendSubscriptionEndingNotices(admin, now);
+
   return Response.json({
     configured: isEmailConfigured,
     scanned,
     sent,
+    endingSoon: endingSent,
     ...(isEmailConfigured ? {} : { wouldSend }),
   });
+}
+
+/** Warn this many days before a cancelled subscription's access actually stops. */
+const ENDING_NOTICE_DAYS = 3;
+
+/**
+ * Tell people whose cancelled subscription is about to lapse.
+ *
+ * Deliberately outside the study-nudge loop above, for two reasons. It is
+ * driven by `subscriptions`, not `profiles`, so scanning every profile to find
+ * a handful of rows would be wasteful. And it is **transactional** — someone
+ * paid and is about to lose access — so unlike the study nudges it is *not*
+ * gated on `profiles.email_notifications`. Muting study reminders must not
+ * mute a notice about your own billing.
+ *
+ * Dedup is the `notifications` ledger, same as the nudges: the row is written
+ * only after a successful send, so an email outage never silently consumes the
+ * single warning somebody gets. `subscription_ending` is recorded once per
+ * period end, so a resubscribe-then-cancel-again correctly warns a second time.
+ */
+async function sendSubscriptionEndingNotices(
+  admin: SupabaseClient,
+  now: Date,
+): Promise<number> {
+  const horizon = new Date(now.getTime() + ENDING_NOTICE_DAYS * 86_400_000).toISOString();
+
+  const { data, error } = await admin
+    .from("subscriptions")
+    .select("user_id, tier, current_period_end")
+    .eq("cancel_at_period_end", true)
+    .neq("tier", "free")
+    .not("current_period_end", "is", null)
+    .gt("current_period_end", now.toISOString())
+    .lte("current_period_end", horizon);
+
+  if (error) {
+    console.error("cron: ending-subscription query failed", error.message);
+    return 0;
+  }
+  const rows = (data ?? []) as { user_id: string; tier: string; current_period_end: string }[];
+  if (rows.length === 0) return 0;
+
+  const ids = rows.map((r) => r.user_id);
+  const [profilesRes, notifRes] = await Promise.all([
+    admin.from("profiles").select("id, email, full_name").in("id", ids),
+    admin
+      .from("notifications")
+      .select("user_id, payload")
+      .eq("type", "subscription_ending")
+      .in("user_id", ids),
+  ]);
+  if (profilesRes.error || notifRes.error) {
+    console.error("cron: ending-subscription lookup failed");
+    return 0;
+  }
+
+  const profileById = new Map(
+    ((profilesRes.data ?? []) as { id: string; email: string | null; full_name: string | null }[]).map(
+      (p) => [p.id, p],
+    ),
+  );
+  // Keyed by period end, not just by user: someone who resubscribes and later
+  // cancels again has a new end date and deserves a fresh warning.
+  const alreadyWarned = new Set(
+    ((notifRes.data ?? []) as { user_id: string; payload: { endsOn?: string } | null }[]).map(
+      (n) => `${n.user_id}:${n.payload?.endsOn ?? ""}`,
+    ),
+  );
+
+  let count = 0;
+  for (const row of rows) {
+    if (alreadyWarned.has(`${row.user_id}:${row.current_period_end}`)) continue;
+    const profile = profileById.get(row.user_id);
+    if (!profile?.email) continue;
+    if (row.tier !== "premium" && row.tier !== "premium_plus") continue;
+    if (!isEmailConfigured) continue;
+
+    const daysLeft = Math.max(
+      1,
+      Math.ceil((Date.parse(row.current_period_end) - now.getTime()) / 86_400_000),
+    );
+    const content = buildSubscriptionEndingEmail({
+      firstName: (profile.full_name ?? "").split(" ")[0],
+      planName: PLAN_MAP[row.tier].name,
+      endsOn: row.current_period_end,
+      daysLeft,
+    });
+    const ok = await sendEmail({ to: profile.email, ...content });
+    if (!ok) continue;
+
+    count += 1;
+    await admin.from("notifications").insert({
+      user_id: row.user_id,
+      type: "subscription_ending",
+      payload: { to: profile.email, subject: content.subject, endsOn: row.current_period_end },
+      sent_at: new Date().toISOString(),
+    });
+  }
+  return count;
 }

@@ -25,7 +25,10 @@ import { sendEmail } from "@/lib/notify/email";
 function fakeAdmin() {
   const upsert = vi.fn().mockResolvedValue({ error: null });
   const eq = vi.fn().mockResolvedValue({ error: null });
-  const update = vi.fn(() => ({ eq }));
+  // Argument typed rather than left inferred: without it `update.mock.calls[0]`
+  // is an empty tuple and any assertion that inspects what was written fails to
+  // typecheck while still passing at runtime.
+  const update = vi.fn((_values: Record<string, unknown>) => ({ eq }));
   const admin = { from: vi.fn(() => ({ upsert, update })) } as unknown as SupabaseClient;
   return { admin, upsert, update, eq };
 }
@@ -112,8 +115,54 @@ describe("applyChargeSuccess — recording the subscription code", () => {
     await applyChargeSuccess(admin, charge);
 
     // SUB_new, never SUB_old — the stale one was just cancelled.
-    expect(update).toHaveBeenCalledWith({ provider_subscription_id: "SUB_new" });
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ provider_subscription_id: "SUB_new" }),
+    );
     expect(eq).toHaveBeenCalledWith("user_id", "user-1");
+  });
+
+  it("captures current_period_end while the subscription is still live", async () => {
+    // Paystack nulls next_payment_date once a subscription stops renewing, so
+    // this is the only moment it can be read. Miss it and there is no way to
+    // know how much paid time a cancelling subscriber is still owed.
+    const { admin, update } = fakeAdmin();
+    vi.mocked(fetchCustomer).mockResolvedValue({
+      ...customerWithStale,
+      subscriptions: [
+        { ...customerWithStale.subscriptions[1], next_payment_date: "2026-09-03T10:00:00.000Z" },
+      ],
+    } as never);
+
+    await applyChargeSuccess(admin, charge);
+
+    expect(update).toHaveBeenCalledWith(
+      expect.objectContaining({ current_period_end: "2026-09-03T10:00:00.000Z" }),
+    );
+  });
+
+  it("clears a pending cancellation when a charge succeeds", async () => {
+    // Someone who cancels and later resubscribes must not stay flagged as
+    // ending — the billing page would keep counting down to a date that is no
+    // longer real, and entitlements would expire a paying customer.
+    const { admin, update } = fakeAdmin();
+    vi.mocked(fetchCustomer).mockResolvedValue(customerWithStale as never);
+    vi.mocked(disableSubscription).mockResolvedValue(undefined as never);
+
+    await applyChargeSuccess(admin, charge);
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({ cancel_at_period_end: false }));
+  });
+
+  it("omits current_period_end rather than writing an invalid one", async () => {
+    const { admin, update } = fakeAdmin();
+    vi.mocked(fetchCustomer).mockResolvedValue(customerWithStale as never); // no next_payment_date
+    vi.mocked(disableSubscription).mockResolvedValue(undefined as never);
+
+    await applyChargeSuccess(admin, charge);
+
+    expect(update).toHaveBeenCalledWith(
+      expect.not.objectContaining({ current_period_end: expect.anything() }),
+    );
   });
 
   it("does not throw when recording it fails", async () => {

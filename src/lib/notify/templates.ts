@@ -97,27 +97,97 @@ function h(text: string): string {
   return `<p style="font-size:18px;font-weight:700;color:#1d2724;margin:0 0 12px;">${text}</p>`;
 }
 
-/** Receipt + welcome, sent by the Paystack webhook on a successful charge. */
+/** "3 September 2026", or null when there is no usable date. */
+function longDate(iso?: string | null): string | null {
+  if (!iso) return null;
+  const t = Date.parse(iso);
+  if (!Number.isFinite(t)) return null;
+  return new Date(t).toLocaleDateString("en-ZA", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+/**
+ * Receipt + welcome, sent by the Paystack webhook on a successful charge.
+ *
+ * Names the renewal explicitly. A subscription that renews without ever having
+ * said so is the classic complaint, and the receipt is the one message everyone
+ * opens — so it is where the recurring nature belongs, alongside the amount.
+ */
 export function buildPaymentReceiptEmail(input: {
   firstName: string;
   planName: string;
   amountZar: number;
+  /** Next charge date, when Paystack told us one. */
+  renewsOn?: string | null;
 }): EmailContent {
   const name = esc(input.firstName) || "there";
   const plan = esc(input.planName);
   const amount = `R ${input.amountZar.toFixed(2).replace(/\.00$/, "")}`;
+  const renews = longDate(input.renewsOn);
+  const renewLine = renews
+    ? `This plan renews automatically on ${renews} at ${amount}, until you cancel.`
+    : `This plan renews automatically until you cancel.`;
   const subject = `Payment received — ${input.planName} is active`;
   const text =
     `Hi ${input.firstName || "there"} — we've received your ${amount} payment and your ${input.planName} plan is now active. ` +
-    `Your study plan, mock exams and AI tutor are unlocked.\n\nStart studying: ${SITE_URL}/dashboard\n\n` +
-    `Manage or cancel any time: ${SITE_URL}/account/billing`;
+    `Your study plan, mock exams and AI tutor are unlocked.\n\n` +
+    `${renewLine} Cancel any time and you keep access to the end of the period you've paid for.\n\n` +
+    `Start studying: ${SITE_URL}/dashboard\n\nManage or cancel: ${SITE_URL}/account/billing`;
   const html = wrap(
     h("Payment received — you're all set") +
       p(`Hi ${name} — we've received your <strong>${amount}</strong> payment and your <strong>${plan}</strong> plan is now active.`) +
       p("Your personalised study plan, full mock exams and AI tutor are unlocked. See you on the road.") +
-      p(`<span style="color:#8a938e;font-size:12px;">Manage or cancel any time from your <a href="${SITE_URL}/account/billing" style="color:#8a938e;">billing page</a>.</span>`),
+      p(`${esc(renewLine)} Cancel any time and you keep access to the end of the period you&rsquo;ve paid for.`) +
+      p(`<span style="color:#8a938e;font-size:12px;">Manage or cancel from your <a href="${SITE_URL}/account/billing" style="color:#8a938e;">billing page</a>.</span>`),
     "Start studying",
     "/dashboard",
+    "transactional",
+  );
+  return { subject, html, text };
+}
+
+/**
+ * Sent a few days before a cancelled subscription's paid period runs out.
+ *
+ * This is the one warning someone gets that access is about to stop, and it
+ * matters more here than in most products: the free tier *is* a seven-day
+ * trial anchored to signup, so a lapsing subscriber does not land on a usable
+ * free plan — they land on nothing. Saying that plainly is more honest than
+ * "you'll move to our Free plan", which implies a soft landing that does not
+ * exist.
+ *
+ * Transactional, not marketing: it goes to people who have paid and are about
+ * to lose something, so it is not gated on the reminders opt-out.
+ */
+export function buildSubscriptionEndingEmail(input: {
+  firstName: string;
+  planName: string;
+  endsOn: string;
+  daysLeft: number;
+}): EmailContent {
+  const name = esc(input.firstName) || "there";
+  const plan = esc(input.planName);
+  const when = longDate(input.endsOn) ?? "shortly";
+  const days = input.daysLeft;
+  const dayPhrase = days <= 1 ? "tomorrow" : `in ${days} days`;
+  const subject = `Your ${input.planName} access ends ${dayPhrase}`;
+  const text =
+    `Hi ${input.firstName || "there"} — your ${input.planName} plan was cancelled and your access ends on ${when}.\n\n` +
+    `Nothing has been charged and nothing will be. But when it ends you won't drop onto a usable free plan: ` +
+    `your free week was used at signup, so daily flashcards, questions, mocks and the AI tutor all stop.\n\n` +
+    `If you're still working towards your test, resubscribing before ${when} keeps everything going without a gap. ` +
+    `Your progress, streak and readiness score are safe either way.\n\n` +
+    `Resubscribe: ${SITE_URL}/account/billing`;
+  const html = wrap(
+    h(`Your access ends ${esc(dayPhrase)}`) +
+      p(`Hi ${name} — your <strong>${plan}</strong> plan was cancelled, and your access ends on <strong>${esc(when)}</strong>.`) +
+      p("Nothing has been charged and nothing will be. But this isn't a step down to a smaller plan — your free week was used at signup, so daily flashcards, questions, mock exams and the AI tutor all stop on that date.") +
+      p("If you're still working towards your test, resubscribing before then keeps everything running without a gap. Your progress, streak and readiness score are safe either way.") ,
+    "Resubscribe",
+    "/account/billing",
     "transactional",
   );
   return { subject, html, text };

@@ -8,17 +8,28 @@ import { disableActiveSubscriptions, refundEligible } from "@/lib/billing/subscr
 export const runtime = "nodejs";
 
 /**
- * Self-serve cancellation. Paystack has no Stripe-style hosted billing
- * portal, so this calls Paystack's disable-subscription API directly: fetch
- * the customer (which embeds their subscriptions, including the email_token
- * only Paystack's API can hand out) and disable the active one.
+ * Self-serve cancellation. Paystack has no Stripe-style hosted billing portal,
+ * so this calls Paystack's disable-subscription API directly: fetch the
+ * customer (which embeds their subscriptions, including the email_token only
+ * Paystack's API can hand out) and disable every active one.
  *
- * If the learner is still inside the 7-day money-back window of their first
- * charge, the same request also refunds that charge automatically — the
- * guarantee needs no email.
+ * Two outcomes, and which one applies is decided by money, not by preference:
  *
- * Downgrades the local row immediately for a snappy UI; the subsequent
- * subscription.disable webhook re-applies the same values (idempotent).
+ *  - **Inside the 7-day money-back window**: the first charge is refunded and
+ *    access ends immediately. The payment is being reversed, so keeping the
+ *    tier would hand over a full refund *and* a free month.
+ *
+ *  - **Outside it**: no refund, so the paid period is still owed. Billing stops
+ *    at Paystack and `cancel_at_period_end` is set, but tier and status are left
+ *    alone until `current_period_end` passes. Revoking on the spot would take
+ *    back a month someone has already paid for — which is what this route used
+ *    to do, honestly signposted ("you'll drop to Free immediately") and still
+ *    wrong.
+ *
+ * There is no separate "turn off auto-renew" endpoint because Paystack has no
+ * such concept: disabling a subscription IS how you stop it renewing, and a
+ * disabled subscription cannot be re-enabled. Resuming means a fresh checkout,
+ * which is why the billing page offers Resume rather than a toggle.
  */
 export async function POST(req: Request) {
   const rl = await limitCheckout(clientIp(req));
@@ -53,7 +64,9 @@ export async function POST(req: Request) {
 
   const { data } = await supabase
     .from("subscriptions")
-    .select("tier, provider_customer_id, last_charge_reference, paid_at, money_back_used")
+    .select(
+      "tier, provider_customer_id, last_charge_reference, paid_at, money_back_used, current_period_end",
+    )
     .eq("user_id", user.id)
     .maybeSingle();
   const sub = data as {
@@ -62,6 +75,7 @@ export async function POST(req: Request) {
     last_charge_reference: string | null;
     paid_at: string | null;
     money_back_used: boolean | null;
+    current_period_end: string | null;
   } | null;
   const customerCode = sub?.provider_customer_id;
   if (!customerCode) {
@@ -104,15 +118,59 @@ export async function POST(req: Request) {
     }
   }
 
-  // RLS only allows the client to SELECT its own subscription row — the
-  // downgrade needs the service-role client, same as the webhook uses.
-  // `money_back_used` is latched on a successful refund so the guarantee can't
-  // be claimed twice.
+  // RLS only allows the client to SELECT its own subscription row — writing
+  // needs the service-role client, same as the webhook uses.
   const admin = createAdminClient();
-  await admin
-    ?.from("subscriptions")
-    .update({ tier: "free", status: "canceled", ...(refunded ? { money_back_used: true } : {}) })
-    .eq("user_id", user.id);
 
-  return Response.json({ ok: true, refunded, refundError });
+  // ── Two different cancellations ─────────────────────────────────────────────
+  //
+  // Inside the money-back window the charge is being *reversed*, so access ends
+  // with it — keeping the tier would mean a full refund and a free month.
+  // `money_back_used` latches so the guarantee can't be claimed twice.
+  //
+  // Outside it, no money comes back, and revoking immediately would take a
+  // month that has already been paid for. Someone cancelling on day 20 of a
+  // billing month is owed the remaining ten days. Paystack billing has already
+  // stopped above; all that is left is to stop it renewing on our side and let
+  // the paid period run out.
+  //
+  // A refund that FAILED counts as outside the window: the learner still has
+  // their money, so they keep the access it bought until the period ends.
+  const endsNow = refunded;
+  const periodEnd = sub?.current_period_end ?? null;
+
+  if (endsNow) {
+    await admin
+      ?.from("subscriptions")
+      .update({ tier: "free", status: "canceled", money_back_used: true, cancel_at_period_end: false })
+      .eq("user_id", user.id);
+    return Response.json({ ok: true, refunded: true, refundError: false, endsNow: true });
+  }
+
+  // Tier and status deliberately unchanged — they are still a paying customer
+  // until the period runs out, and `status` must stay one of the values
+  // entitlements honours or access would be revoked on the spot.
+  const { error: flagError } = await admin
+    ?.from("subscriptions")
+    .update({ cancel_at_period_end: true })
+    .eq("user_id", user.id) ?? { error: null };
+  if (flagError) {
+    // Billing has stopped at Paystack, so nobody is being charged again — but
+    // we could not record it, and the UI would keep claiming it renews. Say so
+    // rather than reporting a clean cancellation.
+    console.error("billing/cancel: could not flag cancel_at_period_end", flagError);
+    return Response.json(
+      { error: "Billing has been stopped, but we couldn't update your plan status. Please refresh." },
+      { status: 500 },
+    );
+  }
+
+  return Response.json({
+    ok: true,
+    refunded: false,
+    refundError,
+    endsNow: false,
+    /** null when the period end was never recorded — the UI degrades to vaguer copy. */
+    accessUntil: periodEnd,
+  });
 }

@@ -1,8 +1,11 @@
 import "server-only";
 import { fetchCustomer, disableSubscription } from "@/lib/paystack/client";
+import { MONEY_BACK_DAYS } from "@/lib/billing/plans";
 
-/** Cancel within this many days of the first charge for an automatic full refund. */
-export const MONEY_BACK_DAYS = 7;
+// Re-exported so server callers keep importing it from here, but declared in
+// plans.ts — the cancel dialog and pricing copy are client components and
+// cannot import a `server-only` module to quote the same number.
+export { MONEY_BACK_DAYS };
 
 export interface RefundContext {
   tier: string | null;

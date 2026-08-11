@@ -104,14 +104,36 @@ export async function resolveTier(): Promise<ResolvedTier | Response> {
   try {
     const { data } = await supabase
       .from("subscriptions")
-      .select("tier,status")
+      .select("tier,status,cancel_at_period_end,current_period_end")
       .eq("user_id", user.id)
       .maybeSingle();
-    const row = data as { tier: SubscriptionTier; status: string } | null;
+    const row = data as {
+      tier: SubscriptionTier;
+      status: string;
+      cancel_at_period_end: boolean | null;
+      current_period_end: string | null;
+    } | null;
     // past_due = failed renewal inside Paystack's retry window — a grace
     // state. The hard cutoff is subscription.disable → tier back to free.
     if (row && (row.status === "active" || row.status === "trialing" || row.status === "past_due")) {
       tier = row.tier;
+    }
+
+    // A cancelled-but-not-yet-expired subscription keeps its tier until the
+    // paid period runs out. Once it has, access ends here — independently of
+    // the `subscription.disable` webhook that is *supposed* to do the
+    // downgrade.
+    //
+    // That redundancy is the point. Paystack's disable event is the only thing
+    // that would otherwise end this, and a single dropped webhook would leave
+    // someone on a paid tier forever, for free, with nothing to notice it.
+    // Checking a date we already hold costs nothing and cannot be missed.
+    //
+    // Only consulted when `cancel_at_period_end` is set, so a stale date on an
+    // actively-renewing subscription can never lock out a paying customer.
+    if (tier !== "free" && row?.cancel_at_period_end && row.current_period_end) {
+      const endsAt = Date.parse(row.current_period_end);
+      if (Number.isFinite(endsAt) && Date.now() >= endsAt) tier = "free";
     }
   } catch {
     // Fail closed: an unreadable subscription is a free one.
