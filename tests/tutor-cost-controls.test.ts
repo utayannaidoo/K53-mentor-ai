@@ -18,9 +18,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const ENV_KEYS = [
   "ANTHROPIC_API_KEY",
   "OPENAI_API_KEY",
+  "DEEPSEEK_API_KEY",
   "TUTOR_PROVIDER",
   "ANTHROPIC_MODEL_FAST",
   "ANTHROPIC_MODEL_SMART",
+  "DEEPSEEK_MODEL_FAST",
+  "DEEPSEEK_MODEL_SMART",
+  "DEEPSEEK_BASE_URL",
   "TUTOR_MAX_TOKENS",
 ] as const;
 
@@ -41,6 +45,12 @@ afterEach(() => {
 
 async function load() {
   env.ANTHROPIC_API_KEY = "sk-ant-stub";
+  return import("@/lib/ai/provider");
+}
+
+/** Load the module with an explicit set of keys, for cascade-ordering tests. */
+async function loadWith(keys: Partial<Record<(typeof ENV_KEYS)[number], string>>) {
+  for (const [k, v] of Object.entries(keys)) env[k] = v;
   return import("@/lib/ai/provider");
 }
 
@@ -88,6 +98,105 @@ describe("model routing", () => {
     const { modelFor } = await load();
     expect(modelFor("anthropic", "short one")).toBe("custom-fast");
     expect(modelFor("anthropic", "I'm confused")).toBe("custom-smart");
+  });
+});
+
+describe("provider cascade", () => {
+  const ALL = {
+    DEEPSEEK_API_KEY: "sk-ds-stub",
+    ANTHROPIC_API_KEY: "sk-ant-stub",
+    OPENAI_API_KEY: "sk-oai-stub",
+  } as const;
+
+  it("prefers DeepSeek when its key is set — that is what pays for the caps", async () => {
+    // The plan allowances in plans.ts (15/35 a day) are only affordable at
+    // V4-Flash rates. If this ever silently reorders, the bill moves ~9x.
+    const { chooseProvider } = await loadWith(ALL);
+    expect(chooseProvider()).toBe("deepseek");
+  });
+
+  it("falls back through Anthropic to OpenAI to local", async () => {
+    const { chooseProvider } = await loadWith({
+      ANTHROPIC_API_KEY: "sk-ant-stub",
+      OPENAI_API_KEY: "sk-oai-stub",
+    });
+    expect(chooseProvider()).toBe("anthropic");
+
+    vi.resetModules();
+    delete env.ANTHROPIC_API_KEY;
+    expect((await loadWith({ OPENAI_API_KEY: "sk-oai-stub" })).chooseProvider()).toBe("openai");
+
+    vi.resetModules();
+    delete env.OPENAI_API_KEY;
+    expect((await loadWith({})).chooseProvider()).toBe("local");
+  });
+
+  it("routes the DeepSeek tiers to V4-Flash and V4-Pro", async () => {
+    const { modelFor } = await loadWith({ DEEPSEEK_API_KEY: "sk-ds-stub" });
+    expect(modelFor("deepseek", "What is the following distance?")).toBe("deepseek-v4-flash");
+    expect(modelFor("deepseek", "I'm confused about right of way")).toBe("deepseek-v4-pro");
+  });
+
+  it("honours DeepSeek model overrides", async () => {
+    const { modelFor } = await loadWith({
+      DEEPSEEK_API_KEY: "sk-ds-stub",
+      DEEPSEEK_MODEL_FAST: "custom-flash",
+      DEEPSEEK_MODEL_SMART: "custom-pro",
+    });
+    expect(modelFor("deepseek", "short one")).toBe("custom-flash");
+    expect(modelFor("deepseek", "I'm confused")).toBe("custom-pro");
+  });
+});
+
+describe("images never reach a text-only provider", () => {
+  /**
+   * DeepSeek's public API takes no image input. Sending one does not fail
+   * loudly — it answers from the text alone, which for the sign scanner means
+   * confidently describing a photo it never saw. Every image path therefore
+   * asks the cascade for "image", and these pin that it actually skips.
+   */
+  it("skips DeepSeek for image requests even though it wins for text", async () => {
+    const { chooseProvider } = await loadWith({
+      DEEPSEEK_API_KEY: "sk-ds-stub",
+      ANTHROPIC_API_KEY: "sk-ant-stub",
+    });
+    expect(chooseProvider("text")).toBe("deepseek");
+    expect(chooseProvider("image")).toBe("anthropic");
+  });
+
+  it("reports local when DeepSeek is the only provider configured", async () => {
+    // The routes read this to say "I can't look at photos right now" instead of
+    // burning a scan on a model that cannot see.
+    const { chooseProvider } = await loadWith({ DEEPSEEK_API_KEY: "sk-ds-stub" });
+    expect(chooseProvider("text")).toBe("deepseek");
+    expect(chooseProvider("image")).toBe("local");
+  });
+
+  it("overrides an explicit TUTOR_PROVIDER=deepseek for images", async () => {
+    // A text-only preference must not silently disable the scanner.
+    const { chooseProvider } = await loadWith({
+      TUTOR_PROVIDER: "deepseek",
+      DEEPSEEK_API_KEY: "sk-ds-stub",
+      ANTHROPIC_API_KEY: "sk-ant-stub",
+    });
+    expect(chooseProvider("text")).toBe("deepseek");
+    expect(chooseProvider("image")).toBe("anthropic");
+  });
+
+  it("streams a photo-bearing message to Anthropic, not DeepSeek", async () => {
+    const { streamTutorReply } = await loadWith({
+      DEEPSEEK_API_KEY: "sk-ds-stub",
+      ANTHROPIC_API_KEY: "sk-ant-stub",
+    });
+    const res = await streamTutorReply({
+      persona: "persona",
+      grounding: "",
+      messages: [{ role: "user", content: "What sign is this?" }],
+      userText: "What sign is this?",
+      localReply: "Describe the sign and I'll identify it.",
+      image: { data: "AAAA", mediaType: "image/jpeg" },
+    });
+    expect(res.provider).toBe("anthropic");
   });
 });
 

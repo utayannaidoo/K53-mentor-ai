@@ -1,6 +1,6 @@
 # K53 Mentor AI
 
-AI-powered South African K53 learner's & driver's licence prep SaaS. Next.js 15 (App Router) · React 19 · TypeScript · Tailwind · Supabase (SSR auth + RLS) · **Paystack** billing (not Stripe) · AI provider cascade **Anthropic → OpenAI → rule-based local fallback** (not OpenAI-first) · Vercel + Upstash Redis.
+AI-powered South African K53 learner's & driver's licence prep SaaS. Next.js 15 (App Router) · React 19 · TypeScript · Tailwind · Supabase (SSR auth + RLS) · **Paystack** billing (not Stripe) · AI provider cascade **DeepSeek → Anthropic → OpenAI → rule-based local fallback** (not OpenAI-first) · Vercel + Upstash Redis.
 
 ## Commands
 ```bash
@@ -26,7 +26,7 @@ typecheck cannot catch and which a hook added below an early return will trip.
 3. **Client state is the source of truth for study progress** (MVP decision): `use-study-store.tsx` persists to localStorage; Supabase mirrors the same shapes and hydrates via `src/lib/store/account-hydrate.ts`.
 4. **Content pipeline**: all questions/flashcards live in `src/lib/content/` as typed pack files aggregated into `QUESTIONS`/`FLASHCARDS`. Every fact must trace to `docs/content/facts/*.md` with a source. `tests/content-coverage.test.ts` is a ratchet — bump minimums up, never down.
 5. **RLS on every user table**; credit/referral mutations only via security-definer RPCs; service-role key only in `src/lib/supabase/admin.ts` (server-only).
-6. AI routes enforce auth + entitlement + rate limits server-side (`src/lib/ai/rate-limit.ts`, Upstash). Vision is paid-only.
+6. AI routes enforce auth + entitlement + rate limits server-side (`src/lib/ai/rate-limit.ts`, Upstash). Vision is paid-only. **DeepSeek is text-only** — every image path calls `chooseProvider("image")`, which skips it; never route a photo through the plain text cascade.
 
 ## Key docs
 - `docs/content/expansion-roadmap.md` — content sprint log, targets, sources

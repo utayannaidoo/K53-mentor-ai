@@ -6,7 +6,7 @@ import { Redis } from "@upstash/redis";
  *
  * Two stacked windows keyed by client IP:
  *   - burst:  short window that stops scripted floods.
- *   - daily:  a generous per-IP ceiling that bounds total OpenAI/Anthropic spend.
+ *   - daily:  a generous per-IP ceiling that bounds total AI-provider spend.
  *
  * Uses Upstash Redis when configured (works across Vercel's ephemeral
  * instances). Falls back to an in-memory limiter when no Upstash env is set —
@@ -22,7 +22,9 @@ const hasUpstash = Boolean(
 // in-memory fallback resets per cold start and isn't shared across serverless
 // instances, so without Redis the spend caps are effectively absent. Fail the
 // boot (not silently the caps) when this misconfiguration ships to hosting.
-const aiConfigured = Boolean(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY);
+const aiConfigured = Boolean(
+  process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY,
+);
 if (
   process.env.NODE_ENV === "production" &&
   process.env.VERCEL &&

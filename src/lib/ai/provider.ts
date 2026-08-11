@@ -4,20 +4,28 @@ import Anthropic from "@anthropic-ai/sdk";
 /**
  * Unified, streaming tutor provider.
  *
- * Picks a backend at request time: Anthropic (preferred for this project) →
- * OpenAI → a built-in local fallback. Every path returns a ReadableStream of
- * UTF-8 text plus the resolved model name, so the route stays provider-agnostic
- * and always streams. Any provider error degrades to streaming the precomputed
- * local reply, so the tutor never hard-fails.
+ * Picks a backend at request time: DeepSeek (the cost-driven default) →
+ * Anthropic → OpenAI → a built-in local fallback. Every path returns a
+ * ReadableStream of UTF-8 text plus the resolved model name, so the route stays
+ * provider-agnostic and always streams. Any provider error degrades to
+ * streaming the precomputed local reply, so the tutor never hard-fails.
+ *
+ * DeepSeek leads the cascade because it is ~9× cheaper than Haiku 4.5 per
+ * message, which is what pays for the plan allowances in plans.ts — see
+ * docs/ops/ai-cost-model.md. It speaks the OpenAI wire format, so it shares
+ * every code path with the OpenAI branch and differs only in base URL and
+ * model ids. It is **text-only**, which is the one thing that genuinely
+ * branches: see IMAGE_CAPABLE below.
  */
 
-export type Provider = "anthropic" | "openai" | "local";
+export type Provider = "deepseek" | "anthropic" | "openai" | "local";
 
 /**
- * Reply length cap. Output is 5× the price of input on the fast model, so this
- * is the dominant term in the tutor bill — 350 tokens is roughly 250 words,
- * which is more than enough for a K53 answer and keeps replies scannable on a
- * phone. Raise it if answers start getting cut off mid-sentence.
+ * Reply length cap. Output costs more per token than input on every provider in
+ * the cascade — 2× on DeepSeek V4-Flash, 5× on Haiku 4.5 — so this is the term
+ * the tutor bill is most sensitive to. 350 tokens is roughly 250 words, more
+ * than enough for a K53 answer and scannable on a phone. Raise it if answers
+ * start getting cut off mid-sentence.
  */
 const MAX_TOKENS = Number(process.env.TUTOR_MAX_TOKENS ?? 350);
 const TEMPERATURE = 0.4;
@@ -25,6 +33,7 @@ const encoder = new TextEncoder();
 
 let openaiClient: OpenAI | null = null;
 let anthropicClient: Anthropic | null = null;
+let deepseekClient: OpenAI | null = null;
 
 function openai(): OpenAI | null {
   if (!process.env.OPENAI_API_KEY) return null;
@@ -36,22 +45,73 @@ function anthropic(): Anthropic | null {
   if (!anthropicClient) anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
   return anthropicClient;
 }
+function deepseek(): OpenAI | null {
+  if (!process.env.DEEPSEEK_API_KEY) return null;
+  if (!deepseekClient) {
+    deepseekClient = new OpenAI({
+      apiKey: process.env.DEEPSEEK_API_KEY,
+      baseURL: process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com",
+    });
+  }
+  return deepseekClient;
+}
 
-/** Resolve which provider to use. Honours TUTOR_PROVIDER, else auto-selects. */
-export function chooseProvider(): Provider {
-  const pref = process.env.TUTOR_PROVIDER as Provider | undefined;
-  if (pref === "anthropic" && anthropic()) return "anthropic";
-  if (pref === "openai" && openai()) return "openai";
+/** Remote providers in preference order, cheapest-per-message first. */
+const CASCADE = ["deepseek", "anthropic", "openai"] as const;
+type RemoteProvider = (typeof CASCADE)[number];
+
+const CLIENT_FOR: Record<RemoteProvider, () => object | null> = {
+  deepseek,
+  anthropic,
+  openai,
+};
+
+/**
+ * Can this provider be sent an image?
+ *
+ * DeepSeek's public API is text-only — V4-Flash rejects (or silently drops)
+ * image parts, and no image request format is documented for V4-Pro either.
+ * That makes vision the one capability the cascade cannot treat as uniform, so
+ * the sign scanner and photo-attached tutor messages ask for `"image"` and skip
+ * straight past DeepSeek to a provider that can actually see. Getting this
+ * wrong would not throw somewhere obvious; it would quietly answer questions
+ * about a photo it never received.
+ */
+const IMAGE_CAPABLE: Record<RemoteProvider, boolean> = {
+  deepseek: false,
+  anthropic: true,
+  openai: true,
+};
+
+function isRemote(p: string | undefined): p is RemoteProvider {
+  return CASCADE.includes(p as RemoteProvider);
+}
+
+/**
+ * Resolve which provider to use. Honours TUTOR_PROVIDER, else auto-selects.
+ *
+ * Pass `"image"` when the request carries a photo: an otherwise-preferred
+ * provider that cannot accept images is skipped, including one named
+ * explicitly by TUTOR_PROVIDER — a text-only preference must not silently
+ * disable the scanner.
+ */
+export function chooseProvider(need: "text" | "image" = "text"): Provider {
+  const usable = (p: RemoteProvider) =>
+    Boolean(CLIENT_FOR[p]()) && (need === "text" || IMAGE_CAPABLE[p]);
+
+  const pref = process.env.TUTOR_PROVIDER;
   if (pref === "local") return "local";
-  if (anthropic()) return "anthropic";
-  if (openai()) return "openai";
-  return "local";
+  if (isRemote(pref) && usable(pref)) return pref;
+
+  return CASCADE.find(usable) ?? "local";
 }
 
 /**
  * Length above which a question is treated as complex enough for the pricier
- * model. The smart tier costs 3× the fast tier on both input and output, so
- * this threshold is the single biggest lever on the AI bill.
+ * model. The smart tier costs ~3× the fast tier on both input and output — and
+ * that ratio holds on DeepSeek (V4-Pro vs V4-Flash) as squarely as it does on
+ * Anthropic, so this threshold stays the single biggest lever on the AI bill
+ * whichever provider answers.
  *
  * It was 220 characters, which is about two sentences — "I don't understand
  * why you stop at a stop sign when nobody is coming, my instructor said
@@ -68,19 +128,49 @@ function isComplex(userText: string): boolean {
   );
 }
 
+/**
+ * The cheap tier — what almost every message is answered by, and the only model
+ * the one-shot coach and vision helpers ever use.
+ */
+export function fastModelFor(provider: Provider): string {
+  switch (provider) {
+    case "deepseek":
+      return process.env.DEEPSEEK_MODEL_FAST ?? "deepseek-v4-flash";
+    case "anthropic":
+      return process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001";
+    case "openai":
+      return process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini";
+    default:
+      return "local";
+  }
+}
+
+/** The tier reached only by `isComplex` questions. */
+export function smartModelFor(provider: Provider): string {
+  switch (provider) {
+    case "deepseek":
+      return process.env.DEEPSEEK_MODEL_SMART ?? "deepseek-v4-pro";
+    case "anthropic":
+      return process.env.ANTHROPIC_MODEL_SMART ?? "claude-sonnet-5";
+    case "openai":
+      return process.env.OPENAI_MODEL_SMART ?? "gpt-4o";
+    default:
+      return "local";
+  }
+}
+
 export function modelFor(provider: Provider, userText: string): string {
-  const complex = isComplex(userText);
-  if (provider === "anthropic") {
-    return complex
-      ? process.env.ANTHROPIC_MODEL_SMART ?? "claude-sonnet-5"
-      : process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001";
-  }
-  if (provider === "openai") {
-    return complex
-      ? process.env.OPENAI_MODEL_SMART ?? "gpt-4o"
-      : process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini";
-  }
-  return "local";
+  return isComplex(userText) ? smartModelFor(provider) : fastModelFor(provider);
+}
+
+/**
+ * The OpenAI-wire client for a provider. DeepSeek speaks the same protocol, so
+ * every chat-completions call below serves both and the two never diverge.
+ */
+function wireClient(provider: Provider): OpenAI | null {
+  if (provider === "openai") return openai();
+  if (provider === "deepseek") return deepseek();
+  return null;
 }
 
 /** Image media types both providers accept as base64/data-URI input. */
@@ -95,7 +185,11 @@ export interface AttachedImage {
 /**
  * One-shot vision completion (sign scanner). Uses the fast model tier — both
  * Haiku and gpt-4o-mini are vision-capable. Returns null on any failure or
- * when only the local provider is available (no offline vision exists).
+ * when no image-capable provider is available (no offline vision exists).
+ *
+ * Asks the cascade for `"image"`, so a DeepSeek-only deployment resolves to
+ * `local` here and the route reports the scanner as unavailable rather than
+ * sending a photo to a model that cannot read it.
  */
 export async function completeVisionText(args: {
   system: string;
@@ -103,13 +197,13 @@ export async function completeVisionText(args: {
   image: AttachedImage;
   maxTokens?: number;
 }): Promise<{ text: string; model: string } | null> {
-  const provider = chooseProvider();
+  const provider = chooseProvider("image");
   const maxTokens = args.maxTokens ?? 400;
 
   try {
     if (provider === "anthropic") {
       const client = anthropic()!;
-      const model = process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001";
+      const model = fastModelFor(provider);
       const res = await client.messages.create({
         model,
         max_tokens: maxTokens,
@@ -136,10 +230,13 @@ export async function completeVisionText(args: {
       return text ? { text, model } : null;
     }
 
-    if (provider === "openai") {
-      const client = openai()!;
-      const model = process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini";
-      const res = await client.chat.completions.create({
+    // DeepSeek is excluded by chooseProvider("image") above, so this branch is
+    // OpenAI in practice — kept wire-generic so it stays correct if an
+    // image-capable OpenAI-compatible provider is ever added to the cascade.
+    const wire = wireClient(provider);
+    if (wire) {
+      const model = fastModelFor(provider);
+      const res = await wire.chat.completions.create({
         model,
         max_tokens: maxTokens,
         temperature: 0.3,
@@ -218,7 +315,7 @@ export async function completeCoachText(args: {
   try {
     if (provider === "anthropic") {
       const client = anthropic()!;
-      const model = process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001";
+      const model = fastModelFor(provider);
       const res = await client.messages.create({
         model,
         max_tokens: maxTokens,
@@ -234,10 +331,10 @@ export async function completeCoachText(args: {
       return text ? { text, model } : null;
     }
 
-    if (provider === "openai") {
-      const client = openai()!;
-      const model = process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini";
-      const res = await client.chat.completions.create({
+    const wire = wireClient(provider);
+    if (wire) {
+      const model = fastModelFor(provider);
+      const res = await wire.chat.completions.create({
         model,
         max_tokens: maxTokens,
         temperature: 0.5,
@@ -264,7 +361,8 @@ export async function streamTutorReply(
     return { stream: localStream(args.localReply), model: "local", provider: "local" };
   }
 
-  const provider = chooseProvider();
+  // A photo narrows the field to providers that can see one — DeepSeek cannot.
+  const provider = chooseProvider(args.image ? "image" : "text");
   const model = modelFor(provider, args.userText);
 
   try {
@@ -327,11 +425,16 @@ export async function streamTutorReply(
       return { stream, model, provider };
     }
 
-    if (provider === "openai") {
-      const client = openai()!;
+    const wire = wireClient(provider);
+    if (wire) {
+      // Persona first, then grounding — the same stable-before-volatile order
+      // as the Anthropic branch. On DeepSeek that ordering is also what earns
+      // the cache-hit input rate, which is a fiftieth of the cache-miss rate:
+      // its context caching is automatic and prefix-based, so there is no
+      // marker to set, only a prefix to keep stable.
       const system = args.grounding ? `${args.persona}\n\n${args.grounding}` : args.persona;
       const lastUserIdx = args.messages.length - 1;
-      const completion = await client.chat.completions.create({
+      const completion = await wire.chat.completions.create({
         model,
         temperature: TEMPERATURE,
         max_tokens: MAX_TOKENS,
@@ -362,7 +465,7 @@ export async function streamTutorReply(
               if (t) controller.enqueue(encoder.encode(t));
             }
           } catch (err) {
-            console.error("openai stream error", err);
+            console.error(`${provider} stream error`, err);
             controller.enqueue(encoder.encode(args.localReply));
           } finally {
             controller.close();

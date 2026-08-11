@@ -34,12 +34,16 @@ const DAILY_ALLOWANCE: Record<AiSurface, Record<SubscriptionTier, number>> = {
   // ceiling is strictly tighter than what the old lifetime-vs-daily mismatch
   // allowed, where a free account could spend 3 messages every single day
   // server-side while the client believed the pool was lifetime.
-  // Lowered from 15/40 on 11 Aug 2026. At Haiku 4.5 rates a subscriber who used
-  // the old Premium Plus allowance every day cost about their whole R70
-  // subscription in tokens, and Premium about 44% of R60 — see
-  // docs/ops/ai-cost-model.md. 20/day is still more tutor than a ten-minute
-  // study session uses; the ceiling was never the product, only the guard.
-  tutor: { free: 2, premium: 10, premium_plus: 20 },
+  // Cut to 10/20 on 11 Aug 2026 because Haiku 4.5 made the old 15/40 unaffordable
+  // — a Premium Plus subscriber at their ceiling cost their whole R70 in tokens.
+  // Restored the same day, to 15/35, when the fast tier moved to DeepSeek
+  // V4-Flash at roughly a ninth the price: 35/day now costs ~$0.37/month against
+  // R70 revenue, where 40/day on Haiku cost $3.90. The cap came down to fix a
+  // margin, so a cheaper model is the thing that lets it go back up — see
+  // docs/ops/ai-cost-model.md. Anthropic remains the fallback, and these numbers
+  // are only affordable while DeepSeek is the one answering; if the cascade ever
+  // falls back for a sustained period, revisit here first.
+  tutor: { free: 2, premium: 15, premium_plus: 35 },
   coach: { free: 12, premium: 60, premium_plus: 100 },
   vision: { free: 0, premium: 12, premium_plus: 25 },
 };

@@ -84,7 +84,10 @@ export async function POST(req: Request) {
   }
 
   // No offline vision exists — tell the client honestly before burning a scan.
-  if (chooseProvider() === "local") {
+  // "image" skips the text-only providers in the cascade (DeepSeek), so a
+  // deployment with only those configured reports unavailable instead of
+  // failing mid-scan.
+  if (chooseProvider("image") === "local") {
     return Response.json({ unavailable: true });
   }
 

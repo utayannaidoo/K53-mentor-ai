@@ -10,7 +10,9 @@ ordering of what is left.
 ## Where the product stands
 
 Live on `https://k53mentorai.co.za` (Vercel). Migrations `0001`→`0020` applied.
-Paystack on live keys. 1,060 questions, 68 scenarios, ~14 mock papers.
+Paystack on live keys. 1,296 questions, 974 flashcards, 68 scenarios, ~17 distinct
+mock papers per licence code (re-counted 11 Aug 2026 with `node
+scripts/content-stats.mjs`; the 1,060/~14 figures carried in this doc were stale).
 
 **The email chain is complete and proven end to end** — a real signup, confirmed
 on a different device, works. That was the blocker holding four others and it is
@@ -25,15 +27,16 @@ cleared.
 | DMARC | `p=none`, `rua=mailto:dmarc@k53mentorai.co.za` |
 | Supabase SMTP | configured against Resend |
 | Auth templates | `token_hash` applied to Confirm signup / Magic link / Change email; Reset password deliberately left on `{{ .ConfirmationURL }}` |
-| Env | Upstash, AI keys, `CRON_SECRET`, `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL` all set |
+| Env | Upstash, Anthropic/OpenAI, `CRON_SECRET`, `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL` all set. **`DEEPSEEK_API_KEY` is not** — see §1 of what is left |
 
 ---
 
 ## What changed today, and why
 
-Everything below is on branch **`claude/supabase-email-templates`** →
-[PR #47](https://github.com/utayannaidoo/K53-mentor-ai/pull/47), **not yet
-merged**. It is fifteen commits and green on typecheck, lint, 490 tests, build.
+Everything below was on branch **`claude/supabase-email-templates`** and has
+**merged**, as [PR #47](https://github.com/utayannaidoo/K53-mentor-ai/pull/47)
+and then [PR #48](https://github.com/utayannaidoo/K53-mentor-ai/pull/48) for the
+last three commits, which were pushed after #47 was cut.
 
 1. **Mail setup, end to end** — DNS cutover to Cloudflare, Email Routing, DMARC,
    Resend, the `token_hash` templates. Each trap hit along the way is recorded in
@@ -50,10 +53,11 @@ merged**. It is fifteen commits and green on typecheck, lint, 490 tests, build.
    set to `support@` — because [`email.ts:22`](../../src/lib/notify/email.ts)
    sends no `reply_to`, so the From address *is* the reply address, and nothing
    routes `coach@`.
-5. **Tutor caps lowered** — Premium 15→**10**/day, Premium Plus 40→**20**/day.
-   See below.
+5. **Tutor caps lowered, then raised again** — 15/40 → 10/20 → **15/35**. The
+   second move came with a provider switch. See below.
+6. **DeepSeek is the tutor's fast tier** — see below.
 
-### Why the caps came down
+### The caps came down, then went back up
 
 At Haiku 4.5 rates, a subscriber using the *old* allowance every day cost:
 
@@ -63,32 +67,75 @@ At Haiku 4.5 rates, a subscriber using the *old* allowance every day cost:
 | Premium Plus | 40/day | $3.90 | R70 (~$3.89) — **100%** |
 
 A Premium Plus subscriber at their ceiling cost their entire subscription in
-tokens, before Paystack's fee. Halving both fixes the margin and costs nothing
-real — 20 messages a day is far more tutor than a ten-minute session uses.
+tokens, before Paystack's fee. Halving both fixed the margin — and then the model
+changed underneath it, which made the halving unnecessary.
 
-Full arithmetic and a provider comparison (DeepSeek, Gemini, GPT budget tiers) is
-in [`ai-cost-model.md`](./ai-cost-model.md). **The number nobody has yet is
-*average* usage** — instrument per-user message counts before deciding whether a
-cheaper provider is worth the POPIA and grounding-drift costs.
+### The provider switch
+
+The fast tier is now **DeepSeek V4-Flash** at $0.14/$0.28 per MTok, roughly a
+ninth of Haiku 4.5. The cascade is **DeepSeek → Anthropic → OpenAI → local**;
+Anthropic stays as the fallback and is unchanged.
+
+That is what pays for the caps going back up to **15/day Premium, 35/day Premium
+Plus** — higher than the numbers that caused the panic, at a fifth of the cost:
+
+| Plan | Cap now | Cost/month at cap | Revenue |
+|---|---|---|---|
+| Premium | 15/day | $0.16 | R60 — **4.7%** |
+| Premium Plus | 35/day | $0.37 | R70 — **9.4%** |
+
+Three things about this that are not obvious:
+
+- **DeepSeek cannot see.** Its API is text-only, and sending an image does not
+  error — it answers from the surrounding text, which for the sign scanner means
+  describing a photo it never received. Every image path now asks the cascade for
+  an image-capable provider and skips DeepSeek, falling to `local` (and an honest
+  "I can't look at photos right now") rather than answering blind. **Keep
+  `ANTHROPIC_API_KEY` set: it is the scanner's only path now.**
+- **The new caps are only affordable on DeepSeek.** 35/day on the Anthropic
+  fallback is 88% of Premium Plus revenue. A long DeepSeek outage is a margin
+  incident, and nothing in the code notices. Lower the caps by hand if it lasts.
+- **Grounding drift is unevaluated.** K53 is South African road law and no model
+  knows it from pre-training; the app retrieves cited facts into the prompt, so
+  the question is whether V4-Flash *stays* on that grounding, not whether it
+  knows the material. Run the question bank past it and read the answers.
+  `TUTOR_PROVIDER=anthropic` reverts everything in one env var.
+
+Full arithmetic, the env vars, and the provider comparison (Gemini, GPT budget
+tiers) are in [`ai-cost-model.md`](./ai-cost-model.md). **The number nobody has
+yet is *average* usage** — instrument per-user message counts before touching the
+caps again in either direction.
 
 ---
 
 ## What is left
 
-### 1. Merge the PR
+### 1. Set `DEEPSEEK_API_KEY` in Vercel
 
-```bash
-gh pr merge 47 --merge
-```
+Without it nothing breaks — the cascade simply falls through to Anthropic, which
+is the pre-switch behaviour at pre-switch prices. But the caps are now priced for
+DeepSeek, so until the key is set, Premium Plus runs at 88% of revenue.
 
-Everything else assumes this has landed. It carries the `SUPPORT_EMAIL` change,
-the cap reduction, and all the runbook updates that make the rest of this
-document navigable.
+- [ ] Create a key at `https://platform.deepseek.com/api_keys`
+- [ ] Top the balance up to a **small** amount (a few dollars is thousands of
+      messages) and leave auto-recharge **off** — the balance is the only spend
+      cap DeepSeek offers, so it has to do the job
+- [ ] Add `DEEPSEEK_API_KEY` to Vercel **Production** and redeploy
+- [ ] Ask the tutor a few real K53 questions and read the answers for grounding
+      drift before pointing traffic at it
+- [ ] Confirm the sign scanner still works — it must route to Anthropic, not
+      report unavailable
+
+⚠️ Upstash is already set, so the rate-limiter boot guard is satisfied. If it
+ever gets cleared, `DEEPSEEK_API_KEY` now trips the same throw the other two keys
+do.
 
 ### 2. Cost control — do before driving any traffic
 
 The caps bound a *subscriber*. Nothing yet bounds a runaway.
 
+- [ ] **Keep the DeepSeek prepaid balance small** — there is no monthly spend
+      cap on that platform, so the balance *is* the cap
 - [ ] **Hard spend cap in the Anthropic dashboard**
 - [ ] **Hard spend cap in the OpenAI dashboard**
 - [ ] Vercel spend limit + billing alerts
@@ -96,7 +143,7 @@ The caps bound a *subscriber*. Nothing yet bounds a runaway.
 - [ ] Uptime monitor on `/` and `/pricing` (UptimeRobot free; alert to the
       support Gmail)
 
-All five need an account or a dashboard sign-in, so they are yours. They are
+All six need an account or a dashboard sign-in, so they are yours. They are
 cheap and they are the difference between a bad week and a bad month.
 
 ### 3. Money correctness — the highest-stakes open item
@@ -144,7 +191,12 @@ cheap and they are the difference between a bad week and a bad month.
       the only open one is a physical address, which is a privacy call.
 - [ ] Register with the Information Regulator as Information Officer (POPIA s55)
       — a queue, so start early; independent of the disclosure text
-- [ ] A South African lawyer reads `/privacy`, `/terms`, `/refunds`
+- [ ] A South African lawyer reads `/privacy`, `/terms`, `/refunds` — and in
+      particular the **China transfer** section added on 11 Aug 2026 when DeepSeek
+      became the tutor's provider. Section 72 contract-necessity is the ground
+      relied on and the disclosure is specific about what is sent, but a transfer
+      to a jurisdiction with no comparable regime is the kind of thing worth a
+      professional opinion rather than a careful guess
 
 ### 7. Pre-flight
 
