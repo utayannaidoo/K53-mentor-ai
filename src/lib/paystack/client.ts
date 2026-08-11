@@ -159,6 +159,25 @@ export function fetchCustomer(customerCode: string): Promise<PaystackCustomer> {
   return paystackFetch<PaystackCustomer>(`/customer/${encodeURIComponent(customerCode)}`);
 }
 
+/**
+ * A one-time link to Paystack's hosted subscription-management page, where the
+ * customer can attach a new card (or a debit order) to an existing
+ * subscription, or cancel it.
+ *
+ * This is the closest thing Paystack has to Stripe's billing portal, and it is
+ * the only supported way to change the card on a live subscription: there is no
+ * "update authorization" API to call on the customer's behalf, because doing so
+ * would mean handling card details, which we never do.
+ *
+ * The link lands on paystack.com, not on our domain — the page collects the
+ * card, so that is the correct place for it to live.
+ */
+export function manageSubscriptionLink(code: string): Promise<{ link: string }> {
+  return paystackFetch<{ link: string }>(
+    `/subscription/${encodeURIComponent(code)}/manage/link`,
+  );
+}
+
 /** Cancel a subscription. Requires the subscription's own email_token (fetched via the customer). */
 export function disableSubscription(code: string, token: string): Promise<unknown> {
   return paystackFetch("/subscription/disable", {

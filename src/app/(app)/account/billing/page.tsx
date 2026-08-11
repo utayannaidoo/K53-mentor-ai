@@ -103,6 +103,37 @@ function BillingInner() {
   );
   const [cancelBusy, setCancelBusy] = React.useState(false);
   const [confirmingCancel, setConfirmingCancel] = React.useState(false);
+  const [cardBusy, setCardBusy] = React.useState(false);
+
+  /**
+   * Send the learner to Paystack's hosted page to attach a new card.
+   *
+   * The old advice here was "cancel and resubscribe with the new card", which
+   * asked someone whose payment had just failed to first give up their
+   * subscription. Paystack hosts the form because it collects card details;
+   * that is also why this is a redirect rather than anything inline.
+   */
+  async function doUpdateCard() {
+    setError(null);
+    setCardBusy(true);
+    try {
+      const res = await fetch("/api/billing/update-card", { method: "POST" });
+      const data = await res.json().catch(() => ({}) as { url?: string; error?: string });
+      if (res.ok && data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setError(
+        data.error === "no_billing_account" || data.error === "no_active_subscription"
+          ? "No active subscription found — if you just paid, give it a minute and refresh."
+          : "Couldn't open the card update page — please try again shortly.",
+      );
+    } catch {
+      setError("Network error — check your connection and try again.");
+    } finally {
+      setCardBusy(false);
+    }
+  }
 
   /** Cancel the active Paystack subscription — Paystack has no hosted portal. */
   async function doCancel() {
@@ -270,12 +301,25 @@ function BillingInner() {
 
         {isSupabaseConfigured && state.tier !== "free" && !confirmingCancel && (
           <div className="mt-4">
-            <Button variant="outline" size="sm" onClick={() => setConfirmingCancel(true)}>
-              Cancel plan
-            </Button>
-            <span className="ml-2.5 align-middle text-xs text-muted-foreground">
-              To change card details, cancel and resubscribe with the new card.
-            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={doUpdateCard}
+                disabled={cardBusy}
+                aria-busy={cardBusy}
+              >
+                {cardBusy ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
+                Update card
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => setConfirmingCancel(true)}>
+                Cancel plan
+              </Button>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Card expired or replaced? Update it here — your plan carries on uninterrupted. We
+              never see your card details; the form is hosted by Paystack.
+            </p>
           </div>
         )}
         {confirmingCancel && (

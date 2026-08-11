@@ -1,5 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyPaystackSignature } from "@/lib/paystack/client";
+import { manageSubscriptionLink, verifyPaystackSignature } from "@/lib/paystack/client";
 import { applyChargeSuccess, type ChargeSuccessData } from "@/lib/paystack/apply";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildPaymentFailedEmail } from "@/lib/notify/templates";
@@ -85,6 +85,7 @@ export async function POST(req: Request) {
         // Paystack sends when it gives up.
         const data = payload.data as {
           customer?: { customer_code?: string; email?: string; first_name?: string | null };
+          subscription?: { subscription_code?: string } | null;
         };
         const customerCode = data.customer?.customer_code;
         if (!customerCode) break;
@@ -92,14 +93,29 @@ export async function POST(req: Request) {
           .from("subscriptions")
           .update({ status: "past_due" })
           .eq("provider_customer_id", customerCode)
-          .select("tier")
+          .select("tier, provider_subscription_id")
           .maybeSingle();
         if (error) throw new Error(`past_due update failed: ${error.message}`);
-        const tier = (row as { tier?: string } | null)?.tier;
+        const sub = row as { tier?: string; provider_subscription_id?: string | null } | null;
+        const tier = sub?.tier;
         if (isEmailConfigured && data.customer?.email && (tier === "premium" || tier === "premium_plus")) {
+          // This email exists because a card needs replacing, so put the
+          // hosted card-update page *in* it rather than making the reader sign
+          // in and hunt for a button. Best-effort: if Paystack won't give us
+          // the link, the template falls back to /account/billing, which has
+          // the same thing one click deeper. A dunning email that fails to
+          // send is far worse than one without a deep link.
+          const code =
+            data.subscription?.subscription_code ?? sub?.provider_subscription_id ?? null;
+          const manageUrl = code
+            ? await manageSubscriptionLink(code)
+                .then((r) => r.link)
+                .catch(() => null)
+            : null;
           const nudge = buildPaymentFailedEmail({
             firstName: data.customer.first_name ?? "",
             planName: PLAN_MAP[tier].name,
+            manageUrl,
           });
           await sendEmail({ to: data.customer.email, ...nudge }).catch(() => {});
         }

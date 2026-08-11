@@ -168,7 +168,8 @@ cheap and they are the difference between a bad week and a bad month.
 - [ ] Webhook URL points at `https://k53mentorai.co.za/api/paystack/webhook`
 - [ ] **Live end-to-end with a real card**: pay → webhook writes `subscriptions`
       → tier unlocks → receipt arrives → cancel → refund lands
-- [ ] Declined-card path
+- [ ] Declined-card path — and while a subscription exists, click **Update card**
+      on the billing page and confirm it lands on Paystack's hosted page
 - [ ] Settlement account and schedule confirmed
 
 ### 4. Finish the mail loop
@@ -258,9 +259,12 @@ reading before touching the relevant area.
 
 ## Known-open code work (post-launch, not blocking)
 
-- **No card-update flow.** The billing page tells users to cancel and
-  resubscribe, which will churn people whose cards expire. Largest remaining
-  support-load item.
+- ~~No card-update flow~~ — **done.** `/api/billing/update-card` hands out a link
+  to Paystack's hosted subscription-management page (`GET
+  /subscription/:code/manage/link`), reachable from an "Update card" button on
+  the billing page and embedded directly in the failed-payment email, which is
+  the moment it is actually needed. Untested against a live subscription — it
+  needs one to exist, so fold it into the real-card end-to-end run in §3.
 - ~~`subscriptions.provider_subscription_id` is never written~~ — now recorded on
   the first charge, from the customer fetch the reconciliation step already does.
   Cancellation still *reads* `provider_customer_id`; wiring it to prefer the
