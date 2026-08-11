@@ -22,12 +22,13 @@ or dropped.
 
 Dashboard → **Authentication → URL Configuration**:
 
-- **Site URL** — the production origin, e.g. `https://k53mentor.co.za`. Supabase falls back
+- **Site URL** — the production origin, `https://k53mentorai.co.za`. Supabase falls back
   to this whenever a requested redirect isn't allowlisted, which is why a link can
-  "work" but dump the user on the marketing page instead of the app.
+  "work" but dump the user on the marketing page instead of the app. The templates in §3
+  build their links from it, so a wrong value here silently mails out broken links.
 - **Redirect URLs** — must include every origin the app runs on:
   ```
-  https://k53mentor.co.za/auth/callback
+  https://k53mentorai.co.za/auth/callback
   https://*-<your-vercel-scope>.vercel.app/auth/callback   ← preview deployments
   http://localhost:3000/auth/callback
   ```
@@ -41,8 +42,23 @@ exchanged **in the browser that started the signup**. Someone who signs up on a 
 and opens the email on their phone gets bounced with "couldn't finish that sign-in" —
 the single most common false report of "verification is broken".
 
-Dashboard → **Authentication → Emails → Templates → Confirm signup**, replace
-`{{ .ConfirmationURL }}` with:
+`token_hash` is verified server-side by `/auth/callback`, so the link works from any
+device or mail client.
+
+> ✅ **Applied on the live project, 10 Aug 2026**, and re-read after a fresh page load to
+> confirm each one persisted. Kept below as the record of what is deployed.
+>
+> Supabase will not let a project on the built-in mailer edit these at all — the page
+> shows "Set up custom SMTP to edit templates" and renders a read-only preview with no
+> editor and no save button. The order is therefore **mail DNS → Resend → custom SMTP →
+> these templates**; before custom SMTP exists, every confirmation email goes out as the
+> default PKCE `?code=` link with the cross-device failure described above.
+
+Dashboard → **Authentication → Emails → Templates**. Three of the four templates change;
+the fourth must not. The dashboard slugs are `confirm-sign-up`, `magic-link-or-otp`,
+`change-email-address` and `reset-password` — not the names shown in the UI.
+
+**Confirm signup** — `type=email`, landing on `/continue`:
 
 ```html
 <a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email&next=%2Fcontinue">
@@ -50,13 +66,40 @@ Dashboard → **Authentication → Emails → Templates → Confirm signup**, re
 </a>
 ```
 
-`token_hash` is verified server-side by `/auth/callback`, so the link works from any
-device or mail client. Do the same for **Magic Link** (`type=magiclink`) and
-**Change Email Address** (`type=email_change`).
+**Magic Link** — same shape, `type=magiclink`:
 
-Password reset (**Reset Password** template) keeps `{{ .ConfirmationURL }}`: that flow
-starts and finishes in the same browser, and the recovery session it produces is what
-`/reset-password/update` expects.
+```html
+<a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink&next=%2Fcontinue">
+  Sign in
+</a>
+```
+
+**Change Email Address** — `type=email_change`, landing back on `/account` rather than
+`/continue`: this one is always confirmed by someone already signed in and already
+onboarded, so the post-auth router has nothing to decide.
+
+```html
+<a href="{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=email_change&next=%2Faccount">
+  Confirm your new email address
+</a>
+```
+
+Keep this template's other two lines: the `{{ .NewEmail }}` reference, which is the only
+place the learner sees *which* address they are confirming, and the "if you didn't request
+this change, you can safely ignore this email" line, which is the security notice for an
+address takeover attempt.
+
+**Reset Password** — **leave as `{{ .ConfirmationURL }}`.** That flow starts and finishes
+in the same browser, and the recovery session the PKCE exchange produces is what
+`/reset-password/update` expects. Converting it to `token_hash` breaks password reset.
+
+Both `/continue` and `/account` pass `safeNextPath()` (single leading slash, not an auth
+page), and `email`, `magiclink` and `email_change` are all in the `OTP_TYPES` allowlist in
+`src/app/auth/callback/route.ts`. Changing a `type` or a `next` here without checking both
+is how these links start failing silently.
+
+Verify each one after saving: sign up with a throwaway address, open the mail **on a
+different device**, and confirm you land on the app rather than `/login?error=…`.
 
 ## What the code already covers
 

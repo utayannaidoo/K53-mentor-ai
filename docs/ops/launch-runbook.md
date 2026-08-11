@@ -41,16 +41,23 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 
 | Blocker | Where |
 |---|---|
-| No mail DNS at all — no MX, SPF, DKIM or DMARC | §5 |
-| Supabase custom SMTP not configured (blocked on the above) | §4 |
-| Supabase `token_hash` email templates not applied | §4 — **do this now, it isn't blocked** |
-| `BUSINESS` in `src/lib/constants.ts` is blank → ECTA s43 / POPIA s55 disclosures don't render | §7 |
-| `SUPPORT_EMAIL` is still a personal Gmail, public on `/contact` and `/refunds` | §8 |
+| ~~No mail DNS~~ — **done 10 Aug 2026.** DNS on Cloudflare, Email Routing live, MX/SPF/DKIM/DMARC published, **Resend domain Verified** | §5 |
+| ~~`RESEND_API_KEY` + `NOTIFY_FROM_EMAIL`~~ — set in Vercel and redeployed, 10 Aug 2026 | §5.5 |
+| ~~Supabase custom SMTP~~ — configured against Resend, 10 Aug 2026 | §4 |
+| ~~`token_hash` email templates~~ — applied and verified, 10 Aug 2026 | §4 |
+| **Nothing has actually been sent yet.** No transactional email has left the building end to end — the whole chain is configured but unproven | §5.5 |
+| `BUSINESS` in `src/lib/constants.ts` blank → ECTA s43 / POPIA s55 disclosures don't render. **Accepted, not outstanding** — decision taken 10 Aug 2026 to launch without it; §7 records what to fill when that changes | §7 |
 | Upstash, Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
 
 > ⚠️ **Set Upstash *before* the AI keys.** `src/lib/ai/rate-limit.ts` throws at boot when
 > an AI key is present without Upstash, so adding `ANTHROPIC_API_KEY` first takes
 > production down.
+
+> **Mail DNS is one blocker wearing three hats.** It gates Resend, which gates custom
+> SMTP, which gates the email templates (Supabase disables template editing entirely on
+> the built-in mailer — confirmed on the live project 10 Aug 2026) and the `support@`
+> inbox that `SUPPORT_EMAIL` is waiting on. Nothing else in §4 or §5 moves until the
+> records exist, so start there.
 
 **Do not reference `k53mentor.co.za` or `k53mentor.com`.** Both were front-run on
 2026-08-06 — registered two seconds apart to a third party via domains.co.za, minutes
@@ -114,7 +121,7 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 | `ANTHROPIC_API_KEY` | | Preferred provider |
 | `OPENAI_API_KEY` | | Fallback in the cascade |
 | `RESEND_API_KEY` | | Without it, receipts and dunning are skipped and the reminder cron runs dry |
-| `NOTIFY_FROM_EMAIL` | `K53 Mentor <coach@k53mentorai.co.za>` | Default is `onboarding@resend.dev` — Resend's shared sandbox sender. Spam-folder magnet. |
+| `NOTIFY_FROM_EMAIL` | `K53 Mentor <support@k53mentorai.co.za>` | Default is `onboarding@resend.dev` — Resend's shared sandbox sender. Spam-folder magnet. Must be an address §5.2 actually routes, because no `reply_to` is sent and replies go here. |
 | `CRON_SECRET` | long random string | Otherwise `/api/cron/notifications` is open |
 
 - [ ] All of the above set on **Production**
@@ -160,11 +167,19 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
       live privacy and terms URLs on the consent screen
 - [ ] **Custom SMTP configured** (point it at Resend). The built-in mailer is capped at a
       handful of messages an hour and will strand launch-day signups
-- [ ] **Email templates** use `token_hash` for Confirm signup / Magic link / Change email;
-      Reset password keeps `{{ .ConfirmationURL }}`. Exact markup in
-      [`supabase-auth-setup.md`](./supabase-auth-setup.md) §3
-- [ ] Security + performance **advisors** run, nothing critical outstanding
-- [ ] Leaked-password protection enabled
+- [x] **Email templates applied 10 Aug 2026.** Confirm signup (`type=email` → `/continue`),
+      Magic link (`type=magiclink` → `/continue`) and Change email (`type=email_change` →
+      `/account`) now use `token_hash`; Reset password deliberately still uses
+      `{{ .ConfirmationURL }}`. Each re-read after a fresh page load to confirm it
+      persisted. Markup in [`supabase-auth-setup.md`](./supabase-auth-setup.md) §3.
+- [x] Security + performance **advisors** run, nothing critical outstanding (10 Aug 2026).
+      The only WARN is the leaked-password one below; the two `rls_enabled_no_policy`
+      INFOs are `payment_events` and `account_deletion_codes`, which are service-role-only
+      by design — RLS on with no policy is exactly right for them.
+- [~] **Leaked-password protection — deliberately skipped.** It needs a paid Supabase
+      plan, and the decision is to launch without it. The advisors will keep flagging it;
+      that is expected, not an outstanding task. Revisit when the project moves off the
+      free tier.
 - [ ] Backup/PITR situation confirmed and the restore path understood
 
 > None of the above is verified by CI. It is entirely dashboard-side, which is exactly why
@@ -174,19 +189,189 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
 
 ## 5. Email that actually lands
 
-Resend is **send-only**. You need both a verified sending domain and a receiving inbox.
+**This is the critical path.** Resend is send-only, so you need a verified sending domain
+*and* a receiving inbox, and everything else waiting on mail — Supabase custom SMTP, the
+`token_hash` templates in §4, the public support address — is downstream of these records.
 
-- [ ] Verify `k53mentorai.co.za` in Resend — add the **SPF** and **DKIM** records
-- [ ] Add **DMARC**: `v=DMARC1; p=none; rua=mailto:you@…` to start. Tighten to
-      `p=quarantine` once you've watched reports for a couple of weeks
-- [ ] Receiving inbox for `support@k53mentorai.co.za` — **Cloudflare Email Routing** (free)
-      forwarding to your Gmail is the cheapest credible option. Zoho Mail free tier or
-      Google Workspace if you want a real mailbox
-- [ ] `NOTIFY_FROM_EMAIL` points at the verified sender
+Decided 10 Aug 2026: **move DNS to Cloudflare**, because Email Routing is the only free
+way to receive at the domain, and because every remaining TXT record in this runbook
+(Resend, DMARC, Search Console) then lives in one panel. The interim support inbox is
+`support.k53mentor@gmail.com` — a role address, already live, already shipped as
+`SUPPORT_EMAIL`, and the destination the domain address forwards to once §5.2 is done.
+
+### 5.1 Move DNS to Cloudflare *without* dropping the site
+
+The zone is two records:
+
+| Type | Name | Value | Proxy |
+|---|---|---|---|
+| A | `k53mentorai.co.za` | `216.198.79.1` | **DNS only (grey cloud)** |
+| CNAME | `www` | `17a3707dc089cda5.vercel-dns-017.com` | **DNS only (grey cloud)** |
+
+- [x] Added to Cloudflare (Free plan). The add-site scan imported both records with the
+      correct values — an empty zone was never the risk here.
+- [x] **Both switched from Proxied to DNS only, 10 Aug 2026.** This is the part that
+      nearly went wrong: the scan imports everything **orange-cloud proxied** and does not
+      ask. Proxied, Vercel cannot complete its certificate challenges, and an SSL/TLS mode
+      below Full gives an HTTP→HTTPS redirect loop — with §2's HSTS header already served,
+      a bad certificate is a hard failure with no click-through for any returning visitor.
+- [x] **Nameservers changed at domains.co.za to `ali.ns.cloudflare.com` and
+      `drew.ns.cloudflare.com`.** Delegation confirmed at the registry, zone active,
+      10 Aug 2026.
+- [x] Apex still answers `216.198.79.1` and `www` still resolves through
+      `vercel-dns-017.com` with Cloudflare authoritative — the grey-cloud fix held through
+      the cutover. Both hostnames return 200 with a valid certificate.
+
+> **How to tell "not saved" from "still propagating".** Query the `.co.za` registry
+> directly rather than a resolver:
+>
+> ```bash
+> nslookup -norecurse -type=NS k53mentorai.co.za coza1.dnsnode.net
+> ```
+>
+> The registry is the parent delegation — resolver answers can trail a change by hours,
+> but the registry has no cache. Once it shows the new names, the change is real and
+> everything downstream is only waiting. During this cutover the registry lagged the
+> registrar's own panel by several minutes, so a single early check showing the old
+> nameservers is not evidence the edit failed. Check twice, a few minutes apart, before
+> concluding anything.
+- [ ] Once the delegation lands, confirm `https://k53mentorai.co.za` and
+      `https://www.k53mentorai.co.za` still serve, and that the apex still answers
+      `216.198.79.1` rather than a Cloudflare anycast address (`104.x` / `172.67.x`) —
+      a Cloudflare IP means something got re-proxied
+
+> **The ordering advice that actually matters.** "Recreate the zone before switching
+> nameservers" is the usual warning, and it is not wrong — but the scan makes an empty
+> zone unlikely, while *proxy status* is silently wrong every time. Check the cloud
+> colour, not just the record values, and check it before the delegation lands rather
+> than after.
+
+### 5.2 Receiving — Cloudflare Email Routing
+
+**Two independent gates, and only one of them is waiting on DNS.** Attempting the DNS half
+early returns *"This zone must be active before you can enable Email Service"*, and the
+routing rules refuse a destination that hasn't been verified — the address picker simply
+reports "No verified destination addresses found" with nothing selectable.
+
+- [x] Destination address `support.k53mentor@gmail.com` added and **Verified**
+- [x] Routing rule `support@k53mentorai.co.za` → that destination — **Active**
+- [x] Routing rule `dmarc@k53mentorai.co.za` → same destination — **Active** (see 5.4)
+- [x] **Catch-all** left **disabled**. Enabled, every typo and every address a scraper
+      invents forwards to the same inbox
+- [x] Settings → DNS records → **Add missing records** — done. Three apex MX
+      (`route1–3.mx.cloudflare.net`, priorities 18/27/83), a DKIM TXT at
+      `cf2024-1._domainkey`, and an apex SPF `v=spf1 include:_spf.mx.cloudflare.net ~all`.
+      All four verified live against `ali.ns.cloudflare.com`
+- [x] **Email Routing status: Enabled**, DNS records Locked
+- [x] Test mail sent 10 Aug 2026 — Cloudflare logged it **Forwarded**
+- [ ] Find it in the Gmail. First forwarded message usually lands in **Spam**: the forward
+      preserves the original `From:`, so gmail.com's SPF does not match Cloudflare's
+      sending IP. Mark it "Not spam" once and it settles
+
+> **When a forward "doesn't arrive", check Email Routing → Activity Log first.** It says
+> whether Cloudflare ever received the message and what it did with it, which splits the
+> problem cleanly in two: no row at all is a DNS/MX problem on the sender's side, while
+> **Forwarded** means Cloudflare did its job and the message is sitting in a spam folder.
+> Guessing at DNS when the log already says *Forwarded* wastes the hour.
+>
+> Related but separate: the apex had no MX until the records were added, and a NODATA
+> answer is negatively cached for the SOA minimum — **7200s, two hours**. Any sender that
+> looked up `k53mentorai.co.za` MX in that window keeps failing until its cache expires,
+> and per RFC 5321 falls back to the A record, i.e. tries to deliver SMTP to Vercel.
+> Nothing to fix; it ages out.
+- [ ] Then flip `SUPPORT_EMAIL` in `src/lib/constants.ts` to `support@k53mentorai.co.za`
+      and redeploy
+
+### 5.3 Sending — Resend
+
+- [x] `k53mentorai.co.za` added in Resend, region **Ireland (`eu-west-1`)** — same region
+      as the Supabase project and the closest to South Africa
+- [x] Three records added in Cloudflare and confirmed resolving:
+
+      | Type | Name | Value |
+      |---|---|---|
+      | TXT | `resend._domainkey` | `p=MIGfMA0GCSqGSIb3…` (DKIM, unique per domain) |
+      | TXT | `send` | `v=spf1 include:amazonses.com ~all` |
+      | MX | `send` | `feedback-smtp.eu-west-1.amazonses.com`, priority 10 |
+
+- [x] **Resend reports Verified** (10 Aug 2026)
+
+> ⚠️ **Do not add Resend's "Enable Receiving" record.** Alongside the three above, Resend
+> offers a fourth — an MX on the **apex** pointing at `inbound-smtp.eu-west-1.amazonaws.com`.
+> Adding it puts a second receiver on the apex alongside Cloudflare Email Routing's
+> `route1–3.mx.cloudflare.net`, and inbound mail starts landing at whichever one wins the
+> priority race. **Receiving is Cloudflare's job here; Resend only sends.** The three
+> records above are the complete set.
+
+> **Choose "Manual setup", not "Auto configure".** Auto configure asks to authorise
+> Resend against your DNS provider, which grants it write access to the whole Cloudflare
+> zone — including the Vercel A/CNAME records and the Email Routing MX. Pasting three
+> records by hand takes two minutes and keeps that blast radius at zero.
+
+> **Two MX records is correct here and not a mistake.** Cloudflare's are on the apex and
+> receive your mail; Resend's is on the `send.` subdomain and only collects bounce
+> feedback. They are different names, so they never compete. The same goes for the two SPF
+> records — one at the apex for forwarding, one at `send` for sending. What you must never
+> do is publish **two SPF TXT records on the same name**; that is a permerror, and it
+> fails every message rather than only the ambiguous ones.
+>
+> **Do not "fix" the apex SPF by adding Resend to it.** It will look wrong — mail goes out
+> as `coach@k53mentorai.co.za`, yet the apex SPF names only Cloudflare. It is correct.
+> SPF is evaluated against the Return-Path, which Resend sets to `send.k53mentorai.co.za`,
+> and DMARC's relaxed alignment accepts a subdomain of the From: domain. DKIM signs with
+> `d=k53mentorai.co.za` and aligns directly. Both mechanisms pass. Editing the apex record
+> is how you end up with two SPF records on one name, which is the permerror above.
+
+### 5.4 DMARC
+
+- [x] TXT `_dmarc` → `v=DMARC1; p=none; rua=mailto:dmarc@k53mentorai.co.za; fo=1` —
+      published and verified live, 10 Aug 2026. `p=none` is monitor-only: it cannot cause
+      a message to fail, it only asks receivers to report
+- [ ] Tighten to `p=quarantine` once you have watched reports for a couple of weeks
+
+> **Why not point `rua` straight at the Gmail?** A `rua` address outside the policy domain
+> is an *external destination*, and RFC 7489 §7.1 requires the receiving domain to publish
+> a matching authorisation record. `gmail.com` publishes no such record for your domain, so
+> compliant reporters are entitled to drop the reports — silently. Routing through
+> `dmarc@k53mentorai.co.za` keeps the address inside the domain, and Email Routing
+> forwards it to the same Gmail anyway.
+
+### 5.5 Then, and only then
+
+- [ ] `RESEND_API_KEY` set in Vercel Production. Create it at Resend → **API Keys** →
+      Create, with **Sending access** only and scoped to `k53mentorai.co.za` — a key that
+      can only send cannot delete your domain or read your logs if it leaks. Resend shows
+      it once; copy it straight into Vercel
+- [ ] `NOTIFY_FROM_EMAIL` = **`K53 Mentor <support@k53mentorai.co.za>`**, and redeploy —
+      Vercel only picks up env changes on a new deployment
+
+> **The From address is also the reply address.** `src/lib/notify/email.ts:22` sends no
+> `reply_to`, so whatever `NOTIFY_FROM_EMAIL` names is where a learner's reply goes. Use
+> `support@`, which §5.2 already routes. The `coach@` address this runbook used to suggest
+> has **no routing rule**, and with catch-all disabled a reply to it is rejected outright —
+> silently, from the sender's point of view, on a payment receipt. If you want the `coach@`
+> branding, add a routing rule for it first, or add a `reply_to` to the sender.
+- [ ] **Supabase custom SMTP** (§4) → host `smtp.resend.com`, port `465`, user `resend`,
+      password = a Resend API key, sender `support@k53mentorai.co.za` (it **must** be on
+      the verified domain, or Resend rejects the message and it looks like Supabase
+      silently not sending)
+- [ ] **Raise the per-hour cap** under Auth → **Rate Limits**. The built-in mailer's low
+      limit stays in force until you change it — this is the "custom SMTP is configured
+      but mail still isn't arriving" trap
+
+> **Use a separate API key per consumer** — one for Vercel, one named `supabase-smtp` —
+> each with Sending access only and scoped to the domain. Resend hashes keys on creation
+> and will never show one again, so a shared key that goes missing means rotating every
+> system at once. Separate keys mean the name tells you what to rotate, and revoking one
+> cannot take the other down. They are free and unlimited.
+- [ ] **Then the `token_hash` email templates** (§4) — the editor stays read-only until
+      the SMTP step above is saved
 - [ ] Test-send to **Gmail, Outlook and Yahoo** — check **spam placement**, not just
       delivery
 - [ ] Send yourself a real payment receipt and a reminder email; confirm every link in
       them resolves to `k53mentorai.co.za` (this is the acid test that §3's rebuild worked)
+- [ ] Signup → confirm the email **on a different device**, which is the whole point of
+      the `token_hash` templates
 
 Known gaps, post-launch:
 - No Resend bounce/complaint webhook — hard bounces accumulate invisibly.
@@ -271,10 +456,34 @@ Most of this shipped on 8 Aug 2026:
 
 Still outstanding — these need information only you have:
 
-- [ ] **Fill in `BUSINESS` in `src/lib/constants.ts`**: legal name (or your own name if
-      trading as a sole proprietor), CIPC registration number, **street address** (a PO
-      box does not satisfy ECTA s43), and the Information Officer's name. `/contact` and
-      `/privacy` render these the moment they are set, and omit the sections while blank.
+- [~] **`BUSINESS` in `src/lib/constants.ts` — deliberately left blank, 10 Aug 2026.**
+      Decision taken to launch without the ECTA s43 / POPIA s55 sections rendering. It is
+      a one-place edit to reverse, and `/contact` and `/privacy` pick the fields up the
+      moment they are set.
+
+      **This is not blocked on registering a company**, which is what it looked like the
+      first time round. Selling in your own name without incorporating *is* a legal form —
+      a sole proprietorship — and ECTA applies to anyone offering goods or services
+      electronically, incorporated or not. It changes what you disclose, not whether you
+      disclose. So when you come back to this, three of the four fields already have
+      answers:
+
+      | Field | Sole proprietor |
+      |---|---|
+      | `legalName` | Your own full legal name |
+      | `registrationNumber` | **Correctly empty** — there is no CIPC number to give |
+      | `informationOfficer` | You. For a private body the head is the Information Officer by default |
+      | `address` | The only genuinely open one |
+
+      The address is the whole decision, and it is a privacy one rather than a legal
+      unknown: ECTA wants a physical address precisely so someone can be served there, so
+      a PO box is out and a home-based operation means a home address on a public,
+      crawlable page next to a payment flow. The usual way out is a virtual/registered
+      office (roughly R150–400/month in SA), which gives a real street address that can
+      receive service without publishing where you live.
+
+      Cross-check whatever you choose against what Paystack has: merchant activation
+      recorded you as either an individual or a business, and the two should agree.
 - [ ] **Register with the Information Regulator** as an Information Officer (POPIA s55).
       This is a queue — start it early.
 - [ ] **Have a South African lawyer read the three legal pages.** They are written to be
@@ -293,7 +502,7 @@ Fixed on 8 Aug 2026 — kept here as the record of what changed and why.
 
 | # | Where | Issue | Status |
 |---|---|---|---|
-| 1 | `src/lib/constants.ts` | `SUPPORT_EMAIL` is a personal Gmail address, rendered publicly on `/refunds` and now `/contact` | **Open — deliberately.** Flip it to `support@k53mentorai.co.za` the same day Cloudflare Email Routing exists (§5). Doing it sooner advertises a dead address, which is worse than the Gmail |
+| 1 | `src/lib/constants.ts` | `SUPPORT_EMAIL` is a personal Gmail address, rendered publicly on `/refunds` and now `/contact` | Fixed on 10 Aug 2026 — now `support.k53mentor@gmail.com`. A role address rather than someone's name, which was the part that mattered; a learner disputing a charge should not be mailing an individual. It becomes `support@k53mentorai.co.za` the day Email Routing forwards it (§5.2), with the same inbox behind it. Shipping the domain address first would advertise one that bounces |
 | 2 | `src/components/engagement/share-card.tsx` | Share image read "…with k53mentor.ai", a domain you don't own, on the WhatsApp share path | Fixed — now derives from `SITE_DOMAIN` |
 | 3 | `src/app/api/checkout/route.ts` | Guest placeholder `guest@k53mentor.ai` sent to Paystack | Fixed — `SITE_DOMAIN` |
 | 4 | `src/components/auth/auth-form.tsx` | Demo-mode `demo@k53mentor.ai` | Fixed — `SITE_DOMAIN` |
