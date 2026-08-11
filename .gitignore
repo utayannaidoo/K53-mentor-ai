@@ -26,6 +26,11 @@ build.log
 .env
 .env*.local
 .env.local
+# Backups and editor scratch copies of the above. Without this, a
+# `.env.local.bak` sits outside every pattern here and git will happily track a
+# file full of live keys.
+.env.local.*
+.env.*.bak*
 
 # vercel
 .vercel
