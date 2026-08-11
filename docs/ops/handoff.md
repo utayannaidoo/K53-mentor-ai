@@ -121,8 +121,11 @@ DeepSeek, so until the key is set, Premium Plus runs at 88% of revenue.
       messages) and leave auto-recharge **off** — the balance is the only spend
       cap DeepSeek offers, so it has to do the job
 - [ ] Add `DEEPSEEK_API_KEY` to Vercel **Production** and redeploy
-- [ ] Ask the tutor a few real K53 questions and read the answers for grounding
-      drift before pointing traffic at it
+- [ ] Run `npm run tutor:eval -- --compare` and read the two reports it writes to
+      `.tutor-eval/`. This is the grounding check, and it is the one thing that
+      should gate traffic on the new provider — see `ai-cost-model.md`. Start
+      with the **free-form** block, and hardest of all with any answer marked
+      "NO GROUNDING RETRIEVED"
 - [ ] Confirm the sign scanner still works — it must route to Anthropic, not
       report unavailable
 

@@ -39,3 +39,6 @@ build.log
 
 # claude code (keep launch.json shared; ignore machine-local settings)
 .claude/settings.local.json
+
+# tutor grounding eval reports (scripts/tutor-eval.mjs) — run output, not source
+.tutor-eval/

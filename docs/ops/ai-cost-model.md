@@ -132,13 +132,45 @@ Four things were not on the price list and each cost real work:
 - **Grounding drift.** K53 is South African road law; no model knows it well from
   pre-training. The app compensates by retrieving cited facts into the prompt —
   which means the question is not "does this model know K53" but "does it stay on
-  the grounding it is given". Cheaper and smaller models drift more. **This has
-  not been evaluated yet.** Run the question bank past V4-Flash and read the
-  answers; the content is right there, and `TUTOR_PROVIDER=anthropic` reverts in
-  one env var if it reads badly.
+  the grounding it is given". Cheaper and smaller models drift more.
+  **`npm run tutor:eval -- --compare` exists for exactly this** (see below).
+  `TUTOR_PROVIDER=anthropic` reverts in one env var if it reads badly.
 - **DeepSeek announced a price rise** on 6 Aug 2026 with no published rates or
   date. The 9× advantage over Haiku may narrow — and the caps are priced against
   that advantage, so re-check before the next allowance change.
+
+### Judging a candidate model — `npm run tutor:eval`
+
+```bash
+npm run tutor:eval -- --compare
+```
+
+Runs the **real** prompt pipeline — same persona, same `resolveContext`, same
+`retrieveRelated`, same `streamTutorReply` the route uses — over a seeded sample
+of the bank, and writes a markdown report to `.tutor-eval/` (gitignored) with
+each answer printed directly beneath the grounding it was given. `--compare`
+does DeepSeek and Anthropic on identical prompts so the two files diff.
+
+It deliberately **does not score anything**. Faithfulness to grounding is a
+judgement, and a script that emitted a number would be inventing confidence it
+does not have. What it does is make the human read cheap and structured, and
+flag the mechanically checkable failures (markdown headings, code blocks, a
+reply truncated mid-sentence, an answer that appears to endorse a distractor).
+
+Three blocks, and the second is the one that matters:
+
+1. **Anchored** — an item is on screen, so the official explanation is in the
+   prompt. The model has everything it needs; drift here is simple failure to
+   use it.
+2. **Free-form** — no item, so the only grounding is what retrieval scored, and
+   sometimes that is nothing. Then the model is answering South African road law
+   from pre-training, which is precisely what it does not have. Flagged
+   explicitly in the report. **Read these first.**
+3. **Persona probes** — off-topic requests, an RTMC-affiliation question, and a
+   prompt-injection attempt. These hold regardless of grounding.
+
+Costs about $0.02 a run on V4-Flash. Cheap enough to run on every provider or
+model-default change, and worth doing before any of them reaches a learner.
 
 One free win comes with the switch: DeepSeek's context caching is **automatic and
 prefix-based**, with cache-hit input at $0.0028/MTok — a fiftieth of the

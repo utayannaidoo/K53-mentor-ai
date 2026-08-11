@@ -9,6 +9,7 @@ npm run typecheck  # tsc --noEmit
 npm run test       # vitest run
 npm run build      # next build
 node scripts/content-stats.mjs  # per-category question/flashcard counts
+npm run tutor:eval -- --compare # grounding eval before any provider/model change
 ```
 CI (`.github/workflows/ci.yml`) runs typecheck + **lint** + test + build on Node 22.
 Run `npm run lint` locally too — it carries `react-hooks/rules-of-hooks`, which
