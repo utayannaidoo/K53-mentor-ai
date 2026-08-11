@@ -46,7 +46,7 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 | ~~Supabase custom SMTP~~ — configured against Resend, 10 Aug 2026 | §4 |
 | ~~`token_hash` email templates~~ — applied and verified, 10 Aug 2026 | §4 |
 | **Nothing has actually been sent yet.** No transactional email has left the building end to end — the whole chain is configured but unproven | §5.5 |
-| `BUSINESS` in `src/lib/constants.ts` is blank → ECTA s43 / POPIA s55 disclosures don't render | §7 |
+| `BUSINESS` in `src/lib/constants.ts` blank → ECTA s43 / POPIA s55 disclosures don't render. **Accepted, not outstanding** — decision taken 10 Aug 2026 to launch without it; §7 records what to fill when that changes | §7 |
 | Upstash, Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
 
 > ⚠️ **Set Upstash *before* the AI keys.** `src/lib/ai/rate-limit.ts` throws at boot when
@@ -456,10 +456,34 @@ Most of this shipped on 8 Aug 2026:
 
 Still outstanding — these need information only you have:
 
-- [ ] **Fill in `BUSINESS` in `src/lib/constants.ts`**: legal name (or your own name if
-      trading as a sole proprietor), CIPC registration number, **street address** (a PO
-      box does not satisfy ECTA s43), and the Information Officer's name. `/contact` and
-      `/privacy` render these the moment they are set, and omit the sections while blank.
+- [~] **`BUSINESS` in `src/lib/constants.ts` — deliberately left blank, 10 Aug 2026.**
+      Decision taken to launch without the ECTA s43 / POPIA s55 sections rendering. It is
+      a one-place edit to reverse, and `/contact` and `/privacy` pick the fields up the
+      moment they are set.
+
+      **This is not blocked on registering a company**, which is what it looked like the
+      first time round. Selling in your own name without incorporating *is* a legal form —
+      a sole proprietorship — and ECTA applies to anyone offering goods or services
+      electronically, incorporated or not. It changes what you disclose, not whether you
+      disclose. So when you come back to this, three of the four fields already have
+      answers:
+
+      | Field | Sole proprietor |
+      |---|---|
+      | `legalName` | Your own full legal name |
+      | `registrationNumber` | **Correctly empty** — there is no CIPC number to give |
+      | `informationOfficer` | You. For a private body the head is the Information Officer by default |
+      | `address` | The only genuinely open one |
+
+      The address is the whole decision, and it is a privacy one rather than a legal
+      unknown: ECTA wants a physical address precisely so someone can be served there, so
+      a PO box is out and a home-based operation means a home address on a public,
+      crawlable page next to a payment flow. The usual way out is a virtual/registered
+      office (roughly R150–400/month in SA), which gives a real street address that can
+      receive service without publishing where you live.
+
+      Cross-check whatever you choose against what Paystack has: merchant activation
+      recorded you as either an individual or a business, and the two should agree.
 - [ ] **Register with the Information Regulator** as an Information Officer (POPIA s55).
       This is a queue — start it early.
 - [ ] **Have a South African lawyer read the three legal pages.** They are written to be
