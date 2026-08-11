@@ -9,8 +9,7 @@ ordering of what is left.
 
 ## Where the product stands
 
-Live on `https://k53mentorai.co.za` (Vercel). Migrations `0001`→`0020` applied;
-**`0021` and `0022` are written and not yet applied** — see §2 and §5.
+Live on `https://k53mentorai.co.za` (Vercel). Migrations `0001`→`0022` applied.
 Paystack on live keys. 1,296 questions, 974 flashcards, 68 scenarios, ~17 distinct
 mock papers per licence code (re-counted 11 Aug 2026 with `node
 scripts/content-stats.mjs`; the 1,060/~14 figures carried in this doc were stale).
@@ -28,7 +27,8 @@ cleared.
 | DMARC | `p=none`, `rua=mailto:dmarc@k53mentorai.co.za` |
 | Supabase SMTP | configured against Resend |
 | Auth templates | `token_hash` applied to Confirm signup / Magic link / Change email; Reset password deliberately left on `{{ .ConfirmationURL }}` |
-| Env | Upstash, Anthropic/OpenAI, `CRON_SECRET`, `RESEND_API_KEY`, `NOTIFY_FROM_EMAIL` all set. **`DEEPSEEK_API_KEY` is not** — see §1 of what is left |
+| Env | All set in Vercel, including `DEEPSEEK_API_KEY` and `RESEND_WEBHOOK_SECRET` (11 Aug 2026) |
+| AI credit | **Both providers at zero balance, deliberately** — no top-up until advertising starts. See §1; it is a gate, not an oversight |
 
 ---
 
@@ -116,39 +116,83 @@ about". Apply 0021 and leave it a fortnight before touching a cap again.
 
 ## What is left
 
-### 1. Set `DEEPSEEK_API_KEY` in Vercel
+### 1. 🚦 THE ADVERTISING GATE — both AI accounts are at zero balance
 
-Without it nothing breaks — the cascade simply falls through to Anthropic, which
-is the pre-switch behaviour at pre-switch prices. But the caps are now priced for
-DeepSeek, so until the key is set, Premium Plus runs at 88% of revenue.
+**Decision taken 11 Aug 2026: no credit goes on either AI provider until
+advertising starts.** With no traffic, nothing is lost by waiting — every
+provider call today would be the operator testing.
 
-- [ ] Create a key at `https://platform.deepseek.com/api_keys`
-- [ ] Top the balance up to a **small** amount (a few dollars is thousands of
-      messages) and leave auto-recharge **off** — the balance is the only spend
-      cap DeepSeek offers, so it has to do the job
-- [ ] Add `DEEPSEEK_API_KEY` to Vercel **Production** and redeploy
-- [ ] Run `npm run tutor:eval -- --compare` and read the two reports it writes to
-      `.tutor-eval/`. This is the grounding check, and it is the one thing that
-      should gate traffic on the new provider — see `ai-cost-model.md`. Start
-      with the **free-form** block, and hardest of all with any answer marked
+That decision is sound *only* if the top-up happens **before the first advert**,
+never after. This section exists because "after" is the natural order of events
+and it is the wrong one.
+
+Verified 11 Aug 2026 — both keys are valid, both accounts are empty:
+
+- DeepSeek → `HTTP 402 Insufficient Balance`
+- Anthropic → `Your credit balance is too low to access the Anthropic API`
+
+A 402 rather than a 401 means the key authenticates; there is simply no money
+behind it. `DEEPSEEK_API_KEY` and `RESEND_WEBHOOK_SECRET` are in Vercel.
+
+**What zero balance actually does.** Nothing errors. `streamTutorReply` catches
+the 402 and streams the rule-based local explainer instead, which is correct
+behaviour for an outage and is precisely why this is invisible. The consequences
+are commercial, not technical:
+
+1. **A paying subscriber gets the lesser product.** They pay R60–70 for a plan
+   whose headline feature is the AI tutor and receive the local explainer. That
+   is charging for something that is not working.
+2. **The free week is the conversion mechanism, and it is what stops working.**
+   `provider.ts` deliberately spends a real provider call on free accounts
+   *inside* their seven days, because that is when the tutor is being evaluated.
+   At zero balance every trial serves the explainer, so nobody experiences the
+   paid product. A trial gets one run at making its case and does not repeat.
+
+The sums, so this is never re-litigated from memory: a full free week is 2/day ×
+7 = 14 messages ≈ **$0.005 per signup** at V4-Flash rates. **$5 covers about
+1,000 trials.** A Premium subscriber at their full 15/day cap costs $0.16/month
+against R60 of revenue.
+
+Before the first advert, in this order:
+
+- [ ] Top up **DeepSeek** (`platform.deepseek.com`). Keep it small, leave
+      auto-recharge **off** — that balance is the only spend cap the platform
+      offers, so it has to do the job
+- [ ] Top up **Anthropic** and set a monthly cap. This one also restores the
+      sign scanner, which has no other provider
+- [ ] Redeploy if the Vercel variables have changed since the last build —
+      server-side env only applies to a *new* deployment
+- [ ] Run `npm run tutor:eval -- --compare` and read the two reports in
+      `.tutor-eval/`. The grounding check, and the one thing that should gate
+      traffic on the new provider — see `ai-cost-model.md`. Start with the
+      **free-form** block, hardest of all on anything marked
       "NO GROUNDING RETRIEVED"
-- [ ] Confirm the sign scanner still works — it must route to Anthropic, not
-      report unavailable
+- [ ] Confirm the sign scanner works — it must route to Anthropic, not report
+      unavailable
 
 ⚠️ Upstash is already set, so the rate-limiter boot guard is satisfied. If it
 ever gets cleared, `DEEPSEEK_API_KEY` now trips the same throw the other two keys
 do.
 
-### 2. Apply migrations `0021_ai_usage_daily.sql` and `0022_email_suppressions.sql`
+### 2. ~~Apply migrations `0021` and `0022`~~ — done 11 Aug 2026
 
-- [ ] Run it in the Supabase SQL editor (or `supabase db push`). Until it exists,
+Both verified live against the project: `ai_usage_daily` and
+`email_suppressions` exist, and `record_ai_usage` runs and correctly rejects an
+unknown user id, so the foreign key is wired. `npm run usage:report` prints an
+empty table, which is the right answer until traffic exists.
+
+<details><summary>What they were for</summary>
+
+- [x] Run it in the Supabase SQL editor (or `supabase db push`). Until it exists,
       `recordAiUsage` logs an error per AI request and records nothing — the
       routes keep working, but the data everyone keeps asking for is not being
       collected.
-- [ ] Then `npm run usage:report` should print an empty table rather than an
+- [x] Then `npm run usage:report` should print an empty table rather than an
       error. That is the check that 0021 landed.
-- [ ] 0022 creates the email suppression list. Until it exists, every send logs
+- [x] 0022 creates the email suppression list. Until it exists, every send logs
       a lookup error and no bounce is ever suppressed.
+
+</details>
 
 ### 3. Cost control — do before driving any traffic
 
