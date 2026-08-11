@@ -33,9 +33,17 @@ export default function RefundsPage() {
             charged again once you cancel.
           </li>
           <li>
-            On cancellation your account returns to the <strong>Free plan</strong>. Your study
-            progress, streak and readiness score are always kept — cancelling never deletes your
-            data.
+            You <strong>keep full access until the end of the period you have already paid for</strong>.
+            Cancelling stops the renewal; it does not cut short a month or a year you have paid for.
+            Your account returns to the <strong>Free plan</strong> on that date.
+          </li>
+          <li>
+            The one exception is a refund. If your payment is refunded under section 2, access ends
+            when the refund is issued — you are not charged, so there is no paid period to run out.
+          </li>
+          <li>
+            Your study progress, streak and readiness score are always kept — cancelling never
+            deletes your data.
           </li>
           <li>
             Cancel <strong>within 7 days</strong> of your first payment and your refund is issued{" "}

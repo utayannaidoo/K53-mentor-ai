@@ -115,12 +115,15 @@ export function PricingSection({
               {/* Name the amount that actually leaves their account. "R40/mo
                   billed yearly" without the R480 total is the kind of omission
                   that reads as a trick the moment the card is charged. */}
-              <div className="mt-1 h-3.5 text-[0.78rem] text-muted-foreground">
+              {/* "billed monthly" describes the amount but not the commitment.
+                  A recurring charge should say it recurs *before* the card is
+                  entered, not first appear on the receipt. */}
+              <div className="mt-1 text-[0.78rem] text-muted-foreground">
                 {isFree
                   ? "No card needed"
                   : annual
-                    ? `${formatZar(annualPrice(plan))} billed yearly`
-                    : "billed monthly"}
+                    ? `${formatZar(annualPrice(plan))} billed yearly, renews automatically`
+                    : "Billed monthly, renews automatically"}
               </div>
 
               <Link

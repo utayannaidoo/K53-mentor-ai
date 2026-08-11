@@ -13,6 +13,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import {
   PLANS,
   PLAN_MAP,
+  MONEY_BACK_DAYS,
   monthlyPrice,
   annualMonthlyPrice,
   annualPrice,
@@ -106,6 +107,48 @@ function BillingInner() {
   const [cardBusy, setCardBusy] = React.useState(false);
 
   /**
+   * Server truth about renewal. Deliberately not in the study store: that is
+   * client state persisted to localStorage, and a stale cached copy telling
+   * someone their access ends on the wrong day is worse than a fetch.
+   */
+  interface BillingStatus {
+    tier?: string;
+    hasBillingAccount?: boolean;
+    cancelAtPeriodEnd?: boolean;
+    currentPeriodEnd?: string | null;
+    refundEligible?: boolean;
+    moneyBackDays?: number;
+  }
+  const [billing, setBilling] = React.useState<BillingStatus | null>(null);
+
+  const loadBilling = React.useCallback(async () => {
+    if (!isSupabaseConfigured) return;
+    try {
+      const res = await fetch("/api/billing/status");
+      setBilling(res.ok ? ((await res.json()) as BillingStatus) : null);
+    } catch {
+      // Non-fatal: the page still works, it just can't name a renewal date.
+      setBilling(null);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    void loadBilling();
+  }, [loadBilling]);
+
+  /** "3 September 2026" — the date someone is actually owed access until. */
+  const formatDate = (iso: string | null | undefined) => {
+    if (!iso) return null;
+    const t = Date.parse(iso);
+    if (!Number.isFinite(t)) return null;
+    return new Date(t).toLocaleDateString("en-ZA", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  /**
    * Send the learner to Paystack's hosted page to attach a new card.
    *
    * The old advice here was "cancel and resubscribe with the new card", which
@@ -141,18 +184,36 @@ function BillingInner() {
     setCancelBusy(true);
     try {
       const res = await fetch("/api/billing/cancel", { method: "POST" });
-      const data = await res
-        .json()
-        .catch(() => ({}) as { error?: string; refunded?: boolean; refundError?: boolean });
+      const data = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        refunded?: boolean;
+        refundError?: boolean;
+        /** true only when the charge was reversed, so access ends now. */
+        endsNow?: boolean;
+        accessUntil?: string | null;
+      };
       if (res.ok) {
-        setTier("free");
         setConfirmingCancel(false);
+        void loadBilling();
+        // Only drop the local tier when access actually ended. Outside the
+        // money-back window the learner keeps everything until the period
+        // runs out, and flipping the store to "free" here would lock them out
+        // of content they have paid for until the next page load corrected it.
+        if (data.endsNow) {
+          setTier("free");
+          setBanner(
+            "Your plan is cancelled and your payment refunded in full — it clears to your card within 5–10 business days.",
+          );
+          return;
+        }
+        const until = formatDate(data.accessUntil);
         setBanner(
-          data.refunded
-            ? "Your plan is cancelled and your payment refunded in full — it clears to your card within 5–10 business days."
-            : data.refundError
-              ? "Your plan is cancelled. We couldn't process the automatic refund — please email us and we'll sort it out right away."
-              : "Your plan is cancelled — you're back on Free.",
+          (until
+            ? `Your plan won't renew. You keep full access until ${until}.`
+            : "Your plan won't renew. You keep full access until the end of the period you've paid for.") +
+            (data.refundError
+              ? " We couldn't process an automatic refund — email us if you were expecting one."
+              : ""),
         );
         return;
       }
@@ -299,8 +360,58 @@ function BillingInner() {
           )}
         </div>
 
+        {/* Said before the card is entered, not first disclosed on the receipt.
+            Shown to everyone who could start a subscription here. */}
+        {state.tier === "free" && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Paid plans renew automatically {cycle === "annual" ? "every year" : "every month"} until
+            you cancel. Cancel any time from this page — you keep access to the end of the period
+            you&apos;ve paid for, and within {MONEY_BACK_DAYS} days of your first payment we refund
+            it in full.
+          </p>
+        )}
+
         {isSupabaseConfigured && state.tier !== "free" && !confirmingCancel && (
           <div className="mt-4">
+            {/* Renewal state, in the two words that matter: does it renew, and
+                until when. Rendered only once the server has answered, so the
+                page never guesses a date. */}
+            {billing?.hasBillingAccount &&
+              (billing.cancelAtPeriodEnd ? (
+                <div className="mb-3 rounded-lg border border-warning/30 bg-warning/[0.08] px-4 py-3">
+                  <p className="text-sm font-medium text-foreground">
+                    Your plan won&apos;t renew
+                    {formatDate(billing.currentPeriodEnd)
+                      ? ` — full access until ${formatDate(billing.currentPeriodEnd)}`
+                      : ""}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Nothing more will be charged. After that date you drop to Free — and since your
+                    free week is already used, that means no daily allowances. Resume any time
+                    before then to keep going without a gap.
+                  </p>
+                  <div className="mt-3">
+                    <Button
+                      size="sm"
+                      onClick={() => choose(PLAN_MAP[state.tier])}
+                      disabled={busy !== null}
+                      aria-busy={busy !== null}
+                    >
+                      {busy ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
+                      Resume {PLAN_MAP[state.tier].name}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="mb-3 text-sm text-muted-foreground">
+                  Renews automatically
+                  {formatDate(billing.currentPeriodEnd)
+                    ? ` on ${formatDate(billing.currentPeriodEnd)}`
+                    : ""}
+                  . Cancel any time.
+                </p>
+              ))}
+
             <div className="flex flex-wrap items-center gap-2">
               <Button
                 variant="outline"
@@ -312,9 +423,11 @@ function BillingInner() {
                 {cardBusy ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
                 Update card
               </Button>
-              <Button variant="outline" size="sm" onClick={() => setConfirmingCancel(true)}>
-                Cancel plan
-              </Button>
+              {!billing?.cancelAtPeriodEnd && (
+                <Button variant="outline" size="sm" onClick={() => setConfirmingCancel(true)}>
+                  Cancel plan
+                </Button>
+              )}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
               Card expired or replaced? Update it here — your plan carries on uninterrupted. We
@@ -325,10 +438,27 @@ function BillingInner() {
         {confirmingCancel && (
           <div className="mt-4 rounded-lg border border-warning/30 bg-warning/[0.08] p-4">
             <p className="text-sm font-medium text-foreground">Cancel your plan?</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              You&apos;ll drop to Free immediately — your progress, streak and readiness all carry over.
-              If you&apos;re within 7 days of your first payment, we&apos;ll refund it in full automatically.
-            </p>
+            {/* Two genuinely different outcomes, and the old copy described
+                only one of them. Inside the money-back window the charge is
+                reversed, so access ends with it; outside it, nothing is
+                refunded and the paid period is still owed. */}
+            {billing?.refundEligible ? (
+              <p className="mt-1 text-xs text-muted-foreground">
+                You&apos;re still inside the {billing.moneyBackDays ?? 7}-day money-back window, so
+                we&apos;ll refund your payment in full automatically and access ends straight away.
+                Your progress, streak and readiness all carry over.
+              </p>
+            ) : (
+              <p className="mt-1 text-xs text-muted-foreground">
+                You keep full access until
+                {formatDate(billing?.currentPeriodEnd)
+                  ? ` ${formatDate(billing?.currentPeriodEnd)}`
+                  : " the end of the period you've paid for"}
+                {" "}— nothing more will be charged and nothing is lost today. After that you drop to
+                Free, and since your free week is already used there are no daily allowances. Your
+                progress, streak and readiness all carry over either way.
+              </p>
+            )}
             <div className="mt-3 flex gap-2">
               <Button
                 size="sm"

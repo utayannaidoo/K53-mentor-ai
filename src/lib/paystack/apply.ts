@@ -134,9 +134,27 @@ export async function applyChargeSuccess(
     // Renewal charges don't carry our checkout metadata. A successful plan
     // charge for a known customer clears any past_due grace state.
     if (data.plan?.plan_code && data.customer?.customer_code) {
+      // Roll the period forward too. Without this the stored end date stays at
+      // the *first* month's, and the billing page would tell a paying
+      // subscriber their access ran out weeks ago. Best-effort: a Paystack
+      // hiccup must not fail a renewal that has already been paid, so the
+      // status update below still runs with whatever we managed to learn.
+      let period: { current_period_end: string } | Record<string, never> = {};
+      try {
+        const customer = await fetchCustomer(data.customer.customer_code);
+        const sub = customer.subscriptions.find(
+          (s) => s.status === "active" && s.plan.plan_code === data.plan!.plan_code,
+        );
+        if (sub?.next_payment_date) {
+          period = { current_period_end: new Date(sub.next_payment_date).toISOString() };
+        }
+      } catch (err) {
+        console.error("applyChargeSuccess: renewal period lookup failed", err);
+      }
+
       const { error } = await admin
         .from("subscriptions")
-        .update({ status: "active" })
+        .update({ status: "active", cancel_at_period_end: false, ...period })
         .eq("provider_customer_id", data.customer.customer_code)
         .neq("tier", "free");
       if (error) throw new Error(`applyChargeSuccess: renewal status update failed: ${error.message}`);
@@ -235,29 +253,43 @@ export async function applyChargeSuccess(
     await disableSubscription(s.subscription_code, s.email_token);
   }
 
-  // Record which Paystack subscription this row represents.
+  // Record which Paystack subscription this row represents, and when the period
+  // it just paid for runs out.
   //
-  // The column has existed since 0008 and has never been written, so
-  // cancellation depends entirely on `provider_customer_id` plus a live
+  // `provider_subscription_id` has existed since 0008 and was never written, so
+  // cancellation depended entirely on `provider_customer_id` plus a live
   // customer fetch — one Paystack outage away from a learner being unable to
-  // cancel, and no help at all when a customer has more than one subscription
-  // and we have to say which one is ours. We already hold the answer here: the
-  // loop above just told us which subscription matches the plan just paid for.
+  // cancel, and no help at all when a customer has more than one subscription.
   //
-  // Best-effort on purpose. It runs after the grant, and a failure to record a
-  // useful-but-not-load-bearing identifier must not throw, because throwing
-  // releases the ledger row and re-runs a charge that has already been applied.
+  // `current_period_end` matters more. It is what someone is owed after they
+  // stop renewing, and Paystack nulls `next_payment_date` the moment a
+  // subscription stops renewing — so it can only be captured *here*, while the
+  // subscription is still live, never at cancellation time when it is gone.
+  //
+  // `cancel_at_period_end` resets to false: a successful charge means billing
+  // is running, whatever was true before. Without this, someone who cancels and
+  // later resubscribes stays flagged as ending.
+  //
+  // Best-effort on purpose. It runs after the grant, and failing to record
+  // these must not throw — throwing releases the ledger row and replays a
+  // charge that has already been applied.
   const current = customer.subscriptions.find(
     (s) => s.status === "active" && s.plan.plan_code === data.plan!.plan_code,
   );
   if (current) {
     const { error } = await admin
       .from("subscriptions")
-      .update({ provider_subscription_id: current.subscription_code })
+      .update({
+        provider_subscription_id: current.subscription_code,
+        cancel_at_period_end: false,
+        ...(current.next_payment_date
+          ? { current_period_end: new Date(current.next_payment_date).toISOString() }
+          : {}),
+      })
       .eq("user_id", userId);
     if (error) {
       console.error(
-        `applyChargeSuccess: could not record subscription code for ${userId}: ${error.message}`,
+        `applyChargeSuccess: could not record subscription state for ${userId}: ${error.message}`,
       );
     }
   }
@@ -268,6 +300,10 @@ export async function applyChargeSuccess(
       firstName: data.customer.first_name ?? "",
       planName: PLAN_MAP[plan].name,
       amountZar: (data.amount ?? 0) / 100,
+      // Naming the next charge date is the disclosure that stops a renewal
+      // being a surprise. Null when Paystack didn't give us one; the template
+      // then says it renews without naming a day, rather than inventing one.
+      renewsOn: current?.next_payment_date ?? null,
     });
     await sendEmail({ to: data.customer.email, ...receipt }).catch(() => {});
   }

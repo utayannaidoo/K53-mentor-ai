@@ -66,9 +66,14 @@ export default function TermsPage() {
           </li>
           <li>Prices are shown in South African Rand and may change with notice.</li>
           <li>
-            You can cancel any time from your billing page; billing stops immediately and your
+            Paid plans renew automatically — monthly or yearly, depending on the cycle you choose —
+            until you cancel.
+          </li>
+          <li>
+            You can cancel any time from your billing page. Billing stops immediately and you keep
+            full access until the end of the period you have already paid for, after which your
             account returns to the Free plan. Cancel within 7 days of your first payment and you
-            are refunded in full automatically — see our{" "}
+            are refunded in full automatically, in which case access ends with the refund — see our{" "}
             <a href="/refunds" className="underline">
               Refund &amp; Cancellation Policy
             </a>

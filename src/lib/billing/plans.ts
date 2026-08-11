@@ -58,6 +58,18 @@ const PREMIUM_DAILY_ITEMS = STUDY_SESSION_SIZE * PREMIUM_SESSIONS_PER_DAY; // 36
 /** How long the free tier's daily allowances keep refilling. */
 export const FREE_TRIAL_DAYS = 7;
 
+/**
+ * Cancel within this many days of the first charge for an automatic full
+ * refund.
+ *
+ * Lives here rather than in subscription-cancel.ts because that module is
+ * `server-only` and this number is a *promise made to the buyer* — it has to be
+ * quotable by the pricing copy and the cancel dialog, which are client
+ * components. A policy the customer is told about and the policy the server
+ * enforces must be the same constant, or they drift and one of them is a lie.
+ */
+export const MONEY_BACK_DAYS = 7;
+
 export interface PlanLimits {
   /**
    * All plans refill daily. Free additionally expires: its allowances reset

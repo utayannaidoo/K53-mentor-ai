@@ -40,10 +40,11 @@ const FAQ_ITEMS = [
         <strong className="font-medium text-foreground">
           Account → Billing &amp; plan → Cancel plan
         </strong>
-        : future billing stops immediately, your account drops back to Free, and all your progress
-        is kept. Cancel within 7 days of your first payment and that payment is refunded in full,
-        automatically, as you cancel. Duplicate or incorrect charges are always refunded too. Full
-        details are in our{" "}
+        : billing stops immediately and you keep full access until the end of the period you have
+        already paid for. Cancel within 7 days of your first payment and that payment is refunded in
+        full, automatically, as you cancel — in that case access ends with the refund. Your progress
+        is kept either way. Duplicate or incorrect charges are always refunded too. Full details are
+        in our{" "}
         <Link href="/refunds" className="underline hover:text-foreground">
           Refund &amp; Cancellation Policy
         </Link>

@@ -123,12 +123,39 @@ export async function POST(req: Request) {
       }
 
       case "subscription.disable": {
+        // Paystack fires this as soon as a subscription is disabled — which is
+        // the moment self-serve cancellation calls /subscription/disable, not
+        // when the paid period runs out.
+        //
+        // Downgrading unconditionally here would therefore undo
+        // cancel-at-period-end entirely: the learner cancels, Paystack pings us
+        // within seconds, and they lose the month they already paid for anyway.
+        // That is precisely the bug this event *looks* like it is preventing.
+        //
+        // So: always stop the renewal, but only drop the tier once the paid
+        // period is actually over (or was never recorded). The date is written
+        // on charge success, and entitlements re-checks it on every request, so
+        // access still ends on time without this event having to be the thing
+        // that ends it.
         const data = payload.data as SubscriptionEventData;
         const customerCode = data.customer?.customer_code;
         if (!customerCode) break;
+
+        const { data: row } = await admin
+          .from("subscriptions")
+          .select("current_period_end")
+          .eq("provider_customer_id", customerCode)
+          .maybeSingle();
+        const endsAt = (row as { current_period_end: string | null } | null)?.current_period_end;
+        const stillPaidFor = endsAt ? Date.parse(endsAt) > Date.now() : false;
+
         const { error } = await admin
           .from("subscriptions")
-          .update({ tier: "free", status: "canceled" })
+          .update(
+            stillPaidFor
+              ? { cancel_at_period_end: true }
+              : { tier: "free", status: "canceled", cancel_at_period_end: false },
+          )
           .eq("provider_customer_id", customerCode);
         if (error) throw new Error(`downgrade failed: ${error.message}`);
         break;

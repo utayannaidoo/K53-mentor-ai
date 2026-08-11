@@ -34,7 +34,17 @@ interface UpdateCall {
 
 const updates: UpdateCall[] = [];
 
-/** Supabase-style chain double: `.update(v).eq(c, v)`, optionally `.select().maybeSingle()`. */
+/**
+ * Row the `subscriptions` SELECT returns. `subscription.disable` reads
+ * `current_period_end` before deciding whether to downgrade, so tests set this
+ * to place the subscription inside or outside its paid period.
+ */
+let subscriptionRow: Record<string, unknown> | null = null;
+
+/**
+ * Supabase-style chain double: `.update(v).eq(c, v)`, and the read chain
+ * `.select(cols).eq(c, v).maybeSingle()`.
+ */
 function makeAdmin() {
   return {
     from(table: string) {
@@ -45,6 +55,13 @@ function makeAdmin() {
         };
       }
       return {
+        select() {
+          return {
+            eq: () => ({
+              maybeSingle: () => Promise.resolve({ data: subscriptionRow, error: null }),
+            }),
+          };
+        },
         update(values: Record<string, unknown>) {
           const call: UpdateCall = { table, values };
           return {
@@ -80,8 +97,54 @@ function send(event: string, data: unknown) {
 
 beforeEach(() => {
   updates.length = 0;
+  subscriptionRow = null;
   process.env.PAYSTACK_SECRET_KEY = "sk_test_stub";
   vi.spyOn(console, "error").mockImplementation(() => {});
+});
+
+describe("subscription.disable", () => {
+  /**
+   * Paystack fires this the moment /subscription/disable is called — which is
+   * during self-serve cancellation, NOT when the paid period runs out. A
+   * blanket downgrade here silently undoes cancel-at-period-end: the learner
+   * cancels, the webhook lands seconds later, and they lose the month they
+   * already paid for anyway.
+   */
+  it("does NOT downgrade while the paid period is still running", async () => {
+    subscriptionRow = {
+      current_period_end: new Date(Date.now() + 12 * 86_400_000).toISOString(),
+    };
+    const res = await send("subscription.disable", {
+      subscription_code: "SUB_1",
+      customer: { customer_code: "CUS_1" },
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].values).toEqual({ cancel_at_period_end: true });
+    expect(updates[0].values).not.toHaveProperty("tier");
+  });
+
+  it("downgrades once the paid period has passed", async () => {
+    subscriptionRow = {
+      current_period_end: new Date(Date.now() - 86_400_000).toISOString(),
+    };
+    await send("subscription.disable", {
+      subscription_code: "SUB_1",
+      customer: { customer_code: "CUS_1" },
+    });
+    expect(updates[0].values).toMatchObject({ tier: "free", status: "canceled" });
+  });
+
+  it("downgrades when no period end was ever recorded", async () => {
+    // Subscriptions that predate current_period_end being written. Keeping
+    // access on an unknown date would be indefinite free access.
+    subscriptionRow = { current_period_end: null };
+    await send("subscription.disable", {
+      subscription_code: "SUB_1",
+      customer: { customer_code: "CUS_1" },
+    });
+    expect(updates[0].values).toMatchObject({ tier: "free", status: "canceled" });
+  });
 });
 
 describe("subscription.not_renew", () => {
