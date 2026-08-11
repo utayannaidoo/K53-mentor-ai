@@ -9,6 +9,7 @@ import {
   resolveEntitlement,
   spendTutorCredit,
 } from "@/lib/billing/entitlements.server";
+import { recordAiUsage } from "@/lib/billing/usage.server";
 import { hasFeature } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
@@ -84,12 +85,17 @@ export async function POST(req: Request) {
       const canTopUp = ent.tier === "premium_plus";
       const usedCredit = canTopUp && (await spendTutorCredit(ent.userId));
       if (!usedCredit) {
+        // Count the refusal before returning. A rising `capped` is the only
+        // signal that an allowance is too low — average usage alone would
+        // never show a learner hitting a wall.
+        await recordAiUsage({ surface: "tutor", userId: ent.userId, tier: ent.tier, capped: true });
         return Response.json(
           { error: "daily_cap", tier: ent.tier, canTopUp, retryAfter: cap.retryAfter },
           { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
         );
       }
     }
+    await recordAiUsage({ surface: "tutor", userId: ent.userId, tier: ent.tier, capped: false });
   }
 
   const { messages, context, profile } = parsed;

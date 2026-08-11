@@ -9,7 +9,8 @@ ordering of what is left.
 
 ## Where the product stands
 
-Live on `https://k53mentorai.co.za` (Vercel). Migrations `0001`→`0020` applied.
+Live on `https://k53mentorai.co.za` (Vercel). Migrations `0001`→`0020` applied;
+**`0021` is written and not yet applied** — see §2.
 Paystack on live keys. 1,296 questions, 974 flashcards, 68 scenarios, ~17 distinct
 mock papers per licence code (re-counted 11 Aug 2026 with `node
 scripts/content-stats.mjs`; the 1,060/~14 figures carried in this doc were stale).
@@ -102,9 +103,14 @@ Three things about this that are not obvious:
   `TUTOR_PROVIDER=anthropic` reverts everything in one env var.
 
 Full arithmetic, the env vars, and the provider comparison (Gemini, GPT budget
-tiers) are in [`ai-cost-model.md`](./ai-cost-model.md). **The number nobody has
-yet is *average* usage** — instrument per-user message counts before touching the
-caps again in either direction.
+tiers) are in [`ai-cost-model.md`](./ai-cost-model.md).
+
+**The number nobody had was real usage**, and both cap changes were made without
+it. Migration **0021** adds `ai_usage_daily` — one aggregate row per user per day
+per surface, plus a `capped` count of requests refused over the allowance — and
+`npm run usage:report` prints the distribution next to the caps. No prompts, no
+replies, nothing about *what* was asked; it can answer "how many" and never "what
+about". Apply 0021 and leave it a fortnight before touching a cap again.
 
 ---
 
@@ -133,7 +139,16 @@ DeepSeek, so until the key is set, Premium Plus runs at 88% of revenue.
 ever gets cleared, `DEEPSEEK_API_KEY` now trips the same throw the other two keys
 do.
 
-### 2. Cost control — do before driving any traffic
+### 2. Apply migration `0021_ai_usage_daily.sql`
+
+- [ ] Run it in the Supabase SQL editor (or `supabase db push`). Until it exists,
+      `recordAiUsage` logs an error per AI request and records nothing — the
+      routes keep working, but the data everyone keeps asking for is not being
+      collected.
+- [ ] Then `npm run usage:report` should print an empty table rather than an
+      error. That is the check that it landed.
+
+### 3. Cost control — do before driving any traffic
 
 The caps bound a *subscriber*. Nothing yet bounds a runaway.
 
@@ -149,7 +164,7 @@ The caps bound a *subscriber*. Nothing yet bounds a runaway.
 All six need an account or a dashboard sign-in, so they are yours. They are
 cheap and they are the difference between a bad week and a bad month.
 
-### 3. Money correctness — the highest-stakes open item
+### 4. Money correctness — the highest-stakes open item
 
 - [ ] **Run `npm run paystack:check`.** Diffs every live Paystack Plan against
       [`plans.ts`](../../src/lib/billing/plans.ts) — amount, currency and
@@ -172,7 +187,7 @@ cheap and they are the difference between a bad week and a bad month.
       on the billing page and confirm it lands on Paystack's hosted page
 - [ ] Settlement account and schedule confirmed
 
-### 4. Finish the mail loop
+### 5. Finish the mail loop
 
 - [ ] Find the forwarded test in the Gmail's **Spam** and mark Not spam
 - [ ] Then flip `SUPPORT_EMAIL` to `support@k53mentorai.co.za` and redeploy
@@ -182,7 +197,7 @@ cheap and they are the difference between a bad week and a bad month.
 - [ ] Test-send to Gmail, Outlook **and** Yahoo; check spam placement
 - [ ] Tighten DMARC to `p=quarantine` after ~2 weeks of reports
 
-### 5. SEO — I can do most of this
+### 6. SEO — I can do most of this
 
 - [ ] **Google Search Console** — sign in, add `k53mentorai.co.za` as a *Domain*
       property. **Paste the TXT token into the next session and it can add the
@@ -192,7 +207,7 @@ cheap and they are the difference between a bad week and a bad month.
       URL as well as the homepage
 - [ ] PageSpeed / Core Web Vitals on the live domain
 
-### 6. Legal — needs information or people I am not
+### 7. Legal — needs information or people I am not
 
 - [~] **`BUSINESS` in [`constants.ts`](../../src/lib/constants.ts) deliberately
       blank.** Decision taken to launch without the ECTA s43 / POPIA s55
@@ -208,7 +223,7 @@ cheap and they are the difference between a bad week and a bad month.
       to a jurisdiction with no comparable regime is the kind of thing worth a
       professional opinion rather than a careful guess
 
-### 7. Pre-flight
+### 8. Pre-flight
 
 - [ ] Audit the ~20 stale remote `claude/*` branches — merge or delete, so the
       first hotfix branches off something clean
@@ -264,7 +279,7 @@ reading before touching the relevant area.
   /subscription/:code/manage/link`), reachable from an "Update card" button on
   the billing page and embedded directly in the failed-payment email, which is
   the moment it is actually needed. Untested against a live subscription — it
-  needs one to exist, so fold it into the real-card end-to-end run in §3.
+  needs one to exist, so fold it into the real-card end-to-end run in §4.
 - ~~`subscriptions.provider_subscription_id` is never written~~ — now recorded on
   the first charge, from the customer fetch the reconciliation step already does.
   Cancellation still *reads* `provider_customer_id`; wiring it to prefer the

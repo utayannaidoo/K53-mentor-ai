@@ -69,8 +69,9 @@ Three levers were available, and they are not mutually exclusive:
    Almost all volume is fast-tier — the escalation threshold is 500 chars, so
    only genuinely long or explicitly confused questions reach the smart model.
 3. **Accept it as a loss leader** on the assumption most subscribers use a
-   fraction of their cap. Plausible, and unverified — instrument actual
-   per-user message counts before betting on it.
+   fraction of their cap. Plausible, and — as of migration 0021 — finally
+   measurable: `npm run usage:report` prints the real distribution against the
+   caps. Read p90, not the mean.
 
 With (2) in place, (1) reverses: 15/35 on V4-Flash costs less than 10/20 did on
 Haiku, so the allowance the learner sees went *up* while the bill went down. That
@@ -92,7 +93,19 @@ notices. Before this matters in practice:
   waiting it out.
 
 Nobody will hit these ceilings on day one either way. The number that matters is
-*average* usage, which is unknown until real traffic exists. Instrument first.
+the *distribution* of real usage, not the ceiling — and every figure in the table
+above prices a subscriber sitting at their cap every single day, which nobody
+does.
+
+`ai_usage_daily` (migration 0021) now records it: one aggregate row per user per
+day per surface, with a `capped` counter for requests refused over the
+allowance. `npm run usage:report` reads it.
+
+**Read p90 against the cap, never the mean.** The mean is dragged down by
+everyone who opened the app and asked one question; a cap only ever binds the
+tail. A p90 comfortably under the cap means the allowance is not what limits
+anyone and the arithmetic above is a worst case that will never happen. A
+non-zero `capped` means it is happening to someone right now.
 
 ## The switch — what shipped
 

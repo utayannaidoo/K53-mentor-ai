@@ -12,7 +12,8 @@
     "lint": "next lint",
     "test": "vitest run",
     "tutor:eval": "node scripts/tutor-eval.mjs",
-    "paystack:check": "node scripts/paystack-reconcile.mjs"
+    "paystack:check": "node scripts/paystack-reconcile.mjs",
+    "usage:report": "node scripts/usage-report.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.106.0",

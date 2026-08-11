@@ -2,6 +2,7 @@ import { z } from "zod";
 import { completeVisionText, chooseProvider } from "@/lib/ai/provider";
 import { clientIp, limitVision, limitUserDaily } from "@/lib/ai/rate-limit";
 import { resolveEntitlement } from "@/lib/billing/entitlements.server";
+import { recordAiUsage } from "@/lib/billing/usage.server";
 
 export const runtime = "nodejs";
 
@@ -101,11 +102,13 @@ export async function POST(req: Request) {
   if (ent.userId) {
     const cap = await limitUserDaily("vision", ent.userId, ent.allowance);
     if (!cap.success) {
+      await recordAiUsage({ surface: "vision", userId: ent.userId, tier: ent.tier, capped: true });
       return Response.json(
         { error: "daily_cap", tier: ent.tier, retryAfter: cap.retryAfter },
         { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
       );
     }
+    await recordAiUsage({ surface: "vision", userId: ent.userId, tier: ent.tier, capped: false });
   }
 
   const userText = parsed.hint
