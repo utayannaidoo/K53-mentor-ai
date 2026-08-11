@@ -88,10 +88,22 @@ describe("verifyResendSignature", () => {
   });
 
   it("ignores signature tokens of an unknown version", () => {
-    const d = delivery();
-    expect(verifyResendSignature({ ...d, svixSignature: d.svixSignature.replace("v1,", "v2,") })).toBe(
-      false,
-    );
+    // Signed correctly, but labelled v2. Built from scratch rather than by
+    // string surgery on delivery()'s output: that helper spreads a Partial of
+    // the argument type, so its svixSignature widens to `string | null` and
+    // calling .replace on it does not typecheck.
+    const body = JSON.stringify({ type: "email.bounced" });
+    const id = "msg_v2";
+    const ts = Math.floor(Date.now() / 1000);
+    expect(
+      verifyResendSignature({
+        rawBody: body,
+        svixId: id,
+        svixTimestamp: String(ts),
+        svixSignature: `v2,${sign(body, id, ts)}`,
+        secret: SECRET,
+      }),
+    ).toBe(false);
   });
 
   it("rejects missing headers rather than throwing", () => {
