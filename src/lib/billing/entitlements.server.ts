@@ -34,7 +34,12 @@ const DAILY_ALLOWANCE: Record<AiSurface, Record<SubscriptionTier, number>> = {
   // ceiling is strictly tighter than what the old lifetime-vs-daily mismatch
   // allowed, where a free account could spend 3 messages every single day
   // server-side while the client believed the pool was lifetime.
-  tutor: { free: 2, premium: 15, premium_plus: 40 },
+  // Lowered from 15/40 on 11 Aug 2026. At Haiku 4.5 rates a subscriber who used
+  // the old Premium Plus allowance every day cost about their whole R70
+  // subscription in tokens, and Premium about 44% of R60 — see
+  // docs/ops/ai-cost-model.md. 20/day is still more tutor than a ten-minute
+  // study session uses; the ceiling was never the product, only the guard.
+  tutor: { free: 2, premium: 10, premium_plus: 20 },
   coach: { free: 12, premium: 60, premium_plus: 100 },
   vision: { free: 0, premium: 12, premium_plus: 25 },
 };
