@@ -47,6 +47,19 @@ export default function ResetPasswordPage() {
             If an account exists for <span className="font-medium text-foreground">{email}</span>,
             we&apos;ve sent a link to reset your password.
           </p>
+          {/*
+            Unlike the confirmation and magic-link emails, this one is a PKCE
+            link: the verifier lives in this browser's cookies, so it can only
+            be completed here. That is deliberate — the recovery session it
+            produces is what /reset-password/update expects — which makes it a
+            thing to explain rather than fix. Said here, before they walk off to
+            their phone, because afterwards the only remedy is starting over.
+          */}
+          <p className="mt-5 rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-left text-sm leading-relaxed text-foreground">
+            <span className="font-medium">Open the link on this device.</span>{" "}
+            A password reset link only works in the browser that asked for it. If you open it
+            somewhere else, come back here and request a new one.
+          </p>
           <Link href="/login" className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:underline">
             <ArrowLeft className="h-4 w-4" /> Back to log in
           </Link>

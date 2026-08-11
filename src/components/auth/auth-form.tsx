@@ -82,8 +82,18 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setLinkError(
       reason === "expired"
         ? "That link has expired or was already used. Log in below — we'll send a fresh one if your email still needs confirming."
-        : reason === "device"
-          ? "That link has to be opened in the same browser you signed up in. Log in below and we'll email you a new one that works anywhere."
+        : // "device" means the PKCE verifier cookie is missing, i.e. the link
+          // was opened somewhere other than the browser that requested it.
+          //
+          // This used to promise "a new one that works anywhere", which was
+          // true while signup confirmation was also PKCE. It no longer is —
+          // confirmation, magic link and email change all use token_hash and
+          // work cross-device — so in practice this now fires for password
+          // reset, where same-browser is deliberate and permanent. Sending
+          // someone away expecting a link without that constraint just
+          // produces the same failure a second time.
+          reason === "device"
+          ? "That reset link has to be opened in the same browser you requested it from. Ask for a new one below and open it on this device."
           : "We couldn't finish that sign-in. Try logging in below.",
     );
   }, [mode]);
