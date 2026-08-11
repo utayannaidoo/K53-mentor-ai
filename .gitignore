@@ -23,14 +23,14 @@ yarn-error.log*
 build.log
 
 # local env files
-.env
-.env*.local
-.env.local
-# Backups and editor scratch copies of the above. Without this, a
-# `.env.local.bak` sits outside every pattern here and git will happily track a
-# file full of live keys.
-.env.local.*
-.env.*.bak*
+#
+# Deny everything starting with .env, then allow back the one file that is
+# meant to be committed. Enumerating patterns instead (.env, .env*.local, …)
+# left real holes: a `.env.local.bak` taken before an edit, or a
+# `.env.vercel` from `vercel env pull`, matched none of them and git would
+# have tracked a file full of live keys. Both of those happened here.
+.env*
+!.env.example
 
 # vercel
 .vercel
