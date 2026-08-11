@@ -150,7 +150,7 @@ export const PLANS: PlanDef[] = [
     caps: {
       flashcardsPerDay: PREMIUM_DAILY_ITEMS,
       questionsPerDay: PREMIUM_DAILY_ITEMS,
-      tutorPerDay: 15,
+      tutorPerDay: 10,
     },
     limits: {
       reset: "daily",
@@ -158,7 +158,7 @@ export const PLANS: PlanDef[] = [
       flashcards: PREMIUM_DAILY_ITEMS,
       questions: PREMIUM_DAILY_ITEMS,
       scenarios: 3,
-      tutorMessages: 15,
+      tutorMessages: 10,
       tutorTopUp: false,
       mockExams: 3,
       miniMocks: 5,
@@ -170,7 +170,7 @@ export const PLANS: PlanDef[] = [
     perks: [
       "3 full flashcard & question sessions a day",
       "Full scenarios — a few a day",
-      "AI tutor — 15 messages a day",
+      "AI tutor — 10 messages a day",
       "3 full mocks + 5 mini mocks & section drills a day",
       "Personalised daily study plan",
       "Full progress history",
@@ -182,14 +182,14 @@ export const PLANS: PlanDef[] = [
     tagline: "Everything unlimited — learner's and driver's, end to end.",
     monthly: 70,
     features: { tutor: true, scenarios: true, licencePrep: true, advancedAnalytics: true, scanner: true },
-    caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 40 },
+    caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 20 },
     limits: {
       reset: "daily",
       diagnostic: "full",
       flashcards: "unlimited",
       questions: "unlimited",
       scenarios: "unlimited",
-      tutorMessages: 40,
+      tutorMessages: 20,
       tutorTopUp: true,
       mockExams: "unlimited",
       miniMocks: "unlimited",
@@ -200,7 +200,7 @@ export const PLANS: PlanDef[] = [
     },
     perks: [
       "Unlimited flashcards, questions & scenarios",
-      "AI tutor — 40 messages a day (cheap top-ups available)",
+      "AI tutor — 20 messages a day (cheap top-ups available)",
       "Unlimited mock exams",
       "Driver's-licence yard-test modules",
       "DLTC eye-test screener",
