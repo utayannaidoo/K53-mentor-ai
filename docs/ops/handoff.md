@@ -151,14 +151,20 @@ cheap and they are the difference between a bad week and a bad month.
 
 ### 3. Money correctness — the highest-stakes open item
 
-- [ ] **Reconcile each Paystack Plan's dashboard amount against
-      [`plans.ts`](../../src/lib/billing/plans.ts)** — `monthly: 60` and
-      `monthly: 70`, annual = `(monthly − 20) × 12`. Checkout sends both an
+- [ ] **Run `npm run paystack:check`.** Diffs every live Paystack Plan against
+      [`plans.ts`](../../src/lib/billing/plans.ts) — amount, currency and
+      interval — and exits non-zero on any mismatch. Checkout sends both an
       amount *and* a plan code, and for a subscription **Paystack bills the
-      Plan's dashboard amount**, not what we send. Nothing in code or CI asserts
-      they agree. A mismatch means the site advertises one price and the card is
-      charged another — a Consumer Protection Act problem, not a bug.
-      *(Today's change touched allowances only. Prices did not move.)*
+      Plan's dashboard amount**, not what we send, so the two can silently
+      disagree: the site advertises one price and the card is charged another,
+      which is a Consumer Protection Act problem rather than a bug. Needs the
+      live secret key, so it is a script, not CI. Run it with `sk_live_…`, not
+      the test key — test-mode Plans are a different set.
+      *(A runtime backstop now exists too: `applyChargeSuccess` compares every
+      charge against the advertised price and emails `SUPPORT_EMAIL` on a
+      mismatch. It still grants the tier — the buyer paid in good faith and the
+      fault is ours. That is detection, not prevention; this script is the
+      prevention.)*
 - [ ] Webhook URL points at `https://k53mentorai.co.za/api/paystack/webhook`
 - [ ] **Live end-to-end with a real card**: pay → webhook writes `subscriptions`
       → tier unlocks → receipt arrives → cancel → refund lands
@@ -255,11 +261,14 @@ reading before touching the relevant area.
 - **No card-update flow.** The billing page tells users to cancel and
   resubscribe, which will churn people whose cards expire. Largest remaining
   support-load item.
-- `subscriptions.provider_subscription_id` is never written; cancellation depends
-  wholly on `provider_customer_id` plus a live Paystack customer fetch.
-- `applyChargeSuccess` grants tier from `metadata.plan` without comparing
-  `amount` or `currency` to the expected price. Metadata is server-set so it is
-  not directly exploitable, but an underpaid charge still grants the tier.
+- ~~`subscriptions.provider_subscription_id` is never written~~ — now recorded on
+  the first charge, from the customer fetch the reconciliation step already does.
+  Cancellation still *reads* `provider_customer_id`; wiring it to prefer the
+  stored code is a follow-up, and only now possible because the column has data.
+- ~~`applyChargeSuccess` grants tier without comparing `amount`~~ — it now
+  compares against `plans.ts` and alerts on a mismatch. It deliberately still
+  grants: metadata is server-set and Paystack sets the amount, so there is no
+  underpayment attack to stop, only our own misconfiguration to catch.
 - No Resend bounce/complaint webhook — hard bounces accumulate invisibly.
 - No welcome email for free signups; the only welcome is bundled into the
   payment receipt.

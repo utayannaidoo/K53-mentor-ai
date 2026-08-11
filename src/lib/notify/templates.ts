@@ -132,6 +132,49 @@ export function buildPaymentFailedEmail(input: { firstName: string; planName: st
 }
 
 /**
+ * Operator alert: Paystack charged an amount the site does not advertise.
+ *
+ * Goes to SUPPORT_EMAIL, never to a customer. Deliberately plain — this is a
+ * page, not marketing, and the person reading it needs the reference and the
+ * two numbers, not a hero heading. The buyer already has their tier; what is
+ * broken is a Plan amount in the Paystack dashboard, and only a human can fix
+ * that.
+ */
+export function buildPriceMismatchAlertEmail(input: {
+  reference: string;
+  plan: string;
+  cycle: string;
+  problem: string;
+  expectedCents: number | null;
+  actualCents: number | null;
+  buyerEmail: string;
+}): EmailContent {
+  const rand = (c: number | null) => (c === null ? "unknown" : `R ${(c / 100).toFixed(2)}`);
+  const subject = `[K53 billing] Price mismatch on ${input.reference}`;
+  const lines = [
+    `Paystack charged an amount that does not match plans.ts.`,
+    ``,
+    `Reference:  ${input.reference}`,
+    `Plan:       ${input.plan} (${input.cycle})`,
+    `Advertised: ${rand(input.expectedCents)}`,
+    `Charged:    ${rand(input.actualCents)}`,
+    `Buyer:      ${input.buyerEmail}`,
+    ``,
+    input.problem,
+    ``,
+    `The tier WAS granted — the buyer paid in good faith and withholding it would`,
+    `punish them for our configuration. What needs fixing is the Plan amount in the`,
+    `Paystack dashboard, or the price in src/lib/billing/plans.ts, whichever is wrong.`,
+    ``,
+    `Run scripts/paystack-reconcile.mjs to see every Plan at once.`,
+  ];
+  const html =
+    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
+    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
+  return { subject, html, text: lines.join("\n") };
+}
+
+/**
  * One-time code to confirm an account deletion. Used by OAuth-only accounts,
  * which have no password to reauthenticate with. `code` is server-generated
  * (digits only) but still escaped, on principle — email HTML never trusts input.
