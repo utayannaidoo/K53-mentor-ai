@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="8 August 2026"
+      updated="11 August 2026"
       intro={`This policy explains what ${APP_NAME} collects, why we collect it, and the choices you have. We collect as little as we can get away with — your study data exists to teach you, not to sell you.`}
     >
       <section>
@@ -100,9 +100,11 @@ export default function PrivacyPage() {
             directly; we never receive them.
           </li>
           <li>
-            <strong>Anthropic</strong> and <strong>OpenAI</strong> — the AI tutor. Receive your
-            question and a short summary of your study context, without your name, email or payment
-            details.
+            <strong>DeepSeek</strong>, <strong>Anthropic</strong> and <strong>OpenAI</strong> — the
+            AI tutor and the sign scanner. Receive your question and a short summary of your study
+            context, without your name, email or payment details. DeepSeek answers most tutor
+            messages and is based in China; the others handle anything involving a photo, and stand
+            in when DeepSeek is unavailable.
           </li>
           <li>
             <strong>Resend</strong> — transactional and reminder email. Receives your email address
@@ -123,10 +125,21 @@ export default function PrivacyPage() {
         <p>
           Every provider listed above operates outside South Africa, so using this service means
           your personal information is processed abroad — principally in the European Union and the
-          United States. Section 72 of POPIA allows this where the transfer is necessary to perform
-          the contract between us, which is the basis we rely on: we cannot host your account,
-          process your payment, or generate a tutor reply without sending the relevant data to the
-          provider that does it.
+          United States, and, for most AI tutor messages, in <strong>China</strong>, where DeepSeek
+          is based. Section 72 of POPIA allows this where the transfer is necessary to perform the
+          contract between us, which is the basis we rely on: we cannot host your account, process
+          your payment, or generate a tutor reply without sending the relevant data to the provider
+          that does it.
+        </p>
+        <p>
+          We want to be specific about the China transfer rather than bury it in a list. What is
+          sent is the question you type and a short summary of your study context — which topics
+          you are weak on, and the item you asked about. Your name, email address, payment details
+          and account identifier are not included. China has no data-protection law that South
+          Africa recognises as comparable to POPIA, so we rely on DeepSeek&rsquo;s published
+          processing terms rather than on its home jurisdiction. If you would rather no tutor
+          message left for China, do not use the AI tutor; every other part of the app — questions,
+          flashcards, mocks, scenarios and progress — works without it.
         </p>
         <p>
           We choose providers that publish a data-processing agreement and commit to protection

@@ -13,7 +13,7 @@ export const runtime = "nodejs";
  * The full content bank, for subscribers.
  *
  * Only the starter pack (src/lib/content/starter.ts) ships in the browser
- * bundle. Everything else — 1,060 questions, 798 flashcards, 68 scenarios and
+ * bundle. Everything else — the full 1,296 questions, 974 flashcards, 68 scenarios and
  * the licence-prep modules — comes from here, behind the same server-side tier
  * check that guards AI spend. This is what makes the paywall real: before it,
  * every gate was `hasFeature(state.tier, …)` read from localStorage, so the

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { completeCoachText } from "@/lib/ai/provider";
 import { clientIp, limitCoach, limitUserDaily } from "@/lib/ai/rate-limit";
 import { resolveEntitlement } from "@/lib/billing/entitlements.server";
+import { recordAiUsage } from "@/lib/billing/usage.server";
 import {
   localPlanRationale,
   localSecondOpinion,
@@ -112,11 +113,13 @@ export async function POST(req: Request) {
   if (ent.userId) {
     const cap = await limitUserDaily("coach", ent.userId, ent.allowance);
     if (!cap.success) {
+      await recordAiUsage({ surface: "coach", userId: ent.userId, tier: ent.tier, capped: true });
       return Response.json(
         { error: "daily_cap", tier: ent.tier, retryAfter: cap.retryAfter },
         { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
       );
     }
+    await recordAiUsage({ surface: "coach", userId: ent.userId, tier: ent.tier, capped: false });
   }
 
   const local =

@@ -1,8 +1,10 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
-import { buildPaymentReceiptEmail } from "@/lib/notify/templates";
+import { buildPaymentReceiptEmail, buildPriceMismatchAlertEmail } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
+import { checkChargeAmount } from "@/lib/billing/charge-amount";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 import { fetchCustomer, disableSubscription, type PaystackTransaction } from "@/lib/paystack/client";
 
 /**
@@ -15,6 +17,8 @@ export interface ChargeSuccessData {
   reference: string;
   /** Amount paid, in ZAR cents. */
   amount?: number;
+  /** Settlement currency. Read only to notice when it is not ZAR. */
+  currency?: string;
   customer: { customer_code: string; email: string; first_name?: string | null };
   metadata?: Record<string, string> | null;
   plan?: { plan_code?: string } | null;
@@ -56,6 +60,7 @@ export function normaliseTransaction(tx: PaystackTransaction): ChargeSuccessData
     id: tx.id,
     reference: tx.reference,
     amount: tx.amount,
+    currency: tx.currency,
     customer: tx.customer,
     metadata,
     plan: planCode ? { plan_code: planCode } : null,
@@ -153,6 +158,39 @@ export async function applyChargeSuccess(
   // A plan-less charge with kind !== tutor_topup isn't one of ours.
   const plan = meta.plan;
   if ((plan !== "premium" && plan !== "premium_plus") || !data.plan?.plan_code) return;
+
+  // Did Paystack charge what the site advertises? Checkout sends an amount AND
+  // a Plan code, and Paystack bills the *Plan's* dashboard amount — so the two
+  // can silently disagree and nothing outside that dashboard would notice.
+  //
+  // The grant continues either way, deliberately. See charge-amount.ts: the
+  // realistic cause is a wrong number in the Paystack dashboard, and the person
+  // who would pay for refusing is a customer who has already paid us.
+  const amountCheck = checkChargeAmount({
+    plan,
+    cycle: meta.cycle,
+    actualCents: data.amount,
+    currency: data.currency,
+  });
+  if (amountCheck.problem) {
+    console.error(
+      `PRICE MISMATCH on charge ${data.reference}: ${amountCheck.problem} ` +
+        `Tier was granted anyway — the buyer paid in good faith.`,
+    );
+    if (isEmailConfigured) {
+      const alert = buildPriceMismatchAlertEmail({
+        reference: data.reference,
+        plan: PLAN_MAP[plan].name,
+        cycle: meta.cycle ?? "unrecorded",
+        problem: amountCheck.problem,
+        expectedCents: amountCheck.expectedCents,
+        actualCents: amountCheck.actualCents,
+        buyerEmail: data.customer.email,
+      });
+      await sendEmail({ to: SUPPORT_EMAIL, ...alert }).catch(() => {});
+    }
+  }
+
   const { error: grantError } = await admin.from("subscriptions").upsert(
     {
       user_id: userId,
@@ -195,6 +233,33 @@ export async function applyChargeSuccess(
   );
   for (const s of stale) {
     await disableSubscription(s.subscription_code, s.email_token);
+  }
+
+  // Record which Paystack subscription this row represents.
+  //
+  // The column has existed since 0008 and has never been written, so
+  // cancellation depends entirely on `provider_customer_id` plus a live
+  // customer fetch — one Paystack outage away from a learner being unable to
+  // cancel, and no help at all when a customer has more than one subscription
+  // and we have to say which one is ours. We already hold the answer here: the
+  // loop above just told us which subscription matches the plan just paid for.
+  //
+  // Best-effort on purpose. It runs after the grant, and a failure to record a
+  // useful-but-not-load-bearing identifier must not throw, because throwing
+  // releases the ledger row and re-runs a charge that has already been applied.
+  const current = customer.subscriptions.find(
+    (s) => s.status === "active" && s.plan.plan_code === data.plan!.plan_code,
+  );
+  if (current) {
+    const { error } = await admin
+      .from("subscriptions")
+      .update({ provider_subscription_id: current.subscription_code })
+      .eq("user_id", userId);
+    if (error) {
+      console.error(
+        `applyChargeSuccess: could not record subscription code for ${userId}: ${error.message}`,
+      );
+    }
   }
 
   // Receipt + welcome (best-effort; the ledger already made this once-only).

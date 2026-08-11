@@ -73,17 +73,24 @@ The schema (`0001_init.sql`) creates every table with **Row Level Security** so 
 touch their own rows, plus a trigger that bootstraps a profile, streak and free subscription on
 sign-up. `0002_seed.sql` seeds categories, licence modules and representative content.
 
-### AI tutor (Anthropic preferred, OpenAI fallback)
+### AI tutor (DeepSeek first, Anthropic fallback)
 
 ```
-ANTHROPIC_API_KEY=...            # preferred provider
-OPENAI_API_KEY=...               # optional fallback
-TUTOR_PROVIDER=                  # force one: anthropic|openai|local
+DEEPSEEK_API_KEY=...             # default provider — ~9x cheaper per message
+ANTHROPIC_API_KEY=...            # fallback, and the only path for images
+OPENAI_API_KEY=...               # optional second fallback
+TUTOR_PROVIDER=                  # force one: deepseek|anthropic|openai|local
 ```
 
-The tutor route (`src/app/api/tutor/route.ts`) cascades Anthropic → OpenAI → the built-in
-rule-based explainer, tiers fast/smart models for cost control, and falls back gracefully on
-any error. See `.env.example` for model overrides and token caps.
+The tutor route (`src/app/api/tutor/route.ts`) cascades DeepSeek → Anthropic → OpenAI → the
+built-in rule-based explainer, tiers fast/smart models for cost control, and falls back
+gracefully on any error. DeepSeek leads because its rates are what make the daily tutor
+allowances in `src/lib/billing/plans.ts` affordable — see `docs/ops/ai-cost-model.md`.
+
+**Images are the exception.** DeepSeek's API is text-only, so the sign scanner and any photo
+attached to a tutor message skip it and go to Anthropic or OpenAI. With neither key set, those
+features honestly report themselves unavailable rather than answering blind. See `.env.example`
+for model overrides and token caps.
 
 ### Paystack (billing)
 

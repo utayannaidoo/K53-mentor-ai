@@ -1,4 +1,5 @@
 import "server-only";
+import { isSuppressed } from "@/lib/notify/suppression";
 
 /**
  * Minimal transactional email sender (Resend REST API via fetch — no SDK
@@ -19,6 +20,14 @@ export const isEmailConfigured = Boolean(process.env.RESEND_API_KEY);
 export async function sendEmail(msg: EmailMessage): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return false;
+
+  // Never mail an address that hard-bounced or reported us as spam. Both are
+  // permanent signals, and continuing to send is what turns a bad address into
+  // a bad domain reputation — which eventually lands the signup confirmations
+  // in Junk too. Returns false, like any other not-sent outcome, so the callers
+  // that record a send ledger (the reminder cron) correctly don't record one.
+  if (await isSuppressed(msg.to)) return false;
+
   const from = process.env.NOTIFY_FROM_EMAIL ?? "K53 Mentor <onboarding@resend.dev>";
 
   try {

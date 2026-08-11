@@ -44,6 +44,18 @@ function footerHtml(kind: FooterKind): string {
       </p>`;
 }
 
+/**
+ * `ctaPath` is normally an in-app path ("/dashboard") and gets SITE_URL
+ * prefixed. One email — the dunning nudge — needs to point at Paystack's hosted
+ * card-update page instead, so an absolute `https://` URL is passed through
+ * untouched. Without this, the prefix would silently produce
+ * `https://k53mentorai.co.zahttps://paystack.com/…` in the one email whose
+ * whole purpose is that link.
+ */
+function ctaHref(ctaPath: string): string {
+  return /^https?:\/\//i.test(ctaPath) ? ctaPath : `${SITE_URL}${ctaPath}`;
+}
+
 function wrap(
   bodyHtml: string,
   ctaLabel: string,
@@ -57,7 +69,7 @@ function wrap(
       <p style="font-size:15px;font-weight:700;color:${BRAND};margin:0 0 20px;">K53 Mentor AI</p>
       <div style="background:#ffffff;border-radius:14px;padding:28px;border:1px solid #e4e7e5;">
         ${bodyHtml}
-        <a href="${SITE_URL}${ctaPath}"
+        <a href="${ctaHref(ctaPath)}"
            style="display:inline-block;margin-top:20px;background:${BRAND};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:12px 22px;border-radius:10px;">
           ${ctaLabel}
         </a>
@@ -111,24 +123,132 @@ export function buildPaymentReceiptEmail(input: {
   return { subject, html, text };
 }
 
-/** Dunning nudge, sent when a subscription renewal charge fails. */
-export function buildPaymentFailedEmail(input: { firstName: string; planName: string }): EmailContent {
+/**
+ * Welcome, sent once when an account is first confirmed.
+ *
+ * Free signups previously got nothing — the only welcome in the system was
+ * bundled into the payment receipt, so the people still deciding whether to pay
+ * were the ones who heard from us least. This is also the email that sets the
+ * expectation the whole product rests on: ten minutes a day, not cramming.
+ *
+ * Deliberately not a sales pitch. It names the free week honestly, including
+ * that it ends, and points at the one action worth taking first. The upgrade
+ * argument is the product working, not this email.
+ */
+export function buildWelcomeEmail(input: {
+  firstName: string;
+  trialDays: number;
+}): EmailContent {
   const name = esc(input.firstName) || "there";
-  const plan = esc(input.planName);
-  const subject = "Your K53 Mentor payment didn't go through";
+  const days = input.trialDays;
+  const subject = "Welcome to K53 Mentor AI — start with the diagnostic";
   const text =
-    `Hi ${input.firstName || "there"} — the renewal payment for your ${input.planName} plan didn't go through. ` +
-    `No stress: your plan is still active while we retry. If your card details changed, cancel and resubscribe with the new card.\n\n` +
-    `Billing: ${SITE_URL}/account/billing`;
+    `Hi ${input.firstName || "there"} — welcome aboard.\n\n` +
+    `Start with the diagnostic. It takes about five minutes and works out which topics ` +
+    `you're actually weak on, so your daily practice goes there instead of spreading thin.\n\n` +
+    `Your free week: full flashcards and questions every day for ${days} days, a mini mock ` +
+    `daily, and the AI tutor. It refills each morning and stops after ${days} days.\n\n` +
+    `What passes this test is ten minutes a day, not one long cram the night before. ` +
+    `The whole app is built around that.\n\nStart here: ${SITE_URL}/dashboard`;
   const html = wrap(
-    h("Your renewal payment didn't go through") +
-      p(`Hi ${name} — the renewal for your <strong>${plan}</strong> plan failed, usually a card that expired or changed.`) +
-      p("Your plan stays active while the payment is retried. If your card details changed, the quickest fix is to cancel and resubscribe with the new card."),
-    "Fix my billing",
-    "/account/billing",
+    h("Welcome — let's find what you actually need to study") +
+      p(`Hi ${name}, good to have you.`) +
+      p(
+        "<strong>Start with the diagnostic.</strong> It takes about five minutes and works out which topics you're actually weak on, so your daily practice goes there instead of spreading thin across everything.",
+      ) +
+      p(
+        `Your free week gives you full flashcards and questions every day for ${days} days, a mini mock daily, and the AI tutor. It refills each morning and stops after ${days} days.`,
+      ) +
+      p(
+        "One thing worth knowing: what passes this test is ten minutes a day, not one long cram the night before. The whole app is built around that.",
+      ),
+    "Start the diagnostic",
+    "/dashboard",
     "transactional",
   );
   return { subject, html, text };
+}
+
+/**
+ * Dunning nudge, sent when a subscription renewal charge fails.
+ *
+ * `manageUrl` is Paystack's hosted card-update page for this exact
+ * subscription. When we can generate it, it goes straight in the email: this
+ * message arrives *because* a card needs replacing, so making the reader sign
+ * in and find a button first is friction at the worst possible moment. When we
+ * can't (Paystack unreachable), the CTA falls back to the billing page, which
+ * has the same button behind one more click.
+ *
+ * It used to say "cancel and resubscribe with the new card" — advice that asked
+ * someone whose payment had just failed to give up their subscription first.
+ */
+export function buildPaymentFailedEmail(input: {
+  firstName: string;
+  planName: string;
+  manageUrl?: string | null;
+}): EmailContent {
+  const name = esc(input.firstName) || "there";
+  const plan = esc(input.planName);
+  const subject = "Your K53 Mentor payment didn't go through";
+  const fixUrl = input.manageUrl || `${SITE_URL}/account/billing`;
+  const text =
+    `Hi ${input.firstName || "there"} — the renewal payment for your ${input.planName} plan didn't go through, ` +
+    `usually a card that expired or was replaced. No stress: your plan stays active while we retry.\n\n` +
+    `Update your card: ${fixUrl}\n\n` +
+    `The card form is hosted by Paystack — we never see your card details.`;
+  const html = wrap(
+    h("Your renewal payment didn't go through") +
+      p(`Hi ${name} — the renewal for your <strong>${plan}</strong> plan failed, usually a card that expired or was replaced.`) +
+      p("Your plan stays active while the payment is retried. Putting a new card on it takes a minute and nothing else changes — same plan, same price, no gap.") +
+      p(`<span style="color:#8a938e;font-size:12px;">The card form is hosted by Paystack; we never see your card details.</span>`),
+    "Update my card",
+    fixUrl, // absolute Paystack link or the billing page — ctaHref handles both
+    "transactional",
+  );
+  return { subject, html, text };
+}
+
+/**
+ * Operator alert: Paystack charged an amount the site does not advertise.
+ *
+ * Goes to SUPPORT_EMAIL, never to a customer. Deliberately plain — this is a
+ * page, not marketing, and the person reading it needs the reference and the
+ * two numbers, not a hero heading. The buyer already has their tier; what is
+ * broken is a Plan amount in the Paystack dashboard, and only a human can fix
+ * that.
+ */
+export function buildPriceMismatchAlertEmail(input: {
+  reference: string;
+  plan: string;
+  cycle: string;
+  problem: string;
+  expectedCents: number | null;
+  actualCents: number | null;
+  buyerEmail: string;
+}): EmailContent {
+  const rand = (c: number | null) => (c === null ? "unknown" : `R ${(c / 100).toFixed(2)}`);
+  const subject = `[K53 billing] Price mismatch on ${input.reference}`;
+  const lines = [
+    `Paystack charged an amount that does not match plans.ts.`,
+    ``,
+    `Reference:  ${input.reference}`,
+    `Plan:       ${input.plan} (${input.cycle})`,
+    `Advertised: ${rand(input.expectedCents)}`,
+    `Charged:    ${rand(input.actualCents)}`,
+    `Buyer:      ${input.buyerEmail}`,
+    ``,
+    input.problem,
+    ``,
+    `The tier WAS granted — the buyer paid in good faith and withholding it would`,
+    `punish them for our configuration. What needs fixing is the Plan amount in the`,
+    `Paystack dashboard, or the price in src/lib/billing/plans.ts, whichever is wrong.`,
+    ``,
+    `Run scripts/paystack-reconcile.mjs to see every Plan at once.`,
+  ];
+  const html =
+    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
+    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
+  return { subject, html, text: lines.join("\n") };
 }
 
 /**

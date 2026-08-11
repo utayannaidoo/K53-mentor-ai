@@ -1,6 +1,6 @@
 import type { CardState, SrsRating, UserState } from "@/types";
 // Difficulty is the only question field CP scoring reads, so take it from the
-// planning index rather than dragging all 1,060 questions — prompts, options,
+// planning index rather than dragging the whole question bank — prompts, options,
 // answers and explanations — into every bundle that awards a point.
 import { QUESTION_DIFFICULTY } from "@/lib/content/meta";
 

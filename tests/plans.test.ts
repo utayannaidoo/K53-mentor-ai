@@ -56,10 +56,10 @@ describe("feature gates", () => {
   // The client cap and the server allowance in entitlements.server.ts are the
   // same number written twice, and only the server one is enforced. If they
   // drift, the UI promises an allowance the API refuses — so this pins both.
-  it("tutor caps mirror the server allowances (2/10/20)", () => {
+  it("tutor caps mirror the server allowances (2/15/35)", () => {
     expect(dailyCap("free", "tutorPerDay")).toBe(2);
-    expect(dailyCap("premium", "tutorPerDay")).toBe(10);
-    expect(dailyCap("premium_plus", "tutorPerDay")).toBe(20);
+    expect(dailyCap("premium", "tutorPerDay")).toBe(15);
+    expect(dailyCap("premium_plus", "tutorPerDay")).toBe(35);
   });
 });
 
