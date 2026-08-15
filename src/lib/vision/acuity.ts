@@ -133,6 +133,30 @@ export function firstRenderableIndex(
   return i === -1 ? ACUITY_LEVELS.length - 1 : i;
 }
 
+/**
+ * The rungs a ladder may use on a chart `availablePx` tall.
+ *
+ * `start` is the largest optotype that fits in half the chart; `max` is the
+ * last one still big enough to be a letter rather than a smudge. Both come from
+ * one call so they cannot be derived from different measurements — the eyes
+ * disagreeing about how many letters they were shown was exactly that, one eye
+ * sized against an unmeasured chart and the next two against a measured one.
+ */
+export function ladderBounds(
+  distanceMm: number,
+  pxPerMm: number,
+  availablePx: number,
+  minOptotypePx: number,
+): { startIndex: number; maxIndex: number } {
+  const startIndex = firstRenderableIndex(distanceMm, pxPerMm, availablePx * 0.5);
+  let maxIndex = startIndex;
+  for (let i = startIndex; i < ACUITY_LEVELS.length; i++) {
+    if (optotypeHeightPx(ACUITY_LEVELS[i].denominator, distanceMm, pxPerMm) < minOptotypePx) break;
+    maxIndex = i;
+  }
+  return { startIndex, maxIndex };
+}
+
 /** The four orientations an E can take; the value is the direction its bars point. */
 export const E_DIRECTIONS = ["right", "down", "left", "up"] as const;
 export type EDirection = (typeof E_DIRECTIONS)[number];
