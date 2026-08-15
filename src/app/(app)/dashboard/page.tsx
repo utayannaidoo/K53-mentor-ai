@@ -10,8 +10,8 @@ import { ComebackCard } from "@/components/dashboard/comeback-card";
 import { TodayHero } from "@/components/dashboard/today-hero";
 import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
 import { RoadProgress } from "@/components/engagement/road-progress";
-import { WeakAreas } from "@/components/dashboard/weak-areas";
-import { TrendChart } from "@/components/dashboard/trend-chart";
+import { MasteryRail } from "@/components/dashboard/mastery-rail";
+import { ReadinessChartCard } from "@/components/dashboard/readiness-chart-card";
 import { TestCountdown } from "@/components/dashboard/test-countdown";
 import { Reveal } from "@/components/shared/reveal";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -20,9 +20,9 @@ import { blockingSection } from "@/lib/diagnostic/scoring";
 import { isCramWindow, daysUntilTest } from "@/lib/learning/cram";
 import { openMistakes } from "@/lib/learning/mistakes";
 import { categoryName } from "@/lib/content/categories";
-import { hasFeature, PLAN_MAP } from "@/lib/billing/plans";
+import { CODE_LABEL, hasFeature, PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
 import { topAlert } from "@/lib/dashboard/alerts";
-import { cn, daysUntil, glass } from "@/lib/utils";
+import { cn, daysUntil } from "@/lib/utils";
 
 /**
  * Today.
@@ -48,6 +48,8 @@ export default function DashboardPage() {
   const tasks = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(tasks.map((t) => [t.id, isTaskDone(t, state)]));
   const nextTask = tasks.find((t) => !doneMap[t.id]) ?? null;
+  const doneCount = tasks.filter((t) => doneMap[t.id]).length;
+  const planDonePct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
 
   const focus = planFocus(state, readiness);
   const rationaleInput = {
@@ -76,12 +78,14 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-5xl">
       <TodayHero
         firstName={firstName}
+        vehicleLabel={CODE_LABEL[studyCodeOf(state)]}
         readiness={readiness.readiness}
         passProbability={readiness.passProbability}
         delta={delta}
         streak={state.streak.current}
         cp={state.cp}
         daysToTest={daysUntil(state.onboarding?.testDate ?? null)}
+        planDonePct={planDonePct}
         nextTask={nextTask}
       />
 
@@ -146,7 +150,7 @@ export default function DashboardPage() {
 
         <div className="min-w-0 space-y-5">
           <Reveal delay={80}>
-            <WeakAreas
+            <MasteryRail
               perCategory={readiness.perCategory}
               hasAttempts={state.attempts.length > 0}
             />
@@ -180,21 +184,9 @@ export default function DashboardPage() {
       </Reveal>
 
       <Reveal delay={160}>
-        <Card className={cn(glass, "mt-5 p-6")}>
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold">Readiness trend</h2>
-            <Link
-              href="/dashboard/progress"
-              className="text-xs font-medium text-primary hover:underline"
-            >
-              Detailed progress
-            </Link>
-          </div>
-          <div className="mt-4">
-            <TrendChart data={state.readinessHistory} />
-          </div>
-        </Card>
+        <ReadinessChartCard data={state.readinessHistory} current={readiness.readiness} />
       </Reveal>
+
     </div>
   );
 }
