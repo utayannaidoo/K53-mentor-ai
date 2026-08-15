@@ -36,23 +36,29 @@ const LICENCE_PREP_ICON = { car: Car, motorcycle: Bike, heavy: Truck } as const;
 interface NavItem {
   href: string;
   label: string;
+  /**
+   * Compact label for the mobile tab bar, where six cells split the viewport.
+   * "Licence Prep" needs ~75px of the ~62px a cell gets on a 375px phone.
+   */
+  shortLabel?: string;
   icon: typeof LayoutDashboard;
   match: (path: string) => boolean;
   lockedForFree?: boolean;
 }
 
+/**
+ * One list drives both navs. The mobile bar used to carry a filtered subset,
+ * which left Licence Prep — and the eye test, only linked from it — with no
+ * entry point at all on a phone, since the sidebar is `display: none` there.
+ */
 const NAV: NavItem[] = [
   { href: "/dashboard", label: "Today", icon: LayoutDashboard, match: (p) => p === "/dashboard" },
   { href: "/study", label: "Study", icon: GraduationCap, match: (p) => p.startsWith("/study") },
   { href: "/tutor", label: "Tutor", icon: MessageSquareText, match: (p) => p.startsWith("/tutor") },
   { href: "/dashboard/progress", label: "Progress", icon: LineChart, match: (p) => p === "/dashboard/progress" },
-  { href: "/licence-prep", label: "Licence Prep", icon: Car, match: (p) => p.startsWith("/licence-prep"), lockedForFree: true },
+  { href: "/licence-prep", label: "Licence Prep", shortLabel: "Licence", icon: Car, match: (p) => p.startsWith("/licence-prep"), lockedForFree: true },
   { href: "/account", label: "Account", icon: Settings, match: (p) => p.startsWith("/account") },
 ];
-
-const MOBILE_NAV = NAV.filter((n) =>
-  ["/dashboard", "/study", "/tutor", "/dashboard/progress", "/account"].includes(n.href),
-);
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { ready, accountHydrated, isAuthed, state } = useStudyStore();
@@ -81,6 +87,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Belt and braces alongside groupOf's own fallback: an undefined value here
   // gets rendered as a component and takes the whole authed app down.
   const LicencePrepIcon = LICENCE_PREP_ICON[vehicleGroup] ?? Car;
+  const prepLocked = !hasFeature(state.tier, "licencePrep");
+  const iconFor = (item: NavItem) =>
+    item.href === "/licence-prep" ? LicencePrepIcon : item.icon;
 
   return (
     <div className="flex min-h-dvh bg-background bg-app">
@@ -92,12 +101,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="mt-6 flex flex-1 flex-col gap-1">
           {NAV.map((item) => {
             const active = item.match(pathname);
-            const locked = item.lockedForFree && !hasFeature(state.tier, "licencePrep");
-            const ItemIcon = item.href === "/licence-prep" ? LicencePrepIcon : item.icon;
+            const locked = item.lockedForFree && prepLocked;
+            const ItemIcon = iconFor(item);
             return (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
                   "press flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
                   active
@@ -164,19 +174,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="glass-panel fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t md:hidden">
-        {MOBILE_NAV.map((item) => {
+        {NAV.map((item) => {
           const active = item.match(pathname);
+          const locked = item.lockedForFree && prepLocked;
+          const ItemIcon = iconFor(item);
           return (
             <Link
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className={cn(
-                "flex flex-1 flex-col items-center gap-1 py-2.5 text-2xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40",
+                "flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-2xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40",
                 active ? "text-primary" : "text-muted-foreground",
               )}
             >
-              <item.icon className="h-5 w-5" />
-              {item.label}
+              {/* The lock rides the icon — six cells leave no room beside the label. */}
+              <span className="relative inline-flex">
+                <ItemIcon className="h-5 w-5" />
+                {locked && (
+                  <Lock className="absolute -right-1.5 -top-0.5 h-2.5 w-2.5 opacity-60" />
+                )}
+              </span>
+              <span className="w-full truncate text-center">{item.shortLabel ?? item.label}</span>
             </Link>
           );
         })}
