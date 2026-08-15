@@ -68,6 +68,16 @@ describe("a level always asks exactly PER_LEVEL letters", () => {
     }
   });
 
+  it("leaves the final count standing on a banked stage", () => {
+    // Deliberate — the transcript needs it — but it means `asked` reads
+    // PER_LEVEL, not 0, in every render between banking an eye and leaving the
+    // testing phase. Rendering it raw there is what flashed "Letter 5 of 4" at
+    // the end of every eye, so the view gates its counters on `status`.
+    const done = playBlind(started(6, 7));
+    expect(done.asked).toBe(PER_LEVEL);
+    expect(done.status).not.toBe("running");
+  });
+
   it("ignores input once the eye is banked", () => {
     // Trailing key-repeat after the last letter must not reopen the ladder.
     const done = playBlind(started(5, 7));
