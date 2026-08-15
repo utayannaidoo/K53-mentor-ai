@@ -10,6 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { Reveal } from "@/components/shared/reveal";
+import { EXAM_FORMAT } from "@/lib/constants";
 import { Stagger } from "@/components/shared/stagger";
 
 interface Feature {
@@ -47,7 +48,7 @@ const FEATURES: Feature[] = [
   {
     icon: ClipboardCheck,
     title: "Mock exam",
-    body: "A full 68-question, 51-to-pass simulation with category breakdown and a complete mistake review.",
+    body: `A full ${EXAM_FORMAT.totalQuestions}-question, ${EXAM_FORMAT.passMark}-to-pass simulation with category breakdown and a complete mistake review.`,
   },
   {
     icon: Car,

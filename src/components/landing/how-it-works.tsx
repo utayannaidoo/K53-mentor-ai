@@ -2,6 +2,16 @@
 
 import * as React from "react";
 import { Check } from "lucide-react";
+import { EXAM_FORMAT } from "@/lib/constants";
+
+/**
+ * The illustrative mock score on the "Pass" step. A number, not a ratio: the
+ * denominator, the "needed to pass" line and the bar below all read it from
+ * EXAM_FORMAT, so the panel cannot end up quoting an exam the app doesn't sit.
+ * It said 62/68 for months while the real paper — and every in-app screen — was
+ * 64 questions.
+ */
+const DEMO_MOCK_SCORE = 58;
 
 const STEPS = [
   {
@@ -22,7 +32,7 @@ const STEPS = [
   {
     n: "04",
     title: "Pass",
-    body: "Walk into the 68-question mock, then the real test, consistently clearing the line.",
+    body: `Walk into the ${EXAM_FORMAT.totalQuestions}-question mock, then the real test, consistently clearing the line.`,
   },
 ];
 
@@ -73,7 +83,7 @@ export function HowItWorks() {
       return;
     }
     if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
-      setMockScore(62);
+      setMockScore(DEMO_MOCK_SCORE);
       return;
     }
     let raf = 0;
@@ -81,7 +91,7 @@ export function HowItWorks() {
       const t0 = performance.now();
       const tick = (now: number) => {
         const p = Math.min(1, (now - t0) / 1600);
-        setMockScore(Math.round(62 * (1 - Math.pow(1 - p, 3))));
+        setMockScore(Math.round(DEMO_MOCK_SCORE * (1 - Math.pow(1 - p, 3))));
         if (p < 1) raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
@@ -271,15 +281,22 @@ export function HowItWorks() {
                 Mock exam passed
               </span>
               <div className="mt-[18px] font-mono text-[44px] font-semibold leading-none tracking-[-0.03em] text-success board:text-[56px]">
-                {mockScore}<span className="text-2xl text-muted-foreground">/68</span>
+                {mockScore}
+                <span className="text-2xl text-muted-foreground">
+                  /{EXAM_FORMAT.totalQuestions}
+                </span>
               </div>
               <p className="mt-2 text-[0.95rem] text-muted-foreground">
-                51 needed to pass · you&apos;re consistently clearing it
+                {EXAM_FORMAT.passMark} needed to pass · you&apos;re consistently clearing it
               </p>
               <div className="mt-[18px] h-2 overflow-hidden rounded-full bg-muted">
                 <div
-                  className="h-full w-[91%] origin-left rounded-full bg-gradient-to-r from-primary to-success"
+                  className="h-full origin-left rounded-full bg-gradient-to-r from-primary to-success"
                   style={{
+                    // The bar is the score, so derive it. Hardcoded at 91% it
+                    // was the one place the old 62/68 survived a denominator
+                    // change without looking wrong.
+                    width: `${(DEMO_MOCK_SCORE / EXAM_FORMAT.totalQuestions) * 100}%`,
                     transform: active === 3 ? "scaleX(1)" : "scaleX(0)",
                     transition: "transform 1.6s ease-out 0.55s",
                   }}
