@@ -1,12 +1,13 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertSupabaseConfiguredInProduction, isSupabaseConfigured } from "@/lib/env";
+import { assertSupabaseConfiguredInProduction, isHostedProduction, isSupabaseConfigured } from "@/lib/env";
 import { FREE_TRIAL_DAYS, PLAN_MAP } from "@/lib/billing/plans";
 import type { SubscriptionTier } from "@/types";
 
-// The demo-mode branch below grants premium_plus with no account. That must
-// never be reachable on a hosted deploy.
+// Production must never ship without Supabase. Previews may — they are inert
+// without it, because the demo branches below are gated on the runtime rather
+// than on this throw. See resolveTier.
 assertSupabaseConfiguredInProduction();
 
 /**
@@ -66,6 +67,14 @@ export interface Entitlement {
  *   — entitlement fails closed, never open.
  */
 export async function resolveEntitlement(surface: AiSurface): Promise<Entitlement | Response> {
+  // A hosted deploy with no Supabase has no accounts, so there is nobody to
+  // attribute a model call to and nobody to bill it against — every caller is
+  // anonymous and the URL is public. Refuse outright rather than fall through
+  // to a tier. This is the money half of what used to be defended by crashing
+  // the whole deployment at boot; the study app itself is unaffected.
+  if (!isSupabaseConfigured && isHostedProduction()) {
+    return Response.json({ error: "AI is unavailable on this deployment." }, { status: 503 });
+  }
   const resolved = await resolveTier();
   if (resolved instanceof Response) return resolved;
   return { ...resolved, allowance: DAILY_ALLOWANCE[surface][resolved.tier] };
@@ -89,7 +98,16 @@ export interface ResolvedTier {
  */
 export async function resolveTier(): Promise<ResolvedTier | Response> {
   if (!isSupabaseConfigured) {
-    return { userId: null, tier: "premium_plus" };
+    // Demo mode's open `premium_plus` is a *local* convenience: no accounts
+    // exist, so there is nothing to protect and everything should be visible.
+    //
+    // On a hosted runtime the same answer is an open product on a public URL,
+    // which is what the boot guard in env.ts used to prevent by refusing to
+    // start — and what it cost was every preview deployment, since previews
+    // legitimately run without Supabase. Failing closed to `free` here gives
+    // both: the preview boots and the app renders, but nothing paid is served
+    // to callers who cannot be identified.
+    return { userId: null, tier: isHostedProduction() ? "free" : "premium_plus" };
   }
 
   const supabase = await createClient();

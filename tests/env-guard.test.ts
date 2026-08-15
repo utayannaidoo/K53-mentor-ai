@@ -59,13 +59,32 @@ const SUPABASE_SET = {
 };
 
 describe("assertSupabaseConfiguredInProduction", () => {
-  it("throws on a hosted production deploy with no Supabase env", async () => {
-    const guard = await guardUnder({ NODE_ENV: "production", VERCEL: "1" });
+  it("throws on the production deployment with no Supabase env", async () => {
+    const guard = await guardUnder({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+    });
     expect(guard).toThrow(/NEXT_PUBLIC_SUPABASE_URL/);
   });
 
+  it("stays quiet on a preview, which legitimately has no Supabase of its own", async () => {
+    // Previews run with NODE_ENV=production and VERCEL=1 too, so this guard
+    // used to match them — and since it runs at module scope in the middleware,
+    // every preview URL answered MIDDLEWARE_INVOCATION_FAILED on every request
+    // while CI stayed green. A preview without Supabase is inert rather than
+    // open (see tests/hosted-without-supabase.test.ts), so it may boot.
+    const guard = await guardUnder({ NODE_ENV: "production", VERCEL: "1", VERCEL_ENV: "preview" });
+    expect(guard).not.toThrow();
+  });
+
   it("stays quiet when Supabase is configured in production", async () => {
-    const guard = await guardUnder({ NODE_ENV: "production", VERCEL: "1", ...SUPABASE_SET });
+    const guard = await guardUnder({
+      NODE_ENV: "production",
+      VERCEL: "1",
+      VERCEL_ENV: "production",
+      ...SUPABASE_SET,
+    });
     expect(guard).not.toThrow();
   });
 
@@ -73,6 +92,7 @@ describe("assertSupabaseConfiguredInProduction", () => {
     const guard = await guardUnder({
       NODE_ENV: "production",
       VERCEL: "1",
+      VERCEL_ENV: "production",
       NEXT_PHASE: "phase-production-build",
     });
     expect(guard).not.toThrow();
@@ -92,6 +112,7 @@ describe("assertSupabaseConfiguredInProduction", () => {
     const guard = await guardUnder({
       NODE_ENV: "production",
       VERCEL: "1",
+      VERCEL_ENV: "production",
       NEXT_PUBLIC_SUPABASE_URL: "https://example.supabase.co",
     });
     expect(guard).toThrow(/NEXT_PUBLIC_SUPABASE_URL/);
