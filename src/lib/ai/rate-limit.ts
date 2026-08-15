@@ -18,24 +18,45 @@ const hasUpstash = Boolean(
   process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN,
 );
 
-// Production deployments with paid AI calls must have a shared limiter: the
-// in-memory fallback resets per cold start and isn't shared across serverless
-// instances, so without Redis the spend caps are effectively absent. Fail the
-// boot (not silently the caps) when this misconfiguration ships to hosting.
+/** Whether this deploy can spend money on a model at all. */
 const aiConfigured = Boolean(
   process.env.DEEPSEEK_API_KEY || process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY,
 );
-if (
+export interface LimitResult {
+  success: boolean;
+  /** Seconds the caller should wait before retrying (0 when allowed). */
+  retryAfter: number;
+}
+
+/**
+ * A hosted deploy that has an AI provider but no Redis cannot cap spend: the
+ * in-memory fallback resets on every cold start and is not shared between
+ * serverless instances.
+ */
+const capsUnenforceable =
   process.env.NODE_ENV === "production" &&
-  process.env.VERCEL &&
+  Boolean(process.env.VERCEL) &&
   process.env.NEXT_PHASE !== "phase-production-build" &&
   aiConfigured &&
-  !hasUpstash
-) {
+  !hasUpstash;
+
+// Production must not ship in that state at all.
+//
+// Scoped to the production deployment, not every hosted one. Previews match
+// `NODE_ENV=production && VERCEL` too, and this throw runs at module scope — so
+// on a Preview scope carrying an AI key but no Upstash (which is exactly how
+// this project is configured) every AI route answered an opaque 500 instead of
+// a reason. Previews are handled below by refusing to serve AI rather than by
+// refusing to boot: same protection for the money, without taking the
+// deployment down to get it.
+if (capsUnenforceable && process.env.VERCEL_ENV === "production") {
   throw new Error(
     "UPSTASH_REDIS_REST_URL / UPSTASH_REDIS_REST_TOKEN must be set in production when an AI provider is configured — the in-memory rate limiter cannot cap spend on serverless.",
   );
 }
+
+/** Uncappable spend is refused outright — see `capsUnenforceable`. */
+const UNCAPPED: LimitResult = { success: false, retryAfter: 0 };
 
 const BURST_LIMIT = Number(process.env.TUTOR_BURST_LIMIT ?? 8); // requests
 const BURST_WINDOW_S = Number(process.env.TUTOR_BURST_WINDOW_S ?? 10); // seconds
@@ -133,12 +154,6 @@ function memLimit(key: string, limit: number, windowMs: number): LimitResult {
   }
   b.count += 1;
   return { success: true, retryAfter: 0 };
-}
-
-export interface LimitResult {
-  success: boolean;
-  /** Seconds the caller should wait before retrying (0 when allowed). */
-  retryAfter: number;
 }
 
 /** Whether real (Redis-backed) limiting is active. Useful for diagnostics. */
@@ -279,6 +294,7 @@ export async function limitCheckout(ip: string): Promise<LimitResult> {
 
 /** Burst + daily limits for the coach route (recaps / plan rationale). */
 export async function limitCoach(ip: string): Promise<LimitResult> {
+  if (capsUnenforceable) return UNCAPPED;
   try {
     if (coachBurst && coachDaily) {
       const b = await coachBurst.limit(ip);
@@ -304,6 +320,7 @@ export async function limitCoach(ip: string): Promise<LimitResult> {
 
 /** Vision scans: 4/min burst, tight daily cap — these are the priciest calls. */
 export async function limitVision(ip: string): Promise<LimitResult> {
+  if (capsUnenforceable) return UNCAPPED;
   try {
     if (visionBurst && visionDaily) {
       const b = await visionBurst.limit(ip);
@@ -329,6 +346,7 @@ export async function limitVision(ip: string): Promise<LimitResult> {
 
 /** Apply burst + daily limits for a client IP. Degrades to the in-memory limiter on limiter errors. */
 export async function limitTutor(ip: string): Promise<LimitResult> {
+  if (capsUnenforceable) return UNCAPPED;
   try {
     if (burst && daily) {
       const b = await burst.limit(ip);

@@ -18,7 +18,7 @@ export const isSupabaseConfigured = Boolean(
  * the misconfiguration. Note this also gates on VERCEL, so the guards below
  * are inert on any other host.
  */
-function isHostedProduction() {
+export function isHostedProduction() {
   return (
     process.env.NODE_ENV === "production" &&
     Boolean(process.env.VERCEL) &&
@@ -43,26 +43,39 @@ export function isProductionDeployment() {
 }
 
 /**
- * Guard a real deployment against shipping without Supabase.
+ * Guard the live deployment against shipping without Supabase.
  *
- * Demo mode (no Supabase env) is a deliberate, supported mode — but it is only
- * safe *locally*. On a hosted deploy the same missing env silently turns the
- * product into an open one: `updateSession` stops protecting every route, and
- * `resolveEntitlement` hands out `premium_plus` with a null user id, so the AI
- * routes answer unauthenticated callers and bill the provider for it.
+ * Demo mode (no Supabase env) is a deliberate, supported mode, and it is only
+ * safe *locally*: on a hosted deploy the same missing env used to turn the
+ * product into an open one, because `resolveTier` answered `premium_plus` with
+ * a null user id and the AI routes then billed the provider for anonymous
+ * callers.
  *
- * That must fail loudly at boot rather than quietly at runtime. Same shape as
- * the Upstash guard in `src/lib/ai/rate-limit.ts`.
+ * **That hole is now closed where it was, not by this guard.** `resolveTier`
+ * refuses to hand out the demo tier on any hosted runtime and `resolveEntitlement`
+ * refuses to spend on AI at all, so a hosted deploy without Supabase is inert
+ * rather than generous. This is free to narrow as a result — and narrowing it
+ * matters, because it runs at module scope in the middleware, where a throw is
+ * not a loud failure but a blank `MIDDLEWARE_INVOCATION_FAILED` on every single
+ * request, with a green CI run behind it.
+ *
+ * Which is exactly what it did to **preview deployments**, for months. Previews
+ * run with `NODE_ENV=production` and `VERCEL=1`, so the old `isHostedProduction()`
+ * check matched them, and the Preview environment scope has no Supabase of its
+ * own — so every preview URL 500'd and no PR could ever be looked at before
+ * merge. Production, where the env genuinely must be there and a missing one is
+ * a real incident, still refuses to boot.
  *
  * Exported as a function (not a module-scope throw) because this module is
  * also pulled into the client bundle by `supabase/client.ts`; only the
  * server-side entry points call it.
  */
 export function assertSupabaseConfiguredInProduction() {
-  if (isHostedProduction() && !isSupabaseConfigured) {
+  if (isProductionDeployment() && !isSupabaseConfigured) {
     throw new Error(
       "NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY must be set in production — " +
-        "without them route protection is disabled and every AI route serves unauthenticated callers as premium_plus.",
+        "without them there are no accounts, so route protection is disabled, every learner's " +
+        "progress stops syncing, and the AI surfaces refuse to answer at all.",
     );
   }
 }

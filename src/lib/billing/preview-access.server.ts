@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isHostedProduction, isSupabaseConfigured } from "@/lib/env";
 import { hasFeature } from "@/lib/billing/plans";
 import { resolveTier } from "@/lib/billing/entitlements.server";
 
@@ -39,10 +39,16 @@ function allowlist(): string[] {
 export const isEyeTestReleased = () => process.env.EYE_TEST_RELEASED === "1";
 
 export async function resolveEyeTestAccess(): Promise<PreviewAccess> {
-  // Demo mode: no Supabase, so no accounts and nothing to protect. This branch
-  // is unreachable on a hosted deploy — assertSupabaseConfiguredInProduction()
-  // throws at boot without Supabase env — so it only ever serves local dev.
-  if (!isSupabaseConfigured) return "owner";
+  // Demo mode: no Supabase, so no accounts and nothing to protect — locally.
+  //
+  // This used to lean on assertSupabaseConfiguredInProduction() throwing at
+  // boot to make the branch unreachable on any hosted deploy. That guard is now
+  // scoped to production (it was 500ing every preview), so "hosted without
+  // Supabase" is a real state and has to be handled here rather than assumed
+  // away: a public preview URL must not hand out an unreleased feature to
+  // anyone who guesses the path. Denied is the same answer it gives every
+  // other anonymous caller.
+  if (!isSupabaseConfigured) return isHostedProduction() ? "denied" : "owner";
 
   const supabase = await createClient();
   const {
