@@ -192,9 +192,24 @@ function flashMasteryForCategory(state: UserState, categoryId: CategoryId): numb
   return avg * coverage;
 }
 
-/** Question/diagnostic accuracy for a category. */
+/**
+ * Question/diagnostic accuracy for a category.
+ *
+ * Questions left blank are excluded. A timed mock seeds its answer array with
+ * `-1` and records every slot at submit, so running out of time — or walking
+ * away from a mock — wrote a row per unattempted question that this model then
+ * read as "got it wrong". It was not a rounding error: 47% of one account's
+ * mock rows were blanks, which halved its measured accuracy (28% → 15%) and
+ * with it every category competence and the predicted pass built on them.
+ *
+ * The mock's own score still counts a blank as wrong, which is correct — the
+ * real paper does exactly that. What a blank is not is evidence about what the
+ * learner knows, and this function only estimates that.
+ */
 function accuracyForCategory(state: UserState, categoryId: CategoryId): number | null {
-  const attempts = state.attempts.filter((a) => a.categoryId === categoryId);
+  const attempts = state.attempts.filter(
+    (a) => a.categoryId === categoryId && a.selectedIndex >= 0,
+  );
   if (attempts.length === 0) return null;
   const correct = attempts.filter((a) => a.correct).length;
   return (correct / attempts.length) * 100;

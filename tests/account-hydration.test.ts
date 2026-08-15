@@ -20,6 +20,7 @@ const emptyRemote: RemoteProgress = {
   mockExams: [],
   diagnostics: [],
   cardStates: {},
+  sessions: [],
   readinessHistory: [],
 };
 

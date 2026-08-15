@@ -7,14 +7,24 @@ import type {
   MockExamAttempt,
   QuestionAttempt,
   ScenarioAttempt,
+  SessionType,
   StudyContext,
+  StudySession,
   UserState,
 } from "@/types";
 
 /**
- * Study-progress sync: attempts, SM-2 card states, mock exams, diagnostics
- * and readiness history mirrored to the 0001 tables — so a cleared browser
- * or a new phone restores a paying learner's history instead of wiping it.
+ * Study-progress sync: attempts, SM-2 card states, mock exams, diagnostics,
+ * study sessions and readiness history mirrored to the 0001 tables — so a
+ * cleared browser or a new phone restores a paying learner's history instead
+ * of wiping it.
+ *
+ * Sessions were missing here until 0023. `study_sessions` was created in 0001
+ * and never wired up, so the table was empty for every user in the product's
+ * history and "Time studied" read 0 for accounts with hundreds of answered
+ * questions — the durations only ever existed in localStorage, which is
+ * per-origin and does not survive a cleared browser, a new device, or the
+ * www./apex split.
  *
  * Push is incremental and idempotent: each item carries its local id as
  * `client_id` (unique per user), so re-sending after a failed flush upserts
@@ -57,6 +67,10 @@ export async function pushProgress(supabase: SupabaseClient, userId: string, sta
   const cards = Object.values(state.cardStates).filter(
     (c) => c.lastReviewed !== null && c.lastReviewed > since,
   );
+  // Sessions watermark on when they ended — a session that started before the
+  // last flush and finished after it is new, and `endedAt` is also what the
+  // pull orders by.
+  const sessions = state.sessions.filter((s) => s.endedAt > since);
   // readinessHistory is one point per day — push the recent window and let
   // the (user_id, day) upsert absorb repeats.
   const readiness = state.readinessHistory.slice(-14);
@@ -156,6 +170,21 @@ export async function pushProgress(supabase: SupabaseClient, userId: string, sta
       ),
     );
   }
+  if (sessions.length) {
+    ops.push(
+      supabase.from("study_sessions").upsert(
+        sessions.map((s) => ({
+          user_id: userId,
+          client_id: s.id,
+          session_type: s.type,
+          started_at: s.startedAt,
+          ended_at: s.endedAt,
+          duration_seconds: s.durationSeconds,
+        })),
+        { onConflict: "user_id,client_id" },
+      ),
+    );
+  }
   if (readiness.length) {
     ops.push(
       supabase.from("readiness_history").upsert(
@@ -174,6 +203,7 @@ export async function pushProgress(supabase: SupabaseClient, userId: string, sta
   for (const m of mocks) bump(m.at);
   for (const d of diags) bump(d.at);
   for (const c of cards) bump(c.lastReviewed);
+  for (const s of sessions) bump(s.endedAt);
   if (maxAt > since) writeCursor(userId, maxAt);
 }
 
@@ -183,12 +213,13 @@ export interface RemoteProgress {
   mockExams: MockExamAttempt[];
   diagnostics: DiagnosticResult[];
   cardStates: Record<string, CardState>;
+  sessions: StudySession[];
   readinessHistory: { date: string; readiness: number }[];
 }
 
 /** Pull the server's copy of the learner's history (recent windows). */
 export async function pullProgress(supabase: SupabaseClient, userId: string): Promise<RemoteProgress> {
-  const [qa, sc, me, dg, fl, rh] = await Promise.all([
+  const [qa, sc, me, dg, fl, rh, ss] = await Promise.all([
     supabase
       .from("question_attempts")
       .select("id,client_id,question_id,category_id,selected_index,is_correct,context,attempted_at")
@@ -224,6 +255,12 @@ export async function pullProgress(supabase: SupabaseClient, userId: string): Pr
       .eq("user_id", userId)
       .order("day", { ascending: false })
       .limit(400),
+    supabase
+      .from("study_sessions")
+      .select("id,client_id,session_type,started_at,ended_at,duration_seconds")
+      .eq("user_id", userId)
+      .order("ended_at", { ascending: false })
+      .limit(2000),
   ]);
 
   type Row = Record<string, unknown>;
@@ -291,16 +328,45 @@ export async function pullProgress(supabase: SupabaseClient, userId: string): Pr
     .map((r) => ({ date: r.day as string, readiness: Number(r.readiness) }))
     .reverse();
 
-  return { attempts, scenarioAttempts, mockExams, diagnostics, cardStates, readinessHistory };
+  const sessions: StudySession[] = rows(ss).map((r) => ({
+    id: (r.client_id as string | null) ?? (r.id as string),
+    type: r.session_type as SessionType,
+    startedAt: r.started_at as string,
+    endedAt: r.ended_at as string,
+    durationSeconds: Number(r.duration_seconds ?? 0),
+  }));
+
+  return {
+    attempts,
+    scenarioAttempts,
+    mockExams,
+    diagnostics,
+    cardStates,
+    sessions,
+    readinessHistory,
+  };
 }
 
-/** Union two id-keyed lists, oldest→newest, capped from the tail. */
-function unionById<T extends { id: string; at: string }>(local: T[], remote: T[], cap: number): T[] {
+/**
+ * Union two id-keyed lists, oldest→newest, capped from the tail.
+ *
+ * `when` because not every synced type times itself the same way: attempts,
+ * mocks and diagnostics carry `at`, sessions carry `startedAt`/`endedAt`.
+ */
+function unionById<T extends { id: string }>(
+  local: T[],
+  remote: T[],
+  cap: number,
+  when: (item: T) => string,
+): T[] {
   const seen = new Map<string, T>();
   for (const item of remote) seen.set(item.id, item);
   for (const item of local) seen.set(item.id, item); // local wins on the same id
-  return [...seen.values()].sort((a, b) => (a.at < b.at ? -1 : 1)).slice(-cap);
+  return [...seen.values()].sort((a, b) => (when(a) < when(b) ? -1 : 1)).slice(-cap);
 }
+
+/** Every synced list but sessions stamps itself with `at`. */
+const at = (item: { at: string }) => item.at;
 
 /** Merge the server's history into local state (no data ever discarded). */
 export function mergeProgress(state: UserState, remote: RemoteProgress): UserState {
@@ -321,11 +387,12 @@ export function mergeProgress(state: UserState, remote: RemoteProgress): UserSta
 
   return {
     ...state,
-    attempts: unionById(state.attempts, remote.attempts, 4000),
-    scenarioAttempts: unionById(state.scenarioAttempts, remote.scenarioAttempts, 1000),
-    mockExams: unionById(state.mockExams, remote.mockExams, 200),
-    diagnostics: unionById(state.diagnostics, remote.diagnostics, 50),
+    attempts: unionById(state.attempts, remote.attempts, 4000, at),
+    scenarioAttempts: unionById(state.scenarioAttempts, remote.scenarioAttempts, 1000, at),
+    mockExams: unionById(state.mockExams, remote.mockExams, 200, at),
+    diagnostics: unionById(state.diagnostics, remote.diagnostics, 50, at),
     cardStates,
+    sessions: unionById(state.sessions, remote.sessions, 2000, (s) => s.endedAt),
     readinessHistory,
   };
 }
