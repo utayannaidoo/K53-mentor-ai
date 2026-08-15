@@ -20,38 +20,39 @@ import {
   bestPassedIndex,
   firstRenderableIndex,
   meetsLmvStandard,
+  ladderBounds,
   optotypeHeightPx,
   pxPerMmFromCardWidth,
   type EDirection,
   type EyeStage,
   type LevelOutcome,
 } from "@/lib/vision/acuity";
-
-/** Letters shown per acuity level, and how many must be right to go deeper. */
-const PER_LEVEL = 4;
-const REQUIRED = 3;
+import {
+  PER_LEVEL,
+  REQUIRED,
+  initialLadder,
+  ladderReducer,
+  type Trial,
+} from "@/lib/vision/ladder";
 
 /** Where the E sits relative to the centre point it orbits, as a fraction of the stage. */
 const ORBIT_RADIUS = 0.26;
 
+/**
+ * The smallest optotype worth presenting. The ladder used to stop only when a
+ * level fell under 2px, which is not a letter — it is a smudge nobody could
+ * read, so every reader "failed" at the bottom rung regardless of their sight.
+ */
+const MIN_OPTOTYPE_PX = 8;
+
+/**
+ * Last-resort chart height, matching the CSS box's 26rem cap. Only reached when
+ * neither the element nor the window reports a size; without it the ladder has
+ * no bounds to lock and the reader waits on a blank chart indefinitely.
+ */
+const FALLBACK_STAGE_PX = 416;
+
 type Phase = "calibrate" | "distance" | "eye-prompt" | "testing" | "done";
-
-interface Trial {
-  levelIndex: number;
-  direction: EDirection;
-  /** Degrees around the orbit centre — this is the "rotates around a point" part. */
-  orbitAngle: number;
-}
-
-function makeTrial(levelIndex: number, n: number): Trial {
-  return {
-    levelIndex,
-    direction: E_DIRECTIONS[Math.floor(Math.random() * E_DIRECTIONS.length)],
-    // Deterministic sweep so consecutive letters land in different places
-    // without ever overlapping the previous one.
-    orbitAngle: (n * 137.5) % 360,
-  };
-}
 
 const ARROWS = [
   { dir: "up" as const, Icon: ArrowUp, label: "Bars point up" },
@@ -89,19 +90,22 @@ export function TumblingETest() {
   const [stagePx, setStagePx] = React.useState(0);
   const stageRef = React.useRef<HTMLDivElement>(null);
 
-  const [trial, setTrial] = React.useState<Trial | null>(null);
-  const [trialNo, setTrialNo] = React.useState(0);
-  const [levelIndex, setLevelIndex] = React.useState(0);
-  const [correctThisLevel, setCorrectThisLevel] = React.useState(0);
-  const [askedThisLevel, setAskedThisLevel] = React.useState(0);
-  const [outcomes, setOutcomes] = React.useState<LevelOutcome[]>([]);
+  // Mirrors the chart's own CSS box, measured from the window rather than the
+  // element so it exists before the chart is ever mounted. Only ever used as
+  // the fallback in `bounds` below.
+  const [viewportPx, setViewportPx] = React.useState(0);
+  React.useEffect(() => {
+    const compute = () => setViewportPx(Math.min(window.innerHeight * 0.58, 26 * 16));
+    compute();
+    window.addEventListener("resize", compute);
+    return () => window.removeEventListener("resize", compute);
+  }, []);
 
-  /** Which of left / right / both is being read now. */
-  const [stageIndex, setStageIndex] = React.useState(0);
-  /** Per-stage transcript, kept for the results table. */
-  const [stageOutcomes, setStageOutcomes] = React.useState<
-    Partial<Record<EyeStage, LevelOutcome[]>>
-  >({});
+  // The whole ladder is one machine — see lib/vision/ladder.ts for why.
+  const [ladder, dispatch] = React.useReducer(ladderReducer, undefined, () =>
+    initialLadder(),
+  );
+  const { trial, levelIndex, asked: askedThisLevel, stageIndex, stageOutcomes } = ladder;
 
   const stage = EYE_STAGES[stageIndex];
 
@@ -119,90 +123,56 @@ export function TumblingETest() {
     return () => ro.disconnect();
   }, [phase]);
 
-  const startIndex = React.useMemo(
-    () => (stagePx ? firstRenderableIndex(distanceMm, pxPerMm, stagePx * 0.5) : 0),
-    [distanceMm, pxPerMm, stagePx],
+  /** What the distance step previews. The authoritative pair is read below. */
+  const bounds = React.useMemo(
+    () => ladderBounds(distanceMm, pxPerMm, stagePx || viewportPx || FALLBACK_STAGE_PX, MIN_OPTOTYPE_PX),
+    [distanceMm, pxPerMm, stagePx, viewportPx],
   );
 
-  /** Start (or restart) the ladder for the current eye stage. */
-  const beginStage = React.useCallback(() => {
-    setLevelIndex(startIndex);
-    setCorrectThisLevel(0);
-    setAskedThisLevel(0);
-    setOutcomes([]);
-    setTrialNo(0);
-    setTrial(makeTrial(startIndex, 0));
-    setPhase("testing");
-  }, [startIndex]);
+  /**
+   * Show the chart, then start the ladder once it has been measured.
+   *
+   * Two steps rather than one because the chart is only in the tree during
+   * `testing`, so there is nothing to measure until after the phase flips. The
+   * effect below seeds the ladder on the first frame that has a measurement.
+   */
+  const beginStage = React.useCallback(() => setPhase("testing"), []);
+
+  React.useEffect(() => {
+    if (phase !== "testing" || ladder.status === "running") return;
+    // Measure the chart *here*, not from the render that scheduled this. The
+    // measuring effect above runs in the same commit, so its setState has not
+    // landed yet and `stagePx` would still read 0 on the first eye — which is
+    // the whole bug, reintroduced one layer down. The ref is current.
+    const el = stageRef.current;
+    const measured = el ? Math.min(el.clientWidth, el.clientHeight) : 0;
+    const available = measured || viewportPx || FALLBACK_STAGE_PX;
+    dispatch({
+      type: "start-stage",
+      ...ladderBounds(distanceMm, pxPerMm, available, MIN_OPTOTYPE_PX),
+    });
+  }, [phase, ladder.status, distanceMm, pxPerMm, viewportPx]);
 
   /** Begin the whole test from the first eye. */
   const begin = React.useCallback(() => {
-    setStageIndex(0);
-    setStageOutcomes({});
+    dispatch({ type: "reset", seed: (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0 });
     setPhase("eye-prompt");
   }, []);
 
-  const answer = React.useCallback(
-    (dir: EDirection) => {
-      if (!trial) return;
-      // No per-letter feedback, deliberately: telling the reader they were
-      // wrong teaches them the letter set instead of measuring their sight.
-      const right = dir === trial.direction;
-      const correct = correctThisLevel + (right ? 1 : 0);
-      const asked = askedThisLevel + 1;
+  // No per-letter feedback, deliberately: telling the reader they were wrong
+  // teaches them the letter set instead of measuring their sight.
+  //
+  // Every answer is one dispatch, so two of them arriving in the same frame —
+  // a double-tap, or an arrow key auto-repeating — are applied one after the
+  // other instead of both reading the same stale count. That is what used to
+  // make a level quietly ask fewer than PER_LEVEL letters.
+  const answer = React.useCallback((dir: EDirection) => dispatch({ type: "answer", dir }), []);
 
-      if (asked < PER_LEVEL) {
-        setCorrectThisLevel(correct);
-        setAskedThisLevel(asked);
-        setTrialNo((n) => n + 1);
-        setTrial(makeTrial(levelIndex, trialNo + 1));
-        return;
-      }
-
-      // Level finished. Record it, then either go a line smaller or stop.
-      const outcome: LevelOutcome = { index: levelIndex, correct, asked };
-      const next = [...outcomes, outcome];
-      setOutcomes(next);
-
-      const passed = correct >= REQUIRED;
-      const nextIndex = levelIndex + 1;
-      const nextFits =
-        nextIndex < ACUITY_LEVELS.length &&
-        optotypeHeightPx(ACUITY_LEVELS[nextIndex].denominator, distanceMm, pxPerMm) >= 2;
-
-      if (!passed || !nextFits) {
-        // This eye is finished. Bank its transcript, then move to the next eye
-        // — or to the results once both eyes and the binocular reading are in.
-        setStageOutcomes((prev) => ({ ...prev, [stage]: next }));
-        setTrial(null);
-        if (stageIndex + 1 < EYE_STAGES.length) {
-          setStageIndex(stageIndex + 1);
-          setPhase("eye-prompt");
-        } else {
-          setPhase("done");
-        }
-        return;
-      }
-
-      setLevelIndex(nextIndex);
-      setCorrectThisLevel(0);
-      setAskedThisLevel(0);
-      setTrialNo((n) => n + 1);
-      setTrial(makeTrial(nextIndex, trialNo + 1));
-    },
-    [
-      trial,
-      correctThisLevel,
-      askedThisLevel,
-      levelIndex,
-      outcomes,
-      trialNo,
-      distanceMm,
-      pxPerMm,
-      stage,
-      stageIndex,
-    ],
-  );
+  // The ladder decides when an eye is finished; the phase follows it.
+  React.useEffect(() => {
+    if (ladder.status === "stage-done") setPhase("eye-prompt");
+    else if (ladder.status === "done") setPhase("done");
+  }, [ladder.status]);
 
   // Arrow keys mirror the on-screen buttons.
   React.useEffect(() => {
@@ -243,7 +213,7 @@ export function TumblingETest() {
           onChange={setDistanceCm}
           onBack={() => setPhase("calibrate")}
           onNext={begin}
-          startLabel={ACUITY_LEVELS[startIndex]?.label}
+          startLabel={ACUITY_LEVELS[bounds.startIndex]?.label}
         />
       )}
 
