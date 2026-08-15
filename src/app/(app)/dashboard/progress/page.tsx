@@ -24,8 +24,13 @@ export default function ProgressPage() {
   const { state, readiness } = useStudyStore();
 
   const totalSeconds = state.sessions.reduce((s, x) => s + x.durationSeconds, 0);
-  const answered = state.attempts.length;
-  const correct = state.attempts.filter((a) => a.correct).length;
+  // Questions actually attempted. A timed mock records every slot at submit,
+  // including the ones left blank (`selectedIndex` -1), and counting those here
+  // both inflated "Questions" and halved the accuracy beside it — the same
+  // blanks that were dragging the readiness model down. See accuracyForCategory.
+  const attempted = state.attempts.filter((a) => a.selectedIndex >= 0);
+  const answered = attempted.length;
+  const correct = attempted.filter((a) => a.correct).length;
   const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
   const advanced = hasFeature(state.tier, "advancedAnalytics");
 

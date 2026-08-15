@@ -431,6 +431,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     state.scenarioAttempts,
     state.mockExams,
     state.diagnostics,
+    // Sessions became syncable in 0023. Without them here a finished session
+    // waits for some other slice to change before it flushes.
+    state.sessions,
   ]);
 
   const readiness = React.useMemo(() => computeReadiness(state), [state]);
