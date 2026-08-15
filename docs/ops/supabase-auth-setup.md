@@ -35,6 +35,23 @@ Dashboard → **Authentication → URL Configuration**:
   The app builds `emailRedirectTo` from `window.location.origin`, so a preview
   deployment sends a preview link — it needs to be allowlisted or the link breaks.
 
+  **`www.` is deliberately absent, and must stay absent.** The PKCE code
+  verifier is a host-only cookie, so a sign-in begun on `www.` can only be
+  finished on `www.` — allowlisting it would give the app two hosts, two cookie
+  jars and two half-sessions. The middleware 308s every non-canonical host to
+  `NEXT_PUBLIC_SITE_URL` instead (`src/lib/auth/canonical-host.ts`), so no flow
+  ever starts anywhere but the apex domain. Adding a `www.` entry here would
+  quietly re-enable the split.
+
+  > **This is what "log in with Google sends me to the home page, then works on
+  > the second try" was.** A learner landing on `www.k53mentorai.co.za` sent
+  > Supabase a `www.` callback, Supabase refused it and fell back to the Site
+  > URL — the marketing page on the apex host — carrying a `?code=` that nothing
+  > there could spend. Trying again, now on the apex host, worked. Fixed in code
+  > (Aug 2026) by the canonical-host redirect plus `strandedAuthRedirect`, which
+  > forwards any auth params that do land on `/` to `/auth/callback` so a future
+  > allowlist gap surfaces as a named error rather than silence.
+
 ## 3. Email template — use `token_hash`, not the default
 
 The default **Confirm signup** template sends a PKCE `?code=`, which can only be
@@ -109,6 +126,8 @@ different device**, and confirm you land on the app rather than `/login?error=�
 | `?code=…` | PKCE exchange (same-browser flows: OAuth, password reset) |
 | Verifier cookie missing | `/login?error=device` → "open it in the same browser" notice |
 | Expired / already-used link | `/login?error=expired` → notice + resend |
+| Request on `www.` or the deploy alias | 308 to the canonical origin before any auth work |
+| Auth params bounced to the Site URL (`/?code=…`) | Forwarded to `/auth/callback?next=/continue` |
 | Login refused: email unconfirmed | Inline notice with a **Send it again** button |
 
 Every failure now names itself on the login screen instead of redirecting to a blank form.

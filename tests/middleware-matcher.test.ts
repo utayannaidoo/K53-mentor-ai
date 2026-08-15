@@ -43,6 +43,14 @@ describe("middleware matcher", () => {
     expect(matches("/auth/callback")).toBe(true);
   });
 
+  it("still covers the site root, where a bounced auth redirect lands", () => {
+    // Supabase falls back to the Site URL — our root — when a redirect isn't
+    // allowlisted, and strandedAuthRedirect only gets to rescue that `?code=`
+    // if the middleware runs there. It is also the host every mistyped `www.`
+    // link hits first.
+    expect(matches("/")).toBe(true);
+  });
+
   it("skips API routes — every handler authenticates itself", () => {
     for (const p of [
       "/api/tutor",

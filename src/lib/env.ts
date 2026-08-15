@@ -38,7 +38,7 @@ function isHostedProduction() {
  * merchant-review flow depends on exactly that — so those checks need this
  * narrower signal.
  */
-function isProductionDeployment() {
+export function isProductionDeployment() {
   return isHostedProduction() && process.env.VERCEL_ENV === "production";
 }
 
