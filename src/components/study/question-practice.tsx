@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SessionProgress, type SessionOutcome } from "@/components/ui/session-progress";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
 import { sourceFor } from "@/lib/content/provenance";
@@ -252,6 +253,11 @@ export function QuestionPractice() {
   const answered = selected !== null;
   const isCorrect = answered && selected === q.correctIndex;
   const answeredCount = answers.filter((a) => a !== null).length;
+  // Practice reveals the result immediately, so the bar can carry it — nothing
+  // is leaked that the learner isn't already looking at.
+  const outcomes: SessionOutcome[] = queue.map((question, idx) =>
+    answers[idx] === null ? "pending" : answers[idx] === question.correctIndex ? "correct" : "wrong",
+  );
   const runningAcc = answeredCount > 0 ? Math.round((correctCount / answeredCount) * 100) : null;
   const isLast = i + 1 >= queue.length;
 
@@ -298,12 +304,12 @@ export function QuestionPractice() {
         <Link href="/study" className="text-muted-foreground hover:text-foreground" aria-label="Close">
           <X className="h-5 w-5" />
         </Link>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-[width] duration-300"
-            style={{ width: `${((i + (answered ? 1 : 0)) / queue.length) * 100}%` }}
-          />
-        </div>
+        <SessionProgress
+          completed={i + (answered ? 1 : 0)}
+          total={queue.length}
+          index={i}
+          outcomes={outcomes}
+        />
         <span className="font-mono text-xs text-muted-foreground">
           {i + 1}/{queue.length}
         </span>

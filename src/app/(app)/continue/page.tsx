@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Logo } from "@/components/shared/logo";
-import { Spinner } from "@/components/ui/spinner";
+import { DrivingLoader } from "@/components/ui/driving-loader";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { safeNextPath } from "@/lib/auth/safe-next";
 
@@ -46,7 +46,7 @@ export default function ContinuePage() {
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center gap-5 bg-background bg-app px-6 text-center">
       <Logo />
-      <Spinner className="h-6 w-6" />
+      <DrivingLoader label="Loading your progress" className="py-0" />
       <div>
         <p className="font-display text-xl font-semibold tracking-tight">
           {returning ? `Welcome back${state.profile?.name ? `, ${state.profile.name.split(" ")[0]}` : ""}` : "Setting things up"}

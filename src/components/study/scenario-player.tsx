@@ -19,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SessionProgress, type SessionOutcome } from "@/components/ui/session-progress";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -180,6 +181,12 @@ export function ScenarioPlayer() {
   const chosenId = chosen[i];
   const revealed = chosenId !== null;
   const isLast = i + 1 >= queue.length;
+  // Every scenario reveals its verdict on choice, so the bar can carry it.
+  const outcomes: SessionOutcome[] = queue.map((scenario, idx) => {
+    const id = chosen[idx];
+    if (id === null) return "pending";
+    return scenario.choices.find((c) => c.id === id)?.correct ? "correct" : "wrong";
+  });
 
   function choose(choiceId: string) {
     if (chosen[i] !== null) return; // already answered
@@ -221,12 +228,12 @@ export function ScenarioPlayer() {
         <Link href="/study" className="text-muted-foreground hover:text-foreground" aria-label="Close">
           <X className="h-5 w-5" />
         </Link>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-          <div
-            className="h-full rounded-full bg-primary transition-[width] duration-300"
-            style={{ width: `${((i + (revealed ? 1 : 0)) / queue.length) * 100}%` }}
-          />
-        </div>
+        <SessionProgress
+          completed={i + (revealed ? 1 : 0)}
+          total={queue.length}
+          index={i}
+          outcomes={outcomes}
+        />
         <span className="font-mono text-xs text-muted-foreground">
           {i + 1}/{queue.length}
         </span>

@@ -136,6 +136,25 @@ const config: Config = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        // The road moves, the vehicle holds. Travelling exactly one dash period
+        // (12px dash + 12px gap) means the strip lands where it started, so the
+        // loop has no visible reset — and no base transform to restore, which
+        // is what keeps it correct once reduced motion stops it dead.
+        drive: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-24px)" },
+        },
+        bob: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-1.5px)" },
+        },
+        // A cut, not a fade. Paired with `steps(1, end)` the loader holds at
+        // opacity 0 for the whole delay and then is simply there, already
+        // whole, rather than assembling itself in front of the learner.
+        reveal: {
+          from: { opacity: "0" },
+          to: { opacity: "1" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -147,6 +166,18 @@ const config: Config = {
         route: "route-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both",
         "modal-in": "scale-in 0.4s cubic-bezier(0.34, 1.3, 0.64, 1) both",
         shimmer: "shimmer 1.8s ease-in-out infinite",
+        // The 350ms sits in the *delay*, never the duration. A warm route —
+        // which resolves in about 100–300ms — unmounts the loader before any of
+        // these fire, so a fast load still shows nothing at all. The delay is
+        // also the one property `prefers-reduced-motion` does not override in
+        // globals.css, so the hold survives there too.
+        //
+        // All three share it, so the vehicle starts driving from frame one at
+        // the instant it becomes visible, rather than being revealed mid-stride.
+        drive: "drive 0.6s linear 350ms infinite",
+        bob: "bob 0.9s ease-in-out 350ms infinite",
+        // 1ms + steps(1, end) is a cut: opacity 0 for the whole delay, then on.
+        reveal: "reveal 1ms steps(1, end) 350ms both",
       },
     },
   },
