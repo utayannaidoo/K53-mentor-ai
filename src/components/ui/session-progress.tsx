@@ -69,14 +69,18 @@ export function SessionProgress({
             key={idx}
             className={cn(
               "flex-1 rounded-sm transition-colors duration-300 ease-soft",
-              // A settled outcome outranks "you are here". The learner stays on
-              // the question they just answered while they read the
-              // explanation, and that segment has to show the result rather
-              // than hide it behind the cursor.
-              outcome === "pending" && idx === index ? "bg-primary" : SEGMENT_TONE[outcome],
-              // The ring paints outside the box, so marking the current segment
-              // costs no height in the header row.
-              idx === index && "ring-2 ring-primary/30",
+              // One signal per meaning: the fill is always the outcome and
+              // never the cursor. Filling the current segment with `primary`
+              // made an unanswered question look answered-correctly — in the
+              // light theme `--primary` and `--success` sit at 1.06 contrast,
+              // so "you are here" and "you got this right" were the same green.
+              SEGMENT_TONE[outcome],
+              // Position is an outline instead, in ink at the same weight as
+              // the pass-mark notch, so the two marks read as one family. It
+              // has to carry "you are here" alone now, so it clears 3:1 against
+              // the page in both themes (light 3.6, dark 5.5). The ring paints
+              // outside the box, so it costs no height in the row.
+              idx === index && "ring-2 ring-foreground/55",
             )}
           />
         ))}
