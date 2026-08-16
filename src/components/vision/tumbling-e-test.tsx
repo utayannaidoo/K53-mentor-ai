@@ -10,22 +10,25 @@ import { cn, glass, glassFloat, glassSubtle } from "@/lib/utils";
 import {
   ACUITY_LEVELS,
   CARD_WIDTH_MM,
-  E_DIRECTIONS,
   E_ROTATION,
   EYE_STAGES,
   EYE_STAGE_INSTRUCTION,
   EYE_STAGE_LABEL,
   LMV_PASS_INDEX,
   bestAcrossStages,
-  bestPassedIndex,
-  firstRenderableIndex,
-  meetsLmvStandard,
   ladderBounds,
+  lmvVerdict,
+  minDistanceMmFor,
+  minOptotypePx,
   optotypeHeightPx,
   pxPerMmFromCardWidth,
+  reaches,
+  stageLabel,
+  stageResult,
   type EDirection,
   type EyeStage,
   type LevelOutcome,
+  type StageResult,
 } from "@/lib/vision/acuity";
 import {
   PER_LEVEL,
@@ -39,18 +42,24 @@ import {
 const ORBIT_RADIUS = 0.26;
 
 /**
- * The smallest optotype worth presenting. The ladder used to stop only when a
- * level fell under 2px, which is not a letter — it is a smudge nobody could
- * read, so every reader "failed" at the bottom rung regardless of their sight.
- */
-const MIN_OPTOTYPE_PX = 8;
-
-/**
  * Last-resort chart height, matching the CSS box's 26rem cap. Only reached when
  * neither the element nor the window reports a size; without it the ladder has
  * no bounds to lock and the reader waits on a blank chart indefinitely.
  */
 const FALLBACK_STAGE_PX = 416;
+
+const DISTANCE_MIN_CM = 25;
+const DISTANCE_MAX_CM = 300;
+const DISTANCE_STEP_CM = 5;
+
+/** Only ever seen if calibration cannot suggest better; the real default is computed. */
+const FALLBACK_DISTANCE_CM = 200;
+
+const clampDistance = (cm: number) =>
+  Math.min(DISTANCE_MAX_CM, Math.max(DISTANCE_MIN_CM, cm));
+
+/** Round up to a slider stop — rounding *down* would land inside the blur. */
+const toStop = (cm: number) => Math.ceil(cm / DISTANCE_STEP_CM) * DISTANCE_STEP_CM;
 
 type Phase = "calibrate" | "distance" | "eye-prompt" | "testing" | "done";
 
@@ -67,9 +76,15 @@ const ARROWS = [
  * you report which way its bars point.
  *
  * It follows the real order of events — **left eye, right eye, then both
- * together** — because the pass rule reads across all three ("6/12 in one eye,
- * or both eyes together"). A single binocular number would hide exactly the
- * case the DLTC is looking for: one strong eye carrying one weak one.
+ * together** — and applies regulation 102's actual rule, which is written per
+ * eye: 6/12 in each, or 6/9 in the other where one is under 6/12 or blind.
+ *
+ * The hard part is not the ladder, it is knowing when the ladder has stopped
+ * measuring the reader and started measuring the screen. A display has a
+ * smallest line it can draw honestly; past that the dots decide what is legible.
+ * So the distance step refuses to pretend — it works out how far back the reader
+ * must sit for the Code B line to exist at all — and a ladder that ends at the
+ * screen's floor reports "6/24 or better", never "6/24".
  *
  * What it deliberately does **not** attempt is the peripheral-vision check the
  * real machine also runs, where lights flicker at the edges of your field. A
@@ -85,17 +100,26 @@ export function TumblingETest() {
 
   // Calibration: the user sizes an on-screen outline to a real bank card.
   const [cardWidthPx, setCardWidthPx] = React.useState(320);
-  const [distanceCm, setDistanceCm] = React.useState(40);
+  const [distanceCm, setDistanceCm] = React.useState(FALLBACK_DISTANCE_CM);
+  // Once the reader moves the slider it is theirs; the suggestion stops fighting it.
+  const [distanceChosen, setDistanceChosen] = React.useState(false);
 
   const [stagePx, setStagePx] = React.useState(0);
   const stageRef = React.useRef<HTMLDivElement>(null);
 
-  // Mirrors the chart's own CSS box, measured from the window rather than the
-  // element so it exists before the chart is ever mounted. Only ever used as
-  // the fallback in `bounds` below.
-  const [viewportPx, setViewportPx] = React.useState(0);
+  /**
+   * Mirrors the chart's own CSS box, measured from the window rather than the
+   * element so it exists before the chart is ever mounted, plus the dot density
+   * that decides how small a letter may honestly get. Both move together: a
+   * browser zoom or a drag to a second monitor changes each of them.
+   */
+  const [screen, setScreen] = React.useState({ viewportPx: 0, dpr: 1 });
   React.useEffect(() => {
-    const compute = () => setViewportPx(Math.min(window.innerHeight * 0.58, 26 * 16));
+    const compute = () =>
+      setScreen({
+        viewportPx: Math.min(window.innerHeight * 0.58, 26 * 16),
+        dpr: window.devicePixelRatio || 1,
+      });
     compute();
     window.addEventListener("resize", compute);
     return () => window.removeEventListener("resize", compute);
@@ -111,6 +135,7 @@ export function TumblingETest() {
 
   const pxPerMm = pxPerMmFromCardWidth(cardWidthPx);
   const distanceMm = distanceCm * 10;
+  const minPx = minOptotypePx(screen.dpr);
 
   // Measure the stage so we never present a letter taller than the box.
   React.useEffect(() => {
@@ -124,34 +149,62 @@ export function TumblingETest() {
   }, [phase]);
 
   /** What the distance step previews. The authoritative pair is read below. */
-  const bounds = React.useMemo(
-    () => ladderBounds(distanceMm, pxPerMm, stagePx || viewportPx || FALLBACK_STAGE_PX, MIN_OPTOTYPE_PX),
-    [distanceMm, pxPerMm, stagePx, viewportPx],
+  const preview = React.useMemo(
+    () =>
+      ladderBounds(
+        distanceMm,
+        pxPerMm,
+        stagePx || screen.viewportPx || FALLBACK_STAGE_PX,
+        minPx,
+      ),
+    [distanceMm, pxPerMm, stagePx, screen.viewportPx, minPx],
   );
+
+  /**
+   * How far back the reader has to sit, on this screen, for the Code B line to
+   * be drawable at all — and for the whole chart down to 6/6 to be.
+   *
+   * This is the number the test never used to compute, and not computing it is
+   * what let someone sit 40 cm from a 95 dpi monitor, where a 6/12 letter is
+   * four pixels tall, answer every letter correctly, and be told they had 40%
+   * visual acuity loss.
+   */
+  const minCmForStandard = clampDistance(
+    toStop(minDistanceMmFor(ACUITY_LEVELS[LMV_PASS_INDEX].denominator, pxPerMm, minPx) / 10),
+  );
+  const recommendedCm = clampDistance(toStop(minDistanceMmFor(6, pxPerMm, minPx) / 10));
 
   /**
    * Show the chart, then start the ladder once it has been measured.
    *
    * Two steps rather than one because the chart is only in the tree during
-   * `testing`, so there is nothing to measure until after the phase flips. The
-   * effect below seeds the ladder on the first frame that has a measurement.
+   * `testing`, so there is nothing to measure until after the phase flips.
+   * `armed` is what says "the reader pressed Start", and it matters: keying the
+   * effect off the phase alone made it fire again on the last letter of every
+   * eye, when the ladder had gone `stage-done` while the phase was still
+   * `testing`, silently restarting a stage that had just been banked.
    */
-  const beginStage = React.useCallback(() => setPhase("testing"), []);
+  const [armed, setArmed] = React.useState(false);
+  const beginStage = React.useCallback(() => {
+    setArmed(true);
+    setPhase("testing");
+  }, []);
 
   React.useEffect(() => {
-    if (phase !== "testing" || ladder.status === "running") return;
+    if (!armed || phase !== "testing") return;
     // Measure the chart *here*, not from the render that scheduled this. The
     // measuring effect above runs in the same commit, so its setState has not
     // landed yet and `stagePx` would still read 0 on the first eye — which is
     // the whole bug, reintroduced one layer down. The ref is current.
     const el = stageRef.current;
     const measured = el ? Math.min(el.clientWidth, el.clientHeight) : 0;
-    const available = measured || viewportPx || FALLBACK_STAGE_PX;
+    const available = measured || screen.viewportPx || FALLBACK_STAGE_PX;
     dispatch({
       type: "start-stage",
-      ...ladderBounds(distanceMm, pxPerMm, available, MIN_OPTOTYPE_PX),
+      ...ladderBounds(distanceMm, pxPerMm, available, minPx),
     });
-  }, [phase, ladder.status, distanceMm, pxPerMm, viewportPx]);
+    setArmed(false);
+  }, [armed, phase, distanceMm, pxPerMm, screen.viewportPx, minPx]);
 
   /** Begin the whole test from the first eye. */
   const begin = React.useCallback(() => {
@@ -197,23 +250,50 @@ export function TumblingETest() {
     ? optotypeHeightPx(ACUITY_LEVELS[trial.levelIndex].denominator, distanceMm, pxPerMm)
     : 0;
 
+  // "Line 3 of 6" — the one number during the test that moves the way the
+  // reader expects. The acuity label beside it shrinks as they do well, which
+  // reads as a score going backwards unless something else is counting up.
+  const lineNo = levelIndex - ladder.startIndex + 1;
+  const lineTotal = ladder.maxIndex - ladder.startIndex + 1;
+
+  /**
+   * The counters belong to a stage that is actually under way. Between the
+   * commit that banks an eye and the effect that leaves the testing phase — and
+   * again between pressing Start and the effect that measures the chart — the
+   * card is on screen holding the *previous* stage's numbers, which is how it
+   * came to flash "Letter 5 of 4" at the end of every eye. Blank is honest
+   * there; a stale count is not, and a counter that visibly misbehaves is
+   * exactly what makes a reader distrust the score at the end.
+   */
+  const running = ladder.status === "running";
+
   return (
     <div className="space-y-6">
       {phase === "calibrate" && (
         <CalibrateStep
           cardWidthPx={cardWidthPx}
           onChange={setCardWidthPx}
-          onNext={() => setPhase("distance")}
+          onNext={() => {
+            if (!distanceChosen) setDistanceCm(recommendedCm);
+            setPhase("distance");
+          }}
         />
       )}
 
       {phase === "distance" && (
         <DistanceStep
           distanceCm={distanceCm}
-          onChange={setDistanceCm}
+          onChange={(cm) => {
+            setDistanceChosen(true);
+            setDistanceCm(cm);
+          }}
           onBack={() => setPhase("calibrate")}
           onNext={begin}
-          startLabel={ACUITY_LEVELS[bounds.startIndex]?.label}
+          startLabel={ACUITY_LEVELS[preview.startIndex]?.label}
+          floorLabel={ACUITY_LEVELS[preview.maxIndex]?.label}
+          reachesStandard={preview.maxIndex >= LMV_PASS_INDEX}
+          minCmForStandard={minCmForStandard}
+          recommendedCm={recommendedCm}
         />
       )}
 
@@ -232,7 +312,13 @@ export function TumblingETest() {
             <Eye className="h-4 w-4 text-primary" />
             <span className="font-medium">Result</span>
           </div>
-          <ResultPanel stageOutcomes={stageOutcomes} onRestart={() => setPhase("calibrate")} />
+          <ResultPanel
+            stageOutcomes={stageOutcomes}
+            bounds={{ startIndex: ladder.startIndex, maxIndex: ladder.maxIndex }}
+            distanceCm={distanceCm}
+            minCmForStandard={minCmForStandard}
+            onRestart={() => setPhase("calibrate")}
+          />
         </Card>
       )}
 
@@ -242,13 +328,28 @@ export function TumblingETest() {
             <div className="flex items-center gap-2 text-sm">
               <Eye className="h-4 w-4 text-primary" />
               <span className="font-medium">{EYE_STAGE_LABEL[stage]}</span>
-              <span className="text-muted-foreground">·</span>
-              <span className="tabular-nums">{ACUITY_LEVELS[levelIndex].label}</span>
+              {running && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="tabular-nums text-muted-foreground">
+                    line {lineNo} of {lineTotal}
+                  </span>
+                </>
+              )}
             </div>
-            <span className="text-xs tabular-nums text-muted-foreground">
-              Letter {askedThisLevel + 1} of {PER_LEVEL}
-            </span>
+            {running && (
+              <span className="text-xs tabular-nums text-muted-foreground">
+                Letter {askedThisLevel + 1} of {PER_LEVEL}
+              </span>
+            )}
           </div>
+
+          {/* Counts up as the letters shrink, so "further down the chart" is
+              visible as progress rather than only as a smaller number. */}
+          <Progress
+            value={running ? (lineNo / Math.max(lineTotal, 1)) * 100 : 0}
+            className="h-1 rounded-none"
+          />
 
           {/*
             The chart is deliberately fixed to black-on-white in both themes,
@@ -338,13 +439,22 @@ function TumblingE({
       aria-hidden="true"
     >
       {/*
-        A Snellen E on a 5×5 grid: three horizontal bars one unit thick,
-        separated by one-unit gaps, joined by a spine down the left. Drawn as
-        an SVG so it scales to sub-pixel sizes without font hinting rounding
-        the strokes — which would quietly change the acuity being measured.
+        A Snellen E on a 5×5 grid: three horizontal bars, each one unit thick
+        and the full five units long, separated by one-unit gaps and joined by
+        a spine down the left. Equal-length arms matter — a short middle arm is
+        a different letter, and an easier one, because the reader can identify
+        it without ever resolving the gaps that the acuity is defined by.
+
+        Rendered with `geometricPrecision` rather than `crispEdges`. Snapping
+        edges to whole pixels sounds like the careful choice and is the opposite
+        of it: near the bottom of the ladder a stroke is a pixel and a half, and
+        quantising it to one or two changes the size of the thing being measured
+        by a quarter. Antialiasing keeps the letter at its true size and lets
+        the greyscale carry the sub-pixel detail, which is what the eye
+        integrates anyway.
       */}
-      <svg viewBox="0 0 5 5" width="100%" height="100%" shapeRendering="crispEdges">
-        <path d="M0 0h5v1H1v1h3v1H1v1h4v1H0z" fill="currentColor" />
+      <svg viewBox="0 0 5 5" width="100%" height="100%" shapeRendering="geometricPrecision">
+        <path d="M0 0h5v1H1v1h4v1H1v1h4v1H0z" fill="currentColor" />
       </svg>
     </div>
   );
@@ -400,18 +510,32 @@ function CalibrateStep({
   );
 }
 
+/**
+ * Step 2 is where the test is won or lost, because distance is the only lever a
+ * reader has over resolution. A screen cannot draw a smaller dot, but sitting
+ * twice as far away halves the angle every dot subtends — so the same monitor
+ * that bottoms out at 6/24 across a desk reaches 6/6 across a room.
+ */
 function DistanceStep({
   distanceCm,
   onChange,
   onBack,
   onNext,
   startLabel,
+  floorLabel,
+  reachesStandard,
+  minCmForStandard,
+  recommendedCm,
 }: {
   distanceCm: number;
   onChange: (cm: number) => void;
   onBack: () => void;
   onNext: () => void;
   startLabel?: string;
+  floorLabel?: string;
+  reachesStandard: boolean;
+  minCmForStandard: number;
+  recommendedCm: number;
 }) {
   return (
     <Card className={cn(glass, "p-5")}>
@@ -419,9 +543,10 @@ function DistanceStep({
         Step 2 — how far from the screen?
       </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Sit where you will stay for the whole test and measure it once. Arm&apos;s length is
-        roughly 60 cm; a phone held comfortably is closer to 40 cm. Guessing here shifts every
-        result, so it is worth a tape measure.
+        Further than feels natural. The DLTC reads its chart at 6 m and the K53 manual prints
+        one for 3 m, because a letter this small only exists as a shape when it is far enough
+        away that your screen&apos;s pixels stop being the limit. Measure the distance once and
+        stay there.
       </p>
 
       <label className="mt-5 block">
@@ -431,22 +556,43 @@ function DistanceStep({
         </span>
         <input
           type="range"
-          min={25}
-          max={300}
-          step={5}
+          min={DISTANCE_MIN_CM}
+          max={DISTANCE_MAX_CM}
+          step={DISTANCE_STEP_CM}
           value={distanceCm}
           onChange={(e) => onChange(Number(e.target.value))}
           className="mt-2 w-full accent-primary"
         />
       </label>
 
-      {startLabel && (
+      {reachesStandard ? (
         <p className="mt-4 text-xs text-muted-foreground">
-          At this distance and screen size the test starts at{" "}
-          <span className="font-medium text-foreground">{startLabel}</span> — larger lines would
-          not fit on screen.
+          At {distanceCm} cm this screen runs from{" "}
+          <span className="font-medium text-foreground">{startLabel}</span> down to{" "}
+          <span className="font-medium text-foreground">{floorLabel}</span> — past the 6/12
+          Code B line, so the test can settle it.
         </p>
+      ) : (
+        <div className="mt-4 rounded-lg border border-warning/30 bg-warning/[0.08] px-4 py-2.5 text-xs text-warning">
+          At {distanceCm} cm the smallest letter this screen can draw honestly is{" "}
+          <strong className="font-semibold">{floorLabel}</strong>, which is bigger than the 6/12
+          Code B line — so the test cannot reach the standard and will not be able to tell you
+          whether you meet it. Move back to at least{" "}
+          <strong className="font-semibold tabular-nums">{minCmForStandard} cm</strong>
+          {recommendedCm > minCmForStandard && (
+            <>
+              , or <strong className="font-semibold tabular-nums">{recommendedCm} cm</strong> to
+              reach 6/6
+            </>
+          )}
+          .
+        </div>
       )}
+
+      <p className="mt-3 text-2xs leading-relaxed text-muted-foreground">
+        Too far to reach the keyboard? Have someone press the arrows while you call out each
+        answer — at the DLTC the examiner drives the machine for exactly that reason.
+      </p>
 
       <div className="mt-5 flex justify-between">
         <Button variant="ghost" onClick={onBack}>
@@ -486,6 +632,13 @@ function EyePromptStep({
         will skew the next reading. Keep your glasses or contacts on if you wear them for
         driving; the standard is met with or without them.
       </p>
+      {stageNumber === 1 && (
+        <p className="mt-2 text-xs text-muted-foreground">
+          Four letters per line, then the line gets smaller. Getting further down the chart is
+          the good outcome — the counter in the corner is which line you have reached, not a
+          score, so watch that rather than the shrinking letters.
+        </p>
+      )}
       <div className="mt-5 flex justify-end">
         <Button onClick={onNext}>Start</Button>
       </div>
@@ -493,57 +646,103 @@ function EyePromptStep({
   );
 }
 
+/** The headline figure: a label, plus whether it is a ceiling rather than a reading. */
+function HeadlineAcuity({ result }: { result: StageResult }) {
+  if (result.kind === "measured" || result.kind === "atLeast") {
+    return (
+      <p className="font-display text-4xl font-semibold tabular-nums tracking-tight">
+        {ACUITY_LEVELS[result.index].label}
+        {/* A real space, not just a margin — otherwise a screen reader and
+            anything copying the text both get "6/36or better". */}
+        {result.kind === "atLeast" && (
+          <>
+            {" "}
+            <span className="align-middle text-base font-medium tracking-normal text-muted-foreground">
+              or better
+            </span>
+          </>
+        )}
+      </p>
+    );
+  }
+  return <p className="font-display text-4xl font-semibold tracking-tight">—</p>;
+}
+
 function ResultPanel({
   stageOutcomes,
+  bounds,
+  distanceCm,
+  minCmForStandard,
   onRestart,
 }: {
   stageOutcomes: Partial<Record<EyeStage, LevelOutcome[]>>;
+  bounds: { startIndex: number; maxIndex: number };
+  distanceCm: number;
+  minCmForStandard: number;
   onRestart: () => void;
 }) {
   const perStage = Object.fromEntries(
-    EYE_STAGES.map((s) => [s, bestPassedIndex(stageOutcomes[s] ?? [], REQUIRED)]),
-  ) as Record<EyeStage, number | null>;
+    EYE_STAGES.map((s) => [s, stageResult(stageOutcomes[s] ?? [], REQUIRED, bounds)]),
+  ) as Record<EyeStage, StageResult>;
 
-  const meets = meetsLmvStandard(perStage);
-  const bestIndex = bestAcrossStages(perStage);
-  const best = bestIndex === null ? null : ACUITY_LEVELS[bestIndex];
+  // Regulation 102 is written per eye; the binocular stage is context.
+  const verdict = lmvVerdict(perStage.left, perStage.right);
+  const best = bestAcrossStages(perStage);
+  const bestLevel = best.kind === "measured" || best.kind === "atLeast" ? ACUITY_LEVELS[best.index] : null;
+
+  // A loss percentage off the manual's chart is a claim about a *measured*
+  // acuity. Against a screen's floor it would be a claim about the screen.
+  const lossNote =
+    best.kind === "measured" && bestLevel
+      ? bestLevel.lossPercent === null || bestLevel.lossPercent === 0
+        ? "Your best reading — no visual acuity loss on the manual's chart."
+        : `Your best reading — about ${bestLevel.lossPercent}% visual acuity loss on the manual's chart.`
+      : best.kind === "atLeast" && bestLevel
+        ? `You read every line this screen could show, down to ${bestLevel.label}. Your sight may well be sharper — the chart ran out, not you.`
+        : "You did not clear the largest line this screen could show, with either eye.";
+
+  const badge = {
+    yes: { variant: "success" as const, text: "Meets the Code B standard" },
+    no: { variant: "warning" as const, text: "Below the Code B standard" },
+    unknown: { variant: "secondary" as const, text: "Not enough to say" },
+  }[verdict];
 
   return (
     <div className="p-6">
       <div className="text-center">
-        <Badge variant={meets ? "success" : "secondary"} className="mb-3">
-          {meets ? "Meets the Code B threshold" : "Worth getting checked"}
+        <Badge variant={badge.variant} className="mb-3">
+          {badge.text}
         </Badge>
-        <p className="font-display text-4xl font-semibold tabular-nums tracking-tight">
-          {best ? best.label : "—"}
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          {best
-            ? best.lossPercent === null || best.lossPercent === 0
-              ? "Your best reading — no visual acuity loss on the manual's chart."
-              : `Your best reading — about ${best.lossPercent}% visual acuity loss on the manual's chart.`
-            : "You did not clear the largest line this screen could show, with either eye."}
-        </p>
+        <HeadlineAcuity result={best} />
+        <p className="mt-2 text-sm text-muted-foreground">{lossNote}</p>
       </div>
 
       <div className="mt-5 space-y-2">
         {EYE_STAGES.map((s) => {
-          const idx = perStage[s];
-          const passedStage = idx !== null && idx >= LMV_PASS_INDEX;
+          const result = perStage[s];
+          const clears = reaches(result, LMV_PASS_INDEX);
+          const index = result.kind === "measured" || result.kind === "atLeast" ? result.index : null;
           return (
             <div key={s} className="flex items-center gap-3 text-sm">
               <span className="w-24 shrink-0 text-muted-foreground">{EYE_STAGE_LABEL[s]}</span>
               <span
                 className={cn(
-                  "w-14 shrink-0 tabular-nums font-medium",
-                  passedStage ? "text-success" : "text-foreground",
+                  "w-28 shrink-0 tabular-nums font-medium",
+                  clears === "yes" ? "text-success" : "text-foreground",
                 )}
               >
-                {idx === null ? "—" : ACUITY_LEVELS[idx].label}
+                {result.kind === "atLeast" ? (
+                  <>
+                    {ACUITY_LEVELS[result.index].label}{" "}
+                    <span className="text-2xs font-normal text-muted-foreground">or better</span>
+                  </>
+                ) : (
+                  (stageLabel(result) ?? "—")
+                )}
               </span>
               <Progress
-                value={idx === null ? 0 : ((idx + 1) / ACUITY_LEVELS.length) * 100}
-                tone={passedStage ? "success" : "warning"}
+                value={index === null ? 0 : ((index + 1) / ACUITY_LEVELS.length) * 100}
+                tone={clears === "yes" ? "success" : clears === "no" ? "warning" : "primary"}
                 className="flex-1"
               />
             </div>
@@ -552,20 +751,35 @@ function ResultPanel({
       </div>
 
       <p className="mt-4 text-xs text-muted-foreground">
-        The Code B standard is <strong className="text-foreground">6/12 or better in one eye,
-        or both eyes together</strong> — with or without glasses or contact lenses. If you need
-        lenses to reach it, that is recorded on your licence as a restriction, not a refusal.
+        The Code B standard is{" "}
+        <strong className="text-foreground">
+          6/12 or better in each eye — or 6/9 in the other, if one eye is below 6/12 or blind
+        </strong>{" "}
+        — with or without glasses or contact lenses. It is written per eye, which is why the
+        both-eyes reading above is shown but cannot carry a failing one. If you need lenses to
+        reach the standard, that is recorded on your licence as a restriction, not a refusal.
       </p>
+
+      {verdict === "unknown" && (
+        <div className="mt-4 rounded-lg border border-warning/30 bg-warning/[0.08] px-4 py-2.5 text-xs text-warning">
+          At {distanceCm} cm, {ACUITY_LEVELS[bounds.maxIndex].label} was the smallest line this
+          screen could draw honestly — so a reader who clears it might be 6/12, or 6/6, and this
+          test cannot tell which. That is a limit of the screen, not a finding about your sight.
+          Run it again from at least{" "}
+          <strong className="font-semibold tabular-nums">{minCmForStandard} cm</strong> for a
+          verdict.
+        </div>
+      )}
 
       <div className="mt-4 rounded-lg border border-border/60 bg-muted/40 p-3">
         <p className="text-xs font-medium text-foreground">What this cannot check</p>
         <p className="mt-1 text-2xs leading-relaxed text-muted-foreground">
-          The DLTC screener also tests your <strong>peripheral vision</strong> — lights
-          flickering at the edges of your field, which you acknowledge as you see them — and on
-          some machines depth perception. A phone or laptop covers far too little of your visual
-          field to imitate that, so nothing here attempts it. You can also take an
-          optometrist&apos;s certificate to the DLTC instead of using their machine, provided it
-          is no more than 90 days old on the day you apply.
+          The DLTC screener also tests your <strong>peripheral vision</strong> — you need 70°
+          temporal in each eye, tested with lights flickering at the edges of your field — and on
+          some machines depth perception and the traffic-light colours. A phone or laptop covers
+          far too little of your visual field to imitate that, so nothing here attempts it. You
+          can also take an optometrist&apos;s certificate to the DLTC instead of using their
+          machine, provided it is no more than 90 days old on the day you apply.
         </p>
       </div>
 

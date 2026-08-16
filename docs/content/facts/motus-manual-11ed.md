@@ -532,7 +532,33 @@ Rows from 6/18 down mix in **reversed E glyphs (Ǝ)** — the tumbling-E optotyp
 screening machine uses. The manual's advice: if you cannot read the bottom line clearly,
 with either eye, see an optometrist.
 
-Used as the ladder and scoring basis for `src/lib/vision/acuity.ts`.
+Used as the ladder and the visual-acuity-loss column for `src/lib/vision/acuity.ts`.
+
+### The pass rule is not the manual's
+
+The manual prints the chart but not the standard. The standard is **regulation 102 of the
+National Road Traffic Act** (Act 93 of 1996), which is what the DLTC applies:
+
+| Codes | Visual acuity (with or without correction) | Visual field |
+|---|---|---|
+| A1, A, B, EB | 6/12 **in each eye** — or, where one eye is under 6/12 or blind, 6/9 in the other | 70° temporal in each eye; or, where one eye is under 70° or blind, 115° total horizontal |
+| C1, C, EC1, EC | 6/9 **in each eye** (no monocular alternative) | 70° temporal in each eye |
+
+Two things this corrects, both of which `acuity.ts` had wrong before 2026-08-15:
+
+1. It is written **per eye**, not "6/12 in one eye, or both eyes together". The looser wording
+   is widely repeated and passes people the DLTC will fail — someone at 6/6 left and 6/36
+   right meets it and fails regulation 102, because a carrying eye needs 6/9, not 6/12.
+2. A binocular reading cannot rescue a failing eye. The DLTC does test both eyes together, so
+   the screener still shows that reading, labelled as context.
+
+The visual-field figure is why the screener says outright that it cannot check peripheral
+vision: 70° temporal per eye is not testable on a phone held at arm's length.
+
+Source: regulation 102 as reproduced by the Optometric Association of South Africa,
+<http://oasa.org.za/Regulation102.php>; cross-checked against Tamenti et al., "Stakeholder
+perspectives on vision screening for drivers in Gauteng", *Health SA Gesondheid* (2025),
+<https://pmc.ncbi.nlm.nih.gov/articles/PMC11886461/>.
 
 ---
 

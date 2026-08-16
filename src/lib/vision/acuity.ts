@@ -5,12 +5,21 @@
  * test chart in the Official Motus/Safeways K53 Learner's & Driver's Manual
  * (11th ed., p.96), which instructs the reader to stand 3 m from the page.
  *
+ * The pass rule is not the manual's, though — it is regulation 102 of the
+ * National Road Traffic Act, which is what the DLTC actually applies.
+ *
  * A screen is not a printed chart: the same pixel height is a different
  * angular size on every device, at every viewing distance. So nothing here
  * works in pixels — sizes are derived from the physical geometry, and the
  * caller supplies the two measurements that pin it down (px per mm, from the
  * bank-card calibration, and the viewing distance). Without both, the numbers
  * on screen would be decoration.
+ *
+ * The other thing a screen has that paper does not is a resolution floor. Ink
+ * has no smallest line; a display does, and near it the dots decide what the
+ * reader can resolve. Everything below therefore distinguishes an acuity the
+ * reader was *measured* at from one the screen merely could not go past —
+ * `StageResult`, and the reason this module is more than a few multiplications.
  */
 
 /** ISO/IEC 7810 ID-1 — every bank/ID card in the world is this wide. */
@@ -38,17 +47,28 @@ export const ACUITY_LEVELS: readonly AcuityLevel[] = [
 ];
 
 /**
- * The threshold for a light motor vehicle (Code B/EB): **6/12 or better in one
- * eye, or both eyes together** — with or without glasses or contact lenses.
- * Index into ACUITY_LEVELS, so "at least as good as".
+ * The light-motor-vehicle threshold (codes A1, A, B, EB), from regulation 102
+ * of the National Road Traffic Act: at least **6/12 in each eye**, or — where
+ * one eye is under 6/12 or blind — at least **6/9 in the other**. With or
+ * without glasses or contact lenses. Indices into ACUITY_LEVELS, so "at least
+ * as good as" is `>=`.
+ *
+ * Note what the regulation does *not* say: "6/12 in one eye, or both eyes
+ * together". That looser reading is widely repeated and it used to be the rule
+ * implemented here, and the difference is not academic — a reader with 6/6 on
+ * the left and 6/36 on the right satisfies it and fails the actual standard,
+ * because a left eye carrying a right one has to reach 6/9, not 6/12. Telling
+ * that reader they are fine is the one mistake this screener must not make.
  */
 export const LMV_PASS_INDEX = ACUITY_LEVELS.findIndex((l) => l.denominator === 12);
+export const LMV_CARRY_INDEX = ACUITY_LEVELS.findIndex((l) => l.denominator === 9);
 
 /**
  * The DLTC screener tests each eye on its own and then both together, in that
- * order, and the pass rule reads across all three. Reproduced here because a
- * single binocular number would hide exactly the case the real test is looking
- * for — one strong eye carrying one weak one.
+ * order. The regulation is written per eye, so the verdict turns on the first
+ * two; the binocular reading is kept because it is what most people remember
+ * being asked for, and because a binocular figure alone would hide exactly the
+ * case the standard is written around — one strong eye carrying one weak one.
  */
 export const EYE_STAGES = ["left", "right", "both"] as const;
 export type EyeStage = (typeof EYE_STAGES)[number];
@@ -65,30 +85,6 @@ export const EYE_STAGE_INSTRUCTION: Record<EyeStage, string> = {
   right: "Now cover your left eye and read with your right.",
   both: "Uncover both eyes and read with them together.",
 };
-
-/**
- * Whether a set of per-stage results meets the Code B standard.
- *
- * "6/12 in one eye, **or** both eyes together" — so the best of the three
- * stages decides it. A null stage (failed even the largest line shown) simply
- * cannot be the one that carries the pass.
- */
-export function meetsLmvStandard(results: Partial<Record<EyeStage, number | null>>): boolean {
-  return EYE_STAGES.some((stage) => {
-    const idx = results[stage];
-    return idx !== null && idx !== undefined && idx >= LMV_PASS_INDEX;
-  });
-}
-
-/** The deepest level reached across all stages, or null if none was passed. */
-export function bestAcrossStages(
-  results: Partial<Record<EyeStage, number | null>>,
-): number | null {
-  const found = EYE_STAGES.map((s) => results[s]).filter(
-    (v): v is number => v !== null && v !== undefined,
-  );
-  return found.length ? Math.max(...found) : null;
-}
 
 /**
  * Height in millimetres of a Snellen optotype of the given acuity, viewed from
@@ -118,6 +114,41 @@ export function pxPerMmFromCardWidth(cardWidthPx: number): number {
 }
 
 /**
+ * The smallest optotype a display can honestly draw.
+ *
+ * A Snellen E is five stroke-widths tall, so the detail the reader actually has
+ * to resolve is one fifth of its height. Below roughly two device pixels per
+ * stroke it is the *display* deciding whether the gaps between the bars are
+ * visible, not the eye, and the ladder has stopped measuring sight.
+ *
+ * Device pixels rather than CSS pixels, because the physical dot grid is what
+ * imposes the limit: one CSS pixel is three dots on a phone and one on a 95 dpi
+ * desktop monitor, which is why the same test at the same distance can run all
+ * the way to 6/5 on the phone and stall at 6/24 on the desk. The old floor was
+ * a flat 8 CSS px, which is 1.6 px per stroke on the monitor — and it is
+ * exactly that floor that ended a perfect reader's test at 6/24.
+ */
+export const STROKES_PER_OPTOTYPE = 5;
+export const DEVICE_PX_PER_STROKE = 2;
+
+export function minOptotypePx(devicePixelRatio = 1): number {
+  return (STROKES_PER_OPTOTYPE * DEVICE_PX_PER_STROKE) / Math.max(devicePixelRatio, 1);
+}
+
+/**
+ * The closest a reader may sit and still have `denominator` drawn honestly.
+ *
+ * Optotype height is linear in viewing distance, so this inverts
+ * `optotypeHeightPx` directly: measure the height at 1 mm, divide the floor by
+ * it. Moving back is the only lever a reader has — a screen cannot grow dots,
+ * but doubling the distance halves the angular size of every pixel.
+ */
+export function minDistanceMmFor(denominator: number, pxPerMm: number, minPx: number): number {
+  const pxPerMmOfDistance = optotypeHeightPx(denominator, 1, pxPerMm);
+  return pxPerMmOfDistance > 0 ? minPx / pxPerMmOfDistance : Number.POSITIVE_INFINITY;
+}
+
+/**
  * The largest level whose optotype still fits on screen. Deeper levels are
  * unreachable rather than wrong — on a phone at 40 cm, 6/60 is taller than the
  * viewport, so the test has to start further down the chart and say so.
@@ -137,10 +168,15 @@ export function firstRenderableIndex(
  * The rungs a ladder may use on a chart `availablePx` tall.
  *
  * `start` is the largest optotype that fits in half the chart; `max` is the
- * last one still big enough to be a letter rather than a smudge. Both come from
- * one call so they cannot be derived from different measurements — the eyes
- * disagreeing about how many letters they were shown was exactly that, one eye
- * sized against an unmeasured chart and the next two against a measured one.
+ * last one this screen can still draw honestly. Both come from one call so they
+ * cannot be derived from different measurements — the eyes disagreeing about
+ * how many letters they were shown was exactly that, one eye sized against an
+ * unmeasured chart and the next two against a measured one.
+ *
+ * `max` is a property of the *screen*, never of the reader, and every consumer
+ * has to keep that straight: a ladder that ends there has run out of rungs, and
+ * saying so is the difference between "your acuity is 6/24" and "6/24 was the
+ * smallest line this screen could show you, and you read all of it".
  */
 export function ladderBounds(
   distanceMm: number,
@@ -185,10 +221,139 @@ export function levelPassed(outcome: LevelOutcome, required: number): boolean {
 }
 
 /**
- * The reported result: the deepest level the reader actually passed.
+ * The deepest level the reader actually passed.
  * Returns null when they failed even the first level presented.
  */
 export function bestPassedIndex(outcomes: readonly LevelOutcome[], required: number): number | null {
   const passed = outcomes.filter((o) => levelPassed(o, required)).map((o) => o.index);
   return passed.length ? Math.max(...passed) : null;
+}
+
+/**
+ * What one eye's ladder established — which is not always a number.
+ *
+ * A threshold test measures by bracketing: you know someone's acuity is 6/12
+ * because they read 6/12 and failed 6/9. A ladder that simply runs out of rungs
+ * has bracketed nothing from above, and reporting its last rung as the answer
+ * is how a reader who got every single letter right was told "6/24 — about 40%
+ * visual acuity loss". The test stopped at 6/24 because the next line would
+ * have been six pixels tall, not because they misread anything.
+ *
+ * So the result is a bracket, and the three ways a ladder ends are three
+ * different facts:
+ *
+ * - `measured` — they failed a line, so their acuity is that line. A number.
+ * - `atLeast`  — they cleared the smallest line this screen can draw. A floor,
+ *                with nothing above it. "6/24 or better", never "6/24".
+ * - `belowChart` — they failed the *largest* line shown, so they are worse than
+ *                it and how much worse is unknown.
+ */
+export type StageResult =
+  | { kind: "untested" }
+  | { kind: "belowChart"; startIndex: number }
+  | { kind: "measured"; index: number }
+  | { kind: "atLeast"; index: number };
+
+export function stageResult(
+  outcomes: readonly LevelOutcome[],
+  required: number,
+  bounds: { startIndex: number; maxIndex: number },
+): StageResult {
+  if (!outcomes.length) return { kind: "untested" };
+  const best = bestPassedIndex(outcomes, required);
+  if (best === null) return { kind: "belowChart", startIndex: bounds.startIndex };
+  return best >= bounds.maxIndex
+    ? { kind: "atLeast", index: best }
+    : { kind: "measured", index: best };
+}
+
+/** The line to print for a stage, or null if it never produced one. */
+export function stageLabel(result: StageResult): string | null {
+  switch (result.kind) {
+    case "untested":
+      return null;
+    case "belowChart":
+      return `worse than ${ACUITY_LEVELS[result.startIndex].label}`;
+    case "measured":
+      return ACUITY_LEVELS[result.index].label;
+    case "atLeast":
+      return `${ACUITY_LEVELS[result.index].label} or better`;
+  }
+}
+
+/**
+ * Three-valued on purpose: "we could not tell" is a real outcome of a screening
+ * test on a screen, and collapsing it into "no" is what turned a perfect run
+ * into "Worth getting checked".
+ */
+export type Tri = "yes" | "no" | "unknown";
+
+/** Whether a stage result clears `targetIndex` — or whether the test can say. */
+export function reaches(result: StageResult, targetIndex: number): Tri {
+  switch (result.kind) {
+    case "untested":
+      return "unknown";
+    // Failed the largest line the screen could draw. That settles the question
+    // only if the target was actually on the chart: where the screen could not
+    // even draw the target line, failing something smaller says nothing.
+    case "belowChart":
+      return result.startIndex <= targetIndex ? "no" : "unknown";
+    case "measured":
+      return result.index >= targetIndex ? "yes" : "no";
+    // Bounded below and open above: clearing the floor proves the target only
+    // when the floor is already at or past it.
+    case "atLeast":
+      return result.index >= targetIndex ? "yes" : "unknown";
+  }
+}
+
+const triAnd = (a: Tri, b: Tri): Tri =>
+  a === "no" || b === "no" ? "no" : a === "yes" && b === "yes" ? "yes" : "unknown";
+const triOr = (a: Tri, b: Tri): Tri =>
+  a === "yes" || b === "yes" ? "yes" : a === "no" && b === "no" ? "no" : "unknown";
+const triNot = (a: Tri): Tri => (a === "yes" ? "no" : a === "no" ? "yes" : "unknown");
+
+/**
+ * Regulation 102, transcribed: "6/12 for each eye, or where the visual acuity
+ * of one eye is less than 6/12 or where one eye is blind, a minimum visual
+ * acuity for the other eye of 6/9."
+ *
+ * The binocular stage is deliberately not an input. It is worth showing and
+ * worth reading, but the regulation is written per eye, and letting a good
+ * binocular figure carry a failing eye is the looser rule this used to apply.
+ */
+export function lmvVerdict(left: StageResult, right: StageResult): Tri {
+  const leftClears = reaches(left, LMV_PASS_INDEX);
+  const rightClears = reaches(right, LMV_PASS_INDEX);
+
+  // "6/12 for each eye..."
+  const bothClear = triAnd(leftClears, rightClears);
+  // "...or, where one eye is under 6/12, 6/9 in the other."
+  const carried = triOr(
+    triAnd(triNot(rightClears), reaches(left, LMV_CARRY_INDEX)),
+    triAnd(triNot(leftClears), reaches(right, LMV_CARRY_INDEX)),
+  );
+  return triOr(bothClear, carried);
+}
+
+/**
+ * The deepest line anyone cleared, for the headline figure.
+ *
+ * `belowChart` outranks `untested` without carrying an index: an eye that read
+ * nothing is still a result, and the headline has to be able to say so rather
+ * than showing a dash as though the test never ran.
+ */
+export function bestAcrossStages(
+  results: Partial<Record<EyeStage, StageResult>>,
+): StageResult {
+  const rank = (r: StageResult) => {
+    if (r.kind === "measured" || r.kind === "atLeast") return r.index;
+    return r.kind === "belowChart" ? -1 : -2;
+  };
+  let best: StageResult = { kind: "untested" };
+  for (const stage of EYE_STAGES) {
+    const result = results[stage];
+    if (result && rank(result) > rank(best)) best = result;
+  }
+  return best;
 }

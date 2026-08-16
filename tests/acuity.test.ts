@@ -7,11 +7,18 @@ import {
   LMV_PASS_INDEX,
   bestAcrossStages,
   bestPassedIndex,
-  meetsLmvStandard,
   firstRenderableIndex,
+  ladderBounds,
+  lmvVerdict,
+  minDistanceMmFor,
+  minOptotypePx,
   optotypeHeightMm,
   optotypeHeightPx,
   pxPerMmFromCardWidth,
+  reaches,
+  stageLabel,
+  stageResult,
+  type StageResult,
 } from "@/lib/vision/acuity";
 
 /**
@@ -94,43 +101,168 @@ describe("scoring", () => {
   });
 });
 
+const i = (label: string) => ACUITY_LEVELS.findIndex((l) => l.label === label);
+
 /**
- * The DLTC tests each eye alone and then both together, and the standard is
- * "6/12 or better in one eye, **or** both eyes together". That disjunction is
- * the whole point — someone with one weak eye still passes on the strong one,
- * and reporting only a binocular figure would hide the weak eye entirely.
+ * The bug this file exists to keep fixed: a reader answered every letter
+ * correctly, the ladder ran out of rungs at 6/24 because the next line would
+ * have been six pixels tall, and the result panel reported "6/24 — about 40%
+ * visual acuity loss. Worth getting checked."
+ *
+ * A ladder that ends at the screen's floor has not measured an acuity. It has
+ * established a lower bound and nothing else.
  */
-describe("per-eye pass rule", () => {
-  const i = (label: string) => ACUITY_LEVELS.findIndex((l) => l.label === label);
+describe("a ladder that runs out of rungs", () => {
+  const perfect = (from: number, to: number) =>
+    Array.from({ length: to - from + 1 }, (_, n) => ({ index: from + n, correct: 4, asked: 4 }));
 
-  it("passes on one strong eye even when the other is poor", () => {
-    expect(meetsLmvStandard({ left: i("6/60"), right: i("6/9"), both: i("6/12") })).toBe(true);
+  it("reports a floor as a floor, not as a reading", () => {
+    const result = stageResult(perfect(0, 2), 3, { startIndex: 0, maxIndex: 2 });
+    expect(result).toEqual({ kind: "atLeast", index: 2 });
+    expect(stageLabel(result)).toBe("6/24 or better");
   });
 
-  it("passes on the binocular reading when neither eye alone reaches it", () => {
-    expect(meetsLmvStandard({ left: i("6/18"), right: i("6/18"), both: i("6/12") })).toBe(true);
+  it("reports a threshold as a reading when a line was actually failed", () => {
+    const outcomes = [...perfect(0, 2), { index: 3, correct: 1, asked: 4 }];
+    const result = stageResult(outcomes, 3, { startIndex: 0, maxIndex: 7 });
+    expect(result).toEqual({ kind: "measured", index: 2 });
+    expect(stageLabel(result)).toBe("6/24");
   });
 
-  it("fails when nothing reaches 6/12", () => {
-    expect(meetsLmvStandard({ left: i("6/18"), right: i("6/24"), both: i("6/18") })).toBe(false);
+  it("distinguishes failing the largest line from never being tested", () => {
+    expect(stageResult([{ index: 0, correct: 1, asked: 4 }], 3, { startIndex: 0, maxIndex: 7 }))
+      .toEqual({ kind: "belowChart", startIndex: 0 });
+    expect(stageResult([], 3, { startIndex: 0, maxIndex: 7 })).toEqual({ kind: "untested" });
   });
 
-  it("treats 6/12 exactly as a pass, not a near miss", () => {
-    expect(meetsLmvStandard({ left: i("6/12"), right: null, both: null })).toBe(true);
+  it("will not claim a floor above the standard settles the standard", () => {
+    // The reported case, end to end: floor at 6/24, perfect reader, verdict
+    // must be "cannot say" — never "below the standard".
+    const floored = stageResult(perfect(0, 2), 3, { startIndex: 0, maxIndex: 2 });
+    expect(reaches(floored, LMV_PASS_INDEX)).toBe("unknown");
+    expect(lmvVerdict(floored, floored)).toBe("unknown");
   });
 
-  it("ignores stages that were never completed", () => {
-    expect(meetsLmvStandard({ left: null, right: null, both: null })).toBe(false);
-    expect(meetsLmvStandard({})).toBe(false);
+  it("does settle it once the floor is at or past 6/12", () => {
+    const floored = stageResult(perfect(0, 4), 3, { startIndex: 0, maxIndex: 4 });
+    expect(reaches(floored, LMV_PASS_INDEX)).toBe("yes");
+    expect(lmvVerdict(floored, floored)).toBe("yes");
+  });
+
+  it("says nothing about 6/12 when the chart never got that far up either", () => {
+    // A chart whose largest drawable line is already sharper than the target:
+    // failing it leaves the target untested in both directions.
+    const below = stageResult([{ index: i("6/9"), correct: 0, asked: 4 }], 3, {
+      startIndex: i("6/9"),
+      maxIndex: 7,
+    });
+    expect(reaches(below, LMV_PASS_INDEX)).toBe("unknown");
+  });
+});
+
+/**
+ * Regulation 102 of the National Road Traffic Act, for codes A1/A/B/EB: 6/12 in
+ * each eye, or where one eye is under 6/12 or blind, 6/9 in the other.
+ *
+ * This replaced "6/12 in one eye, or both eyes together" — a looser rule that
+ * passed readers the DLTC will fail, which is the one direction a screener must
+ * never be wrong in.
+ */
+describe("the Code B pass rule", () => {
+  const at = (label: string): StageResult => ({ kind: "measured", index: i(label) });
+
+  it("passes when both eyes clear 6/12", () => {
+    expect(lmvVerdict(at("6/12"), at("6/12"))).toBe("yes");
+  });
+
+  it("fails a weak eye that a 6/12 fellow eye cannot carry", () => {
+    // The old rule passed this: one eye at 6/12 was enough on its own.
+    expect(lmvVerdict(at("6/12"), at("6/36"))).toBe("no");
+  });
+
+  it("passes it once the fellow eye reaches 6/9", () => {
+    expect(lmvVerdict(at("6/9"), at("6/36"))).toBe("yes");
+    expect(lmvVerdict(at("6/36"), at("6/6"))).toBe("yes");
+  });
+
+  it("fails when neither eye reaches 6/12", () => {
+    expect(lmvVerdict(at("6/18"), at("6/24"))).toBe("no");
+  });
+
+  it("ignores the binocular stage entirely", () => {
+    // Two eyes at 6/18 with a good binocular reading used to pass. The
+    // regulation is written per eye, so summation cannot rescue it.
+    expect(lmvVerdict(at("6/18"), at("6/18"))).toBe("no");
+  });
+
+  it("cannot decide on an eye that was never tested", () => {
+    expect(lmvVerdict(at("6/6"), { kind: "untested" })).toBe("unknown");
+    expect(lmvVerdict({ kind: "untested" }, { kind: "untested" })).toBe("unknown");
+  });
+
+  it("still fails outright when one eye is definitively short and the other is not known to carry it", () => {
+    expect(lmvVerdict(at("6/12"), { kind: "belowChart", startIndex: 0 })).toBe("no");
   });
 
   it("reports the best reading across the three stages", () => {
-    expect(bestAcrossStages({ left: i("6/18"), right: i("6/6"), both: i("6/9") })).toBe(i("6/6"));
-    expect(bestAcrossStages({ left: null, right: null, both: null })).toBeNull();
+    expect(
+      bestAcrossStages({ left: at("6/18"), right: at("6/6"), both: at("6/9") }),
+    ).toEqual(at("6/6"));
+    expect(bestAcrossStages({})).toEqual({ kind: "untested" });
   });
 
   it("runs the eyes in the order the DLTC does", () => {
     expect(EYE_STAGES).toEqual(["left", "right", "both"]);
+  });
+});
+
+/**
+ * The reason the ladder ran out at 6/24 in the first place. Paper has no
+ * smallest line; a display does, and it is set by device pixels — which is why
+ * the identical test at the identical distance reaches 6/5 on a phone and
+ * stalls three rungs above the standard on a desktop monitor.
+ */
+describe("what the screen can honestly draw", () => {
+  // The reporter's setup: a 320 px card outline on a ~95 dpi monitor.
+  const deskPxPerMm = pxPerMmFromCardWidth(320);
+
+  it("gives a denser screen a smaller floor, in CSS pixels", () => {
+    expect(minOptotypePx(1)).toBe(10);
+    expect(minOptotypePx(2)).toBe(5);
+    expect(minOptotypePx(3)).toBeCloseTo(10 / 3, 6);
+  });
+
+  it("never lets a bogus device pixel ratio raise the floor", () => {
+    expect(minOptotypePx(0)).toBe(10);
+    expect(minOptotypePx(0.5)).toBe(10);
+  });
+
+  it("reproduces the reported ladder: 40 cm on a desktop monitor stops above 6/12", () => {
+    const { maxIndex } = ladderBounds(400, deskPxPerMm, 416, minOptotypePx(1));
+    expect(ACUITY_LEVELS[maxIndex].label).toBe("6/36");
+    expect(maxIndex).toBeLessThan(LMV_PASS_INDEX);
+  });
+
+  it("and reaches the standard once the reader moves back", () => {
+    const needed = minDistanceMmFor(12, deskPxPerMm, minOptotypePx(1));
+    expect(needed / 10).toBeCloseTo(92, 0); // ~92 cm
+    const { maxIndex } = ladderBounds(needed, deskPxPerMm, 416, minOptotypePx(1));
+    expect(maxIndex).toBeGreaterThanOrEqual(LMV_PASS_INDEX);
+  });
+
+  it("agrees with the height it is derived from", () => {
+    for (const denominator of [60, 12, 6, 5]) {
+      const minPx = minOptotypePx(2);
+      const distance = minDistanceMmFor(denominator, deskPxPerMm, minPx);
+      expect(optotypeHeightPx(denominator, distance, deskPxPerMm)).toBeCloseTo(minPx, 6);
+    }
+  });
+
+  it("needs less distance on a phone than on a monitor for the same line", () => {
+    const phonePxPerMm = pxPerMmFromCardWidth(505); // ~150 CSS dpi, dpr 3
+    expect(minDistanceMmFor(6, phonePxPerMm, minOptotypePx(3))).toBeLessThan(
+      minDistanceMmFor(6, deskPxPerMm, minOptotypePx(1)),
+    );
   });
 });
 
