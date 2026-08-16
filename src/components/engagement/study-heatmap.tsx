@@ -49,15 +49,19 @@ export function StudyHeatmap({
           aria-hidden
         >
           {WEEKDAY.map((d, i) => (
-            <span key={i} className="flex h-2.5 items-center">
+            <span key={i} className="flex h-3.5 items-center">
               {d}
             </span>
           ))}
         </div>
 
+        {/* Cells are a fixed square, and the grid takes its natural width rather
+            than stretching. Twelve columns spread across a desktop sheet makes
+            each cell ~80px wide and 10px tall, which reads as a row of bars —
+            the calendar only works if a day is a day-shaped thing. */}
         <div className="min-w-0 flex-1 overflow-x-auto no-scrollbar">
           <div
-            className="grid w-full grid-flow-col gap-[3px]"
+            className="grid w-max grid-flow-col gap-[3px]"
             style={{ gridTemplateRows: `repeat(7, minmax(0, 1fr))` }}
             role="img"
             aria-label={`Study activity: ${active} of the last ${total} days`}
@@ -71,7 +75,7 @@ export function StudyHeatmap({
                     : `${d.key} — ${d.count === 0 ? "nothing" : `${d.count} item${d.count === 1 ? "" : "s"}`}`
                 }
                 className={cn(
-                  "h-2.5 min-w-[7px] rounded-[2px] transition-colors duration-500 ease-soft",
+                  "h-3.5 w-3.5 rounded-[3px] transition-colors duration-500 ease-soft",
                   d.future ? "bg-transparent" : FILL[d.level],
                   // Today is marked with an outline, never a fill — a filled
                   // cell already means "you studied", and the cursor must not
@@ -84,10 +88,10 @@ export function StudyHeatmap({
         </div>
       </div>
 
-      <div className="mt-2.5 flex items-center justify-end gap-1.5 text-2xs text-muted-foreground">
+      <div className="mt-3 flex items-center gap-1.5 text-2xs text-muted-foreground">
         <span>Less</span>
         {Array.from({ length: HEAT_LEVELS + 1 }, (_, i) => (
-          <span key={i} className={cn("h-2.5 w-2.5 rounded-[2px]", FILL[i])} aria-hidden />
+          <span key={i} className={cn("h-3 w-3 rounded-[3px]", FILL[i])} aria-hidden />
         ))}
         <span>More</span>
       </div>
