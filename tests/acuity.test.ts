@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   ACUITY_LEVELS,
   CARD_WIDTH_MM,
+  DEVICE_PX_PER_STROKE,
   E_ROTATION,
+  STROKES_PER_OPTOTYPE,
   EYE_STAGES,
   LMV_PASS_INDEX,
   bestAcrossStages,
@@ -226,28 +228,43 @@ describe("what the screen can honestly draw", () => {
   // The reporter's setup: a 320 px card outline on a ~95 dpi monitor.
   const deskPxPerMm = pxPerMmFromCardWidth(320);
 
-  it("gives a denser screen a smaller floor, in CSS pixels", () => {
-    expect(minOptotypePx(1)).toBe(10);
-    expect(minOptotypePx(2)).toBe(5);
-    expect(minOptotypePx(3)).toBeCloseTo(10 / 3, 6);
+  it("is five strokes of DEVICE_PX_PER_STROKE, scaled by the dot density", () => {
+    const optotype = STROKES_PER_OPTOTYPE * DEVICE_PX_PER_STROKE;
+    expect(minOptotypePx(1)).toBe(optotype);
+    expect(minOptotypePx(2)).toBe(optotype / 2);
+    expect(minOptotypePx(3)).toBeCloseTo(optotype / 3, 6);
+  });
+
+  it("holds the stroke floor where the glyph survives being positioned", () => {
+    // Not a round number for its own sake: at 2 device px per stroke the E
+    // rasterises at 0.33 worst-case contrast depending on its sub-pixel offset,
+    // and the orbit gives it a different offset every trial. See the module
+    // comment in acuity.ts for the measured sweep.
+    expect(DEVICE_PX_PER_STROKE).toBeGreaterThanOrEqual(4);
   });
 
   it("never lets a bogus device pixel ratio raise the floor", () => {
-    expect(minOptotypePx(0)).toBe(10);
-    expect(minOptotypePx(0.5)).toBe(10);
+    expect(minOptotypePx(0)).toBe(minOptotypePx(1));
+    expect(minOptotypePx(0.5)).toBe(minOptotypePx(1));
   });
 
   it("reproduces the reported ladder: 40 cm on a desktop monitor stops above 6/12", () => {
     const { maxIndex } = ladderBounds(400, deskPxPerMm, 416, minOptotypePx(1));
-    expect(ACUITY_LEVELS[maxIndex].label).toBe("6/36");
+    expect(ACUITY_LEVELS[maxIndex].label).toBe("6/60");
     expect(maxIndex).toBeLessThan(LMV_PASS_INDEX);
   });
 
   it("and reaches the standard once the reader moves back", () => {
     const needed = minDistanceMmFor(12, deskPxPerMm, minOptotypePx(1));
-    expect(needed / 10).toBeCloseTo(92, 0); // ~92 cm
+    expect(needed / 10).toBeCloseTo(184, 0); // ~1.84 m on a 95 dpi monitor
     const { maxIndex } = ladderBounds(needed, deskPxPerMm, 416, minOptotypePx(1));
     expect(maxIndex).toBeGreaterThanOrEqual(LMV_PASS_INDEX);
+  });
+
+  it("keeps the whole chart within the slider's reach on a desktop monitor", () => {
+    // The slider caps at 6 m (DISTANCE_MAX_CM). If 6/6 needed more than that,
+    // the distance step would be recommending something it cannot deliver.
+    expect(minDistanceMmFor(6, deskPxPerMm, minOptotypePx(1)) / 10).toBeLessThanOrEqual(600);
   });
 
   it("agrees with the height it is derived from", () => {

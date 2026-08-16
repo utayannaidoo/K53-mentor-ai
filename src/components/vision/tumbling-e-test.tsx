@@ -49,7 +49,14 @@ const ORBIT_RADIUS = 0.26;
 const FALLBACK_STAGE_PX = 416;
 
 const DISTANCE_MIN_CM = 25;
-const DISTANCE_MAX_CM = 300;
+/**
+ * Six metres — the distance a DLTC reads its own Snellen chart from, so the
+ * range now covers the real thing rather than stopping short of it. It has to:
+ * at four device pixels per stroke a 95 dpi monitor needs about 3.7 m before a
+ * 6/6 letter exists, and a slider that capped at 3 m would have recommended a
+ * distance that could not deliver what the copy beside it promised.
+ */
+const DISTANCE_MAX_CM = 600;
 const DISTANCE_STEP_CM = 5;
 
 /** Only ever seen if calibration cannot suggest better; the real default is computed. */
@@ -172,7 +179,16 @@ export function TumblingETest() {
   const minCmForStandard = clampDistance(
     toStop(minDistanceMmFor(ACUITY_LEVELS[LMV_PASS_INDEX].denominator, pxPerMm, minPx) / 10),
   );
-  const recommendedCm = clampDistance(toStop(minDistanceMmFor(6, pxPerMm, minPx) / 10));
+  const cmFor66 = toStop(minDistanceMmFor(6, pxPerMm, minPx) / 10);
+  const recommendedCm = clampDistance(cmFor66);
+  /**
+   * Both of the numbers above are clamped to the slider, so on a coarse screen
+   * they can come back as the maximum without actually reaching the line they
+   * are named for. Offering "or 600 cm to reach 6/6" when 600 cm does not reach
+   * 6/6 is the same species of mistake as reporting a screen's floor as an
+   * acuity, so the copy checks before it promises.
+   */
+  const canReach66 = cmFor66 <= DISTANCE_MAX_CM;
 
   /**
    * Show the chart, then start the ladder once it has been measured.
@@ -294,6 +310,7 @@ export function TumblingETest() {
           reachesStandard={preview.maxIndex >= LMV_PASS_INDEX}
           minCmForStandard={minCmForStandard}
           recommendedCm={recommendedCm}
+          canReach66={canReach66}
         />
       )}
 
@@ -526,6 +543,7 @@ function DistanceStep({
   reachesStandard,
   minCmForStandard,
   recommendedCm,
+  canReach66,
 }: {
   distanceCm: number;
   onChange: (cm: number) => void;
@@ -536,6 +554,7 @@ function DistanceStep({
   reachesStandard: boolean;
   minCmForStandard: number;
   recommendedCm: number;
+  canReach66: boolean;
 }) {
   return (
     <Card className={cn(glass, "p-5")}>
@@ -579,7 +598,7 @@ function DistanceStep({
           Code B line — so the test cannot reach the standard and will not be able to tell you
           whether you meet it. Move back to at least{" "}
           <strong className="font-semibold tabular-nums">{minCmForStandard} cm</strong>
-          {recommendedCm > minCmForStandard && (
+          {canReach66 && recommendedCm > minCmForStandard && (
             <>
               , or <strong className="font-semibold tabular-nums">{recommendedCm} cm</strong> to
               reach 6/6
