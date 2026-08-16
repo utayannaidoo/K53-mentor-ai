@@ -14,6 +14,14 @@
       "runtimeArgs": ["start"],
       "port": 3210,
       "autoPort": true
+    },
+    {
+      "name": "remotion-studio",
+      "cwd": "remotion",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["remotion", "studio", "--no-open"],
+      "port": 3000,
+      "autoPort": true
     }
   ]
 }
