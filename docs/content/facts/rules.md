@@ -91,3 +91,64 @@ that a regulated number needs the regulation open beside it.
 - **Intersections**: at a T-junction your road ends, so you give way both ways. A filter lane with an island does not confer priority. An officer's raised palm means stop until waved on. A flashing pedestrian phase lets those already crossing finish. Mini-circle: circulating traffic clears, then the right-hand rule. At a multi-track level crossing, a second train may be hidden by the first.
 - **Parking**: near a corner hides emerging traffic and pedestrians from each other; across a driveway blocks the pavement even if it is your own; leaving a space is mirrors–signal–observation–gap; finish parallel and close to the kerb without mounting it.
 - **Following / hazard**: spray from a large vehicle in rain blinds you for seconds; leaving a merge gap costs little and prevents a standstill rejoin; set navigation before moving off; eating or reaching breaches the duty to remain in full control; passengers do not share the driver's responsibility; temporary roadworks limits apply whether or not workers are present; slowing to look at a crash on the opposite carriageway causes crashes in your own.
+
+## IOL mock-test batch (verified 1 Aug 2026)
+
+Prompted by the IOL Cape Argus mock test ([article](https://iol.co.za/capeargus/news/2026-05-25-only-40-of-south-africans-pass-the-learners-licence-test--will-you-succeed/),
+25 May 2026), whose 192 questions were reviewed against the regulations. Most were
+already covered by the bank. **IOL's own answer key contains errors** — several of its
+stated answers were wrong and are corrected here, so nothing was copied on trust:
+
+| IOL claim | Verified position |
+|---|---|
+| No parking within **6 m** of a pedestrian crossing | **9 m** — reg 305 |
+| Motorcycle load may project **300 mm** sideways from the handlebar edge | **450 mm** either side of the *wheels* |
+| Rear load needs a red flag once it projects **600 mm** | Flag required from **300 mm**; 600 mm is a *load-width* threshold |
+| You must keep **both hands** on the handlebars | **At least one hand** is the legal requirement |
+| A "60" struck through means you must hold exactly 60 km/h | It is a **de-restriction** sign — the limit ends |
+| Pedestrian steps onto a zebra crossing → *accelerate past* | Key bug in their quiz; you **stop** |
+
+Facts adopted (each = 1 question, several also flashcards):
+
+- **Signal timing**: indicate in the direction of the turn **at least 30 m before** it
+  (≈3 s at 40 km/h) — K53 turning routine. Source: [K53 Master](https://k53master.co.za/rules-of-the-road/).
+- **Yellow shoulder line (reg 298A)**: you may move left of it to let a faster vehicle
+  pass **only** on a single-lane carriageway, **between sunrise and sunset**, with at
+  least **150 m** of clear visibility, and only when safe. Never as a passing lane on a
+  freeway. Sources: [BusinessTech](https://businesstech.co.za/news/motoring/358671/heres-when-you-are-allowed-to-drive-in-the-emergency-lane-in-south-africa/),
+  [MasterTorque](https://mastertorque.co.za/yellow-lane-driving-debunked/).
+- **Fire hydrant (reg 305)**: no parking on the hydrant's side of the roadway within
+  **1,5 m either side** of it. Same regulation gives 9 m (pedestrian crossing) and 5 m
+  (intersection), already in the bank. Source: [Arrive Alive — where you may not stop or park](https://carinsurance.arrivealive.co.za/where-are-you-not-allowed-to-stop-or-park-under-the-national-road-traffic-regulations.php).
+- **Broken line alongside a solid line**: you may cross **only if the broken line is the
+  one on your side**; from the solid side it is a barrier line.
+
+### Motorcycle (A / A1)
+- **Load projection**: no more than **600 mm forward of the centre of the front-wheel
+  axle**, and no more than **450 mm on either side of the wheels**. Source: [NRTA regs](https://www.gov.za/sites/default/files/gcis_document/201409/315571359b.pdf),
+  [SA Rules of the Road](https://bicyclesouth.co.za/wp-content/uploads/2017/05/SOUTH-AFRICAN-RULES-OF-THE-ROAD.pdf).
+- **Handlebars**: at least **one hand** on the handlebars at all times — which is what
+  makes a hand signal lawful, and reaching for anything else unlawful.
+- **Towing**: a motorcycle may **not** be used to tow another vehicle. Source:
+  [Motorcycle Safety Institute](https://www.msi.org.za/towing-a-motorcycle/).
+
+### Heavy (10 / 14)
+- **Dimensions without an abnormal-load permit**: height **4,3 m** (already in bank),
+  width **2,6 m**, length **12,5 m** for a rigid vehicle and **22 m** for a semi-trailer
+  combination. Source: [TRH 11, 8th ed.](https://www.transport.gov.za/wp-content/uploads/2023/02/TRH11-8thEdition2010_Final__2.pdf),
+  [K53 RSA — length, width and height](https://k53rsa.co.za/learners/books/book/3-road-rules/page/36-length-width-and-height-of-vehicles).
+- **Rear projection marking**: a load projecting **300 mm or more** beyond the rear must
+  carry a **300 mm square red flag** by day (red light/reflector at night); the 1,8 m
+  maximum is already in the bank. Source: [Arrive Alive — overhang and flags](https://www.arrivealive.mobi/overhang-from-a-vehicle-and-flags-for-safety).
+- **Tare mass** = the mass of the vehicle ready for the road but **without payload,
+  driver or passengers** — distinct from GVM (the maximum permitted laden mass).
+- **Minimum age, code EC (14)**: **18**. Source: [Find a Driving School — Code EC](https://findadrivingschool.co.za/code-ec-drivers-license).
+- **Axle massload limit sign**: a red-circle regulatory sign showing an axle symbol with
+  a mass caps the load **per axle**, not the vehicle's total — a legally-loaded truck can
+  still breach it through uneven distribution.
+- **Dual air gauges**: two needles read the **primary and secondary brake circuits
+  separately**, so a failure in one is visible while the other still holds.
+- **Range-change / splitter**: selects high/low range (or splits each gear) on a
+  multi-speed box — it multiplies the available ratios rather than adding a gear.
+- **Tachometer**: engine speed in r/min, used to hold the economical band and to pick the
+  right gear on a descent — the speedometer shows road speed instead.

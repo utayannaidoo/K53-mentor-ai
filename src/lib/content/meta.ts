@@ -1083,6 +1083,23 @@ export const QUESTION_DIFFICULTY: Record<string, number> = {
   "gen-sign-information-044-03-name": 2,
   "gen-sign-information-044-04-meaning": 3,
   "gen-sign-information-044-04-name": 2,
+  "q_iol_signal_30m": 2,
+  "q_iol_shoulder_courtesy": 3,
+  "q_iol_hydrant_1_5": 3,
+  "q_iol_broken_beside_solid": 3,
+  "q_iol_mc_load_front": 3,
+  "q_iol_mc_load_side": 3,
+  "q_iol_mc_one_hand": 2,
+  "q_iol_mc_no_tow": 2,
+  "q_iol_hv_width": 3,
+  "q_iol_hv_length": 3,
+  "q_iol_hv_rear_flag": 3,
+  "q_iol_hv_tare": 2,
+  "q_iol_hv_age18": 1,
+  "q_iol_hv_dual_gauges": 3,
+  "q_iol_hv_splitter": 2,
+  "q_iol_hv_tacho": 2,
+  "q_iol_sign_axle_load": 3,
 };
 
 export const FLASHCARD_META: ContentMeta[] = [
@@ -1480,6 +1497,21 @@ export const FLASHCARD_META: ContentMeta[] = [
   { id: "fca_cancellation", categoryId: "rules" },
   { id: "fca_when_added", categoryId: "rules" },
   { id: "fca_meaning", categoryId: "rules" },
+  { id: "fciol_signal_30m", categoryId: "rules" },
+  { id: "fciol_shoulder_298a", categoryId: "rules" },
+  { id: "fciol_hydrant_15", categoryId: "parking" },
+  { id: "fciol_broken_beside_solid", categoryId: "signs" },
+  { id: "fciol_mc_projection", categoryId: "rules", codes: ["A1","A"] },
+  { id: "fciol_mc_one_hand", categoryId: "rules", codes: ["A1","A"] },
+  { id: "fciol_mc_no_tow", categoryId: "rules", codes: ["A1","A"] },
+  { id: "fciol_hv_dimensions", categoryId: "rules", codes: ["10","14"] },
+  { id: "fciol_hv_rear_flag", categoryId: "rules", codes: ["10","14"] },
+  { id: "fciol_hv_tare", categoryId: "rules", codes: ["10","14"] },
+  { id: "fciol_hv_age", categoryId: "rules", codes: ["10","14"] },
+  { id: "fciol_hv_dual_gauges", categoryId: "controls", codes: ["10","14"] },
+  { id: "fciol_hv_splitter", categoryId: "controls", codes: ["10","14"] },
+  { id: "fciol_hv_tacho", categoryId: "controls", codes: ["10","14"] },
+  { id: "fciol_sign_axle", categoryId: "signs" },
   { id: "fcd_q_sign_flashing_red", categoryId: "signs" },
   { id: "fcd_q_sign_ped_crossing", categoryId: "signs" },
   { id: "fcd_q_sign_cyclists", categoryId: "signs" },
@@ -1672,7 +1704,6 @@ export const FLASHCARD_META: ContentMeta[] = [
   { id: "fcd_q2_haz_fog_bank", categoryId: "hazard_awareness" },
   { id: "fcd_q2_haz_blowout", categoryId: "hazard_awareness" },
   { id: "fcd_q2_haz_oncoming_overtaker", categoryId: "hazard_awareness" },
-  { id: "fcd_q2_car_child_restraint", categoryId: "rules", codes: ["8"] },
   { id: "fcd_q2_car_auto_feet", categoryId: "controls", codes: ["8"] },
   { id: "fcd_q2_car_power_steering", categoryId: "controls", codes: ["8"] },
   { id: "fcd_q2_car_spare_kit", categoryId: "controls", codes: ["8"] },
@@ -1681,7 +1712,6 @@ export const FLASHCARD_META: ContentMeta[] = [
   { id: "fcd_q2_hv_descent_gear", categoryId: "controls", codes: ["14"] },
   { id: "fcd_q2_hv_moving_brake_test", categoryId: "controls", codes: ["14"] },
   { id: "fcd_q3_park_kerb_distance", categoryId: "parking" },
-  { id: "fcd_q3_park_direction", categoryId: "parking" },
   { id: "fcd_q3_int_four_way", categoryId: "intersections" },
   { id: "fcd_q3_int_dead_robot", categoryId: "intersections" },
   { id: "fcd_q3_int_turn_right", categoryId: "intersections" },
@@ -1883,7 +1913,6 @@ export const FLASHCARD_META: ContentMeta[] = [
   { id: "fcd_gen-sign-warning-030-04-meaning", categoryId: "signs" },
   { id: "fcd_gen-sign-warning-030-05-meaning", categoryId: "signs" },
   { id: "fcd_gen-sign-warning-031-05-meaning", categoryId: "signs" },
-  { id: "fcd_gen-sign-warning-031-06-meaning", categoryId: "signs" },
 ];
 
 export const SCENARIO_META: ScenarioMeta[] = [
@@ -2024,4 +2053,4 @@ export const MODULE_META: ModuleMeta[] = [
  * stale — which is what stops a content sprint being invisible to everyone who
  * synced before it.
  */
-export const CONTENT_VERSION = "51e50f8da4b7";
+export const CONTENT_VERSION = "022e6c916cca";
