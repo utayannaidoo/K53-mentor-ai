@@ -4,7 +4,6 @@ import * as React from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  Clock,
   FileText,
   Flame,
   Lock,
@@ -43,7 +42,8 @@ import { hasFeature, PLAN_MAP } from "@/lib/billing/plans";
 import { formatDuration, formatDate, cn } from "@/lib/utils";
 
 /**
- * Progress — five sheets, in a ledger's reading order.
+ * Progress — five sheets, each one bordered object with hairline bands inside
+ * and its label outside. A document with headings, not a grid of cards.
  *
  * This page was nine identical glass cards: the same radius, padding, heading
  * size and depth tier from top to bottom, which is the composition `TodaySheet`
@@ -52,10 +52,15 @@ import { formatDuration, formatDate, cn } from "@/lib/utils";
  * in the same 2×4 grid as "Longest streak", and "Predicted pass" sat six tiles
  * away from the figure it contradicts, with nothing between them to explain it.
  *
- * The order is the argument now: the verdict, the figures that qualify it, the
- * habit that produced it, what has been mastered, where that puts you, and the
- * record. Each section is one sheet whose divisions are hairline bands, and the
- * labels sit outside the sheets — a document with headings, not a grid of cards.
+ * The running order opens on what the learner has earned rather than on how they
+ * are being marked: Standing, then the habit behind it, then the verdict the two
+ * add up to, then the detail, then the record. Assessment is the reason to come
+ * here and a discouraging thing to land on — a learner who is behind meets their
+ * rank and their streak before they meet the sentence about failing.
+ *
+ * Which is also why the verdict sheet keeps the plot. It sits third, so nobody
+ * arrives on it straight off the dashboard, and the trend is the evidence for
+ * the sentence above it rather than a second copy of Today's opening.
  */
 
 /** Streak lengths that get a named state rather than a larger integer. */
@@ -159,8 +164,8 @@ export default function ProgressPage() {
   /**
    * The verdict, in words.
    *
-   * This sheet used to open the way Today does — the readiness figure at
-   * `text-6xl` with the plot beside it — which meant the two pages a learner
+   * This sheet used to open the page the way Today does — the readiness figure
+   * at `text-6xl` with the plot beside it — which meant the two pages a learner
    * moves between showed the same number, the same delta and the same chart.
    * Today's job is the balance; this page's job is what the balance *means*, so
    * the sentence is the headline and the figures qualify it underneath.
@@ -219,69 +224,52 @@ export default function ProgressPage() {
     <div className="mx-auto max-w-5xl pb-6">
       <PageHeader title="Progress" description="Your readiness, mastery and study habits over time." />
 
-      {/* ── 1. Where you stand ─────────────────────────────────────────────
+      {/* ── 1. Standing ────────────────────────────────────────────────────
           Deliberately NOT wrapped in `Reveal`. This sheet is above the fold on
           every device, so there is no scroll for a scroll-reveal to react to —
           it would be animation for its own sake, on the one section where
           starting at opacity 0 costs the most if the observer never fires. */}
       <div>
-        <SheetLabel>The verdict</SheetLabel>
+        <SheetLabel
+          aside={
+            <span className="font-mono text-2xs tabular-nums text-muted-foreground">
+              {unlocked}/{views.length} unlocked
+            </span>
+          }
+        >
+          Standing
+        </SheetLabel>
         <Sheet float>
-          <Band divided={false} className="py-6 sm:py-7">
-            <p className="font-display text-2xl font-semibold leading-[1.18] tracking-tight text-balance sm:text-3xl">
-              <span className={verdict.tone}>{verdict.lead}</span>
-              {verdict.rest}
-            </p>
-            <p className="mt-3 max-w-[54ch] text-sm leading-relaxed text-muted-foreground">
-              {verdict.support}
-            </p>
-            <Link href={verdict.cta.href} className={cn(buttonVariants({ size: "sm" }), "mt-5")}>
-              {verdict.cta.label} <ArrowRight />
-            </Link>
+          <Band divided={false}>
+            <BandTitle>The road to licence</BandTitle>
+            <RankLedger
+              className="mt-4"
+              rankAchieved={state.rankAchieved}
+              inputs={{
+                cp: state.cp,
+                readiness: readiness.readiness,
+                hasPassedMock: state.mockExams.some((m) => m.passed && !m.mini && !m.drill),
+              }}
+            />
           </Band>
 
-          {/* The figures that qualify it. Readiness is one of four here rather
-              than the headline: it already leads the dashboard and rides in the
-              app-shell header, and on this page the sentence outranks it. */}
-          <FigureRow>
-            <Figure label="Readiness" value={`${readiness.readiness}%`} />
-            <Figure label="Predicted pass" value={`${readiness.passProbability}%`} />
-            <Figure label="Accuracy" value={hasAttempts ? `${accuracy}%` : "—"} />
-            <Figure label="Questions" value={answered.toLocaleString()} />
-          </FigureRow>
+          {nextUp && (
+            <Band>
+              <p className="mb-2.5 text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Next up
+              </p>
+              <NextAchievement view={nextUp} />
+            </Band>
+          )}
 
           <Band>
-            <BandTitle
-              aside={
-                <span className="text-2xs text-muted-foreground">
-                  Pass mark per section
-                </span>
-              }
-            >
-              The paper
-            </BandTitle>
-            <ul className="mt-3.5 space-y-3">
-              {sections.map((s) => (
-                <li key={s.id}>
-                  <MasteryBar
-                    label={SECTION_LABEL[s.id]}
-                    value={hasAttempts ? s.value : 0}
-                    threshold={s.required}
-                    thresholdLabel={`Pass mark ${EXAM_FORMAT.sections[s.id].pass} of ${EXAM_FORMAT.sections[s.id].questions}`}
-                    count={hasAttempts ? `${s.value}% / ${s.required}%` : `— / ${s.required}%`}
-                  />
-                </li>
-              ))}
-            </ul>
+            <BandTitle>Achievements</BandTitle>
+            <AchievementGrid className="mt-4" views={views} />
           </Band>
         </Sheet>
       </div>
 
-      {/* ── 2. Over time ───────────────────────────────────────────────────
-          The plot lives here rather than at the top of the page. Beside the
-          verdict it was Today's opening repeated; beside the heatmap it is half
-          of a pair that actually belongs together — how far you have moved, and
-          how often you turned up to move it. */}
+      {/* ── 2. Your habit ──────────────────────────────────────────────── */}
       <Reveal>
         <div className="mt-8">
           <SheetLabel
@@ -293,30 +281,10 @@ export default function ProgressPage() {
               ) : undefined
             }
           >
-            Over time
+            Your habit
           </SheetLabel>
           <Sheet>
-            <Band divided={false} className="pb-0">
-              <BandTitle
-                aside={
-                  <span className={cn("flex items-center gap-1.5 text-xs font-medium", deltaTone)}>
-                    <DeltaIcon className="h-3.5 w-3.5" />
-                    {delta === null
-                      ? "First week"
-                      : delta === 0
-                        ? "Level with last week"
-                        : `${delta > 0 ? "+" : ""}${delta} in 7 days`}
-                  </span>
-                }
-              >
-                Readiness
-              </BandTitle>
-            </Band>
-            <div className="min-w-0 pb-1 pr-2">
-              <ReadinessPlot data={visibleHistory} current={readiness.readiness} />
-            </div>
-
-            <Band>
+            <Band divided={false}>
               <BandTitle>Days studied</BandTitle>
               <StudyHeatmap className="mt-4" days={heatDays} />
             </Band>
@@ -406,7 +374,84 @@ export default function ProgressPage() {
         </div>
       </Reveal>
 
-      {/* ── 3. Mastery ─────────────────────────────────────────────────── */}
+      {/* ── 3. The verdict ─────────────────────────────────────────────────
+          Labelled "The verdict" rather than "Where you stand", which is what it
+          answers but no longer what it can be called: "Standing" now opens the
+          page, and two headings a reader has to hold apart is one too many. */}
+      <Reveal>
+        <div className="mt-8">
+          <SheetLabel>The verdict</SheetLabel>
+          <Sheet>
+            <Band divided={false} className="py-6 sm:py-7">
+              <p className="font-display text-2xl font-semibold leading-[1.18] tracking-tight text-balance sm:text-3xl">
+                <span className={verdict.tone}>{verdict.lead}</span>
+                {verdict.rest}
+              </p>
+              <p className="mt-3 max-w-[54ch] text-sm leading-relaxed text-muted-foreground">
+                {verdict.support}
+              </p>
+              <Link href={verdict.cta.href} className={cn(buttonVariants({ size: "sm" }), "mt-5")}>
+                {verdict.cta.label} <ArrowRight />
+              </Link>
+            </Band>
+
+            {/* The figures that qualify it. Readiness is one of four here rather
+                than the headline: it already leads the dashboard and rides in the
+                app-shell header, and on this page the sentence outranks it. */}
+            <FigureRow>
+              <Figure label="Readiness" value={`${readiness.readiness}%`} />
+              <Figure label="Predicted pass" value={`${readiness.passProbability}%`} />
+              <Figure label="Accuracy" value={hasAttempts ? `${accuracy}%` : "—"} />
+              <Figure label="Questions" value={answered.toLocaleString()} />
+            </FigureRow>
+
+            <Band className="pb-0">
+              <BandTitle
+                aside={
+                  <span className={cn("flex items-center gap-1.5 text-xs font-medium", deltaTone)}>
+                    <DeltaIcon className="h-3.5 w-3.5" />
+                    {delta === null
+                      ? "First week"
+                      : delta === 0
+                        ? "Level with last week"
+                        : `${delta > 0 ? "+" : ""}${delta} in 7 days`}
+                  </span>
+                }
+              >
+                How it has moved
+              </BandTitle>
+            </Band>
+            <div className="min-w-0 pb-1 pr-2">
+              <ReadinessPlot data={visibleHistory} current={readiness.readiness} />
+            </div>
+
+            <Band>
+              <BandTitle
+                aside={
+                  <span className="text-2xs text-muted-foreground">Pass mark per section</span>
+                }
+              >
+                The paper
+              </BandTitle>
+              <ul className="mt-3.5 space-y-3">
+                {sections.map((s) => (
+                  <li key={s.id}>
+                    <MasteryBar
+                      label={SECTION_LABEL[s.id]}
+                      value={hasAttempts ? s.value : 0}
+                      threshold={s.required}
+                      thresholdLabel={`Pass mark ${EXAM_FORMAT.sections[s.id].pass} of ${EXAM_FORMAT.sections[s.id].questions}`}
+                      count={hasAttempts ? `${s.value}% / ${s.required}%` : `— / ${s.required}%`}
+                    />
+                  </li>
+                ))}
+              </ul>
+            </Band>
+          </Sheet>
+        </div>
+      </Reveal>
+
+      {/* ── 4. Mastery ─────────────────────────────────────────────────── */}
       <Reveal>
         <div className="mt-8">
           <SheetLabel
@@ -449,49 +494,6 @@ export default function ProgressPage() {
                 )}
               </Band>
             )}
-          </Sheet>
-        </div>
-      </Reveal>
-
-      {/* ── 4. Standing ────────────────────────────────────────────────── */}
-      <Reveal>
-        <div className="mt-8">
-          <SheetLabel
-            aside={
-              <span className="font-mono text-2xs tabular-nums text-muted-foreground">
-                {unlocked}/{views.length} unlocked
-              </span>
-            }
-          >
-            Standing
-          </SheetLabel>
-          <Sheet>
-            <Band divided={false}>
-              <BandTitle>The road to licence</BandTitle>
-              <RankLedger
-                className="mt-4"
-                rankAchieved={state.rankAchieved}
-                inputs={{
-                  cp: state.cp,
-                  readiness: readiness.readiness,
-                  hasPassedMock: state.mockExams.some((m) => m.passed && !m.mini && !m.drill),
-                }}
-              />
-            </Band>
-
-            {nextUp && (
-              <Band>
-                <p className="mb-2.5 text-2xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                  Next up
-                </p>
-                <NextAchievement view={nextUp} />
-              </Band>
-            )}
-
-            <Band>
-              <BandTitle>Achievements</BandTitle>
-              <AchievementGrid className="mt-4" views={views} />
-            </Band>
           </Sheet>
         </div>
       </Reveal>
