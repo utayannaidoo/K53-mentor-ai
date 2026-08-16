@@ -353,6 +353,15 @@ export interface UserState {
   rankAchieved: number;
   /** Rank index of an unseen rank-up celebration, cleared on acknowledgement. */
   pendingRankUp: number | null;
+  /**
+   * Highest tier index ever earned per achievement id — monotonic, never
+   * regresses (src/lib/achievements.ts). Unlike a mastery stamp, which is
+   * derived live and un-earns itself when competence dips, this is a record of
+   * what happened, so it is banked rather than recomputed.
+   */
+  achievements: Record<string, number>;
+  /** Unseen achievement unlocks, cleared on acknowledgement. */
+  pendingAchievements: { id: string; tier: number }[];
   /** Day (yyyy-mm-dd) the daily plan-complete CP bonus was last granted. */
   planBonusDate: string | null;
   /** Whether the post-signup guided first session has been completed/skipped. */

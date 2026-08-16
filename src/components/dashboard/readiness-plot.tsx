@@ -1,7 +1,12 @@
 "use client";
 
 import { cn, glassSubtle } from "@/lib/utils";
-import type { TrendPoint } from "@/components/dashboard/trend-chart";
+
+/** One day's readiness. The shape `state.readinessHistory` already stores. */
+export interface TrendPoint {
+  date: string;
+  readiness: number;
+}
 
 /**
  * The readiness line, drawn bare so it can sit inside the sheet.

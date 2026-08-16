@@ -71,18 +71,88 @@ export function buildDayStrip(opts: {
   return out;
 }
 
-/** Days the learner did anything, from the shapes the store already keeps. */
-export function activeDaysFrom(
+/** How much the learner did each day, from the shapes the store already keeps. */
+export function activityByDay(
   sources: ReadonlyArray<ReadonlyArray<{ at?: string; endedAt?: string }>>,
-): Set<string> {
-  const days = new Set<string>();
+): Map<string, number> {
+  const days = new Map<string, number>();
   for (const list of sources) {
     for (const item of list) {
       const stamp = item.at ?? item.endedAt;
       if (!stamp) continue;
       const d = new Date(stamp);
-      if (!Number.isNaN(d.getTime())) days.add(dayKey(d));
+      if (Number.isNaN(d.getTime())) continue;
+      const key = dayKey(d);
+      days.set(key, (days.get(key) ?? 0) + 1);
     }
   }
   return days;
+}
+
+/** Days the learner did anything, from the shapes the store already keeps. */
+export function activeDaysFrom(
+  sources: ReadonlyArray<ReadonlyArray<{ at?: string; endedAt?: string }>>,
+): Set<string> {
+  return new Set(activityByDay(sources).keys());
+}
+
+/** Intensity bands above zero. Four is enough to read a shape, few enough to stay legible. */
+export const HEAT_LEVELS = 4;
+
+export interface HeatDay {
+  /** yyyy-mm-dd, local. */
+  key: string;
+  /** Items recorded that day. */
+  count: number;
+  /** 0 for nothing, else 1…HEAT_LEVELS. */
+  level: number;
+  isToday: boolean;
+  /** After today — rendered as an empty slot, never as a missed day. */
+  future: boolean;
+}
+
+/**
+ * The last N weeks as a calendar grid, column-major and Monday-first.
+ *
+ * A streak is a number; this is its shape. The count answers "did I keep it up",
+ * which two integers cannot — a 6-day streak reads the same whether the month
+ * behind it was solid or a single good week after three empty ones.
+ *
+ * Returned flat, in the order a `grid-flow-col` with seven rows consumes it, so
+ * the caller needs no nested map to render it. Bands are cut against the
+ * learner's own busiest day rather than a fixed count: a 12-question day is a
+ * good day for someone who does 10 and a slow one for someone who does 60.
+ */
+export function buildHeatmap(opts: {
+  counts: ReadonlyMap<string, number>;
+  /** Weeks to show, including this one. */
+  weeks?: number;
+  now?: Date;
+}): HeatDay[] {
+  const now = opts.now ?? new Date();
+  const weeks = opts.weeks ?? 12;
+  const todayKey = dayKey(now);
+
+  // End on the Sunday that closes this week so today sits in the last column,
+  // then walk back whole weeks — the grid always has exactly 7 × weeks cells.
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+  start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - (weeks - 1) * 7);
+
+  const peak = Math.max(1, ...opts.counts.values());
+  const out: HeatDay[] = [];
+  for (let i = 0; i < weeks * 7; i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const key = dayKey(d);
+    const count = opts.counts.get(key) ?? 0;
+    out.push({
+      key,
+      count,
+      level: count === 0 ? 0 : Math.max(1, Math.ceil((count / peak) * HEAT_LEVELS)),
+      isToday: key === todayKey,
+      future: key > todayKey,
+    });
+  }
+  return out;
 }

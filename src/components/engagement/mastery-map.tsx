@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { BadgeCheck } from "lucide-react";
+import { Award, Check } from "lucide-react";
 import { CategoryIcon } from "@/components/shared/category-icon";
-import { CATEGORIES } from "@/lib/content/categories";
+import { categoryMastery } from "@/lib/dashboard/mastery";
 import { MASTERY_STAMP_AT } from "@/lib/engagement";
-import { scoreTone } from "@/lib/score";
+import { thresholdTone } from "@/lib/score";
 import { cn, clamp } from "@/lib/utils";
 import type { CategoryId } from "@/types";
 
@@ -19,14 +19,35 @@ const STROKE_BY_TONE = {
   danger: "stroke-danger",
 } as const;
 
-function MasteryRing({ value, categoryId }: { value: number; categoryId: CategoryId }) {
+/**
+ * A category node: the ring is the present, the stamp is the record.
+ *
+ * These used to be two components — a ring here and an identical row of stamp
+ * circles in a Driving Passport card directly beneath, showing the same
+ * `perCategory` twice a few centimetres apart. The stamp is not separate data;
+ * it is what a ring looks like at 90%. So it lives on the ring now.
+ *
+ * Colour comes from `thresholdTone` against the category's own exam-section pass
+ * mark, not the generic 45/70 bands: Road signs needs 82%, so a green 80% here
+ * would tell a learner they are clear on the one screen they use to decide
+ * whether to book the test.
+ */
+function MasteryRing({
+  value,
+  required,
+  categoryId,
+}: {
+  value: number;
+  required: number;
+  categoryId: CategoryId;
+}) {
   const pct = clamp(value);
   const mastered = pct >= MASTERY_STAMP_AT;
   const radius = (RING_SIZE - RING_STROKE) / 2;
   const circumference = 2 * Math.PI * radius;
   return (
     <span className="relative inline-flex" style={{ width: RING_SIZE, height: RING_SIZE }}>
-      <svg width={RING_SIZE} height={RING_SIZE} className="-rotate-90">
+      <svg width={RING_SIZE} height={RING_SIZE} className="-rotate-90" aria-hidden>
         <circle
           cx={RING_SIZE / 2}
           cy={RING_SIZE / 2}
@@ -46,8 +67,19 @@ function MasteryRing({ value, categoryId }: { value: number; categoryId: Categor
           strokeDashoffset={circumference * (1 - pct / 100)}
           className={cn(
             "transition-[stroke-dashoffset] duration-700 ease-soft",
-            mastered ? "stroke-success" : STROKE_BY_TONE[scoreTone(pct)],
+            STROKE_BY_TONE[thresholdTone(pct, required)],
           )}
+        />
+        {/* The pass mark this category is actually judged against. */}
+        <line
+          x1={RING_SIZE / 2}
+          y1={RING_STROKE / 2 + 1}
+          x2={RING_SIZE / 2}
+          y2={RING_STROKE + 2.5}
+          className="stroke-foreground/45"
+          strokeWidth={1.5}
+          strokeLinecap="round"
+          transform={`rotate(${(required / 100) * 360} ${RING_SIZE / 2} ${RING_SIZE / 2})`}
         />
       </svg>
       <span
@@ -58,44 +90,65 @@ function MasteryRing({ value, categoryId }: { value: number; categoryId: Categor
       >
         <CategoryIcon id={categoryId} className="h-6 w-6" />
       </span>
+      {/* The stamp. Tilted, because a stamp is pressed by hand. */}
+      {mastered && (
+        <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 -rotate-12 items-center justify-center rounded-full bg-success text-white shadow-sm">
+          <Check className="h-3 w-3" strokeWidth={3} />
+        </span>
+      )}
     </span>
   );
 }
 
 /**
- * The Mastery Map — every category as a node whose ring reflects sustained
- * competence (practice accuracy blended with spaced-repetition retention).
- * A node stamps gold-green at 90%+; each stamp also fills the Driving Passport.
+ * The Mastery Map — every category, weakest first, so the map is also the
+ * to-do list. The last cell is the licence itself: unreachable inside the app
+ * on purpose, because it belongs to test day.
  */
 export function MasteryMap({ perCategory }: { perCategory: Record<CategoryId, number> }) {
+  const rows = categoryMastery(perCategory);
+
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {CATEGORIES.map((cat) => {
-        const value = perCategory[cat.id] ?? 0;
-        const mastered = value >= MASTERY_STAMP_AT;
-        return (
+    <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      {rows.map((row) => (
+        <li key={row.id}>
           <Link
-            key={cat.id}
-            href={`/study/questions?category=${cat.id}`}
+            href={`/study/questions?category=${row.id}`}
             className={cn(
-              "press group flex flex-col items-center gap-2 rounded-xl border bg-background/40 p-4 text-center transition-colors hover:bg-background/70",
-              mastered ? "border-success/40" : "border-border/50 hover:border-primary/30",
+              "press group flex h-full flex-col items-center gap-2 rounded-xl border p-4 text-center transition-colors hover:bg-background/70",
+              row.value >= MASTERY_STAMP_AT
+                ? "border-success/40 bg-background/40"
+                : "border-border/50 bg-background/40 hover:border-primary/30",
             )}
           >
-            <MasteryRing value={value} categoryId={cat.id} />
+            <MasteryRing value={row.value} required={row.required} categoryId={row.id} />
             <span className="text-sm font-medium leading-tight text-foreground group-hover:text-primary">
-              {cat.short}
+              {row.name}
             </span>
-            {mastered ? (
-              <span className="flex items-center gap-1 text-2xs font-semibold uppercase tracking-wide text-success">
-                <BadgeCheck className="h-3.5 w-3.5" /> Mastered
-              </span>
-            ) : (
-              <span className="font-mono text-xs text-muted-foreground">{clamp(value)}%</span>
-            )}
+            <span className="font-mono text-2xs tabular-nums text-muted-foreground">
+              {row.value}%
+              <span className="text-muted-foreground/60"> / {row.required}%</span>
+            </span>
           </Link>
-        );
-      })}
-    </div>
+        </li>
+      ))}
+
+      {/* The final page of the passport. */}
+      <li>
+        <div className="flex h-full flex-col items-center gap-2 rounded-xl border border-dashed border-accent/40 p-4 text-center">
+          <span
+            className="flex items-center justify-center text-accent/60"
+            style={{ width: RING_SIZE, height: RING_SIZE }}
+            aria-hidden
+          >
+            <Award className="h-7 w-7" />
+          </span>
+          <span className="text-sm font-medium leading-tight text-muted-foreground">
+            The day you pass
+          </span>
+          <span className="text-2xs text-muted-foreground/70">Stamped for real</span>
+        </div>
+      </li>
+    </ul>
   );
 }

@@ -3,7 +3,7 @@ import { computeRankIndex, endowCp } from "@/lib/engagement";
 import { computeReadiness } from "@/lib/diagnostic/scoring";
 
 export const STORAGE_KEY = "k53mentor.state.v1";
-export const STATE_VERSION = 3;
+export const STATE_VERSION = 4;
 
 export function todayKey(now = new Date()): string {
   return now.toISOString().slice(0, 10);
@@ -46,6 +46,8 @@ export function defaultUserState(): UserState {
     cp: 0,
     rankAchieved: 0,
     pendingRankUp: null,
+    achievements: {},
+    pendingAchievements: [],
     guidedDone: false,
     planBonusDate: null,
     lastSeen: null,
@@ -76,6 +78,10 @@ export function loadState(): UserState {
     // licence code now. Strip the stale key so a value left by an older
     // build can't linger in the saved blob.
     delete (merged as Partial<UserState> & { vehicleClass?: unknown }).vehicleClass;
+    // v3 -> v4 (achievements) needs no migration step here. The banked map is
+    // back-filled on first open by `withArrivalEffects` in use-study-store,
+    // which already holds a readiness breakdown — and evaluating it here would
+    // close a cycle, since the mistake notebook reads `todayKey` from this file.
     merged.version = STATE_VERSION;
     return merged;
   } catch {
