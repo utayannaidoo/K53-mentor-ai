@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { passProbabilityFromSections, blockingSection } from "@/lib/diagnostic/scoring";
 import { CATEGORIES } from "@/lib/content/categories";
-import { SECTION_OF } from "@/lib/constants";
+import { EXAM_FORMAT, SECTION_LABEL, SECTION_OF, type ExamSection } from "@/lib/constants";
 import type { CategoryId } from "@/types";
 
 /** Per-category scores, defaulting every unlisted category to `base`. */
@@ -79,5 +79,27 @@ describe("blockingSection", () => {
     // Parking alone can't sink rules; it is one of five contributors.
     expect(blockingSection(scores(100, { parking: 60 }))).toBeNull();
     expect(blockingSection(scores(60, { signs: 100, controls: 100 }))).toBe("rules");
+  });
+});
+
+/**
+ * blockingSection is now read by the dashboard, not just computed — the sheet
+ * names the section it returns. These pin the two things that would make that
+ * line wrong rather than merely absent.
+ */
+describe("blockingSection feeds a sentence the learner reads", () => {
+  it("names every section it can return", () => {
+    // The sheet indexes SECTION_LABEL with the return value. A section added to
+    // EXAM_FORMAT without a label would render "undefined is under its own mark".
+    for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {
+      expect(SECTION_LABEL[section], section).toBeTruthy();
+    }
+  });
+
+  it("returns the section furthest under its mark, not merely the lowest score", () => {
+    // Controls needs 6/8 (75%), signs 23/28 (82%). At 70% each, signs is short
+    // by 12 points and controls by 5 — so signs is the one to name, even though
+    // the two scores are identical.
+    expect(blockingSection(scores(100, { controls: 70, signs: 70 }))).toBe("signs");
   });
 });

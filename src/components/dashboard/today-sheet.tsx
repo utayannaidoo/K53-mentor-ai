@@ -11,6 +11,7 @@ import { ReadinessPlot } from "@/components/dashboard/readiness-plot";
 import type { PlanTask } from "@/lib/plan";
 import type { TrendPoint } from "@/components/dashboard/trend-chart";
 import { cn, glassFloat } from "@/lib/utils";
+import { SECTION_LABEL, type ExamSection } from "@/lib/constants";
 import type { CategoryId, UserState } from "@/types";
 
 /**
@@ -43,6 +44,7 @@ export function TodaySheet({
   testDate,
   planDonePct,
   perCategory,
+  blocking,
   hasAttempts,
   activeDays,
   tasks,
@@ -66,6 +68,13 @@ export function TodaySheet({
   testDate: string | null;
   planDonePct: number;
   perCategory: Record<CategoryId, number>;
+  /**
+   * The section sitting furthest under its own pass mark, if one is. This is
+   * what reconciles the two figures above it — readiness can read 80% beside a
+   * predicted pass of 2%, and the reason is always a single section short of
+   * its own minimum. Naming it turns that contradiction into an instruction.
+   */
+  blocking: ExamSection | null;
   hasAttempts: boolean;
   activeDays: ReadonlySet<string>;
   tasks: PlanTask[];
@@ -316,6 +325,22 @@ export function TodaySheet({
               All
             </Link>
           </div>
+
+          {hasAttempts && (
+            <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+              {blocking ? (
+                <>
+                  <span className="font-medium text-warning">{SECTION_LABEL[blocking]}</span> is
+                  under its own mark — that is what holds your predicted pass down.
+                </>
+              ) : (
+                <>
+                  <span className="font-medium text-success">Every section</span> is clearing its
+                  own mark.
+                </>
+              )}
+            </p>
+          )}
 
           <ul className="mt-4 space-y-3">
             {mastery.map((row) => (

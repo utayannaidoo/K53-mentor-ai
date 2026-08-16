@@ -60,6 +60,18 @@ export const SECTION_OF: Record<CategoryId, ExamSection> = {
 };
 
 /**
+ * How a section is named to a learner. Beside SECTION_OF because the moment two
+ * surfaces name the same section they must agree — the mock's results table and
+ * the dashboard's "what's blocking you" line are the same three words about the
+ * same three sections, and a second copy is how they stop being.
+ */
+export const SECTION_LABEL: Record<ExamSection, string> = {
+  controls: "Vehicle controls",
+  signs: "Road signs & markings",
+  rules: "Rules of the road",
+};
+
+/**
  * Public support/refund inbox, rendered on /contact and /refunds.
  *
  * Interim: a role address rather than a personal one, which is the part that

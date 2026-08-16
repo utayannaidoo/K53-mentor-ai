@@ -10,6 +10,7 @@ import { isCramWindow, daysUntilTest } from "@/lib/learning/cram";
 import { openMistakes } from "@/lib/learning/mistakes";
 import { categoryName } from "@/lib/content/categories";
 import { CODE_LABEL, hasFeature, PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
+import { blockingSection } from "@/lib/diagnostic/scoring";
 import { rankProgress } from "@/lib/engagement";
 import { topAlert, type DashboardAlert } from "@/lib/dashboard/alerts";
 import { activeDaysFrom } from "@/lib/dashboard/day-strip";
@@ -79,6 +80,7 @@ export default function DashboardPage() {
         testDate={state.onboarding?.testDate ?? null}
         planDonePct={planDonePct}
         perCategory={readiness.perCategory}
+        blocking={blockingSection(readiness.perCategory)}
         hasAttempts={state.attempts.length > 0}
         activeDays={activeDays}
         tasks={tasks}
