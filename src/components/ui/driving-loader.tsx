@@ -34,9 +34,13 @@ export function DrivingLoader({
   return (
     <div
       role="status"
-      // Invisible for the first 350ms: a warm route resolves before this ever
-      // paints, so a fast load shows nothing rather than a flash of vehicle.
-      className={cn("flex animate-fade-in-delayed justify-center py-20", className)}
+      // The loader is built the moment the boundary mounts and simply waits
+      // out of sight. At 350ms it cuts in whole — no fade, nothing assembling
+      // itself in front of the learner — and the vehicle pulls away from frame
+      // one, because `reveal`, `drive` and `bob` share the same delay. A warm
+      // route unmounts this before any of them fire, so a fast load still shows
+      // nothing at all.
+      className={cn("flex animate-reveal justify-center py-20", className)}
     >
       <div className="relative h-9 w-28 overflow-hidden" aria-hidden>
         {/* Centring lives on the wrapper so the bob keyframes own the icon's
