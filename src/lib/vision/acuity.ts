@@ -117,19 +117,40 @@ export function pxPerMmFromCardWidth(cardWidthPx: number): number {
  * The smallest optotype a display can honestly draw.
  *
  * A Snellen E is five stroke-widths tall, so the detail the reader actually has
- * to resolve is one fifth of its height. Below roughly two device pixels per
+ * to resolve is one fifth of its height. Below some number of device pixels per
  * stroke it is the *display* deciding whether the gaps between the bars are
  * visible, not the eye, and the ladder has stopped measuring sight.
  *
  * Device pixels rather than CSS pixels, because the physical dot grid is what
  * imposes the limit: one CSS pixel is three dots on a phone and one on a 95 dpi
  * desktop monitor, which is why the same test at the same distance can run all
- * the way to 6/5 on the phone and stall at 6/24 on the desk. The old floor was
- * a flat 8 CSS px, which is 1.6 px per stroke on the monitor — and it is
- * exactly that floor that ended a perfect reader's test at 6/24.
+ * the way to 6/5 on the phone and stall three rungs short on the desk.
+ *
+ * Four, not two, and the difference is not a safety margin — it is where the
+ * letter survives being *positioned*. Measured by rasterising this exact glyph
+ * in a browser at each size and sweeping its sub-pixel offset (a canvas job, so
+ * it cannot live in the jsdom suite; the method is written up on the PR that
+ * changed this constant from 2):
+ *
+ *     stroke   worst-case Michelson contrast across sub-pixel phase
+ *       1 px   -0.08   gaps render darker than the bars; a uniform grey square
+ *       2 px    0.33   crisp when it lands on the grid, a grey smear when it
+ *                      lands half a pixel off — and it is the same letter
+ *       4 px    0.61   solid bars and white gaps at every offset
+ *
+ * At two pixels per stroke the answer depends on where the letter happens to
+ * fall, and this test *moves the letter on every trial* to stop it being
+ * memorised — so the phase is effectively random and the bottom rung alternates
+ * between legible and mush. That is noise injected into precisely the rung that
+ * decides the result. Four costs distance (every threshold doubles) and buys a
+ * letter that renders the same wherever it lands.
+ *
+ * Raising this is only safe because a truncated ladder now reports "6/24 or
+ * better" rather than "6/24": a screen that can no longer reach 6/6 says so
+ * instead of inventing a number. See `StageResult`.
  */
 export const STROKES_PER_OPTOTYPE = 5;
-export const DEVICE_PX_PER_STROKE = 2;
+export const DEVICE_PX_PER_STROKE = 4;
 
 export function minOptotypePx(devicePixelRatio = 1): number {
   return (STROKES_PER_OPTOTYPE * DEVICE_PX_PER_STROKE) / Math.max(devicePixelRatio, 1);
