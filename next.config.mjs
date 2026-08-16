@@ -4,13 +4,16 @@ const isProd = process.env.NODE_ENV === "production";
  * Content Security Policy.
  * - script-src keeps 'unsafe-inline' because Next.js injects inline runtime
  *   scripts without a nonce pipeline; external script injection is still
- *   blocked, which is the main XSS escalation path.
+ *   blocked, which is the main XSS escalation path. The PostHog host is listed
+ *   because posthog-js lazy-loads session replay / surveys / the toolbar as
+ *   separate bundles from it — capture itself only needs connect-src, so
+ *   without this those features fail silently rather than loudly.
  * - Dev additionally needs 'unsafe-eval' (react-refresh) and ws: (HMR).
  * - connect-src allows Supabase (auth/data) alongside same-origin API calls.
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://*.i.posthog.com https://*.posthog.com${isProd ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://images.unsplash.com https://avatars.githubusercontent.com",
   "font-src 'self' data:",

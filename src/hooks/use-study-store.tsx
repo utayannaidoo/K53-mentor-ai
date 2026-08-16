@@ -46,6 +46,7 @@ import { createClient } from "@/lib/supabase/client";
 import { loadAccount, saveAccount } from "@/lib/supabase/account";
 import { pullProgress, pushProgress } from "@/lib/supabase/progress";
 import { hydrateAccountState } from "@/lib/store/account-hydrate";
+import { identify, resetAnalytics } from "@/lib/analytics";
 import { persistOnboarding } from "@/lib/store/persist-onboarding";
 
 type UsageKind = "flashcards" | "questions" | "tutor" | "scenarios";
@@ -291,12 +292,20 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         // cookies remain the source of truth.
         if (event === "SIGNED_OUT") {
           setState((s) => (s.profile ? { ...s, profile: null } : s));
+          // Same reasoning as the profile clear: only an explicit sign-out
+          // ends the session, so a transient null must not reset analytics.
+          resetAnalytics();
         }
         setAccountHydrated(true); // nothing to wait for
         return;
       }
       // A (re)sign-in is in flight: hold routing until the account lands.
       setAccountHydrated(false);
+      // Tie analytics to the account here rather than at the sign-in form:
+      // this fires for password sign-in, OAuth and INITIAL_SESSION alike, so a
+      // returning learner's events stay on one identity instead of splitting a
+      // signup and a later purchase into two anonymous devices.
+      identify(user.id);
       // A parked referral code from /signup?ref=… — claim it exactly once,
       // now that a real account exists (covers password and OAuth signups).
       try {

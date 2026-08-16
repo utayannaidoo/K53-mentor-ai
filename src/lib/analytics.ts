@@ -53,8 +53,26 @@ export function track(event: AnalyticsEvent, props?: Record<string, string | num
   posthog.capture(event, props);
 }
 
-/** Tie events to the account (called after sign-in). */
+/**
+ * Tie events to the account (called after sign-in).
+ *
+ * Pass the Supabase user id and nothing else — name and email stay out of
+ * PostHog. The id joins back to `profiles` when a question actually needs a
+ * person, which keeps the analytics copy of our users to an opaque key.
+ */
 export function identify(userId: string, props?: Record<string, string>): void {
   if (!KEY || !initialized) return;
   posthog.identify(userId, props);
+}
+
+/**
+ * Drop the identified user and start a fresh anonymous id (called on sign-out).
+ *
+ * Without this, the next person to sign in on a shared device — a phone passed
+ * between siblings, a library machine — inherits the previous learner's
+ * distinct id, merging two people into one profile.
+ */
+export function resetAnalytics(): void {
+  if (!KEY || !initialized) return;
+  posthog.reset();
 }

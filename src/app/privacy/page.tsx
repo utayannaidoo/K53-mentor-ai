@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="2 July 2026"
+      updated="26 July 2026"
       intro={`This policy explains what ${APP_NAME} collects, why we collect it, and the choices you have. We collect as little as we can get away with — your study data exists to teach you, not to sell you.`}
     >
       <section>
@@ -64,11 +64,23 @@ export default function PrivacyPage() {
       </section>
 
       <section>
+        <h2>Product analytics</h2>
+        <p>
+          We use PostHog to see how the app is actually used — pages viewed, plus a short list of
+          named events such as finishing a mock exam or opening the upgrade screen. This tells us
+          which parts of the app help people pass and which get abandoned. Events are tied to your
+          account by its internal ID only: we do not send your name, email, tutor messages or
+          answers. Signing out unlinks the ID and starts a fresh anonymous one, so a shared phone
+          does not merge two learners.
+        </p>
+      </section>
+
+      <section>
         <h2>Cookies & local storage</h2>
         <p>
           We use local storage for the things that make the app work: your session, your study
-          progress cache, and preferences like dark mode and data-saver. We do not run third-party
-          advertising trackers.
+          progress cache, and preferences like dark mode and data-saver. The analytics identifier
+          described above is kept there too. We do not run third-party advertising trackers.
         </p>
       </section>
 
