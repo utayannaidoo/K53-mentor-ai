@@ -9,7 +9,7 @@ import { buildDayStrip, dayKey, type StripDay } from "@/lib/dashboard/day-strip"
 import { summariseDay, type DaySummary } from "@/lib/dashboard/day-detail";
 import { ReadinessPlot } from "@/components/dashboard/readiness-plot";
 import type { PlanTask } from "@/lib/plan";
-import type { TrendPoint } from "@/components/dashboard/trend-chart";
+import type { TrendPoint } from "@/components/dashboard/readiness-plot";
 import { cn, glassFloat } from "@/lib/utils";
 import { SECTION_LABEL, type ExamSection } from "@/lib/constants";
 import type { CategoryId, UserState } from "@/types";

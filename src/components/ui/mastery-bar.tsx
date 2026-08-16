@@ -4,10 +4,14 @@ import { scoreTone, thresholdTone, type ScoreTone } from "@/lib/score";
 
 const fillByTone: Record<ScoreTone, string> = {
   primary: "bg-gradient-to-r from-primary to-primary-light",
-  success: "bg-gradient-to-r from-success to-success",
-  warning: "bg-gradient-to-r from-warning to-accent",
-  danger: "bg-gradient-to-r from-danger to-danger",
-  // single-hue fallbacks keep bars calm; primary/warning get a subtle blend
+  success: "bg-success",
+  // Warning was `from-warning to-accent`, which was a warm ochre-to-amber blend
+  // when --accent was amber. Road Atlas made accent motorway blue, so every
+  // short bar in the app has since been fading from ochre into blue — a second
+  // hue that means something else entirely, on the mark that says "not there
+  // yet". Warning is one hue now, like success and danger.
+  warning: "bg-warning",
+  danger: "bg-danger",
 };
 
 export function MasteryBar({

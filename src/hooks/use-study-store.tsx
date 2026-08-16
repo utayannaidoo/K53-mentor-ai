@@ -40,7 +40,9 @@ import {
   MOCK_PASS_BONUS_CP,
   PLAN_COMPLETE_CP,
   SCENARIO_CP,
+  LICENCE_RANK_INDEX,
 } from "@/lib/engagement";
+import { achievementInputs, evaluateAchievements } from "@/lib/achievements";
 import { uid } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { loadAccount, saveAccount } from "@/lib/supabase/account";
@@ -126,6 +128,8 @@ interface StudyStore {
   bumpUsage: (kind: UsageKind, by?: number) => void;
   usageFor: (kind: UsageKind) => { used: number; cap: number; allowed: boolean };
   acknowledgeRankUp: () => void;
+  /** Clears the oldest queued achievement unlock — one toast at a time. */
+  acknowledgeAchievement: () => void;
   dismissComeback: () => void;
   resetProgress: () => void;
 }
@@ -184,6 +188,17 @@ function applyStudyEffects(state: UserState, now = new Date()): UserState {
     s = { ...s, rankAchieved: rankIndex, pendingRankUp: rankIndex };
   }
 
+  // Achievements ride alongside the rank on every study action, for the same
+  // reason: both are high-water marks, and the moment to notice one is the
+  // moment the work that earned it landed.
+  const { next: achievements, newly } = evaluateAchievements(
+    achievementInputs(s, breakdown.perCategory, s.rankAchieved >= LICENCE_RANK_INDEX),
+    s.achievements,
+  );
+  if (newly.length > 0) {
+    s = { ...s, achievements, pendingAchievements: [...s.pendingAchievements, ...newly] };
+  }
+
   const history = s.readinessHistory.filter((h) => h.date !== date);
   history.push({ date, readiness: breakdown.readiness });
   history.sort((a, b) => a.date.localeCompare(b.date));
@@ -199,8 +214,21 @@ const COMEBACK_GAP_DAYS = 3;
  * refresh the lastSeen snapshot.
  */
 function withArrivalEffects(s: UserState, now = new Date()): UserState {
-  const readinessNow = computeReadiness(s).readiness;
+  const breakdown = computeReadiness(s);
+  const readinessNow = breakdown.readiness;
   let next = s;
+
+  // Bank whatever the existing log already earned, silently. This is the v3→v4
+  // back-fill and the same endowed-progress move CP made at v2: a returning
+  // learner's first sight of the grid should be a record of their work, not an
+  // empty wall. `newly` is dropped rather than queued — nobody wants thirteen
+  // toasts at once, and from here on `applyStudyEffects` catches real unlocks.
+  const banked = evaluateAchievements(
+    achievementInputs(s, breakdown.perCategory, s.rankAchieved >= LICENCE_RANK_INDEX),
+    s.achievements,
+  ).next;
+  if (banked !== s.achievements) next = { ...next, achievements: banked };
+
   if (s.lastSeen) {
     const daysAway = Math.floor((now.getTime() - Date.parse(s.lastSeen.at)) / 86_400_000);
     if (daysAway >= COMEBACK_GAP_DAYS) {
@@ -674,6 +702,13 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     bumpUsage: (kind, by = 1) => setState((s) => bumpUsageState(s, kind, by)),
 
     acknowledgeRankUp: () => setState((s) => (s.pendingRankUp === null ? s : { ...s, pendingRankUp: null })),
+
+    acknowledgeAchievement: () =>
+      setState((s) =>
+        s.pendingAchievements.length === 0
+          ? s
+          : { ...s, pendingAchievements: s.pendingAchievements.slice(1) },
+      ),
 
     dismissComeback: () =>
       setState((s) => (s.pendingComeback === null ? s : { ...s, pendingComeback: null })),
