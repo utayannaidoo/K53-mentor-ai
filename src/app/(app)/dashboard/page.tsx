@@ -88,6 +88,7 @@ export default function DashboardPage() {
         rationale={rationale}
         alert={alertBand(alertKey, { mistakes: mistakes.length, days: daysUntilTest(state) })}
         trend={state.readinessHistory}
+        daySource={state}
         rankLine={
           rank.next
             ? `${rank.current.name} · ${rank.unmet[0] ?? `next: ${rank.next.name}`}`
