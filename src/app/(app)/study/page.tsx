@@ -7,6 +7,8 @@ import {
   Route,
   FileText,
   Car,
+  Bike,
+  Truck,
   ArrowRight,
   Lock,
   Signpost,
@@ -25,10 +27,24 @@ import { CategoryIcon } from "@/components/shared/category-icon";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueFlashcards, drillsRemaining, generateTodayPlan, isTaskDone, mocksRemaining } from "@/lib/plan";
 import { PLAN_COMPLETE_CP } from "@/lib/engagement";
-import { hasFeature } from "@/lib/billing/plans";
+import { hasFeature, studyCodeOf } from "@/lib/billing/plans";
 import { categoryName } from "@/lib/content/categories";
+import { groupOf } from "@/lib/content/vehicle";
 import { cn, glass } from "@/lib/utils";
 import type { CategoryId } from "@/types";
+
+/**
+ * The controls card follows the learner's licence code, because the guide
+ * behind it already does — a code 10/14 learner tapping "Car controls" lands
+ * on a page headed "Heavy-vehicle controls" with no car in it. Titles match
+ * that page's headings exactly, and the blurb matches what each branch of it
+ * actually covers (only the car branch teaches driving off).
+ */
+const CONTROLS_CARD = {
+  car: { icon: Car, title: "Car controls", desc: "Know every control + how to drive off" },
+  motorcycle: { icon: Bike, title: "Motorcycle controls", desc: "Every hand and foot control on the bike" },
+  heavy: { icon: Truck, title: "Heavy-vehicle controls", desc: "Air brakes, coupling and the cab controls" },
+} as const;
 
 export default function StudyHubPage() {
   const { state, readiness, usageFor } = useStudyStore();
@@ -43,6 +59,8 @@ export default function StudyHubPage() {
   const mockLocked = mocksRemaining(state, "full") <= 0;
   const miniLocked = mocksRemaining(state, "mini") <= 0;
   const drillLocked = drillsRemaining(state) <= 0;
+
+  const controls = CONTROLS_CARD[groupOf(studyCodeOf(state))];
 
   const missions = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(missions.map((t) => [t.id, isTaskDone(t, state)]));
@@ -64,7 +82,7 @@ export default function StudyHubPage() {
     { href: "/study/mock-exam", icon: FileText, title: "Mock exam", desc: "Full 64-question test", tone: "text-primary", locked: mockLocked },
     { href: "/study/mock-exam?mode=mini", icon: Timer, title: "Mini mock", desc: "15 questions · 12 minutes", tone: "text-primary", locked: miniLocked },
     { href: "/study/mock-exam?mode=drill&section=signs", icon: Target, title: "Section drills", desc: "One exam section at its real pass mark", tone: "text-primary", locked: drillLocked },
-    { href: "/study/controls", icon: Car, title: "Car controls", desc: "Know every control + how to drive off", tone: "text-primary" },
+    { href: "/study/controls", icon: controls.icon, title: controls.title, desc: controls.desc, tone: "text-primary" },
   ];
 
   const ranked = (Object.keys(readiness.perCategory) as CategoryId[]).sort(
