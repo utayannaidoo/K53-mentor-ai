@@ -17,7 +17,15 @@ const CACHE_KEY = "k53mentor.coach.plan.v1";
  * signature so a normal day costs a single LLM call. Falls back to the local
  * template on any failure — the hero card never shows an error.
  */
-function useCoachRationale(input: PlanRationaleData): string | null {
+/**
+ * The coach's one-line reason for today's plan.
+ *
+ * Exported because the dashboard renders the plan as bands of one sheet rather
+ * than as this card, and the rationale belongs with the tasks wherever they are
+ * drawn. The fetch, the cache and the graceful silence on failure stay here, in
+ * one place, rather than being reimplemented at the call site.
+ */
+export function usePlanRationale(input: PlanRationaleData): string | null {
   const [text, setText] = React.useState<string | null>(null);
   const sig = [input.weakestCategory ?? "", input.dueCards ?? 0, input.daysToTest ?? ""].join("|");
   const inputRef = React.useRef(input);
@@ -80,7 +88,7 @@ export function CoachPlan({
   planLocked?: boolean;
   rationaleInput: PlanRationaleData;
 }) {
-  const rationale = useCoachRationale(rationaleInput);
+  const rationale = usePlanRationale(rationaleInput);
   const totalMin = tasks.reduce((s, t) => s + t.estMinutes, 0);
   const firstIncomplete = tasks.find((t) => !doneMap[t.id]);
   const allDone = !firstIncomplete;
