@@ -25,7 +25,7 @@ import { daysUntil } from "@/lib/utils";
  * it takes for this to become a grid again.
  */
 export default function DashboardPage() {
-  const { state, readiness, hasDiagnostic } = useStudyStore();
+  const { state, readiness, hasDiagnostic, dismissComeback } = useStudyStore();
 
   const tasks = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(tasks.map((t) => [t.id, isTaskDone(t, state)]));
@@ -86,7 +86,11 @@ export default function DashboardPage() {
         scenariosUnlocked={hasFeature(state.tier, "scenarios")}
         planLocked={!PLAN_MAP[state.tier].limits.studyPlan}
         rationale={rationale}
-        alert={alertBand(alertKey, { mistakes: mistakes.length, days: daysUntilTest(state) })}
+        alert={alertBand(alertKey, {
+          mistakes: mistakes.length,
+          days: daysUntilTest(state),
+          dismissComeback,
+        })}
         trend={state.readinessHistory}
         daySource={state}
         rankLine={
@@ -102,7 +106,7 @@ export default function DashboardPage() {
 /** The chosen alert, as the band the sheet renders. */
 function alertBand(
   key: DashboardAlert | null,
-  ctx: { mistakes: number; days: number | null },
+  ctx: { mistakes: number; days: number | null; dismissComeback: () => void },
 ) {
   switch (key) {
     case "cram":
@@ -141,6 +145,10 @@ function alertBand(
         body: "Your progress held while you were away — pick up where you left off.",
         href: "/study",
         cta: "Resume",
+        // `pendingComeback` is persisted state that nothing else clears. The
+        // card this replaced carried a dismiss; without one the band would
+        // greet the learner every visit, forever.
+        onDismiss: ctx.dismissComeback,
       };
     default:
       return null;

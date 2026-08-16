@@ -75,7 +75,15 @@ export function TodaySheet({
   /** The coach's one-line reason for today's plan, once it has resolved. */
   rationale: React.ReactNode;
   /** The single most urgent thing, already chosen — rendered as a band. */
-  alert: { tone: "warning" | "primary"; title: string; body: string; href: string; cta: string } | null;
+  alert: {
+    tone: "warning" | "primary";
+    title: string;
+    body: string;
+    href: string;
+    cta: string;
+    /** Present only where the alert's condition is stored state, not a fact. */
+    onDismiss?: () => void;
+  } | null;
   /** Readiness history — plotted at the top, beside the balance. */
   trend: TrendPoint[];
   /** The slices a clicked day is summarised from. */
@@ -181,12 +189,27 @@ export function TodaySheet({
             <p className="text-sm font-medium">{alert.title}</p>
             <p className="text-xs text-muted-foreground">{alert.body}</p>
           </div>
-          <Link
-            href={alert.href}
-            className={cn(buttonVariants({ size: "sm", variant: "outline" }), "shrink-0")}
-          >
-            {alert.cta}
-          </Link>
+          <div className="flex shrink-0 items-center gap-1">
+            <Link
+              href={alert.href}
+              className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+            >
+              {alert.cta}
+            </Link>
+            {/* Only the alerts that outlive their own condition need this. The
+                cram and trial bands clear themselves when the situation does;
+                `pendingComeback` is stored state and clears only when asked. */}
+            {alert.onDismiss && (
+              <button
+                type="button"
+                onClick={alert.onDismiss}
+                aria-label={`Dismiss: ${alert.title}`}
+                className="press rounded-full p-1.5 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
       )}
 
