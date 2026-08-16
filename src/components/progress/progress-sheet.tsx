@@ -1,4 +1,5 @@
 import * as React from "react";
+import { Reveal } from "@/components/shared/reveal";
 import { cn, glass, glassFloat } from "@/lib/utils";
 
 /**
@@ -137,6 +138,35 @@ export function Figure({
       </p>
     </div>
   );
+}
+
+/**
+ * A labelled sheet in the page's running order.
+ *
+ * `first` carries everything that belongs to leading the page rather than to any
+ * particular sheet: the floating tier, no top margin, and no scroll-reveal —
+ * the lead sheet is above the fold on every device, so there is no scroll for a
+ * reveal to react to, and it is the worst place on the page for content to
+ * start at opacity 0 if the observer never fires.
+ */
+export function SheetBlock({
+  first = false,
+  label,
+  aside,
+  children,
+}: {
+  first?: boolean;
+  label: React.ReactNode;
+  aside?: React.ReactNode;
+  children: React.ReactNode;
+}) {
+  const block = (
+    <div className={first ? undefined : "mt-8"}>
+      <SheetLabel aside={aside}>{label}</SheetLabel>
+      <Sheet float={first}>{children}</Sheet>
+    </div>
+  );
+  return first ? block : <Reveal>{block}</Reveal>;
 }
 
 /** The hairline grid `Figure` expects to sit in. */
