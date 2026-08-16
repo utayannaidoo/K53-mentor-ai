@@ -111,6 +111,11 @@ export function BandTitle({
 /**
  * A qualifying number. Hairline-separated from its neighbours by the parent's
  * `gap-px bg-border/40`, never boxed — see `FigureRow`.
+ *
+ * A step smaller than the same figure on `TodaySheet`, because it is doing a
+ * different job. There it qualifies a 56px numeral and can afford to be 32px;
+ * here it qualifies a sentence, and at 32px it tied with the page title and
+ * crowded the verdict it is supposed to support.
  */
 export function Figure({
   label,
@@ -126,7 +131,7 @@ export function Figure({
   return (
     <div className="bg-card/[0.01] px-4 py-4 text-center">
       <p className="text-2xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
-      <p className={cn("mt-1.5 font-mono text-2xl font-semibold leading-none tabular-nums", tone)}>
+      <p className={cn("mt-1.5 font-mono text-xl font-semibold leading-none tabular-nums", tone)}>
         {value}
         {unit && <span className="ml-1 text-xs font-normal text-muted-foreground">{unit}</span>}
       </p>
