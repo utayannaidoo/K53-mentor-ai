@@ -19,5 +19,8 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules"]
+  // `video/` is a self-contained Remotion project with its own package.json,
+  // tsconfig and React copy. The include glob above would otherwise pull it
+  // into the app's typecheck and build under the wrong compiler options.
+  "exclude": ["node_modules", "video"]
 }

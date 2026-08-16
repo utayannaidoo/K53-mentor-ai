@@ -1,0 +1,18 @@
+node_modules/
+out/
+.remotion/
+
+# Synthesised temp audio — regenerate with `npm run audio` (about 4 seconds,
+# no network, deterministic output). Kept out of git because bed.wav alone is
+# ~10 MB and it is a build artefact, not a source.
+public/audio/*.wav
+
+# Baked noise tiles — regenerate with `npm run noise` (instant, deterministic).
+public/noise/*.png
+
+# ElevenLabs voice-over — regenerate with `npm run vo`. Never commit an API key.
+public/audio/vo/
+.env
+
+# Suno source tracks — originals kept outside git (large, and licence-bound).
+music-src/
