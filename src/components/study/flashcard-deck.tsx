@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { useSpeechInput } from "@/hooks/use-speech-input";
 import { SpeakButton } from "@/components/study/speak-button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SessionProgress } from "@/components/ui/session-progress";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
 import { TrialMeter } from "@/components/app/trial-meter";
@@ -179,9 +180,14 @@ export function FlashcardDeck() {
         <Link href="/study" className="text-muted-foreground hover:text-foreground" aria-label="Close">
           <X className="h-5 w-5" />
         </Link>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${(i / queue.length) * 100}%` }} />
-        </div>
+        {/* Reviewed or not, never right or wrong: an "Again" rating is honest
+            recall data, not a mistake to mark in red. */}
+        <SessionProgress
+          completed={i}
+          total={queue.length}
+          index={i}
+          outcomes={queue.map((_, idx) => (idx < i ? "done" : "pending"))}
+        />
         <span className="font-mono text-xs text-muted-foreground">{i + 1}/{queue.length}</span>
       </div>
 

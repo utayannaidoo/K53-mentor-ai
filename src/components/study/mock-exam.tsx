@@ -8,6 +8,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { MasteryBar } from "@/components/ui/mastery-bar";
+import { SessionProgress } from "@/components/ui/session-progress";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { signQuestionAlt } from "@/lib/content/sign-alt";
@@ -421,17 +422,21 @@ export function MockExam() {
             {sectionScores.map((s) => {
               const passed = s.correct >= s.pass;
               return (
-                <div
-                  key={s.section}
-                  className="flex items-center justify-between rounded-lg border border-border px-4 py-3"
-                >
-                  <span className="text-sm font-medium text-foreground">{SECTION_LABEL[s.section]}</span>
-                  <span className="flex items-center gap-2">
-                    <span className="font-mono text-sm text-muted-foreground">
-                      {s.correct}/{s.total} · need {s.pass}
-                    </span>
+                <div key={s.section} className="rounded-lg border border-border px-4 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-sm font-medium text-foreground">{SECTION_LABEL[s.section]}</span>
                     <Badge variant={passed ? "success" : "warning"}>{passed ? "Pass" : "Fail"}</Badge>
-                  </span>
+                  </div>
+                  {/* The tick is the pass mark. "3 short" beats making the
+                      learner subtract 22 from 19 to find out where they stand. */}
+                  <MasteryBar
+                    className="mt-2"
+                    label={<span className="sr-only">{SECTION_LABEL[s.section]} score</span>}
+                    value={(s.correct / s.total) * 100}
+                    threshold={(s.pass / s.total) * 100}
+                    thresholdLabel={`Pass mark ${s.pass} of ${s.total}`}
+                    count={`${s.correct}/${s.total} · need ${s.pass}`}
+                  />
                 </div>
               );
             })}
@@ -510,9 +515,16 @@ export function MockExam() {
         <button onClick={submit} className="text-muted-foreground hover:text-foreground" aria-label="Submit and exit">
           <X className="h-5 w-5" />
         </button>
-        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-          <div className="h-full rounded-full bg-primary transition-[width] duration-300" style={{ width: `${((i + 1) / questions.length) * 100}%` }} />
-        </div>
+        {/* Answered or not — never right or wrong. The paper is still open, and
+            a green tick mid-exam would hand the learner a mark the real DLTC
+            would not. On a full 64 the segments fall away and this is the plain
+            bar it has always been. */}
+        <SessionProgress
+          completed={i + 1}
+          total={questions.length}
+          index={i}
+          outcomes={answers.map((a) => (a >= 0 ? "done" : "pending"))}
+        />
         <span className={cn("flex items-center gap-1 font-mono text-xs", secondsLeft < 300 ? "text-danger" : "text-muted-foreground")}>
           <Clock className="h-3.5 w-3.5" /> {mm}:{ss}
         </span>

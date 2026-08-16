@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import { QuestionPractice } from "@/components/study/question-practice";
-import { Spinner } from "@/components/ui/spinner";
+import { DrivingLoader } from "@/components/ui/driving-loader";
 
 export default function QuestionsPage() {
   return (
-    <Suspense fallback={<div className="flex justify-center py-20"><Spinner className="h-6 w-6" /></div>}>
+    <Suspense fallback={<DrivingLoader label="Building your session" />}>
       <QuestionPractice />
     </Suspense>
   );

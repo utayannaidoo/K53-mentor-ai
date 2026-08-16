@@ -319,7 +319,9 @@
   background-image: none !important;
 }
 .data-saver .animate-ping,
-.data-saver .animate-bounce {
+.data-saver .animate-bounce,
+.data-saver .animate-drive,
+.data-saver .animate-bob {
   animation: none !important;
 }
 .data-saver .glass,
@@ -352,6 +354,17 @@ html.lenis {
 }
 .lenis.lenis-smooth iframe {
   pointer-events: none;
+}
+
+/* Road surface under the driving loader. Painted rather than drawn so the
+   whole strip is one element to translate, and so the dash period (24px) lives
+   in one place — `animate-drive` travels exactly this far and no further. */
+.road-dashes {
+  background-image: repeating-linear-gradient(
+    to right,
+    hsl(var(--border)) 0 12px,
+    transparent 12px 24px
+  );
 }
 
 /* Landing motion — horizontal category marquee + hero card sheen */

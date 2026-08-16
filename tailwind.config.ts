@@ -136,6 +136,18 @@ const config: Config = {
           "0%": { transform: "translateX(-100%)" },
           "100%": { transform: "translateX(100%)" },
         },
+        // The road moves, the vehicle holds. Travelling exactly one dash period
+        // (12px dash + 12px gap) means the strip lands where it started, so the
+        // loop has no visible reset — and no base transform to restore, which
+        // is what keeps it correct once reduced motion stops it dead.
+        drive: {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-24px)" },
+        },
+        bob: {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-1.5px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -147,6 +159,12 @@ const config: Config = {
         route: "route-in 0.24s cubic-bezier(0.22, 1, 0.36, 1) both",
         "modal-in": "scale-in 0.4s cubic-bezier(0.34, 1.3, 0.64, 1) both",
         shimmer: "shimmer 1.8s ease-in-out infinite",
+        drive: "drive 0.6s linear infinite",
+        bob: "bob 0.9s ease-in-out infinite",
+        // Held invisible for 350ms so a warm route — which resolves in about
+        // 100–300ms — shows nothing at all rather than one frame of vehicle.
+        // `both` is what keeps it at opacity 0 through the delay.
+        "fade-in-delayed": "fade-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) 0.35s both",
       },
     },
   },
