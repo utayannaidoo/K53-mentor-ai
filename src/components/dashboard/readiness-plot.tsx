@@ -12,6 +12,13 @@ import type { TrendPoint } from "@/components/dashboard/trend-chart";
  * mark: with no surrounding card to caption it, the dashed line has to be
  * self-explanatory.
  *
+ * **It prints no readiness figure of its own**, and must not be given one back.
+ * As a standalone card it captioned itself with "Readiness now" in the corner;
+ * inside the sheet that number sits immediately to its left, at four times the
+ * size, so the caption was the same fact said twice a few centimetres apart.
+ * `current` survives for the accessible description only, where a screen reader
+ * has no spatial relationship to lean on.
+ *
  * Not TrendChart, which is a deliberately minimal 160px strip still used at
  * that size on /dashboard/progress and stretches its stroke with
  * `preserveAspectRatio="none"` — fine small, visibly wrong at this scale.
@@ -141,13 +148,6 @@ export function ReadinessPlot({ data, current }: { data: TrendPoint[]; current: 
         </div>
       )}
 
-      {/* The number the card wants remembered. */}
-      <div className="pointer-events-none absolute bottom-1 right-5 text-right">
-        <p className="font-mono text-3xl font-semibold leading-none tabular-nums text-foreground">
-          {current}%
-        </p>
-        <p className="mt-1 text-2xs text-muted-foreground">Readiness now</p>
-      </div>
     </div>
   );
 }
