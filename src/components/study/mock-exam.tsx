@@ -18,7 +18,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, miniMockConfig, MINI_MOCK, MINI_MOCK_LENGTHS, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
-import { EXAM_FORMAT } from "@/lib/constants";
+import { EXAM_FORMAT, SECTION_LABEL } from "@/lib/constants";
 import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
@@ -30,11 +30,6 @@ import type { CategoryId, CategoryScore, Question } from "@/types";
 const LETTERS = ["A", "B", "C", "D"];
 const EXAM_SECONDS = 60 * 60;
 
-const SECTION_LABEL: Record<ExamSection, string> = {
-  controls: "Vehicle controls",
-  signs: "Road signs & markings",
-  rules: "Rules of the road",
-};
 const EXAM_SECTIONS = Object.keys(EXAM_FORMAT.sections) as ExamSection[];
 
 interface ExamResult {
