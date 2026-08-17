@@ -15,6 +15,7 @@ import type {
   TutorThread,
   UserState,
   CategoryId,
+  TestKind,
 } from "@/types";
 import {
   STORAGE_KEY,
@@ -130,6 +131,13 @@ interface StudyStore {
   acknowledgeRankUp: () => void;
   /** Clears the oldest queued achievement unlock — one toast at a time. */
   acknowledgeAchievement: () => void;
+  /**
+   * Record how one of the real tests went. "passed" is the only thing in the
+   * product that grants the final Driver Rank — see `src/lib/licence/test-day.ts`.
+   */
+  recordLicenceResult: (kind: TestKind, result: "passed" | "failed", testDate: string) => void;
+  /** "I haven't written it yet" — ask again tomorrow, not on the next render. */
+  deferLicenceQuestion: (kind: TestKind) => void;
   dismissComeback: () => void;
   resetProgress: () => void;
 }
@@ -454,6 +462,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     state.onboarding,
     state.tier,
     state.streak,
+    // Without this the licence result waits for some other slice to change
+    // before it flushes — and on the day someone passes, that could be never.
+    state.licence,
     state.attempts,
     state.cardStates,
     state.scenarioAttempts,
@@ -709,6 +720,53 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
           ? s
           : { ...s, pendingAchievements: s.pendingAchievements.slice(1) },
       ),
+
+    recordLicenceResult: (kind, result, testDate) =>
+      setState((s) => {
+        // Answering a question about test day is not studying, so this
+        // deliberately does NOT run `applyStudyEffects` — that would touch the
+        // streak and the daily plan bonus on a day the learner may not have
+        // opened a single card.
+        //
+        // `testDate` is passed in rather than read back off `onboarding` here:
+        // which field holds it depends on the goal (see `bookedTests`), and the
+        // caller already resolved that to decide what to ask about.
+        const deferred = { ...s.licenceDeferredOn };
+        delete deferred[kind];
+        let next: UserState = {
+          ...s,
+          licence: { ...s.licence, [kind]: { result, at: new Date().toISOString(), testDate } },
+          licenceDeferredOn: deferred,
+        };
+        if (result !== "passed") return next;
+
+        // The one grant. `computeRankIndex` can never return this index, and
+        // rank only ever rises, so nothing downstream can take it back.
+        //
+        // `pendingRankUp` is deliberately NOT set. Every other rank-up is a
+        // toast because the learner was mid-session and did not ask for a
+        // ceremony; this one has just been celebrated in a full dialog, and a
+        // smaller box appearing underneath it to say the same words again is a
+        // diminishment, not a second beat.
+        next = { ...next, rankAchieved: LICENCE_RANK_INDEX };
+
+        // Achievements are banked, not queued, for the same reason — and the
+        // same reason `withArrivalEffects` banks its back-fill silently.
+        next = {
+          ...next,
+          achievements: evaluateAchievements(
+            achievementInputs(next, computeReadiness(next).perCategory, true),
+            next.achievements,
+          ).next,
+        };
+        return next;
+      }),
+
+    deferLicenceQuestion: (kind) =>
+      setState((s) => ({
+        ...s,
+        licenceDeferredOn: { ...s.licenceDeferredOn, [kind]: todayKey() },
+      })),
 
     dismissComeback: () =>
       setState((s) => (s.pendingComeback === null ? s : { ...s, pendingComeback: null })),

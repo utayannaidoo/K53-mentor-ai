@@ -52,6 +52,8 @@ export function defaultUserState(): UserState {
     planBonusDate: null,
     lastSeen: null,
     pendingComeback: null,
+    licence: {},
+    licenceDeferredOn: {},
   };
 }
 

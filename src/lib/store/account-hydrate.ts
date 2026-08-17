@@ -1,9 +1,11 @@
 import type { UserState } from "@/types";
 import { defaultUserState } from "@/lib/store/local-store";
+import { LICENCE_RANK_INDEX } from "@/lib/engagement";
+import { licenceHeld } from "@/lib/licence/test-day";
 import { mergeProgress, type RemoteProgress } from "@/lib/supabase/progress";
 
 export type AccountFields = Partial<
-  Pick<UserState, "profile" | "onboarding" | "tier" | "streak" | "cp">
+  Pick<UserState, "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence">
 >;
 
 /**
@@ -36,6 +38,23 @@ export function hydrateAccountState(
   // back through onboarding and silently reset them to Code 8. Keep what we
   // have and let the next sync push it up.
   next.onboarding = account.onboarding ?? base.onboarding;
+
+  // Same rule, same reason: a server that has not heard about a test yet must
+  // not erase an answer this browser is still holding on its way up. Merged per
+  // test rather than replaced wholesale — someone who passed their learner's
+  // months ago and answered about their driver's ten seconds ago has one of
+  // each in flight, and either direction of "last write wins" drops one.
+  next.licence = { ...base.licence, ...account.licence };
+
+  // `rankAchieved` is derived, not synced — every other rank is recomputed from
+  // CP and readiness, and the licence rank is recomputed from nothing at all
+  // because no gate can reach it. So it has to be re-granted here, or signing
+  // in on a second device would show a licensed learner back at Road Ready with
+  // a green passport. The rank is monotonic elsewhere; this is the only place
+  // that needs to raise it without a study action behind it.
+  if (licenceHeld(next.licence) && next.rankAchieved < LICENCE_RANK_INDEX) {
+    next.rankAchieved = LICENCE_RANK_INDEX;
+  }
 
   if (progress) next = mergeProgress(next, progress);
   return next;

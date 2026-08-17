@@ -1,5 +1,12 @@
 import type { SupabaseClient, User } from "@supabase/supabase-js";
-import type { OnboardingData, Profile, Streak, SubscriptionTier, UserState } from "@/types";
+import type {
+  LicenceResult,
+  OnboardingData,
+  Profile,
+  Streak,
+  SubscriptionTier,
+  UserState,
+} from "@/types";
 
 /**
  * Account-tier sync between the study store and Supabase: the durable identity
@@ -8,7 +15,10 @@ import type { OnboardingData, Profile, Streak, SubscriptionTier, UserState } fro
  * the local store and is not yet mirrored here — see SESSION notes.
  */
 
-type AccountData = Pick<UserState, "profile" | "onboarding" | "tier" | "streak" | "cp">;
+type AccountData = Pick<
+  UserState,
+  "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence"
+>;
 
 interface ProfileRow {
   full_name: string | null;
@@ -24,6 +34,30 @@ interface ProfileRow {
   prior_attempts: number | null;
   onboarded_at: string | null;
   created_at: string | null;
+  // Added in 0024. Absent on a database that has not run it yet, which is
+  // exactly why the read below is a `select("*")`.
+  licence_result: LicenceResult["result"] | null;
+  licence_result_at: string | null;
+  licence_result_test_date: string | null;
+  drivers_result: LicenceResult["result"] | null;
+  drivers_result_at: string | null;
+  drivers_result_test_date: string | null;
+}
+
+/**
+ * One test's stored outcome, or nothing.
+ *
+ * A result with no date behind it is not usable — the prompt keys off the
+ * booking it answers — so an incomplete pair reads as "never answered" and the
+ * learner is asked again rather than silently locked out of the question.
+ */
+function licenceFrom(
+  result: LicenceResult["result"] | null | undefined,
+  at: string | null | undefined,
+  testDate: string | null | undefined,
+): LicenceResult | null {
+  if (!result || !testDate) return null;
+  return { result, at: at ?? testDate, testDate };
 }
 
 interface StreakRow {
@@ -79,8 +113,15 @@ export async function loadAccount(
 
   const tier = ((subRes.data as { tier: SubscriptionTier } | null)?.tier ?? "free") as SubscriptionTier;
 
+  const learners = licenceFrom(p?.licence_result, p?.licence_result_at, p?.licence_result_test_date);
+  const drivers = licenceFrom(p?.drivers_result, p?.drivers_result_at, p?.drivers_result_test_date);
+  const licence: UserState["licence"] = {
+    ...(learners ? { learners } : {}),
+    ...(drivers ? { drivers } : {}),
+  };
+
   const st = streakRes.data as StreakRow | null;
-  const result: Partial<AccountData> = { profile, onboarding, tier };
+  const result: Partial<AccountData> = { profile, onboarding, tier, licence };
   if (st) {
     result.streak = {
       current: st.current ?? 0,
@@ -152,6 +193,26 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
             study_frequency: o.studyFrequency,
             prior_attempts: o.priorAttempts,
             onboarded_at: o.completedAt,
+          }
+        : {}),
+      // Each pair is only sent once that test has a result. These columns
+      // arrived in 0024, and PostgREST fails the whole statement on an unknown
+      // column — so omitting them by default keeps this upsert byte-identical
+      // to the pre-0024 one for every learner who has not answered, and a
+      // deploy that lands ahead of its migration cannot take the profile sync
+      // down with it.
+      ...(state.licence.learners
+        ? {
+            licence_result: state.licence.learners.result,
+            licence_result_at: state.licence.learners.at,
+            licence_result_test_date: state.licence.learners.testDate,
+          }
+        : {}),
+      ...(state.licence.drivers
+        ? {
+            drivers_result: state.licence.drivers.result,
+            drivers_result_at: state.licence.drivers.at,
+            drivers_result_test_date: state.licence.drivers.testDate,
           }
         : {}),
       last_active_at: new Date().toISOString(),
