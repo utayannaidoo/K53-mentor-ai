@@ -14,7 +14,7 @@ import {
   POOL_HREF,
   type TrialPool,
 } from "@/lib/billing/trial";
-import { cn } from "@/lib/utils";
+import { cn, daysUntil } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 
 export { trialExhausted, poolRemaining } from "@/lib/billing/trial";
@@ -41,10 +41,10 @@ export function TrialEndCard({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const testDate = state.onboarding?.testDate;
-  const daysToTest = testDate
-    ? Math.max(0, Math.ceil((Date.parse(testDate) - Date.now()) / 86_400_000))
-    : null;
+  // A date that has already passed is no countdown at all — clamping it to 0
+  // used to sell the upgrade with "your test in 0 days" months after the test.
+  const days = daysUntil(state.onboarding?.testDate ?? null);
+  const daysToTest = days !== null && days >= 0 ? days : null;
 
   const allDone = trialExhausted(state);
   const daysLeft = trialDaysRemaining(state);

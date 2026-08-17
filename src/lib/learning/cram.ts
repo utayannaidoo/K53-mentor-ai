@@ -1,6 +1,7 @@
 import type { Question, UserState } from "@/types";
 import { CATEGORY_WEIGHTS } from "@/lib/diagnostic/scoring";
 import { openMistakes } from "@/lib/learning/mistakes";
+import { daysUntil } from "@/lib/utils";
 
 /**
  * Emergency Revision — the last two days before the test.
@@ -21,12 +22,12 @@ import { openMistakes } from "@/lib/learning/mistakes";
 /** Days before the test when cram mode becomes the right advice. */
 export const CRAM_WINDOW_DAYS = 2;
 
-/** Whole days until the learner's test, or null if no date is set. */
+/**
+ * Whole days until the learner's test, or null if no date is set.
+ * Negative once the test has been sat — callers must not clamp that to 0.
+ */
 export function daysUntilTest(state: UserState, now = new Date()): number | null {
-  const date = state.onboarding?.testDate;
-  if (!date) return null;
-  const days = Math.ceil((Date.parse(date) - now.getTime()) / 86_400_000);
-  return Number.isFinite(days) ? days : null;
+  return daysUntil(state.onboarding?.testDate ?? null, now);
 }
 
 /** True inside the final stretch — test is today, tomorrow, or the day after. */
