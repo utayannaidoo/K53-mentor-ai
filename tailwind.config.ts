@@ -33,6 +33,19 @@ const config: Config = {
         board: {
           raw: "(min-width: 1024px) and (min-height: 500px), (min-width: 768px) and (min-height: 600px)",
         },
+        // "Find it in the car" puts its reference list beside the cabin, and the
+        // cabin has a hard floor: below ~600px of drawing the brake and the
+        // accelerator stop being separable targets. Take 336px for the list, the
+        // gap, the card's padding and the app's own chrome off a viewport and
+        // that floor is not clear until about 1310px — under it, `lg:` bought a
+        // second column by handing the diagram 577px and a horizontal
+        // scrollbar. So the split waits for the width to actually be there;
+        // below it the page stacks and the cabin gets the lot.
+        //
+        // A named screen rather than `min-[1340px]:` on purpose: the `raw`
+        // screen above stops Tailwind emitting arbitrary min-width variants at
+        // all, silently.
+        beside: "1340px",
       },
       colors: {
         border: "hsl(var(--border) / <alpha-value>)",

@@ -4,6 +4,8 @@ import * as React from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
+  ArrowRight,
+  Crosshair,
   Play,
   ClipboardCheck,
   GraduationCap,
@@ -32,9 +34,10 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
-import { Cockpit } from "@/components/study/cockpit";
+import { CockpitArt } from "@/components/study/cockpit-diagram";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import {
   CONTROL_GROUPS,
   COCKPIT_DRILL,
@@ -52,7 +55,7 @@ import {
   type VehicleControlItem,
 } from "@/lib/content/vehicle-controls";
 import { MotorcycleDiagram, HeavyDiagram } from "@/components/study/vehicle-controls-diagram";
-import { cn, glass } from "@/lib/utils";
+import { cn, glass, glassFloat, glassSubtle } from "@/lib/utils";
 
 const GROUP_ICON: Record<string, LucideIcon> = {
   lights: Lightbulb,
@@ -190,12 +193,51 @@ export function ControlsGuide() {
 
       {/* Interactive first, reference second. The manual's diagram is accurate
           but passive; the controls section of the test asks you to point at
-          things, and finding one yourself is what builds that memory. Sits on
-          the floating tier so it reads as the active surface above the
-          reference cards below it. */}
-      <div className="mb-5">
-        <Cockpit />
-      </div>
+          things, and finding one yourself is what builds that memory.
+          The exercise itself lives on its own route rather than inline: it was
+          sitting directly above the very diagram it is drawn from, in a column
+          too narrow to give a mouse-sized target anywhere to go, and a
+          scrolling reference page is the wrong home for the one thing on it you
+          are meant to *do*. This block is the door to it, on the floating tier
+          so it reads as the active surface above the reference below. */}
+      <Card className={cn(glassFloat, "mb-5 overflow-hidden p-5 sm:p-6")}>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Crosshair className="h-5 w-5" />
+              </span>
+              <div>
+                <h2 className="font-display text-lg font-semibold tracking-tight">
+                  Find it in the car
+                </h2>
+                <p className="text-sm text-muted-foreground">Twelve controls, no labels.</p>
+              </div>
+            </div>
+            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+              The controls section asks you to point at things, not describe them. Explore the cabin
+              to learn where every control lives, then have it name them one at a time and find each
+              one yourself.
+            </p>
+            <Link
+              href="/study/controls/find"
+              className={cn(buttonVariants(), "press mt-4 w-full sm:w-auto")}
+            >
+              Start finding <ArrowRight className="h-4 w-4" />
+            </Link>
+          </div>
+
+          {/* The cabin the button leads to, so the card shows its own promise. */}
+          <div
+            className={cn(
+              glassSubtle,
+              "hidden w-[15rem] shrink-0 overflow-hidden rounded-xl border p-2 sm:block lg:w-[18rem]",
+            )}
+          >
+            <CockpitArt />
+          </div>
+        </div>
+      </Card>
 
       {/* Labelled diagram from the manual */}
       <Card className={cn(glass, "p-4 sm:p-6")}>

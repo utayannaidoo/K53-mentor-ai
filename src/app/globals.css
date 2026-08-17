@@ -286,8 +286,14 @@
       color 0.2s var(--ease-soft),
       box-shadow 0.2s var(--ease-soft);
   }
+  /* Composes with Tailwind's translate utilities instead of replacing them.
+     `.press:active` outspecifies `.-translate-x-1/2`, so a bare `scale(0.97)`
+     here silently dropped the centring off anything absolutely positioned with
+     `-translate-x-1/2 -translate-y-1/2` — the element jumped half its own size
+     down and right for as long as the pointer was held on it. Rotation and skew
+     are still overridden; centring is the case that actually pairs with this. */
   .press:active {
-    transform: scale(0.97);
+    transform: translate(var(--tw-translate-x, 0), var(--tw-translate-y, 0)) scale(0.97);
   }
 
   .perspective {
