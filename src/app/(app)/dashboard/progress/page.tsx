@@ -535,7 +535,8 @@ export default function ProgressPage() {
           <Band>
             <BandTitle>Share it</BandTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Send your card to the group chat — a study buddy makes the streak easier to keep.
+              Your Driving Passport — the verdict, the work behind it, and where you stand in every
+              category. Send it to the group chat; a study buddy makes the streak easier to keep.
             </p>
             <div className="mt-4 max-w-xl">
               <ShareCard />

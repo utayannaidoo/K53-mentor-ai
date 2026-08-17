@@ -5,6 +5,7 @@ import { Gift, Copy, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { isSupabaseConfigured } from "@/lib/env";
+import { SITE_URL } from "@/lib/constants";
 import { cn, glass } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 
@@ -27,7 +28,16 @@ export function InviteCard() {
 
   if (!isSupabaseConfigured || !data) return null;
 
-  const link = `${window.location.origin}/signup?ref=${data.code}`;
+  // The canonical site, never `window.location.origin`.
+  //
+  // A referral link is an outbound artifact: it is copied into WhatsApp and
+  // outlives the session that produced it. Built from the current origin it
+  // becomes whatever host the sharer happened to be on — which on a Vercel
+  // preview is a deploy-scoped URL that dies with the branch, and on any
+  // non-canonical alias is a domain the project would rather nobody bookmarked.
+  // Auth redirects in this codebase still use the live origin and must keep
+  // doing so; they have to return to the host the user is actually on.
+  const link = `${SITE_URL}/signup?ref=${data.code}`;
 
   async function copy() {
     try {

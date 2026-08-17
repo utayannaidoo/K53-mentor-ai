@@ -20,6 +20,7 @@ import {
 import { Logo, LogoMark } from "@/components/shared/logo";
 import { StreakBanner } from "@/components/app/streak-banner";
 import { RankUpToast } from "@/components/engagement/rank-up-toast";
+import { TestDayDialog } from "@/components/engagement/test-day-dialog";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { PageLoader } from "@/components/shared/page-loader";
 import { AppShellSkeleton } from "@/components/app/app-shell-skeleton";
@@ -170,6 +171,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </main>
         <RankUpToast />
+        <TestDayDialog />
       </div>
 
       {/* Mobile bottom nav */}

@@ -280,6 +280,28 @@ export interface Profile {
   createdAt: string;
 }
 
+/**
+ * Which of the two real tests an outcome belongs to.
+ *
+ * Note that `OnboardingData.testDate` is not always the learner's: when `goal`
+ * is "drivers" it holds the driver's test, and `driversTestDate` is only
+ * populated for "both". `bookedTests()` in `lib/licence/test-day.ts` is the one
+ * place that resolves this, and everything downstream takes a `TestKind`.
+ */
+export type TestKind = "learners" | "drivers";
+
+/** The learner's self-reported result at one of the real tests. */
+export interface LicenceResult {
+  result: "passed" | "failed";
+  /** When they told us. */
+  at: string;
+  /**
+   * The booked date this answers. Kept so a re-booked test asks again rather
+   * than treating one answer as final for every attempt a learner ever makes.
+   */
+  testDate: string;
+}
+
 export type ConfidenceLevel = 1 | 2 | 3 | 4 | 5;
 export type KnowledgeLevel = "beginner" | "some" | "confident";
 export type StudyFrequency = "casual" | "steady" | "intense";
@@ -375,4 +397,17 @@ export interface UserState {
     readinessNow: number;
     dueCards: number;
   } | null;
+  /**
+   * How each real test went, in the learner's own words.
+   *
+   * The final rank is reserved for the real thing and cannot be reached through
+   * any in-app gate (see LICENCE_RANK_INDEX), so this is the only thing that
+   * grants it. Asked once a booked date has arrived — see
+   * `src/lib/licence/test-day.ts`. Keyed by test because someone studying for
+   * both sits two of them, months apart, and one answer must never stand in
+   * for the other.
+   */
+  licence: Partial<Record<TestKind, LicenceResult>>;
+  /** yyyy-mm-dd each test's question was last put off ("not written yet"). */
+  licenceDeferredOn: Partial<Record<TestKind, string>>;
 }
