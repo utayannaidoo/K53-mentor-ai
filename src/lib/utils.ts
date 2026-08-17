@@ -41,12 +41,50 @@ export function formatDuration(totalSeconds: number) {
   return rem ? `${hours} h ${rem} min` : `${hours} h`;
 }
 
-/** Whole days from now until `date` (negative = in the past). */
-export function daysUntil(date: string | Date | null | undefined) {
+/** Local yyyy-mm-dd — never toISOString, which shifts the day in +SAST. */
+export function localIsoDate(date: Date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+/** Midnight local on the day `date` names, or null if it names nothing. */
+function startOfLocalDay(date: string | Date): Date | null {
+  if (typeof date === "string") {
+    const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(date);
+    // A bare yyyy-mm-dd is a calendar day, not an instant: Date.parse reads it
+    // as UTC midnight, which is 02:00 the same morning in SAST.
+    if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  }
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+/**
+ * Whole calendar days from today until `date` — 0 is today, negative is past.
+ *
+ * Counted between local midnights, not as elapsed hours. A test date is a day
+ * on a booking slip, so "how many days left" must not depend on the time of
+ * day: measuring in hours made a test read as tomorrow's at 01:00 and as
+ * today's the morning after it was sat.
+ */
+export function daysUntil(date: string | Date | null | undefined, now: Date = new Date()) {
   if (!date) return null;
-  const target = new Date(date).getTime();
-  const now = Date.now();
-  return Math.ceil((target - now) / (1000 * 60 * 60 * 24));
+  const target = startOfLocalDay(date);
+  if (!target) return null;
+  const today = startOfLocalDay(now)!;
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
+}
+
+/** True when `date` names a day before today — a stale, already-sat test date. */
+export function isPastDate(date: string | Date | null | undefined, now: Date = new Date()) {
+  const days = daysUntil(date, now);
+  return days !== null && days < 0;
+}
+
+/** `date` held at or after `min`, so a picker can never emit a past day. */
+export function clampDate(date: string, min: string): string {
+  return date < min ? min : date;
 }
 
 export function formatDate(date: string | Date, opts?: Intl.DateTimeFormatOptions) {

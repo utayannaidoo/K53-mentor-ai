@@ -1,6 +1,7 @@
 import type { Question, QuestionAttempt, UserState } from "@/types";
 import { categoryName } from "@/lib/content/categories";
 import { openMistakes } from "@/lib/learning/mistakes";
+import { daysUntil } from "@/lib/utils";
 
 /**
  * A short, non-PII picture of the learner, sent with tutor requests.
@@ -75,11 +76,10 @@ function recentMissClauses(
     .filter((s): s is string => Boolean(s));
 }
 
+/** Days left, or null when there is no date or the test has already been sat. */
 function daysToTest(state: UserState): number | null {
-  const date = state.onboarding?.testDate;
-  if (!date) return null;
-  const days = Math.ceil((Date.parse(date) - Date.now()) / 86_400_000);
-  return Number.isFinite(days) && days >= 0 ? days : null;
+  const days = daysUntil(state.onboarding?.testDate ?? null);
+  return days !== null && days >= 0 ? days : null;
 }
 
 export function buildLearnerProfile(

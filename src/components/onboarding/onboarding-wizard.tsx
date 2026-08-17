@@ -23,7 +23,7 @@ import { OptionCard } from "@/components/onboarding/option-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { SIZE_BY_FREQUENCY } from "@/lib/plan";
 import { CATEGORIES } from "@/lib/content/categories";
-import { cn } from "@/lib/utils";
+import { cn, daysUntil, isPastDate, localIsoDate } from "@/lib/utils";
 import type {
   CategoryId,
   ConfidenceLevel,
@@ -58,11 +58,6 @@ interface WizardDraft {
   frequency: StudyFrequency | null;
 }
 
-/** Today in the *viewer's* timezone — `toISOString()` would roll over early in SA. */
-function localIsoDate(date = new Date()): string {
-  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
-}
-
 const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
   1: "Totally lost",
   2: "Shaky",
@@ -80,8 +75,8 @@ const CODE_LABEL: Record<VehicleCode, string> = {
 };
 
 function weeksAway(dateStr: string): number | null {
-  const days = Math.ceil((Date.parse(dateStr) - Date.now()) / 86_400_000);
-  if (!Number.isFinite(days) || days < 0) return null;
+  const days = daysUntil(dateStr);
+  if (days === null || days < 0) return null;
   return Math.max(1, Math.round(days / 7));
 }
 
@@ -105,8 +100,8 @@ export function OnboardingWizard() {
   const [frequency, setFrequency] = React.useState<StudyFrequency | null>(null);
 
   const todayIso = React.useMemo(() => localIsoDate(), []);
-  const testDateInPast = testDate !== "" && testDate < todayIso;
-  const driversDateInPast = driversTestDate !== "" && driversTestDate < todayIso;
+  const testDateInPast = isPastDate(testDate || null);
+  const driversDateInPast = isPastDate(driversTestDate || null);
 
   // Restore after mount, not via lazy initial state: these pages are statically
   // prerendered, so reading storage during render would desync hydration.
@@ -202,8 +197,12 @@ export function OnboardingWizard() {
     completeOnboarding({
       goal: goal ?? "learners",
       vehicleCode: code,
-      testDate: noDate ? null : testDate || null,
-      driversTestDate: goal === "both" ? (noDriversDate ? null : driversTestDate || null) : null,
+      // A resumed draft can carry a date that was upcoming when it was saved and
+      // isn't any more — step 3 blocks a past date, but a draft restored past it
+      // is never re-validated. Better no date than a countdown that lies.
+      testDate: noDate || testDateInPast ? null : testDate || null,
+      driversTestDate:
+        goal === "both" ? (noDriversDate || driversDateInPast ? null : driversTestDate || null) : null,
       confidence: confidence ?? 3,
       worryCategories,
       knowledgeLevel: knowledge ?? "some",

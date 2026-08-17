@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { SELECTABLE_CODES } from "@/lib/billing/plans";
 import { groupOf } from "@/lib/content/vehicle";
-import { cn } from "@/lib/utils";
+import { cn, formatDate, isPastDate, localIsoDate } from "@/lib/utils";
 import type { LicenceGoal, OnboardingData, VehicleCode } from "@/types";
 
 export const GOAL_LABEL: Record<LicenceGoal, string> = {
@@ -45,6 +45,16 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
+  // Read at render, not memoised: a tab left open overnight must not keep
+  // yesterday as the floor.
+  const todayIso = localIsoDate();
+
+  // A saved date can be in the past — booked before today, or set back when the
+  // picker still allowed it. It must be corrected here rather than saved on,
+  // because every countdown downstream reads it as a live test date.
+  const testExpired = testBooked && isPastDate(testDate || null);
+  const driversExpired = goal === "both" && driversBooked && isPastDate(driversTestDate || null);
+
   // Re-seed local state from the current profile whenever the sheet opens.
   // Works even with no onboarding yet (e.g. a Google sign-in that skipped the
   // wizard) so the licence code is always changeable.
@@ -68,6 +78,7 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
   }, [open, onboarding]);
 
   async function save() {
+    if (testExpired || driversExpired) return; // the button is disabled; this holds the invariant
     const patch = {
       goal,
       vehicleCode,
@@ -143,7 +154,13 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               {goal === "both" ? "Learner's test date" : goal === "drivers" ? "Driver's test date" : "Test date"}
             </label>
-            <DateSelect value={testDate} onChange={setTestDate} disabled={!testBooked} />
+            <DateSelect value={testDate} onChange={setTestDate} disabled={!testBooked} min={todayIso} />
+            {testExpired && (
+              <p role="alert" className="mt-1.5 text-sm text-danger">
+                Your saved date ({formatDate(testDate)}) has already passed — pick your new test
+                date, or mark it as not booked.
+              </p>
+            )}
             <button
               type="button"
               onClick={() => setTestBooked((v) => !v)}
@@ -159,7 +176,18 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
           {goal === "both" && (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Driver's test date</label>
-              <DateSelect value={driversTestDate} onChange={setDriversTestDate} disabled={!driversBooked} />
+              <DateSelect
+                value={driversTestDate}
+                onChange={setDriversTestDate}
+                disabled={!driversBooked}
+                min={todayIso}
+              />
+              {driversExpired && (
+                <p role="alert" className="mt-1.5 text-sm text-danger">
+                  Your saved date ({formatDate(driversTestDate)}) has already passed — pick your new
+                  test date, or mark it as not booked.
+                </p>
+              )}
               <button
                 type="button"
                 onClick={() => setDriversBooked((v) => !v)}
@@ -182,7 +210,12 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
 
         <div className="mt-6 flex justify-end gap-3">
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
-          <Button onClick={save} disabled={saving} loading={saving} loadingText="Saving…">
+          <Button
+            onClick={save}
+            disabled={saving || testExpired || driversExpired}
+            loading={saving}
+            loadingText="Saving…"
+          >
             Save changes
           </Button>
         </div>

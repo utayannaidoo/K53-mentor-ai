@@ -146,22 +146,25 @@ export function TodaySheet({
           </div>
 
           <div className="text-right lg:mt-6 lg:text-left">
-            {daysToTest === null ? (
+            {/* A date that has gone by is not a countdown — it once read as
+                "Test day · Today" forever, for a test already sat. Ask for the
+                new one instead. */}
+            {daysToTest === null || daysToTest < 0 ? (
               <>
                 <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  Test date
+                  {daysToTest === null ? "Test date" : "Test date passed"}
                 </p>
                 <Link href="/account" className="mt-1 block text-sm font-medium text-primary hover:underline">
-                  Set a date
+                  {daysToTest === null ? "Set a date" : "Set a new date"}
                 </Link>
               </>
             ) : (
               <>
                 <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                  {daysToTest <= 0 ? "Test day" : "Days to test"}
+                  {daysToTest === 0 ? "Test day" : "Days to test"}
                 </p>
                 <p className="mt-1 font-mono text-3xl font-semibold leading-none tabular-nums">
-                  {daysToTest <= 0 ? "Today" : daysToTest}
+                  {daysToTest === 0 ? "Today" : daysToTest}
                 </p>
               </>
             )}
