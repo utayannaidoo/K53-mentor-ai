@@ -246,41 +246,71 @@ jobs:
             --quote-all-identifiers \
             --file="k53-$STAMP.sql"
 
-          gzip -9 "k53-$STAMP.sql"
-          ls -lh "k53-$STAMP.sql.gz"
+          ls -lh "k53-$STAMP.sql"
 
       - name: Verify the dump is real
         # A backup job whose value silently drops to zero is worse than no
         # backup job, because it also removes the worry that would have made
-        # someone check. These assertions are the whole point of this step:
-        # fail loudly tonight rather than discover an empty file during an
-        # actual incident.
+        # someone check.
+        #
+        # This runs on the plain .sql, before compression. The previous version
+        # checked the gzip with zgrep and reported a table as missing that the
+        # dump almost certainly contained — so the check now reads the file
+        # directly, and when it does fail it prints what it actually found
+        # instead of only what it wanted.
         run: |
           set -euo pipefail
-          FILE="k53-$STAMP.sql.gz"
+          FILE="k53-$STAMP.sql"
 
           SIZE=$(stat -c%s "$FILE")
-          echo "compressed size: $SIZE bytes"
-          if [ "$SIZE" -lt 20000 ]; then
+          echo "dump size: $SIZE bytes"
+          if [ "$SIZE" -lt 200000 ]; then
             echo "::error::Dump is only $SIZE bytes — implausibly small. Treating as failed."
             exit 1
           fi
 
-          # Spot-check that the tables that carry money and identity are
-          # actually present, not just that the file is big.
-          for expected in \
-            "CREATE TABLE \"public\".\"subscriptions\"" \
-            "CREATE TABLE \"public\".\"profiles\"" \
-            "CREATE TABLE \"auth\".\"users\"" \
-            "COPY \"auth\".\"users\""
-          do
-            if ! zgrep -qF "$expected" "$FILE"; then
-              echo "::error::Dump is missing: $expected"
-              echo "::error::If the auth entries are the ones missing, the database role in SUPABASE_DB_URL cannot read the auth schema — the dump is incomplete and would not restore working logins."
-              exit 1
+          echo "CREATE TABLE statements: $(grep -c '^CREATE TABLE ' "$FILE" || true)"
+          echo "schemas present:"
+          grep -oE '^CREATE TABLE "?[a-z_]+"?\.' "$FILE" | sort | uniq -c | sed 's/^/  /' || true
+
+          # Matched with a regex that tolerates either quoting style. The exact
+          # rendering of a CREATE TABLE line is a pg_dump implementation
+          # detail and has changed between versions; the table being present
+          # is the thing actually worth asserting.
+          fail=0
+          need_table() {
+            if grep -qE "^CREATE TABLE \"?$1\"?\.\"?$2\"?" "$FILE"; then
+              echo "  ok   $1.$2"
+            else
+              echo "  MISS $1.$2"
+              fail=1
             fi
-          done
+          }
+          need_data() {
+            if grep -qE "^COPY \"?$1\"?\.\"?$2\"?" "$FILE"; then
+              echo "  ok   $1.$2 (data)"
+            else
+              echo "  MISS $1.$2 (data)"
+              fail=1
+            fi
+          }
+
+          need_table public subscriptions
+          need_table public profiles
+          need_table auth users
+          need_data  auth users
+
+          if [ "$fail" -ne 0 ]; then
+            echo "::error::The dump is missing something it must contain — see the MISS lines above."
+            echo "::error::If only the auth entries are missing, the database role cannot read the auth schema and logins would not survive a restore."
+            echo "--- first 25 CREATE TABLE lines actually in the dump ---"
+            grep '^CREATE TABLE ' "$FILE" | head -25 || true
+            exit 1
+          fi
           echo "All expected structures present."
+
+          gzip -9 "$FILE"
+          ls -lh "$FILE.gz"
 
       - name: Encrypt
         env:
