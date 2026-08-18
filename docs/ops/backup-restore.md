@@ -54,6 +54,11 @@ connect" no matter how correct the password is:
 - **It must not be the direct `db.<ref>.supabase.co` host.** That resolves to
   IPv6 only, and GitHub's runners have no IPv6.
 
+**Paste it exactly as the dashboard gives it**, trailing `?pgbouncer=true` and
+all. That suffix is a hint for ORM connection pools, not a libpq parameter, and
+`pg_dump` rejects the whole URI over it — so the workflow strips the query
+string itself and re-adds `sslmode=require`. You do not need to hand-edit it.
+
 ### `BACKUP_PASSPHRASE`
 
 Any long random string. Store it in a **password manager** — not in this repo,
