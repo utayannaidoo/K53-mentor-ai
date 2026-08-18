@@ -22,6 +22,12 @@ name: backup
 #                       IPv6, so that one fails here with a confusing
 #                       "could not connect" no matter how right the password is.
 #
+#   SUPABASE_DB_PASSWORD  OPTIONAL, and the reason this setup stops being
+#                       fragile. Just the database password, on its own, with
+#                       no URI around it. When set it is used verbatim and
+#                       every parsing and percent-encoding question disappears.
+#                       Set it. The URI-parsing path is a fallback.
+#
 #   BACKUP_PASSPHRASE   Any long random string. The dump is symmetrically
 #                       encrypted with it. Store it somewhere that is NOT this
 #                       repo and NOT the Supabase dashboard — a password
@@ -73,6 +79,7 @@ jobs:
       - name: Dump public + auth schemas
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           set -euo pipefail
           if [ -z "${SUPABASE_DB_URL:-}" ]; then
@@ -111,12 +118,48 @@ jobs:
           USERINFO="${AFTER_SCHEME%@*}"
           HOSTPART="${AFTER_SCHEME##*@}"
           DB_USER="${USERINFO%%:*}"
-          PGPASSWORD="${USERINFO#*:}"
+
+          # A password inside a URI is percent-encoded — that is what the URI
+          # form requires — and libpq decodes it on the way in. Lifting the
+          # password out of the URI by hand is what makes @ : / [ ] safe to
+          # have in it, but it also skips that decode, so a password with any
+          # special character in it arrived mangled and the server answered
+          # "password authentication failed". That was a bug introduced here,
+          # not a wrong password, and it cost a round trip to find. Hence the
+          # decode below.
+          #
+          # SUPABASE_DB_PASSWORD short-circuits the entire business: set that
+          # secret and the password is used exactly as given, with no parsing,
+          # no decoding, and nothing left to get wrong. It is the recommended
+          # setup for precisely that reason.
+          if [ -n "${SUPABASE_DB_PASSWORD:-}" ]; then
+            PGPASSWORD="$SUPABASE_DB_PASSWORD"
+            PW_SOURCE="SUPABASE_DB_PASSWORD secret, used verbatim"
+          else
+            PGPASSWORD="$(RAW_PW="${USERINFO#*:}" python3 -c \
+              "import os,sys,urllib.parse; sys.stdout.write(urllib.parse.unquote(os.environ['RAW_PW']))")"
+            PW_SOURCE="extracted from SUPABASE_DB_URL and percent-decoded"
+          fi
           export PGPASSWORD
-          # Mask it explicitly. GitHub only masks the secret as a whole string,
-          # so the password on its own would otherwise print in the clear if
-          # anything ever echoed it.
+          # Mask it explicitly. GitHub masks the secret only as a whole string,
+          # so the password alone would otherwise print in the clear.
           echo "::add-mask::$PGPASSWORD"
+
+          # Enough to diagnose the next failure, not enough to reveal anything.
+          # Four failed runs here were each diagnosed from a single line of
+          # output; these are the lines that would have shortened that.
+          if [ -z "$PGPASSWORD" ]; then
+            echo "::error::No password could be resolved. Either SUPABASE_DB_URL has no password in it, or set the SUPABASE_DB_PASSWORD secret."
+            exit 1
+          fi
+          printf 'password: %s, %s characters' "$PW_SOURCE" "${#PGPASSWORD}"
+          case "$PGPASSWORD" in
+            " "*|*" ") printf ' — WARNING: leading/trailing whitespace, almost certainly a copy-paste artefact' ;;
+          esac
+          printf '\n'
+          if [ "$PGPASSWORD" != "${PGPASSWORD#*[}" ] || [ "$PGPASSWORD" != "${PGPASSWORD#*]}" ]; then
+            echo "::warning::Password contains square brackets. If it still looks like the dashboard's [YOUR-PASSWORD] placeholder, that placeholder was never replaced."
+          fi
 
 
           # ── Preflight ──────────────────────────────────────────────────────
