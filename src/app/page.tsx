@@ -6,7 +6,6 @@ import { HowItWorks } from "@/components/landing/how-it-works";
 import { ProductPreview } from "@/components/landing/product-preview";
 import { Features } from "@/components/landing/features";
 import { StatsBand } from "@/components/landing/stats-band";
-import { Testimonials } from "@/components/landing/testimonials";
 import { Comparison } from "@/components/landing/comparison";
 import { PricingSection } from "@/components/landing/pricing-section";
 import { Faq } from "@/components/landing/faq";
@@ -36,12 +35,11 @@ export default function HomePage() {
 
         <HowItWorks />
 
-        {/* Features & Testimonials cascade their cards in internally. */}
+        {/* Features cascades its cards in internally. */}
         <Features />
         <Reveal>
           <StatsBand />
         </Reveal>
-        <Testimonials />
         <Reveal>
           <Comparison />
         </Reveal>
