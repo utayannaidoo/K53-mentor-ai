@@ -74,7 +74,33 @@ jobs:
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update -qq
           sudo apt-get install -y -qq postgresql-client-17
-          pg_dump --version
+
+          # Installing the package is not enough, and this is the part that
+          # bit. The runner image ships PostgreSQL 16 and its binaries win the
+          # PATH, so bare `pg_dump` stayed 16.14 even with 17.11 correctly
+          # installed alongside it, and the run then failed at the very end
+          # with "server version mismatch". Address the versioned binary
+          # directly; there is nothing to resolve and no race to lose.
+          PG_DUMP=/usr/lib/postgresql/17/bin/pg_dump
+          if [ ! -x "$PG_DUMP" ]; then
+            echo "::error::postgresql-client-17 installed but $PG_DUMP is missing. The PGDG layout changed; locate the v17 pg_dump and update this path."
+            exit 1
+          fi
+
+          # Assert, do not merely print. The previous version of this step ran
+          # `pg_dump --version`, printed 16.14, and carried on regardless: the
+          # check existed and proved nothing, because nothing read it.
+          VERSION="$("$PG_DUMP" --version)"
+          echo "$VERSION"
+          case "$VERSION" in
+            *"(PostgreSQL) 17."*) ;;
+            *)
+              echo "::error::Expected a PostgreSQL 17 pg_dump, got: $VERSION"
+              echo "::error::The server is 17.6, and pg_dump refuses to run when its major version trails the server's."
+              exit 1
+              ;;
+          esac
+          echo "PG_DUMP=$PG_DUMP" >> "$GITHUB_ENV"
 
       - name: Dump public + auth schemas
         env:
@@ -213,7 +239,7 @@ jobs:
           # restore target is another Supabase project, where the roles the
           # dump references (supabase_auth_admin, anon, authenticated) already
           # exist. See the restore doc for the plain-Postgres case.
-          pg_dump "$CLEAN_URL" \
+          "$PG_DUMP" "$CLEAN_URL" \
             --schema=public \
             --schema=auth \
             --no-comments \
