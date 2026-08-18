@@ -65,7 +65,7 @@ export async function POST(req: Request) {
   const { data } = await supabase
     .from("subscriptions")
     .select(
-      "tier, provider_customer_id, last_charge_reference, paid_at, money_back_used, current_period_end",
+      "tier, provider_customer_id, last_charge_reference, paid_at, money_back_used, current_period_end, created_at",
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -76,6 +76,7 @@ export async function POST(req: Request) {
     paid_at: string | null;
     money_back_used: boolean | null;
     current_period_end: string | null;
+    created_at: string | null;
   } | null;
   const customerCode = sub?.provider_customer_id;
   if (!customerCode) {
@@ -90,6 +91,20 @@ export async function POST(req: Request) {
     paidAt: sub?.paid_at ?? null,
     moneyBackUsed: sub?.money_back_used ?? null,
   });
+
+  /**
+   * How long this subscription lasted, for the churn event the client fires.
+   * Measured from the subscription row's creation, not `paid_at` — `paid_at`
+   * is the most recent charge, so on a renewed plan it would report "3 days"
+   * for someone who had been paying for four months, which is the opposite of
+   * what a churn number is for. Null when the row predates the column being
+   * populated, so the client can omit the property rather than send a zero
+   * that would drag every average down.
+   */
+  const daysActive =
+    sub?.created_at != null
+      ? Math.max(0, Math.floor((Date.now() - new Date(sub.created_at).getTime()) / 86_400_000))
+      : null;
 
   try {
     // Disable EVERY active subscription, not just the first — a past plan change
@@ -144,7 +159,7 @@ export async function POST(req: Request) {
       ?.from("subscriptions")
       .update({ tier: "free", status: "canceled", money_back_used: true, cancel_at_period_end: false })
       .eq("user_id", user.id);
-    return Response.json({ ok: true, refunded: true, refundError: false, endsNow: true });
+    return Response.json({ ok: true, refunded: true, refundError: false, endsNow: true, daysActive });
   }
 
   // Tier and status deliberately unchanged — they are still a paying customer
@@ -170,6 +185,7 @@ export async function POST(req: Request) {
     refunded: false,
     refundError,
     endsNow: false,
+    daysActive,
     /** null when the period end was never recorded — the UI degrades to vaguer copy. */
     accessUntil: periodEnd,
   });

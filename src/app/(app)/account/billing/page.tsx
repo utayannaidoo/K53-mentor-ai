@@ -182,6 +182,9 @@ function BillingInner() {
   async function doCancel() {
     setError(null);
     setCancelBusy(true);
+    // Read the tier before anything below can flip it to "free" — otherwise
+    // every cancellation reports churning off the Free plan.
+    const cancelledFrom = state.tier;
     try {
       const res = await fetch("/api/billing/cancel", { method: "POST" });
       const data = (await res.json().catch(() => ({}))) as {
@@ -191,8 +194,19 @@ function BillingInner() {
         /** true only when the charge was reversed, so access ends now. */
         endsNow?: boolean;
         accessUntil?: string | null;
+        /** Lifetime of the subscription in days; null when unknown. */
+        daysActive?: number | null;
       };
       if (res.ok) {
+        // The one event the funnel was missing. `refunded` separates a
+        // money-back cancellation inside the 7-day window from someone
+        // leaving later — very different signals about why they went.
+        trackEvent("subscription_cancelled", {
+          plan: cancelledFrom,
+          refunded: Boolean(data.refunded),
+          ends_now: Boolean(data.endsNow),
+          ...(typeof data.daysActive === "number" ? { days_active: data.daysActive } : {}),
+        });
         setConfirmingCancel(false);
         void loadBilling();
         // Only drop the local tier when access actually ended. Outside the

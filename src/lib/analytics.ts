@@ -41,6 +41,14 @@ export type AnalyticsEvent =
   | "trial_end_shown"
   | "checkout_started"
   | "plan_activated"
+  /**
+   * The other end of `plan_activated`. Without it the funnel could show people
+   * arriving and never show them leaving, so retention was unanswerable — you
+   * could count subscribers but not how long they stayed. `refunded` separates
+   * a money-back cancellation inside the 7-day window from someone leaving
+   * months later; those are different problems wearing the same event name.
+   */
+  | "subscription_cancelled"
   | "mock_completed"
   | "drill_started"
   | "drill_completed"
