@@ -44,6 +44,18 @@ export type AnalyticsEvent =
   | "mock_completed"
   | "drill_started"
   | "drill_completed"
+  /**
+   * Tutor events. `provider` on tutor_message_sent is the load-bearing one:
+   * when a provider is down or out of credit the cascade falls through to the
+   * local explainer and the learner is served the lesser product without
+   * anything erroring. A breakdown by provider is the only place that shows
+   * up — and, because the fallback costs roughly nine times DeepSeek, it is
+   * also the cheapest margin alarm available.
+   */
+  | "tutor_message_sent"
+  | "tutor_cap_hit"
+  | "tutor_topup_shown"
+  | "tutor_topup_completed"
   | "tts_used"
   | "referral_link_copied"
   | "share_card_shared"

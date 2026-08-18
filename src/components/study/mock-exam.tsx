@@ -138,6 +138,18 @@ export function MockExam() {
         responses,
       );
     }
+    // Drills report themselves above; this covers the two that are actually
+    // mock papers. `kind` keeps the daily mini distinct from the full 64 —
+    // they are very different signals and averaging them hides both.
+    if (!drill) {
+      track("mock_completed", {
+        kind: mini ? "mini" : "full",
+        score: correct,
+        total: questions.length,
+        passed,
+        duration_s: durationSeconds,
+      });
+    }
     recordSession("mock", durationSeconds);
     // Finishing a full mock is the biggest moment in the app — mark it.
     haptics.celebrate();

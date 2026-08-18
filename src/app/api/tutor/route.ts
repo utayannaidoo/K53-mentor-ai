@@ -141,7 +141,7 @@ export async function POST(req: Request) {
   const forceLocal =
     ent.tier === "free" && !(ent.userId !== null && (await isWithinFreeTrial(ent.userId)));
 
-  const { stream, model } = await streamTutorReply({
+  const { stream, model, provider } = await streamTutorReply({
     persona: TUTOR_PERSONA,
     grounding,
     messages: trimmed,
@@ -156,6 +156,11 @@ export async function POST(req: Request) {
       "content-type": "text/plain; charset=utf-8",
       "cache-control": "no-store",
       "x-tutor-model": model,
+      // Which tier of the cascade actually answered. The client reports this
+      // on tutor_message_sent so a silent fall-through to `local` — an outage,
+      // an empty balance, or an image sent while DeepSeek is the only provider
+      // — is visible as a shift in the mix rather than as nothing at all.
+      "x-tutor-provider": provider,
     },
   });
 }
