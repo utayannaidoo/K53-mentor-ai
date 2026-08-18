@@ -75,6 +75,21 @@ have to remember either:
   works as-is. Do not reset your database password to work around this, and do
   not percent-encode it by hand; both would break it again.
 
+### `SUPABASE_DB_PASSWORD` — optional, but set it
+
+Just the database password on its own, with no URI around it. Supabase
+dashboard → **Settings → Database**; reset it there if you do not have it,
+which is safe — the app authenticates with API keys and never opens a Postgres
+connection, so nothing breaks.
+
+When this secret is present the password is used exactly as given and every
+parsing and encoding question disappears. Without it the password is lifted out
+of the URI and percent-decoded, which works but is one more thing that can be
+subtly wrong — a password inside a URI is percent-encoded, and a workflow that
+extracts it by hand has to remember to decode it. That exact omission caused a
+failed run reported as `password authentication failed`, which is the least
+helpful message it could have produced.
+
 ### `BACKUP_PASSPHRASE`
 
 Any long random string. Store it in a **password manager** — not in this repo,
