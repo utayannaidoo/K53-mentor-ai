@@ -95,7 +95,11 @@ export function Dialog({
         <button
           type="button"
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          // 40×40 of tappable area rather than the icon's own 24. The offset
+          // and padding are picked to cancel out — the glyph's centre stays
+          // exactly 28px in from the top-right corner, as it was at `right-4
+          // top-4 p-1` — so only the hit box grows.
+          className="absolute right-2 top-2 rounded-full p-3 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           aria-label="Close"
         >
           <X className="h-4 w-4" />

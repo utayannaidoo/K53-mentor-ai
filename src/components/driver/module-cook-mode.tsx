@@ -146,9 +146,21 @@ export function ModuleCookMode({ moduleId }: { moduleId: string }) {
       </Card>
 
       {/* Nav */}
+      {/* Both buttons are `whitespace-nowrap` and flex items default to
+          `min-width: auto`, so neither could shrink below its own label and the
+          pair ran 11px off a 320px screen — `flex-1` on the primary bought
+          nothing. Dropping the secondary label at the narrow end leaves the
+          arrow, which carries it, and the accessible name is pinned so the
+          button still announces itself. */}
       <div className="mt-5 flex gap-3">
-        <Button variant="outline" size="lg" disabled={stepIndex === 0} onClick={() => setStepIndex((i) => i - 1)}>
-          <ArrowLeft className="h-4 w-4" /> Previous
+        <Button
+          variant="outline"
+          size="lg"
+          aria-label="Previous step"
+          disabled={stepIndex === 0}
+          onClick={() => setStepIndex((i) => i - 1)}
+        >
+          <ArrowLeft className="h-4 w-4" /> <span className="hidden xs:inline">Previous</span>
         </Button>
         {isLast ? (
           <Link href="/licence-prep" className={cn(buttonVariants({ size: "lg" }), "flex-1")}>

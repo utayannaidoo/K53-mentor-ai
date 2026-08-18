@@ -151,7 +151,11 @@ export function CoachPlan({
                   >
                     {task.title}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">{task.subtitle}</span>
+                  {/* Two lines on a phone: one truncated line loses up to 62%
+                      of the longer subtitles, which a desktop row shows whole. */}
+                  <span className="line-clamp-2 text-xs text-muted-foreground sm:block sm:truncate">
+                    {task.subtitle}
+                  </span>
                 </span>
               </Link>
             </li>

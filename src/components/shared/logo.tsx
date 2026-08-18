@@ -32,15 +32,27 @@ export function LogoMark({ className }: { className?: string }) {
 export function Logo({
   className,
   withText = true,
+  textClassName,
 }: {
   className?: string;
   withText?: boolean;
+  /**
+   * Extra classes for the wordmark alone. Exists so a caller can drop the text
+   * at a breakpoint without losing the mark — the marketing nav does this below
+   * `xs`, where the wordmark and the CTA cluster cannot both fit the pill.
+   */
+  textClassName?: string;
 }) {
   return (
     <span className={cn("inline-flex items-center gap-2.5", className)}>
       <LogoMark />
       {withText && (
-        <span className="font-display text-[1.05rem] font-semibold tracking-tight text-foreground">
+        <span
+          className={cn(
+            "font-display text-[1.05rem] font-semibold tracking-tight text-foreground",
+            textClassName,
+          )}
+        >
           {APP_NAME}
         </span>
       )}

@@ -69,10 +69,15 @@ export function MarketingNav() {
             scrolled && "scale-90",
           )}
         >
-          <Logo />
+          <Logo textClassName="hidden xs:inline" />
         </Link>
 
-        <nav className="hidden items-center gap-0.5 md:flex">
+        {/* The desktop row switches on at `lg`, not `md`. Its three parts need
+            about 890px (152 logo + 337 links + 284 CTA, plus the pill's padding
+            and gaps), so turning it on at 768 overflowed every tablet in
+            portrait by up to 75px. Below that the pill keeps the compact
+            cluster, which fits with room to spare. */}
+        <nav className="hidden items-center gap-0.5 lg:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
@@ -84,7 +89,7 @@ export function MarketingNav() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-1.5 md:flex">
+        <div className="hidden items-center gap-1.5 lg:flex">
           <ThemeToggle />
           <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full")}>
             Log in
@@ -96,7 +101,7 @@ export function MarketingNav() {
 
         {/* Mobile: the header carried no CTA at all, so across the whole
             landing page there was nothing to tap without scrolling back up. */}
-        <div className="flex items-center gap-1 md:hidden">
+        <div className="flex items-center gap-1 lg:hidden">
           <Link
             href="/onboarding"
             className={cn(buttonVariants({ size: "sm" }), "rounded-full px-3.5")}
@@ -120,7 +125,7 @@ export function MarketingNav() {
         <nav
           id="marketing-mobile-menu"
           aria-label="Main"
-          className="glass-2 mx-auto mt-2 max-w-5xl overflow-hidden rounded-2xl border p-2 md:hidden animate-fade-in"
+          className="glass-2 mx-auto mt-2 max-w-5xl overflow-hidden rounded-2xl border p-2 lg:hidden animate-fade-in"
         >
           <div className="flex flex-col gap-0.5">
             {LINKS.map((l) => (

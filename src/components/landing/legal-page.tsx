@@ -47,7 +47,13 @@ export function LegalPage({
       <MarketingNav />
       <main id="main-content" className="flex-1">
         <div className="container max-w-3xl py-16 lg:py-20">
-          <h1 className="text-balance font-display text-4xl font-semibold tracking-tight">
+          {/* `text-4xl` is 3.5rem here, at which "cancellation" is 298px wide —
+              36px past the 262px column a 320px phone leaves, so the Refunds
+              title alone pushed the whole document sideways. Titles whose
+              longest word is shorter (Privacy, Terms) happened to fit, which is
+              why this only showed on one page. Step down at the narrow end and
+              let a word that still cannot fit break instead of overflow. */}
+          <h1 className="text-balance break-words font-display text-3xl font-semibold tracking-tight sm:text-4xl">
             {title}
           </h1>
           {updated && (

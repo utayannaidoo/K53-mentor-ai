@@ -230,7 +230,12 @@ export function MockExam() {
                 ? `${miniCfg.total} questions at the real test's pass ratio, weighted toward your weakest areas — pick a length below.`
                 : `${EXAM_FORMAT.totalQuestions} questions, just like the real test. You must reach the pass mark in every section. The clock starts when you begin.`}
           </p>
-          <div className="mt-6 grid grid-cols-3 gap-3 text-sm">
+          {/* Three across leaves each tile ~38px of content at 320px, and the
+              word "Questions" needs 62px — so the labels painted straight over
+              their own borders and into the next tile, with nothing clipping
+              them. No padding or type tweak closes a 24px gap at three columns,
+              so the row reflows to two below `sm` and keeps three above. */}
+          <div className="mt-6 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
             <Stat label="Questions" value={`${drill ? SECTION_DRILL[drill].total : mini ? miniCfg.total : EXAM_FORMAT.totalQuestions}`} />
             <Stat label="To pass" value={`${passMark}`} />
             <Stat label="Time" value={drill ? `${Math.round(SECTION_DRILL[drill].seconds / 60)} min` : mini ? `${Math.round(miniCfg.seconds / 60)} min` : "60 min"} />

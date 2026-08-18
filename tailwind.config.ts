@@ -16,6 +16,16 @@ const config: Config = {
     },
     extend: {
       screens: {
+        // The narrow end of the phone range. At 320px the marketing nav pill
+        // has 258px of content box and its two rigid children — the 152px
+        // logo and the 135px "Start free" + menu cluster — need 299px, so the
+        // menu button hung 21px off-screen. Below this the wordmark drops and
+        // the mark carries the brand on its own; at 360 and up nothing changes.
+        //
+        // Named rather than `min-[360px]:` on purpose: the `board` raw screen
+        // below stops Tailwind emitting arbitrary min-width variants at all,
+        // silently — same reason `beside` is a named screen.
+        xs: "360px",
         // The landing "How it works" board pins two columns to the viewport, so
         // it needs tablet width *and* enough height to hold them without
         // clipping. A width-only `lg` check left iPad portrait (820px wide,
