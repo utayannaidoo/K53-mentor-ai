@@ -54,10 +54,19 @@ connect" no matter how correct the password is:
 - **It must not be the direct `db.<ref>.supabase.co` host.** That resolves to
   IPv6 only, and GitHub's runners have no IPv6.
 
-**Paste it exactly as the dashboard gives it**, trailing `?pgbouncer=true` and
-all. That suffix is a hint for ORM connection pools, not a libpq parameter, and
-`pg_dump` rejects the whole URI over it — so the workflow strips the query
-string itself and re-adds `sslmode=require`. You do not need to hand-edit it.
+**Paste it exactly as the dashboard gives it.** Two things about that string
+would otherwise break `pg_dump`, and the workflow handles both so you do not
+have to remember either:
+
+- The trailing `?pgbouncer=true` is a hint for ORM connection pools, not a
+  libpq parameter, and `pg_dump` rejects the whole URI over it. The query
+  string is dropped and `sslmode=require` re-added.
+- **Your password does not need to be URI-safe.** Supabase-generated passwords
+  routinely contain `@ : / [ ] #`, all of which are URI syntax — a real run
+  failed trying to resolve a hostname that was partly the password. The
+  password is split out and passed via `PGPASSWORD` instead, so any password
+  works as-is. Do not reset your database password to work around this, and do
+  not percent-encode it by hand; both would break it again.
 
 ### `BACKUP_PASSPHRASE`
 

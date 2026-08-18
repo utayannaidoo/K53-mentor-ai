@@ -82,19 +82,43 @@ jobs:
           STAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
           echo "STAMP=$STAMP" >> "$GITHUB_ENV"
 
-          # Supabase's dashboard hands you a pooler URI ending in
-          # `?pgbouncer=true`. That is a hint for ORM connection pools
-          # (Prisma), not a libpq parameter, and pg_dump rejects the whole URI
-          # with `invalid URI query parameter: "pgbouncer"`. Telling whoever
-          # pasted it to hand-edit the string the dashboard told them to copy
-          # would be the wrong fix, so drop the query string and re-add the one
-          # parameter that matters.
+          # Two things about that connection string have to be undone before
+          # libpq will accept it, and the operator should have to remember
+          # neither.
           #
-          # sslmode=require is not just restoring a default. Without it libpq
-          # uses `prefer`, which silently falls back to plaintext if the TLS
-          # negotiation fails. This dump carries names and email addresses
-          # across the public internet; encryption in transit is not optional.
-          CLEAN_URL="${SUPABASE_DB_URL%%\?*}?sslmode=require"
+          # 1. The dashboard appends `?pgbouncer=true`. That is a hint for ORM
+          #    connection pools, not a libpq parameter, and pg_dump rejects the
+          #    whole URI over it. Drop the query string entirely — that also
+          #    covers connection_limit, pool_timeout and whatever gets added
+          #    later — then re-add the one parameter that matters.
+          #
+          # 2. The password is pulled OUT of the URI rather than encoded into
+          #    it. A Supabase-generated password can contain @ : / [ ] and #,
+          #    every one of which is URI syntax. This is not hypothetical: a
+          #    real run failed trying to resolve the host
+          #    "15]@aws-0-eu-west-1.pooler.supabase.com", which is a fragment
+          #    of the password that libpq read as the start of the hostname.
+          #    Splitting on the LAST @ (a host part never contains one) and the
+          #    FIRST : of the userinfo makes every such character safe, with no
+          #    encoding step and nothing to get wrong.
+          #
+          # sslmode=require is not merely restoring a default: libpq's default
+          # is `prefer`, which silently falls back to plaintext when TLS
+          # negotiation fails. This dump crosses the public internet carrying
+          # names and email addresses, so that fallback is not acceptable.
+          BASE="${SUPABASE_DB_URL%%\?*}"
+          AFTER_SCHEME="${BASE#*://}"
+          USERINFO="${AFTER_SCHEME%@*}"
+          HOSTPART="${AFTER_SCHEME##*@}"
+          DB_USER="${USERINFO%%:*}"
+          PGPASSWORD="${USERINFO#*:}"
+          export PGPASSWORD
+          # Mask it explicitly. GitHub only masks the secret as a whole string,
+          # so the password on its own would otherwise print in the clear if
+          # anything ever echoed it.
+          echo "::add-mask::$PGPASSWORD"
+
+          CLEAN_URL="postgresql://${DB_USER}@${HOSTPART}?sslmode=require"
 
           # public = every table the app owns. auth = the accounts themselves;
           # without it a restore gives you a database full of progress rows
