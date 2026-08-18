@@ -118,7 +118,48 @@ jobs:
           # anything ever echoed it.
           echo "::add-mask::$PGPASSWORD"
 
+
+          # ── Preflight ──────────────────────────────────────────────────────
+          # Everything below turns a misleading failure into an accurate one.
+          # Pointing pg_dump at the wrong pooler produces "password
+          # authentication failed", which sends you off to check a password
+          # that was never the problem. That happened here, and cost a round
+          # trip, so the shape is now checked before anything connects.
+          HOSTNAME_ONLY="${HOSTPART%%:*}"
+          PORT="${HOSTPART#*:}"; PORT="${PORT%%/*}"
+
+          case "$HOSTNAME_ONLY" in
+            *pooler.supabase.com)
+              # The transaction pooler cannot serve pg_dump — it does not keep
+              # the session state pg_dump relies on. Same host, different port,
+              # so this is a safe and unambiguous correction rather than an
+              # error worth failing over.
+              if [ "$PORT" = "6543" ]; then
+                echo "::warning::Connection string uses port 6543 (transaction pooler). Rewriting to 5432 (session pooler), which is the one pg_dump can use."
+                HOSTPART="${HOSTPART/:6543/:5432}"
+              fi
+              # The pooler authenticates on a username carrying the project
+              # ref. A bare "postgres" is rejected with a password error, which
+              # is the single most misleading message in this whole setup.
+              case "$DB_USER" in
+                *.*) : ;;
+                *)
+                  echo "::error::Username in SUPABASE_DB_URL is '$DB_USER', but the pooler needs the project ref in the username — 'postgres.<project-ref>', e.g. postgres.aghurpwdvupuglztemaa."
+                  echo "::error::This is what produces 'password authentication failed for user \"postgres\"'. Your password is almost certainly fine."
+                  echo "::error::Fix: Supabase dashboard → Connect → Session pooler (NOT Transaction pooler, NOT Direct connection), and copy that URI."
+                  exit 1
+                  ;;
+              esac
+              ;;
+            db.*.supabase.co)
+              echo "::error::SUPABASE_DB_URL points at the direct host '$HOSTNAME_ONLY', which resolves to IPv6 only. GitHub runners have no IPv6, so this can never connect."
+              echo "::error::Fix: Supabase dashboard → Connect → Session pooler, and copy that URI instead."
+              exit 1
+              ;;
+          esac
+
           CLEAN_URL="postgresql://${DB_USER}@${HOSTPART}?sslmode=require"
+          echo "Connecting as '$DB_USER' to '${HOSTPART%%/*}'"
 
           # public = every table the app owns. auth = the accounts themselves;
           # without it a restore gives you a database full of progress rows

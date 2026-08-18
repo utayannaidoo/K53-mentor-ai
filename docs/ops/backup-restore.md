@@ -48,9 +48,16 @@ postgresql://postgres.<ref>:<password>@aws-0-eu-west-1.pooler.supabase.com:5432/
 Two things here bite people, and both produce the same unhelpful "could not
 connect" no matter how correct the password is:
 
+- **The username must carry the project ref** — `postgres.aghurpwdvupuglztemaa`,
+  not a bare `postgres`. The pooler authenticates on it. Get this wrong and the
+  error is `password authentication failed for user "postgres"`, which sends
+  you off to check a password that was never the problem. This is the single
+  most misleading failure in this setup, so the workflow now detects it and
+  says so directly.
 - **It must be the session pooler, port 5432.** Port 6543 is the *transaction*
   pooler. `pg_dump` needs session-level state that the transaction pooler does
-  not keep, so it cannot use it.
+  not keep, so it cannot use it. The workflow rewrites 6543 to 5432 for you —
+  same host, unambiguous correction — but the username it cannot guess.
 - **It must not be the direct `db.<ref>.supabase.co` host.** That resolves to
   IPv6 only, and GitHub's runners have no IPv6.
 
