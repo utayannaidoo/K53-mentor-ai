@@ -7,10 +7,17 @@ const isProd = process.env.NODE_ENV === "production";
  *   blocked, which is the main XSS escalation path.
  * - Dev additionally needs 'unsafe-eval' (react-refresh) and ws: (HMR).
  * - connect-src allows Supabase (auth/data) alongside same-origin API calls.
+ * - PostHog is allowed in script-src as well as connect-src. The npm bundle
+ *   handles capture on its own, but it lazy-loads two further scripts from
+ *   the assets host — remote config and surveys, plus the session recorder —
+ *   and with only 'self' here those were blocked on every production page
+ *   load. Core events still arrived (they go over connect-src), so the
+ *   breakage was silent: session replay simply never recorded. `*.posthog.com`
+ *   matches nested subdomains, which is what `eu-assets.i.posthog.com` needs.
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isProd ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://*.posthog.com${isProd ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   // Every image the app renders is a local /signs/* asset (439 of them) or an
   // inline data:/blob: preview from the scanner's file input. No remote hosts.

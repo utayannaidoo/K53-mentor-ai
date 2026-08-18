@@ -19,6 +19,7 @@ import { buildTutorOpener } from "@/lib/ai/tutor-opener";
 import { useContentPool } from "@/components/content/content-provider";
 import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
 import { Markdown } from "@/components/tutor/markdown";
+import { track } from "@/lib/analytics";
 
 export interface InitialContext {
   type: TutorContextType;
@@ -94,13 +95,24 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         body: JSON.stringify({ reference }),
       }).catch(() => {});
     }
+    track("tutor_topup_completed", { credits: TUTOR_TOPUP_CREDITS, amount: TUTOR_TOPUP_PRICE });
     setTopUpBanner("Top-up added — your extra messages apply automatically. Carry on!");
     setCapNotice(null);
     window.history.replaceState(null, "", window.location.pathname);
   }, []);
 
+  // Fired when the purchase offer is actually on screen, not when the cap was
+  // hit — the gap between the two is the interesting number. In an effect
+  // rather than in render so a re-render can't double-count it.
+  React.useEffect(() => {
+    if (capNotice?.canTopUp) track("tutor_topup_shown", { tier: state.tier });
+  }, [capNotice, state.tier]);
+
   async function buyTopUp() {
     setTopUpBusy(true);
+    // The top-up is a real charge and was the one purchase path with no
+    // funnel at all — the billing page tracked its checkout, this did not.
+    track("checkout_started", { plan: "tutor_topup", cycle: "one_off" });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -200,6 +212,9 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         }
         if (payload?.error === "daily_cap") {
           const canTopUp = Boolean(payload.canTopUp);
+          // A rising cap_hit against a flat upgrade rate says the allowance is
+          // the wrong size; a rising one alongside upgrades says it is working.
+          track("tutor_cap_hit", { tier: state.tier, can_top_up: canTopUp });
           setCapNotice({ canTopUp });
           appendTutorMessage(id, {
             role: "assistant",
@@ -219,6 +234,15 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
       }
 
       const model = res.headers.get("x-tutor-model") ?? "local";
+      // Recorded once per answered message, before the body is read, so a
+      // reply the learner abandons mid-stream still counts as served.
+      track("tutor_message_sent", {
+        provider: res.headers.get("x-tutor-provider") ?? "local",
+        model,
+        tier: state.tier,
+        context: sessionCtx?.type ?? "none",
+        with_image: Boolean(attached),
+      });
 
       if (!res.body) {
         const text = await res.text();
@@ -532,6 +556,25 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   : state.tier === "free"
                     ? `${Math.max(0, cap.cap - cap.used)} of ${cap.cap} free messages left`
                     : `${Math.max(0, cap.cap - cap.used)} of ${cap.cap} messages left today`}
+              </p>
+              {/*
+                The caveat belongs here, at the point of answer. /terms carries
+                the no-pass-guarantee clause, but a learner reading a wrong
+                following distance never opens /terms — and on this subject a
+                wrong answer costs them a test fee and a rebooking.
+              */}
+              {/*
+                Full `text-muted-foreground`, not a dimmed variant: at /80 this
+                measured 3.47:1 against the composer's glass, under the 4.5:1
+                AA floor for small text. A disclaimer nobody can read is not a
+                disclaimer.
+              */}
+              <p className="mt-1 text-center text-2xs text-muted-foreground">
+                AI answers can be wrong — check anything surprising against the{" "}
+                <Link href="/sources" className="underline underline-offset-2 hover:text-foreground">
+                  official K53 manual
+                </Link>
+                .
               </p>
             </>
           )}

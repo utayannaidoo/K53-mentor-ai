@@ -15,6 +15,7 @@ import { studyCodeOf } from "@/lib/billing/plans";
 import { scoreDiagnostic } from "@/lib/diagnostic/scoring";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn } from "@/lib/utils";
+import { track } from "@/lib/analytics";
 
 const LETTERS = ["A", "B", "C", "D"];
 
@@ -113,6 +114,16 @@ function DiagnosticQuiz() {
         window.setTimeout(() => {
           const result = scoreDiagnostic(nextResponses);
           recordDiagnostic(result);
+          // Activation. Finishing the diagnostic is the moment the product
+          // first shows a learner something they didn't know about themselves,
+          // so it is the retention split worth measuring everything else against.
+          track("diagnostic_completed", {
+            readiness: result.readiness,
+            pass_probability: result.passProbability,
+            correct: result.correct,
+            total: result.total,
+            weakest: result.weakCategories[0] ?? "none",
+          });
           router.push("/diagnostic/results");
         }, 3000);
       } else {
