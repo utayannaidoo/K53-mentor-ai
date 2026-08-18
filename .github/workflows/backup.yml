@@ -1,0 +1,163 @@
+name: backup
+
+# Nightly encrypted database backup.
+#
+# Supabase's Free plan has no point-in-time recovery and no restore path worth
+# relying on, so until the project is on Pro this workflow *is* the backup. It
+# is not PITR — it restores to last night, not to last minute — but at this
+# data volume that is the difference between a bad hour and losing the
+# business.
+#
+# Two secrets are required (repo Settings → Secrets and variables → Actions):
+#
+#   SUPABASE_DB_URL     Session-pooler connection string, WITH the password.
+#                       Supabase dashboard → Connect → Session pooler. It looks
+#                       like:
+#                         postgresql://postgres.<ref>:<pw>@aws-0-eu-west-1.pooler.supabase.com:5432/postgres
+#                       It MUST be the session pooler on port 5432. Port 6543
+#                       is the transaction pooler and pg_dump cannot use it —
+#                       it needs session-level state the transaction pooler
+#                       does not keep. The direct `db.<ref>.supabase.co` host
+#                       resolves to IPv6 only, and GitHub's runners have no
+#                       IPv6, so that one fails here with a confusing
+#                       "could not connect" no matter how right the password is.
+#
+#   BACKUP_PASSPHRASE   Any long random string. The dump is symmetrically
+#                       encrypted with it. Store it somewhere that is NOT this
+#                       repo and NOT the Supabase dashboard — a password
+#                       manager. A backup you cannot decrypt is not a backup,
+#                       and this is the single point of failure for the whole
+#                       scheme.
+#
+# Restoring: docs/ops/backup-restore.md. Read it before you need it.
+
+on:
+  schedule:
+    # 02:10 UTC = 04:10 SAST. Deliberately off the hour — GitHub's scheduler
+    # queues heavily on the hour and can delay a run by 20+ minutes.
+    - cron: "10 2 * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    # Never run from a fork: the secrets would not exist and the job would fail
+    # nightly for whoever forked it.
+    if: github.repository == 'utayannaidoo/K53-mentor-ai'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Install PostgreSQL 17 client
+        # The server is Postgres 17.6. Ubuntu's default client is 16, and
+        # pg_dump refuses outright when its major version is older than the
+        # server's — so the stock runner cannot take this backup at all.
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl --fail --silent --show-error \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+          pg_dump --version
+
+      - name: Dump public + auth schemas
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::SUPABASE_DB_URL is not set. See the header of this workflow."
+            exit 1
+          fi
+          STAMP="$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+          # public = every table the app owns. auth = the accounts themselves;
+          # without it a restore gives you a database full of progress rows
+          # belonging to users who no longer exist and cannot log in.
+          # storage is deliberately excluded — verified empty (0 buckets, 0
+          # objects); the app serves its 439 sign images from /public.
+          # Ownership and grants are kept rather than stripped: the realistic
+          # restore target is another Supabase project, where the roles the
+          # dump references (supabase_auth_admin, anon, authenticated) already
+          # exist. See the restore doc for the plain-Postgres case.
+          pg_dump "$SUPABASE_DB_URL" \
+            --schema=public \
+            --schema=auth \
+            --no-comments \
+            --quote-all-identifiers \
+            --file="k53-$STAMP.sql"
+
+          gzip -9 "k53-$STAMP.sql"
+          ls -lh "k53-$STAMP.sql.gz"
+
+      - name: Verify the dump is real
+        # A backup job whose value silently drops to zero is worse than no
+        # backup job, because it also removes the worry that would have made
+        # someone check. These assertions are the whole point of this step:
+        # fail loudly tonight rather than discover an empty file during an
+        # actual incident.
+        run: |
+          set -euo pipefail
+          FILE="k53-$STAMP.sql.gz"
+
+          SIZE=$(stat -c%s "$FILE")
+          echo "compressed size: $SIZE bytes"
+          if [ "$SIZE" -lt 20000 ]; then
+            echo "::error::Dump is only $SIZE bytes — implausibly small. Treating as failed."
+            exit 1
+          fi
+
+          # Spot-check that the tables that carry money and identity are
+          # actually present, not just that the file is big.
+          for expected in \
+            "CREATE TABLE \"public\".\"subscriptions\"" \
+            "CREATE TABLE \"public\".\"profiles\"" \
+            "CREATE TABLE \"auth\".\"users\"" \
+            "COPY \"auth\".\"users\""
+          do
+            if ! zgrep -qF "$expected" "$FILE"; then
+              echo "::error::Dump is missing: $expected"
+              echo "::error::If the auth entries are the ones missing, the database role in SUPABASE_DB_URL cannot read the auth schema — the dump is incomplete and would not restore working logins."
+              exit 1
+            fi
+          done
+          echo "All expected structures present."
+
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+            echo "::error::BACKUP_PASSPHRASE is not set. Refusing to upload an unencrypted dump."
+            exit 1
+          fi
+          # The dump contains names, email addresses and subscription records —
+          # personal information under POPIA. It does not get uploaded in the
+          # clear, even to a private repository's artifact storage.
+          gpg --batch --yes --symmetric \
+            --cipher-algo AES256 \
+            --passphrase "$BACKUP_PASSPHRASE" \
+            --output "k53-$STAMP.sql.gz.gpg" \
+            "k53-$STAMP.sql.gz"
+          rm -f "k53-$STAMP.sql.gz"
+          ls -lh "k53-$STAMP.sql.gz.gpg"
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: db-backup-${{ env.STAMP }}
+          path: k53-*.sql.gz.gpg
+          retention-days: 90
+          if-no-files-found: error
