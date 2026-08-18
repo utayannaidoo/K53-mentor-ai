@@ -279,7 +279,15 @@ export function TodaySheet({
                       >
                         {task.title}
                       </span>
-                      <span className="block truncate text-xs text-muted-foreground">
+                      {/* One line is enough for these on a desktop row, where
+                          every subtitle fits whole. On a phone the column is
+                          161–271px and the longest needs 429px, so a single
+                          truncated line dropped up to 62% of the sentence —
+                          including the second half of "Short on time? A mini
+                          mock counts too", which is an action the learner then
+                          never sees. Two lines on small screens, unchanged
+                          above `sm`. */}
+                      <span className="line-clamp-2 text-xs text-muted-foreground sm:block sm:truncate">
                         {task.subtitle}
                       </span>
                     </span>
@@ -402,7 +410,11 @@ function Figure({
   unit?: string;
 }) {
   return (
-    <div className="bg-card/[0.01] px-5 py-4 text-center">
+    // Between 768 and ~830 the `md:` sidebar takes 256px while the figures are
+    // already four across, leaving each cell 72px of content — 12px short of
+    // "Predicted", which then painted outside its own cell. The wide padding
+    // waits for `lg`, by which point the column has the room for it again.
+    <div className="bg-card/[0.01] px-3 py-4 text-center lg:px-5">
       <p className="text-2xs uppercase tracking-[0.16em] text-muted-foreground">{label}</p>
       <p className="mt-1.5 font-mono text-2xl font-semibold leading-none tabular-nums">
         {value}

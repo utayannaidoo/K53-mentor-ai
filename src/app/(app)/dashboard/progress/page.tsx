@@ -490,8 +490,13 @@ export default function ProgressPage() {
 
     record: {
       label: "The record",
+      // -my/py cancel, so the row keeps its height and the label its baseline;
+      // only the thumb target grows (16px tall was not one).
       aside: (
-        <Link href="/study/mock-exam" className="text-2xs font-medium text-primary hover:underline">
+        <Link
+          href="/study/mock-exam"
+          className="-my-2.5 inline-block py-2.5 text-2xs font-medium text-primary hover:underline"
+        >
           Take a mock
         </Link>
       ),

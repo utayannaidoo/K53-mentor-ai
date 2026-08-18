@@ -42,6 +42,14 @@ import {
 const ORBIT_RADIUS = 0.26;
 
 /**
+ * Travel of the calibration slider. The maximum is only the *ceiling*: the step
+ * narrows it to whatever the outline's own box can show, so the drawn width and
+ * the value driving `pxPerMmFromCardWidth` never disagree. See `CalibrateStep`.
+ */
+const CARD_MIN_PX = 140;
+const CARD_MAX_PX = 640;
+
+/**
  * Last-resort chart height, matching the CSS box's 26rem cap. Only reached when
  * neither the element nor the window reports a size; without it the ladder has
  * no bounds to lock and the reader waits on a blank chart indefinitely.
@@ -486,6 +494,40 @@ function CalibrateStep({
   onChange: (px: number) => void;
   onNext: () => void;
 }) {
+  /**
+   * The outline is sized in raw pixels, so on a phone it used to run straight
+   * off the side: the 320px default already overflowed a 320px viewport, and
+   * dragging to the 640px maximum pushed the page 297px wide at every phone
+   * size. Nothing clipped it, so the whole document scrolled sideways.
+   *
+   * The ceiling is therefore the box the outline actually sits in, not a
+   * constant. It is a hard clamp on the *state* rather than a `max-width` on
+   * the element on purpose: `pxPerMm` is derived from `cardWidthPx`, so an
+   * outline drawn narrower than the number it reports would silently turn every
+   * letter size below into a lie. Visual width and the value must stay equal.
+   */
+  const boxRef = React.useRef<HTMLDivElement>(null);
+  const [boxPx, setBoxPx] = React.useState(0);
+  React.useEffect(() => {
+    const el = boxRef.current;
+    if (!el) return;
+    const measure = () => setBoxPx(el.clientWidth);
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const cardMax = boxPx ? Math.max(CARD_MIN_PX, Math.min(CARD_MAX_PX, boxPx)) : CARD_MAX_PX;
+
+  // A viewport that shrinks under the current value (rotation, a resize) has to
+  // pull it down with it, or the outline overflows again on the next frame.
+  React.useEffect(() => {
+    if (cardWidthPx > cardMax) onChange(cardMax);
+  }, [cardMax, cardWidthPx, onChange]);
+
+  const shown = Math.min(cardWidthPx, cardMax);
+
   return (
     <Card className={cn(glass, "p-5")}>
       <div className="flex items-center gap-2">
@@ -500,10 +542,10 @@ function CalibrateStep({
         millimetres — without this the letter sizes below would mean nothing.
       </p>
 
-      <div className="mt-5 grid place-items-center">
+      <div ref={boxRef} className="mt-5 grid place-items-center">
         <div
           className="rounded-xl border-2 border-dashed border-primary/60 bg-primary/[0.06]"
-          style={{ width: cardWidthPx, height: cardWidthPx * (53.98 / CARD_WIDTH_MM) }}
+          style={{ width: shown, height: shown * (53.98 / CARD_WIDTH_MM) }}
         />
       </div>
 
@@ -511,10 +553,10 @@ function CalibrateStep({
         <span className="text-xs font-medium text-muted-foreground">Card width</span>
         <input
           type="range"
-          min={140}
-          max={640}
+          min={CARD_MIN_PX}
+          max={cardMax}
           step={1}
-          value={cardWidthPx}
+          value={shown}
           onChange={(e) => onChange(Number(e.target.value))}
           className="mt-2 w-full accent-primary"
         />
