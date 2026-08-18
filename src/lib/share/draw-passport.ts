@@ -474,38 +474,59 @@ function paintCard(ctx: Ctx, p: Passport, f: FontFamilies) {
   // ── The skyline ───────────────────────────────────────────
   ctx.fillStyle = C.muted;
   font(ctx, 600, 19, f.display);
-  tracked(ctx, "EVERY CATEGORY, AGAINST ITS PASS MARK", PAD, 972, 0.2);
+  tracked(ctx, "EVERY CATEGORY, AGAINST ITS PASS MARK", PAD, 966, 0.2);
 
-  paintSkyline(ctx, PAD, 1006, CARD_W - PAD * 2, 140, p, f);
+  // The bars start 60px below the label's baseline, not 34.
+  //
+  // `paintSkyline` prints each value 14px above its bar, and measured against
+  // the real faces the 19px label's descenders and the 24px numerals were
+  // overlapping by a pixel — one crowded band where a heading and a row of
+  // figures were intended. 120 tall rather than 140, with the reclaimed
+  // twenty pixels going to the footer, which was running its tagline to
+  // within 7px of the card's bottom edge.
+  paintSkyline(ctx, PAD, 1026, CARD_W - PAD * 2, 120, p, f);
 
   if (p.strongest && p.weakest && p.strongest.id !== p.weakest.id) {
     ctx.font = `500 23px ${f.body}`;
     ctx.fillStyle = C.faint;
     const strongLabel = `Strongest: ${p.strongest.name} ${p.strongest.value}%`;
-    ctx.fillText(strongLabel, PAD, 1224);
+    ctx.fillText(strongLabel, PAD, 1216);
     ctx.textAlign = "right";
-    ctx.fillText(`Working on: ${p.weakest.name} ${p.weakest.value}%`, RIGHT, 1224);
+    ctx.fillText(`Working on: ${p.weakest.name} ${p.weakest.value}%`, RIGHT, 1216);
     ctx.textAlign = "left";
   }
 
   // ── Footer ────────────────────────────────────────────────
-  hairline(ctx, PAD, RIGHT, 1256);
+  hairline(ctx, PAD, RIGHT, 1246);
 
-  ctx.fillStyle = brand;
-  font(ctx, 700, 33, f.display);
-  ctx.fillText(p.link, PAD, 1306);
-  ctx.fillStyle = C.muted;
-  font(ctx, 500, 22, f.body);
-  ctx.fillText("Free K53 practice — come pass with me.", PAD, 1338);
-
+  // The right block is measured first so the left one knows what room it has.
+  // Both used to be anchored independently, which is fine until a referral code
+  // makes the left string long — and the whole point of a referral code is that
+  // it appears on the cards carrying one.
   ctx.fillStyle = C.faint;
   font(ctx, 600, 17, f.display);
-  tracked(ctx, p.referralCode ? "INVITE CODE" : "ISSUED", RIGHT, 1298, 0.2, "right");
+  const capLabel = p.referralCode ? "INVITE CODE" : "ISSUED";
+  const capWidth = trackedWidth(ctx, capLabel, 0.2);
+  tracked(ctx, capLabel, RIGHT, 1288, 0.2, "right");
   ctx.fillStyle = C.cream;
   font(ctx, 600, p.referralCode ? 30 : 24, f.mono);
   ctx.textAlign = "right";
-  ctx.fillText(p.referralCode ?? p.issued, RIGHT, 1334);
+  const capValue = p.referralCode ?? p.issued;
+  ctx.fillText(capValue, RIGHT, 1324);
+  const rightWidth = Math.max(capWidth, ctx.measureText(capValue).width);
   ctx.textAlign = "left";
+
+  // 48px of gutter, and the link shrinks rather than running into it. Today's
+  // longest form clears the right block by ~150px, so this never fires — it is
+  // insurance for a longer referral code or a longer domain, either of which
+  // would otherwise close that gap silently.
+  const leftRoom = RIGHT - rightWidth - 48 - PAD;
+  ctx.fillStyle = brand;
+  font(ctx, 700, fitted(ctx, p.link, leftRoom, 700, 33, f.display), f.display);
+  ctx.fillText(p.link, PAD, 1296);
+  ctx.fillStyle = C.muted;
+  font(ctx, 500, 22, f.body);
+  ctx.fillText("Free K53 practice — come pass with me.", PAD, 1332);
 }
 
 /**
