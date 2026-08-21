@@ -92,6 +92,45 @@ export async function POST(req: Request) {
     moneyBackUsed: sub?.money_back_used ?? null,
   });
 
+  const userId = user.id;
+
+  // RLS only allows the client to SELECT its own subscription row — writing
+  // (the claim, the revoke, the period-end flag) needs the service-role
+  // client, same as the webhook uses.
+  const admin = createAdminClient();
+
+  /**
+   * Atomically CLAIM the one-time money-back slot before any refund is issued.
+   *
+   * Reading `money_back_used` and writing it back later is a race: two taps of
+   * "Yes, cancel" (or a retry behind a slow network) both read false, both pass
+   * refundEligible, and both call Paystack's refund API for the same charge.
+   * The claim flips the flag conditionally — `.eq("money_back_used", false)` —
+   * so exactly one request wins; the loser sees zero updated rows and proceeds
+   * down the no-refund path instead.
+   */
+  async function claimMoneyBack(): Promise<boolean> {
+    if (!admin) return false;
+    const claimed = await admin
+      .from("subscriptions")
+      .update({ money_back_used: true })
+      .eq("user_id", userId)
+      .eq("money_back_used", false)
+      .select();
+    return !claimed.error && Array.isArray(claimed.data) && claimed.data.length > 0;
+  }
+
+  /** Best-effort release when the refund itself failed, so a legitimate retry stays possible. */
+  async function releaseMoneyBack(): Promise<void> {
+    await admin
+      ?.from("subscriptions")
+      .update({ money_back_used: false })
+      .eq("user_id", userId)
+      .then(({ error }) => {
+        if (error) console.error("billing/cancel: could not release money-back claim", error);
+      });
+  }
+
   /**
    * How long this subscription lasted, for the churn event the client fires.
    * Measured from the subscription row's creation, not `paid_at` — `paid_at`
@@ -121,21 +160,25 @@ export async function POST(req: Request) {
   // Issue the money-back refund (best-effort). Billing is already stopped, so a
   // refund hiccup mustn't block the cancellation — we report it and the learner
   // can email us instead.
+  //
+  // The money-back slot is CLAIMED atomically before the API call: two racing
+  // cancel requests cannot both refund one charge. On a failed refund the
+  // claim is released — the learner keeps their money and their access, and a
+  // retry inside the window stays possible.
   let refunded = false;
   let refundError = false;
   if (eligible && sub?.last_charge_reference) {
-    try {
-      await refundTransaction(sub.last_charge_reference);
-      refunded = true;
-    } catch (err) {
-      console.error("billing/cancel: refund error", err);
-      refundError = true;
+    if (await claimMoneyBack()) {
+      try {
+        await refundTransaction(sub.last_charge_reference);
+        refunded = true;
+      } catch (err) {
+        console.error("billing/cancel: refund error", err);
+        refundError = true;
+        await releaseMoneyBack();
+      }
     }
   }
-
-  // RLS only allows the client to SELECT its own subscription row — writing
-  // needs the service-role client, same as the webhook uses.
-  const admin = createAdminClient();
 
   // ── Two different cancellations ─────────────────────────────────────────────
   //
