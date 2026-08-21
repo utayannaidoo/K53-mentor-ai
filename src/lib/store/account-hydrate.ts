@@ -1,5 +1,5 @@
 import type { UserState } from "@/types";
-import { defaultUserState } from "@/lib/store/local-store";
+import { defaultUserState, resolveStreak } from "@/lib/store/local-store";
 import { LICENCE_RANK_INDEX } from "@/lib/engagement";
 import { licenceHeld } from "@/lib/licence/test-day";
 import { mergeProgress, type RemoteProgress } from "@/lib/supabase/progress";
@@ -27,6 +27,10 @@ export function hydrateAccountState(
   const base = differentAccount ? defaultUserState() : current;
 
   let next: UserState = { ...base, ...account, ownerEmail: userEmail ?? base.ownerEmail };
+  // The streak is resolved against today the moment it lands — login is where
+  // a returning learner first sees it, so a run that broke while they were
+  // away must read as restarted here, not after their first attempt.
+  if (account.streak) next.streak = resolveStreak(account.streak);
   // CP only grows for the SAME account; a different account takes its own.
   if (account.cp != null) next.cp = differentAccount ? account.cp : Math.max(base.cp, account.cp);
 

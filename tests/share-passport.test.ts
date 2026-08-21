@@ -130,7 +130,7 @@ describe("Driving Passport — the claim", () => {
   it("never leads with a low readiness when a streak is the better true thing", () => {
     const p = build(
       stateWith({
-        streak: { current: 6, longest: 6, lastStudyDate: "2026-08-17", freezesRemaining: 1, freezeRefreshedWeek: null },
+        streak: { current: 6, longest: 6, lastStudyDate: "2026-08-17", freezesRemaining: 1, freezeRefreshedWeek: null, regainsUsed: 0 },
       }),
     );
     expect(p.hero.label).toBe("DAY STREAK");

@@ -66,6 +66,8 @@ interface StreakRow {
   last_study_date: string | null;
   freezes_remaining: number | null;
   freeze_refreshed_week: string | null;
+  // Added in 0025 — one regain per streak run (see Streak.regainsUsed).
+  regains_used: number | null;
   cp: number | null;
 }
 
@@ -129,6 +131,7 @@ export async function loadAccount(
       lastStudyDate: st.last_study_date,
       freezesRemaining: st.freezes_remaining ?? 1,
       freezeRefreshedWeek: st.freeze_refreshed_week,
+      regainsUsed: st.regains_used ?? 0,
     } satisfies Streak;
     if (st.cp != null) result.cp = st.cp;
   }
@@ -225,6 +228,14 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
         last_study_date: state.streak.lastStudyDate,
         freezes_remaining: state.streak.freezesRemaining,
         freeze_refreshed_week: state.streak.freezeRefreshedWeek,
+        // Unlike the licence columns above, this one moves in BOTH directions
+        // (spent → refunded when a run ends), so it cannot be conditionally
+        // omitted — a skipped write would leave a stale 1 on the server and
+        // silently consume the next run's regain. It therefore assumes 0025
+        // has run; until then the streaks upsert fails harmlessly (Supabase
+        // returns an error rather than throwing, and the local cache keeps
+        // the truth) and retries on every later flush.
+        regains_used: state.streak.regainsUsed,
         cp: state.cp,
         ...dueSummary(state),
       },

@@ -25,6 +25,7 @@ import {
   saveState,
   todayKey,
   touchStreak,
+  resolveStreak,
 } from "@/lib/store/local-store";
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
@@ -222,9 +223,13 @@ const COMEBACK_GAP_DAYS = 3;
  * refresh the lastSeen snapshot.
  */
 function withArrivalEffects(s: UserState, now = new Date()): UserState {
-  const breakdown = computeReadiness(s);
+  // Reconcile the streak against today BEFORE anything reads it — this is what
+  // makes the streak true at login rather than only after the next study
+  // action. A run that broke while they were away shows as restarted
+  // immediately; one a freeze can still save stays alive for the banner offer.
+  let next: UserState = { ...s, streak: resolveStreak(s.streak, now) };
+  const breakdown = computeReadiness(next);
   const readinessNow = breakdown.readiness;
-  let next = s;
 
   // Bank whatever the existing log already earned, silently. This is the v3→v4
   // back-fill and the same endowed-progress move CP made at v2: a returning
@@ -246,7 +251,7 @@ function withArrivalEffects(s: UserState, now = new Date()): UserState {
           daysAway,
           readinessThen: s.lastSeen.readiness,
           readinessNow,
-          dueCards: countDueFlashcards(s, now),
+          dueCards: countDueFlashcards(next, now),
         },
       };
     }
@@ -548,6 +553,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       const account = await loadAccount(supabase, user);
       setState((s) => {
         const next = { ...s, ...account };
+        // The server's streak copy can be as stale as the local cache was —
+        // resolve it against today so a re-pull never resurrects a dead run.
+        if (account.streak) next.streak = resolveStreak(account.streak);
         if (account.cp != null) next.cp = Math.max(s.cp, account.cp);
         // Same rule as hydrateAccountState: a server with no onboarding yet
         // must not blank the answers this browser already holds.

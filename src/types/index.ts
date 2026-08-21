@@ -271,6 +271,13 @@ export interface Streak {
   lastStudyDate: string | null; // yyyy-mm-dd
   freezesRemaining: number;
   freezeRefreshedWeek: string | null;
+  /**
+   * Freeze-regains already spent inside the CURRENT run. One regain per run:
+   * without this the weekly allowance refill let a learner bridge a missed
+   * day every week forever, so a "streak" could survive on one session a
+   * week. Reset to 0 when the run ends (see `resolveStreak` / `touchStreak`).
+   */
+  regainsUsed: number;
 }
 
 export interface Profile {

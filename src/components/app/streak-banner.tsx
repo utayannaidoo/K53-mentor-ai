@@ -3,26 +3,29 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Flame, Snowflake, Sunrise, X } from "lucide-react";
+import { Flame, Snowflake, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { daysBetween, todayKey } from "@/lib/store/local-store";
+import { canRegain, daysBetween, todayKey } from "@/lib/store/local-store";
 import { cn } from "@/lib/utils";
 
 const DISMISS_KEY = "k53mentor.streakbanner.dismissed";
 
 type BannerState =
   | { kind: "risk"; streak: number }
-  | { kind: "freeze"; streak: number }
-  | { kind: "rebuild"; streak: number; longest: number };
+  | { kind: "freeze"; streak: number };
 
 /**
- * The streak's early-warning and comeback voice:
- *  - risk:    studied yesterday, not yet today, afternoon onwards — save it now.
- *  - freeze:  one missed day the weekly freeze can still bridge — save it today.
- *  - rebuild: the streak is gone; make restarting feel small, never shameful.
- * Self-dismisses the moment the user studies (the gap goes to 0), and can be
- * snoozed for the day. Hidden inside focused study flows.
+ * The streak's early-warning voice — it only speaks while there is something
+ * to save:
+ *  - risk:   studied yesterday, not yet today, afternoon onwards — save it now.
+ *  - freeze: one missed day and this run's single regain can still bridge it.
+ *
+ * A run that is already gone gets no banner at all: `resolveStreak` has shown
+ * it as restarted at login, and a "come back" prompt whose tap lands the
+ * learner on day 1 reads as a promise the app then breaks. Self-dismisses the
+ * moment the user studies (the gap goes to 0), and can be snoozed for the day.
+ * Hidden inside focused study flows.
  */
 export function StreakBanner() {
   const { ready, state } = useStudyStore();
@@ -40,17 +43,15 @@ export function StreakBanner() {
   const inFocusedFlow = pathname.startsWith("/study/");
   if (!ready || dismissed || inFocusedFlow) return null;
 
-  const { current, longest, lastStudyDate, freezesRemaining } = state.streak;
+  const { current, lastStudyDate } = state.streak;
   if (!lastStudyDate || current < 2) return null;
 
   const gap = daysBetween(lastStudyDate, todayKey());
   let banner: BannerState | null = null;
   if (gap === 1 && new Date().getHours() >= 15) {
     banner = { kind: "risk", streak: current };
-  } else if (gap === 2 && freezesRemaining > 0) {
+  } else if (gap === 2 && canRegain(state.streak)) {
     banner = { kind: "freeze", streak: current };
-  } else if (gap >= 2) {
-    banner = { kind: "rebuild", streak: current, longest };
   }
   if (!banner) return null;
 
@@ -75,12 +76,6 @@ export function StreakBanner() {
       wrap: "border-primary/30 bg-primary/[0.06] text-primary",
       message: `Your freeze covered yesterday. Study today and your ${banner.streak}-day streak carries on.`,
       cta: "Continue streak",
-    },
-    rebuild: {
-      icon: <Sunrise className="h-4 w-4" />,
-      wrap: "border-border bg-muted/50 text-foreground",
-      message: `Your ${banner.streak}-day streak paused — it happens. One short session starts the next run, and your longest (${banner.kind === "rebuild" ? banner.longest : 0} days) still stands.`,
-      cta: "Ease back in",
     },
   }[banner.kind];
 

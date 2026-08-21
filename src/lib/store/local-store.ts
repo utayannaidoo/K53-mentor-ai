@@ -38,6 +38,7 @@ export function defaultUserState(): UserState {
       lastStudyDate: null,
       freezesRemaining: 1,
       freezeRefreshedWeek: null,
+      regainsUsed: 0,
     },
     driverProgress: {},
     tutorThreads: [],
@@ -167,8 +168,21 @@ export function daysBetween(a: string, b: string): number {
 }
 
 /**
+ * How many times a single streak run may be saved by a freeze. One: a run
+ * either earns its bridge or it ends. The weekly allowance still refills, but
+ * `regainsUsed` caps the total per run — without the cap, studying one day a
+ * week could keep a "streak" alive forever.
+ */
+const MAX_REGAINS_PER_RUN = 1;
+
+/** True when a missed day can still be bridged within this streak run. */
+export function canRegain(streak: Streak): boolean {
+  return streak.freezesRemaining > 0 && streak.regainsUsed < MAX_REGAINS_PER_RUN;
+}
+
+/**
  * Streak update with a Headspace-style forgiveness mechanic:
- * a missed day can be bridged once a week using a "freeze".
+ * a missed day can be bridged ONCE per run using a "freeze".
  */
 export function touchStreak(streak: Streak, now = new Date()): Streak {
   const today = todayKey(now);
@@ -188,17 +202,21 @@ export function touchStreak(streak: Streak, now = new Date()): Streak {
 
   const gap = daysBetween(streak.lastStudyDate, today);
   let current = streak.current;
+  let regainsUsed = streak.regainsUsed;
 
   if (gap === 0) {
     // already counted today
   } else if (gap === 1) {
     current += 1;
-  } else if (gap === 2 && freezesRemaining > 0) {
-    // bridge the single missed day with a freeze
+  } else if (gap === 2 && canRegain(streak)) {
+    // bridge the single missed day with a freeze — once per run
     current += 1;
     freezesRemaining -= 1;
+    regainsUsed += 1;
   } else {
+    // The run is over; the next session starts a fresh one (with its regain).
     current = 1;
+    regainsUsed = 0;
   }
 
   return {
@@ -207,7 +225,41 @@ export function touchStreak(streak: Streak, now = new Date()): Streak {
     lastStudyDate: today,
     freezesRemaining,
     freezeRefreshedWeek,
+    regainsUsed,
   };
+}
+
+/**
+ * Reconcile the streak against today WITHOUT a study action — runs at app open
+ * and on account hydration so the number on screen never outlives the truth:
+ *
+ *   gap 0            studied today — alive.
+ *   gap 1            studied yesterday — alive, at risk until they study today.
+ *   gap 2 + regain   the freeze can still bridge yesterday IF they study —
+ *                    left untouched here; only `touchStreak` spends it.
+ *   anything else    the run is over: shown as a fresh start (day 1) and the
+ *                    run's regain is refunded for the next one.
+ *
+ * `lastStudyDate` is deliberately kept even on a break — it is history, and
+ * the next `touchStreak` needs the real gap to know the run ended.
+ */
+export function resolveStreak(streak: Streak, now = new Date()): Streak {
+  const week = isoWeekKey(now);
+
+  // Refresh the weekly allowance while we are here, so every surface that
+  // reads freezes at login sees the same number touchStreak would produce.
+  let resolved: Streak = { ...streak };
+  if (resolved.freezeRefreshedWeek !== week) {
+    resolved = { ...resolved, freezesRemaining: 1, freezeRefreshedWeek: week };
+  }
+
+  if (!resolved.lastStudyDate || resolved.current <= 1) return resolved;
+
+  const gap = daysBetween(resolved.lastStudyDate, todayKey(now));
+  if (gap <= 1) return resolved;
+  if (gap === 2 && canRegain(resolved)) return resolved;
+
+  return { ...resolved, current: 1, regainsUsed: 0 };
 }
 
 /**
