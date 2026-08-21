@@ -11,17 +11,30 @@ export function LogoMark({ className }: { className?: string }) {
       aria-hidden
     >
       <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5">
-        {/* Stylised road vanishing to a point — "the way forward" */}
+        {/* Road in true perspective — wide at the base, converging to a
+            vanishing point just past the last centreline dash. */}
         <path
-          d="M8.5 21 11 3.5a1 1 0 0 1 2 0L15.5 21"
+          d="M6.5 20.75 10.4 5.2M17.5 20.75 13.6 5.2"
           stroke="currentColor"
-          strokeWidth="1.6"
+          strokeWidth="2"
           strokeLinecap="round"
         />
         <path
-          d="M12 7.5v2M12 12.5v2M12 17.5v1.5"
+          d="M12 16.75v3"
           stroke="hsl(var(--accent))"
-          strokeWidth="1.8"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 11.25v2"
+          stroke="hsl(var(--accent))"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+        <path
+          d="M12 6.9v1.2"
+          stroke="hsl(var(--accent))"
+          strokeWidth="1.1"
           strokeLinecap="round"
         />
       </svg>
