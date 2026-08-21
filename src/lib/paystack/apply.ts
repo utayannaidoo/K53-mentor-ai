@@ -5,7 +5,12 @@ import { buildPaymentReceiptEmail, buildPriceMismatchAlertEmail } from "@/lib/no
 import { PLAN_MAP } from "@/lib/billing/plans";
 import { checkChargeAmount } from "@/lib/billing/charge-amount";
 import { SUPPORT_EMAIL } from "@/lib/constants";
-import { fetchCustomer, disableSubscription, type PaystackTransaction } from "@/lib/paystack/client";
+import {
+  fetchCustomer,
+  disableSubscription,
+  type PaystackSubscription,
+  type PaystackTransaction,
+} from "@/lib/paystack/client";
 
 /**
  * The shape of a successful charge, as it arrives either on the `charge.success`
@@ -27,6 +32,33 @@ export interface ChargeSuccessData {
 /** The `payment_events` id every path uses for a successful charge. */
 export function chargeLedgerId(transactionId: number | string): string {
   return `charge.success:${transactionId}`;
+}
+
+/**
+ * Read a subscription's plan code out of whatever shape Paystack decided to
+ * send today. The verify endpoint returns `plan` as a bare string; the
+ * transaction list has been observed returning `plan: {}`; the customer embed
+ * is believed to do the same under eventual consistency right after creation.
+ * Anything without a non-empty code is UNKNOWN — callers must treat unknown
+ * plans as untouchable, never as "different from mine".
+ */
+export function subscriptionPlanCode(
+  s: Pick<PaystackSubscription, "plan">,
+): string | undefined {
+  const plan = s.plan;
+  if (!plan) return undefined;
+  const code = typeof plan === "string" ? plan : plan.plan_code;
+  return typeof code === "string" && code.length > 0 ? code : undefined;
+}
+
+/** Find the ACTIVE subscription matching the plan just paid for. */
+function findCurrentSubscription(
+  customer: Awaited<ReturnType<typeof fetchCustomer>>,
+  planCode: string,
+): PaystackSubscription | undefined {
+  return customer.subscriptions.find(
+    (s) => s.status === "active" && subscriptionPlanCode(s) === planCode,
+  );
 }
 
 /**
@@ -142,9 +174,7 @@ export async function applyChargeSuccess(
       let period: { current_period_end: string } | Record<string, never> = {};
       try {
         const customer = await fetchCustomer(data.customer.customer_code);
-        const sub = customer.subscriptions.find(
-          (s) => s.status === "active" && s.plan.plan_code === data.plan!.plan_code,
-        );
+        const sub = findCurrentSubscription(customer, data.plan!.plan_code);
         if (sub?.next_payment_date) {
           period = { current_period_end: new Date(sub.next_payment_date).toISOString() };
         }
@@ -266,9 +296,7 @@ export async function applyChargeSuccess(
   // Best-effort on purpose. It runs after the grant, and failing to record
   // these must not throw — throwing releases the ledger row and replays a
   // charge that has already been applied.
-  const current = customer.subscriptions.find(
-    (s) => s.status === "active" && s.plan.plan_code === data.plan!.plan_code,
-  );
+  const current = findCurrentSubscription(customer, data.plan!.plan_code);
   if (current) {
     const { error } = await admin
       .from("subscriptions")
@@ -285,25 +313,69 @@ export async function applyChargeSuccess(
         `applyChargeSuccess: could not record subscription state for ${userId}: ${error.message}`,
       );
     }
+  } else {
+    // The grant landed but the subscription it belongs to could not be picked
+    // out of the customer embed. This is the signature of Paystack returning
+    // the fresh sub with an empty/incomplete plan object — the exact condition
+    // that, combined with the stale loop below, used to disable brand-new
+    // subscriptions seconds after purchase. Never guess an identity here:
+    // log loudly so ops can reconcile by hand.
+    console.error(
+      `applyChargeSuccess: grant applied for ${userId} but no active subscription ` +
+        `matching plan ${data.plan!.plan_code} was found in the customer embed; ` +
+        `provider_subscription_id/current_period_end not updated. Subs seen: ` +
+        JSON.stringify(
+          customer.subscriptions.map((s) => ({
+            code: s.subscription_code,
+            status: s.status,
+            plan: s.plan,
+          })),
+        ),
+    );
   }
 
   // A plan or cycle change starts a NEW Paystack subscription while the
   // OLD one stays active — Paystack never auto-cancels the previous plan. Left
   // alone, the learner is billed for BOTH plans every renewal. So cancel every
-  // *other* active subscription for this customer, keeping only the one matching
-  // the plan just paid for. A no-op on a first purchase (only the new sub exists).
+  // *other* live subscription for this customer, keeping only the one matching
+  // the plan just paid for. A no-op on a first purchase.
   //
-  // This intentionally THROWS on failure instead of logging and moving on: a
-  // swallowed disable is a permanent double-charge, and the ledger row is already
-  // committed so Paystack's redelivery would otherwise skip it. Throwing releases
-  // the ledger row (both callers do this) so the whole charge is retried until the
-  // old subscription is actually gone. The tier grant above is idempotent on
-  // retry, and the receipt email below runs only *after* this succeeds — so a
-  // retry re-grants harmlessly and never double-sends the receipt.
-  const stale = customer.subscriptions.filter(
-    (s) => s.status === "active" && s.plan.plan_code !== data.plan!.plan_code,
-  );
+  // IDENTIFICATION RULE — this filter has one job and a history of doing the
+  // opposite. It previously read `s.plan.plan_code !== paidPlanCode`, so any
+  // subscription whose embedded plan came back EMPTY (`{}`, an observed
+  // Paystack serialization) compared as `undefined !== "PLN_…"` → stale →
+  // DISABLED. That silently flipped every paying customer's brand-new
+  // subscription to non-renewing ~1.5s after checkout (four-for-four in the
+  // event ledger). The rule now: only a subscription whose plan code is KNOWN,
+  // differs from the plan just paid for, and names a different subscription is
+  // superseded. Unknown plans are untouchable — worst case is a duplicate
+  // billing we can detect and refund, never a paid plan vanishing.
+  // A disable that FAILS intentionally THROWS instead of logging and moving on:
+  // a swallowed disable is a permanent double-charge, and the ledger row is
+  // already committed so Paystack's redelivery would otherwise skip it.
+  // Throwing releases the ledger row (both callers do this) so the whole charge
+  // is retried until superseded subscriptions are actually gone. The tier grant
+  // above is idempotent on retry, and the receipt email below runs only after
+  // this succeeds — so a retry re-grants harmlessly and never double-sends.
+  const paidPlanCode = data.plan!.plan_code;
+  const stale = customer.subscriptions.filter((s) => {
+    if (s.status !== "active") return false;
+    if (current && s.subscription_code === current.subscription_code) return false;
+    const code = subscriptionPlanCode(s);
+    if (!code) {
+      console.error(
+        `applyChargeSuccess: skipping unidentifiable subscription ${s.subscription_code} ` +
+          `(status ${s.status}, plan ${JSON.stringify(s.plan)}) during superseded-plan cleanup`,
+      );
+      return false;
+    }
+    return code !== paidPlanCode;
+  });
   for (const s of stale) {
+    console.error(
+      `applyChargeSuccess: disabling superseded subscription ${s.subscription_code} ` +
+        `(plan ${subscriptionPlanCode(s)} ≠ paid ${paidPlanCode}) for customer ${data.customer.customer_code}`,
+    );
     await disableSubscription(s.subscription_code, s.email_token);
   }
 

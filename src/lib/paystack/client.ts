@@ -148,7 +148,14 @@ export interface PaystackSubscription {
   email_token: string;
   /** "active" | "non-renewing" | "attention" | "cancelled" | "completed". */
   status: string;
-  plan: { plan_code: string };
+  /**
+   * The embedded plan is NOT reliable: endpoints in this API have been
+   * observed returning `{}` (no plan_code) for freshly created subscriptions,
+   * so treat the code as possibly absent — see subscriptionPlanCode() in
+   * apply.ts. Never branch on an unknown plan; at worst that disables a paid
+   * subscription.
+   */
+  plan: { plan_code?: string };
   /**
    * When Paystack will charge next — the end of the period already paid for,
    * and therefore how long access is owed after someone stops renewing.

@@ -1,6 +1,10 @@
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { refundEligible, MONEY_BACK_DAYS } from "@/lib/billing/subscription-cancel";
+import {
+  tierFromSubscriptionRow,
+  type SubscriptionRowLike,
+} from "@/lib/billing/entitlements.server";
 
 export const runtime = "nodejs";
 
@@ -38,27 +42,24 @@ export async function GET() {
     .eq("user_id", user.id)
     .maybeSingle();
 
-  const sub = data as {
-    tier: string | null;
-    status: string | null;
-    cancel_at_period_end: boolean | null;
-    current_period_end: string | null;
+  const sub = data as (SubscriptionRowLike & {
     paid_at: string | null;
     last_charge_reference: string | null;
     money_back_used: boolean | null;
-  } | null;
+  }) | null;
 
   if (!sub || sub.tier === "free" || !sub.tier) {
     return Response.json({ tier: "free", hasBillingAccount: false });
   }
 
-  const endsAt = sub.current_period_end ? Date.parse(sub.current_period_end) : NaN;
-  const expired = Boolean(sub.cancel_at_period_end) && Number.isFinite(endsAt) && Date.now() >= endsAt;
+  // Mirror the EXACT rule the gates use — tierFromSubscriptionRow includes the
+  // unconditional expiry backstop (period end + grace) that a bare
+  // cancel-flag check misses. Without this the page could call a subscription
+  // active after every server gate had already started refusing it.
+  const effectiveTier = tierFromSubscriptionRow(sub);
 
   return Response.json({
-    // Mirrors the expiry rule in entitlements.server.ts so the page cannot
-    // claim a tier the API would refuse to serve.
-    tier: expired ? "free" : sub.tier,
+    tier: effectiveTier,
     status: sub.status,
     hasBillingAccount: true,
     cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),

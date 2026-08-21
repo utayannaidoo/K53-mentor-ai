@@ -64,6 +64,12 @@ export async function POST(req: Request) {
   // is the exception: its grant is NOT idempotent (credits), so an unclaimable
   // one fails instead of applying unprotected.
   const ledgerId = webhookLedgerId(payload.event, payload.data);
+  // Correlation anchor: every decision below can be traced from this line —
+  // user → charge reference → ledger id → applied outcome. Logged before any
+  // branch so even a refused/duplicate event leaves a trail.
+  console.error(
+    `paystack webhook: ${payload.event} ledger=${ledgerId ?? "unclaimed"}`,
+  );
   if (ledgerId === null) {
     if (payload.event === "charge.success") {
       console.error("paystack webhook: charge.success without transaction id; refusing to apply unclaimed");
