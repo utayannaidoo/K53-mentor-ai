@@ -5,6 +5,8 @@ import { resolveEntitlement } from "@/lib/billing/entitlements.server";
 import { recordAiUsage } from "@/lib/billing/usage.server";
 
 export const runtime = "nodejs";
+// Vision models are slower than text; declare the ceiling explicitly.
+export const maxDuration = 60;
 
 /**
  * Road-sign scanner: identifies a photographed SA road sign and explains its

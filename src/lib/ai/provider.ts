@@ -31,18 +31,41 @@ const MAX_TOKENS = Number(process.env.TUTOR_MAX_TOKENS ?? 350);
 const TEMPERATURE = 0.4;
 const encoder = new TextEncoder();
 
+/**
+ * Hard ceiling per provider HTTP call, plus at most one retry.
+ *
+ * Both SDKs default to a 10-minute timeout with 2 retries — a hung endpoint
+ * could pin a serverless invocation for the better part of an hour across
+ * attempts. A K53 answer is a few hundred tokens; anything not flowing within
+ * 30s belongs in the local fallback instead of holding the learner's request
+ * open. One retry absorbs a transient blip without turning an outage into a
+ * retry storm.
+ */
+const PROVIDER_TIMEOUT_MS = 30_000;
+const PROVIDER_MAX_RETRIES = 1;
+
 let openaiClient: OpenAI | null = null;
 let anthropicClient: Anthropic | null = null;
 let deepseekClient: OpenAI | null = null;
 
 function openai(): OpenAI | null {
   if (!process.env.OPENAI_API_KEY) return null;
-  if (!openaiClient) openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  if (!openaiClient)
+    openaiClient = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+      timeout: PROVIDER_TIMEOUT_MS,
+      maxRetries: PROVIDER_MAX_RETRIES,
+    });
   return openaiClient;
 }
 function anthropic(): Anthropic | null {
   if (!process.env.ANTHROPIC_API_KEY) return null;
-  if (!anthropicClient) anthropicClient = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  if (!anthropicClient)
+    anthropicClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      timeout: PROVIDER_TIMEOUT_MS,
+      maxRetries: PROVIDER_MAX_RETRIES,
+    });
   return anthropicClient;
 }
 function deepseek(): OpenAI | null {
@@ -51,6 +74,8 @@ function deepseek(): OpenAI | null {
     deepseekClient = new OpenAI({
       apiKey: process.env.DEEPSEEK_API_KEY,
       baseURL: process.env.DEEPSEEK_BASE_URL ?? "https://api.deepseek.com",
+      timeout: PROVIDER_TIMEOUT_MS,
+      maxRetries: PROVIDER_MAX_RETRIES,
     });
   }
   return deepseekClient;

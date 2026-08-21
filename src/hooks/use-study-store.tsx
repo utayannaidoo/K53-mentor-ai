@@ -31,6 +31,7 @@ import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
 import { trialExhausted } from "@/lib/billing/trial";
+import { purgePackCache } from "@/lib/content/pack-cache";
 import { countDueFlashcards, generateTodayPlan, isTaskDone } from "@/lib/plan";
 import {
   computeRankIndex,
@@ -530,6 +531,11 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     },
 
     signOut: () => {
+      // The downloaded content bank is paid content: it must not sit in
+      // Cache Storage for whoever opens the browser next — in either mode.
+      // The next sign-in re-syncs it under the new owner's key once
+      // entitlement re-resolves.
+      void purgePackCache();
       if (supabase) {
         // Prod: the server holds the durable copy, so wipe local progress on
         // sign-out — nothing lingers on a shared device, and the same person's

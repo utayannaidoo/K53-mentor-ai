@@ -46,7 +46,8 @@ beforeAll(async () => {
   route = await import("@/app/api/content/pack/route");
 }, 60_000);
 
-const get = async () => route.GET(new Request("https://k53.test/api/content/pack"));
+const get = async (probe = false) =>
+  route.GET(new Request(`https://k53.test/api/content/pack${probe ? "?probe=1" : ""}`));
 
 describe("/api/content/pack", () => {
   it("rate-limits before resolving the tier", async () => {
@@ -71,10 +72,16 @@ describe("/api/content/pack", () => {
     expect(await res.json()).toMatchObject({ error: "upgrade_required", tier: "free" });
   });
 
-  it("serves the full bank to Premium, not just Premium Plus", async () => {
-    // Regression guard: gating on a FeatureKey like `licencePrep` would pass
-    // Premium Plus and silently deny every Premium subscriber, because those
-    // flags separate the two paid plans rather than free from paid.
+  it("serves the full study bank to Premium, but NOT the Plus-only modules", async () => {
+    // Two regressions are guarded here at once:
+    //  1. Gating the whole bank on a FeatureKey like `licencePrep` would pass
+    //     Premium Plus and silently deny every Premium subscriber, because
+    //     those flags separate the two paid plans rather than free from paid.
+    //     Premium still gets every question, flashcard and scenario.
+    //  2. Shipping DRIVER_MODULES to Premium anyway (hidden by the UI) — the
+    //     yard-test guides are what the pricing page sells as Premium Plus, so
+    //     the server must not hand them to a Premium body. If the browser
+    //     receives bytes, assume they will be read.
     resolveTier.mockResolvedValue({ userId: "u1", tier: "premium" });
     const res = await get();
     expect(res.status).toBe(200);
@@ -83,13 +90,42 @@ describe("/api/content/pack", () => {
     expect(body.questions.length).toBeGreaterThan(1000);
     expect(body.flashcards.length).toBeGreaterThan(700);
     expect(body.scenarios.length).toBeGreaterThan(50);
-    expect(body.modules.length).toBeGreaterThan(0);
+    expect(body.modules).toEqual([]);
     expect(body.version).toMatch(/^[0-9a-f]{12}$/);
+    // The entitlement stamp that bounds offline cache use after a downgrade.
+    expect(typeof body.entitlement?.expiresAt).toBe("string");
+    expect(Number.isFinite(Date.parse(body.entitlement.expiresAt))).toBe(true);
   });
 
-  it("serves Premium Plus too", async () => {
+  it("serves Premium Plus everything, including the modules", async () => {
     resolveTier.mockResolvedValue({ userId: "u1", tier: "premium_plus" });
-    expect((await get()).status).toBe(200);
+    const res = await get();
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.modules.length).toBeGreaterThan(0);
+    expect(typeof body.entitlement?.expiresAt).toBe("string");
+  });
+
+  it("answers an entitlement probe cheaply: no bank, no sync-cap charge", async () => {
+    resolveTier.mockResolvedValue({ userId: "u1", tier: "premium" });
+    const res = await get(true);
+    expect(res.status).toBe(200);
+
+    const body = await res.json();
+    expect(body.tier).toBe("premium");
+    expect(body.modules).toBe(false); // premium has no licencePrep
+    expect(body.version).toMatch(/^[0-9a-f]{12}$/);
+    expect(Number.isFinite(Date.parse(body.entitlement.expiresAt))).toBe(true);
+    expect(body.questions).toBeUndefined();
+    expect(limitUserDaily).not.toHaveBeenCalled();
+  });
+
+  it("refuses a probe from the free tier like any other call", async () => {
+    resolveTier.mockResolvedValue({ userId: "u1", tier: "free" });
+    const res = await get(true);
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ error: "upgrade_required" });
   });
 
   it("never lets a shared cache store the response", async () => {

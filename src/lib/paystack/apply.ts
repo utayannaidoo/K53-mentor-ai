@@ -232,29 +232,13 @@ export async function applyChargeSuccess(
   // track, which silently moved a learner onto a different vehicle's content
   // the moment a charge landed.
 
-  // A plan or cycle change starts a NEW Paystack subscription while the
-  // OLD one stays active — Paystack never auto-cancels the previous plan. Left
-  // alone, the learner is billed for BOTH plans every renewal. So cancel every
-  // *other* active subscription for this customer, keeping only the one matching
-  // the plan just paid for. A no-op on a first purchase (only the new sub exists).
-  //
-  // This intentionally THROWS on failure instead of logging and moving on: a
-  // swallowed disable is a permanent double-charge, and the ledger row is already
-  // committed so Paystack's redelivery would otherwise skip it. Throwing releases
-  // the ledger row (both callers do this) so the whole charge is retried until the
-  // old subscription is actually gone. The tier grant above is idempotent on
-  // retry, and the receipt email below runs only *after* this
-  // succeeds — so a retry re-grants harmlessly and never double-sends the receipt.
+  // One live customer fetch drives both halves of the plan-switch cleanup:
+  // recording this row's identity from the newly-paid subscription, then
+  // disabling every other active one.
   const customer = await fetchCustomer(data.customer.customer_code);
-  const stale = customer.subscriptions.filter(
-    (s) => s.status === "active" && s.plan.plan_code !== data.plan!.plan_code,
-  );
-  for (const s of stale) {
-    await disableSubscription(s.subscription_code, s.email_token);
-  }
 
   // Record which Paystack subscription this row represents, and when the period
-  // it just paid for runs out.
+  // it just paid for runs out — BEFORE disabling any superseded plan below.
   //
   // `provider_subscription_id` has existed since 0008 and was never written, so
   // cancellation depended entirely on `provider_customer_id` plus a live
@@ -264,7 +248,16 @@ export async function applyChargeSuccess(
   // `current_period_end` matters more. It is what someone is owed after they
   // stop renewing, and Paystack nulls `next_payment_date` the moment a
   // subscription stops renewing — so it can only be captured *here*, while the
-  // subscription is still live, never at cancellation time when it is gone.
+  // subscription is still active, never at cancellation time when it is gone.
+  //
+  // Ordering is load-bearing: disabling a stale plan fires Paystack's
+  // `subscription.disable`, and that webhook reads this row the moment it
+  // lands. If the disable call goes out before these fields are written, the
+  // webhook sees a missing/stale period end and downgrades the tier the
+  // learner paid for seconds earlier (observed in production: a Plus→Premium
+  // switch landed as "no subscription"). Recording first means the webhook
+  // either sees the NEW subscription's identity (and its mismatched-code guard
+  // skips it) or a live period end.
   //
   // `cancel_at_period_end` resets to false: a successful charge means billing
   // is running, whatever was true before. Without this, someone who cancels and
@@ -292,6 +285,26 @@ export async function applyChargeSuccess(
         `applyChargeSuccess: could not record subscription state for ${userId}: ${error.message}`,
       );
     }
+  }
+
+  // A plan or cycle change starts a NEW Paystack subscription while the
+  // OLD one stays active — Paystack never auto-cancels the previous plan. Left
+  // alone, the learner is billed for BOTH plans every renewal. So cancel every
+  // *other* active subscription for this customer, keeping only the one matching
+  // the plan just paid for. A no-op on a first purchase (only the new sub exists).
+  //
+  // This intentionally THROWS on failure instead of logging and moving on: a
+  // swallowed disable is a permanent double-charge, and the ledger row is already
+  // committed so Paystack's redelivery would otherwise skip it. Throwing releases
+  // the ledger row (both callers do this) so the whole charge is retried until the
+  // old subscription is actually gone. The tier grant above is idempotent on
+  // retry, and the receipt email below runs only *after* this succeeds — so a
+  // retry re-grants harmlessly and never double-sends the receipt.
+  const stale = customer.subscriptions.filter(
+    (s) => s.status === "active" && s.plan.plan_code !== data.plan!.plan_code,
+  );
+  for (const s of stale) {
+    await disableSubscription(s.subscription_code, s.email_token);
   }
 
   // Receipt + welcome (best-effort; the ledger already made this once-only).

@@ -110,7 +110,12 @@ export function PricingSection({
                 <span className="font-mono text-[40px] font-semibold leading-none tracking-[-0.03em]">
                   {isFree ? "R0" : formatZar(monthlyEquivalent)}
                 </span>
-                <span className="text-[0.9rem] text-muted-foreground">{isFree ? "forever" : "/mo"}</span>
+                {/* "forever" would be read as "the full product, free, forever".
+                    What actually happens: a week of daily allowances (see
+                    FREE_TRIAL_DAYS), then the upgrade pitch. Say that. */}
+                <span className="text-[0.9rem] text-muted-foreground">
+                  {isFree ? "· free week" : "/mo"}
+                </span>
               </div>
               {/* Name the amount that actually leaves their account. "R40/mo
                   billed yearly" without the R480 total is the kind of omission
@@ -120,7 +125,7 @@ export function PricingSection({
                   entered, not first appear on the receipt. */}
               <div className="mt-1 text-[0.78rem] text-muted-foreground">
                 {isFree
-                  ? "No card needed"
+                  ? "No card needed · daily practice for your first 7 days"
                   : annual
                     ? `${formatZar(annualPrice(plan))} billed yearly, renews automatically`
                     : "Billed monthly, renews automatically"}

@@ -127,6 +127,20 @@ function pickSeeded<T>(pool: readonly T[], n: number, seed: number): T[] {
 }
 
 /**
+ * Split a meaning into sentences without cutting abbreviations.
+ *
+ * A naive "split on the first period" turns "(e.g. at a freeway exit)" into
+ * the option "Marks the position of a separation in the road (e." — fourteen
+ * generated options shipped exactly that way. Only a punctuation mark followed
+ * by whitespace and a capital letter counts as a sentence boundary here; the
+ * dots inside e.g./i.e./etc. are always followed by a lowercase continuation,
+ * so they survive intact.
+ */
+function splitSentences(meaning: string): string[] {
+  return meaning.split(/(?<=[.!?])\s+(?=[A-Z"(])/g).filter(Boolean);
+}
+
+/**
  * Trim a meaning down to something that fits an option list without becoming
  * uninformative.
  *
@@ -136,7 +150,7 @@ function pickSeeded<T>(pool: readonly T[], n: number, seed: number): T[] {
  * explains. Stops as soon as it has enough, so options stay readable.
  */
 function optionText(meaning: string): string {
-  const sentences = meaning.match(/[^.!]+[.!]/g) ?? [meaning];
+  const sentences = splitSentences(meaning);
   let out = "";
   for (const s of sentences) {
     out = `${out} ${s.trim()}`.trim();

@@ -37,6 +37,7 @@ export function TodaySheet({
   vehicleLabel,
   readiness,
   passProbability,
+  measured,
   delta,
   streak,
   cp,
@@ -61,6 +62,12 @@ export function TodaySheet({
   vehicleLabel: string;
   readiness: number;
   passProbability: number;
+  /**
+   * False while the numbers rest on too little evidence to trust (fewer than
+   * MIN_EVIDENCE_FOR_CONFIDENCE answered questions). The pass figure then says
+   * "estimate" rather than presenting early noise with full authority.
+   */
+  measured: boolean;
   delta: number | null;
   streak: number;
   cp: number;
@@ -181,7 +188,10 @@ export function TodaySheet({
 
       {/* ── The figures that qualify it ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-px border-t border-border/50 bg-border/40 sm:grid-cols-4">
-        <Figure label="Predicted pass" value={`${passProbability}%`} />
+        <Figure
+          label={measured ? "Predicted pass" : "Predicted pass (estimate)"}
+          value={`${passProbability}%`}
+        />
         <Figure label="Today's plan" value={`${planDonePct}%`} />
         <Figure label="Streak" value={streak} unit={streak === 1 ? "day" : "days"} />
         <Figure label="Points" value={cp.toLocaleString()} unit="CP" />

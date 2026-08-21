@@ -33,6 +33,16 @@ serves too (200, not a redirect — the canonical tag points at the apex, so Goo
 consolidates, but a 308 would be tidier). Canonicals, sitemap, robots and OG all emit
 the correct origin. Migrations `0001` → `0020` applied and verified.
 
+> **Migration status corrected 21 Aug 2026:** the repo now ships through `0025`, and a
+> read-only introspection of the live database (`/rest/v1/` OpenAPI, service role) on
+> that date confirmed every table and column introduced by **0021–0025 is present**:
+> `ai_usage_daily`, `email_suppressions`, `profiles.licence_result*` / `drivers_result*`,
+> `streaks.regains_used`, `study_sessions.client_id`. Production is migration-current;
+> only this line was stale. Re-verify after any new migration the same way.
+>
+> Note `subscriptions.track` still exists on live — deliberate: 0018 retires rather than
+> drops it (append-only history; nothing reads or writes it).
+
 **Paystack is live-keyed** and the five billing routes respond correctly
 (`/api/checkout`, `/api/billing/cancel`, `/api/paystack/verify`, `/api/paystack/webhook`,
 `/api/cron/reconcile-payments`).
@@ -47,7 +57,7 @@ the correct origin. Migrations `0001` → `0020` applied and verified.
 | ~~`token_hash` email templates~~ — applied and verified, 10 Aug 2026 | §4 |
 | **Nothing has actually been sent yet.** No transactional email has left the building end to end — the whole chain is configured but unproven | §5.5 |
 | `BUSINESS` in `src/lib/constants.ts` blank → ECTA s43 / POPIA s55 disclosures don't render. **Accepted, not outstanding** — decision taken 10 Aug 2026 to launch without it; §7 records what to fill when that changes | §7 |
-| Upstash, DeepSeek/Anthropic/OpenAI, `CRON_SECRET`, PostHog env vars unset → both crons 401, tutor on local fallback | §3, §9 |
+| ~~Upstash, `CRON_SECRET`~~ — **set**, per owner confirmation 21 Aug 2026 (not independently verified — spot-check Vercel env or expect non-401 from both cron routes with the bearer token). AI provider keys (`DEEPSEEK_API_KEY`/`ANTHROPIC_API_KEY`/`OPENAI_API_KEY`) and PostHog: still confirm which are present — without any AI key the tutor runs on local fallback | §3, §9 |
 
 > ⚠️ **Set Upstash *before* the AI keys.** `src/lib/ai/rate-limit.ts` throws at boot when
 > an AI key is present without Upstash, so adding `DEEPSEEK_API_KEY` or
@@ -586,6 +596,117 @@ npm run typecheck && npm run lint && npm test && npm run build
 - [ ] PostHog funnel confirmed to be receiving events (this is your first proof the EU host
       is right)
 - [ ] Vercel instant-rollback kept in reach
+
+---
+
+## Pre-launch audit changes (21 Aug 2026)
+
+Full-repository audit; everything below is landed, typechecked, linted, and covered by
+the test suite (756 tests green at the time of writing).
+
+**Security / entitlements**
+
+1. **Entitlement-aware content caching** (`src/lib/content/pack-cache.ts`, rewritten
+   `src/components/content/content-provider.tsx`). Before this, a downloaded pack sat in
+   Cache Storage forever, keyed only by content version: a cancelled/expired/refunded
+   account kept serving the full paid bank offline indefinitely, and a manipulated
+   `localStorage` tier re-unlocked it — no server involvement. Now every cached read
+   requires either a live `/api/content/pack?probe=1` confirmation or an unexpired,
+   server-stamped grant (`entitlement.expiresAt`, 72h). Cache entries are keyed by
+   version + tier + owner id, so accounts can't read each other's packs and a Premium
+   cache can't satisfy a Plus session. Sign-out purges the whole cache.
+2. **Premium no longer receives Plus-only modules** (`src/app/api/content/pack/route.ts`).
+   The yard-test modules are a Premium Plus feature per the pricing page, but the pack
+   shipped all of them to any paid tier and hid them in the UI. Now filtered server-side:
+   `modules` is empty unless `hasFeature(tier, "licencePrep")`. Questions/flashcards/
+   scenarios remain shared by design — the regression guard that Premium gets the study
+   bank still holds.
+
+**Honesty fixes**
+
+3. **Readiness evidence handling** (`src/lib/diagnostic/scoring.ts`). Question accuracy
+   was a raw average — 1/1 read as 100% mastery and inflated the predicted-pass figure.
+   Now a Beta-binomial posterior mean shrunk toward the baseline (strength 2), plus a
+   `measured` flag on the breakdown (<12 answered questions ⇒ dashboard and progress say
+   "Predicted pass (estimate)"). Calibrated so 70 straight correct answers across every
+   category still promotes (~70% predicted pass) while one lucky answer cannot.
+4. **Sitemap** — dropped the fake `lastModified: now` on every URL.
+5. **Privacy policy** — added the missing AI photo-upload disclosure (images go to the
+   vision providers, never DeepSeek, never persisted).
+6. **Free plan card** — "R0 forever" now reads "R0 · free week" with "daily practice for
+   your first 7 days", matching what the product actually does after `FREE_TRIAL_DAYS`.
+
+**Tooling / content**
+
+7. **`node scripts/content-audit.mjs`** — duplicate prompts/fronts/titles, invalid
+   category refs, missing sign images, thin explanations, malformed option sets. Found
+   and fixed a real defect: the generated-sign sentence splitter cut options at "(e."
+   (14 affected questions + their derived flashcards + two starter-pack copies); the
+   splitter is abbreviation-aware now. Remaining 2 flagged pairs are distinct physical
+   signs sharing an official description — legitimate, left alone.
+
+### Second-pass audit fixes (21 Aug 2026, later)
+
+Re-audited against the current tree by independent reviewers; the following were still
+broken and are now fixed (783 tests green):
+
+**Billing correctness**
+
+1. **Webhook ledger swallowed all-but-the-first lifecycle event.** Ledger ids were
+   `${event}:${data.id ?? reference ?? ""}` — most lifecycle events carry neither field,
+   so every customer's `refund.processed` / `subscription.disable` /
+   `invoice.payment_failed` collapsed onto one id per event type and only the first ever
+   applied. Now `webhookLedgerId()` (`src/lib/paystack/ledger.ts`) derives a per-instance
+   id (refund reference, subscription code, dispute id); events with no stable identity
+   apply unclaimed (their handlers are idempotent writes), and a `charge.success`
+   without a transaction id is refused rather than applied unprotected.
+2. **Renewal refunds never revoked access.** `refund.processed` matched only
+   `last_charge_reference`, which is written once at first charge — a dashboard refund of
+   any renewal left the account paid forever. Now the refunded transaction is resolved via
+   Paystack (`verifyTransaction`) and downgraded by customer when it was a plan charge;
+   tutor top-up refunds still don't strip subscriptions; on Paystack outage the legacy
+   reference match remains as fallback.
+3. **Expired-but-"active" rows resolved paid forever.** The entitlement date check ran
+   only when `cancel_at_period_end` was set — exactly the flag a dropped disable webhook
+   leaves unset. `tierFromSubscriptionRow()` now expires ANY paid row whose
+   `current_period_end` is more than `EXPIRY_GRACE_MS` (3 days) past.
+4. **Migration 0026** grants UPDATE/INSERT on the six 0024 licence-result columns to
+   anon/authenticated. 0020's column allow-list had not been extended, so any profile
+   upsert naming them failed with 42501 — and PostgREST fails the whole statement,
+   taking the learner's name/code/date down with it.
+
+**Study model**
+
+5. **Weakness ranking is evidence-aware** (`scoring.ts`). Untouched categories sat at the
+   baseline (18) and outranked genuinely-failed ones in `weakCategories`, sending the
+   daily plan to never-attempted material. Each category now carries `perCategoryEvidence`
+   and `perCategoryFloor` (≈80% one-sided lower bound); measured-weak categories rank
+   before unmeasured ones.
+
+**PWA / offline security**
+
+6. Pack cache purges unconditionally on sign-out (demo mode included), and connectivity
+   return re-probes entitlement instead of serving the cached pack on a stale grant until
+   reload. `tests/sw-source.test.ts` pins the SW rule that `/api/` responses are never
+   cached.
+
+**AI robustness**
+
+7. Provider clients get a 30s timeout with max one retry (SDK defaults were 10 min × 2),
+   `maxDuration = 60` declared on all three AI routes, and the learner-profile block is
+   fenced as untrusted data in the system prompt so a tampered client can't rewrite the
+   persona through it.
+
+**UI / a11y**
+
+8. Inputs render at 16px (iOS no longer zooms on focus); tutor message log is a live
+   region; Dialog focus management runs on open/close only instead of every parent
+   keystroke; bottom nav pads to the safe-area inset (`viewportFit: cover`); dashboard,
+   tutor and mock-results views have an h1; practice answers carry a double-tap lock,
+   mock submit fires once; FAQ JSON-LD serialises plain text again (one answer was JSX);
+   onboarding draft restore whitelist-checks enums; `.env.example` documents
+   `CONTENT_HOURLY_IP_LIMIT`, `EYE_TEST_RELEASED`, `EYE_TEST_ALLOWLIST`; emails warn
+   loudly if forced onto the resend.dev test sender in production.
 
 ---
 

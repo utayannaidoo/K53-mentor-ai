@@ -1,8 +1,23 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Accordion } from "@/components/ui/accordion";
 
-const FAQ_ITEMS = [
-  {
+/**
+ * Every item carries `answer` as PLAIN TEXT and optionally `richAnswer` as JSX.
+ * The split exists because the JSON-LD schema serialises these items — a JSX
+ * element stringifies into React-internal garbage ("props", "_owner"), which
+ * Google reads as an invalid Answer. The schema uses the text; the accordion
+ * renders the rich version when one exists.
+ */
+/**
+ * Exported for tests/seo.test.ts, which pins `answer` staying plain text —
+ * the JSON-LD schema serialises it verbatim.
+ */
+export const FAQ_ITEMS: {
+  question: string;
+  answer: string;
+  richAnswer?: ReactNode;
+}[] = [  {
     question: "Is this affiliated with the RTMC? Is the content official?",
     answer:
       "No. K53 Mentor AI is an independent study tool and is not affiliated with or endorsed by the RTMC, your local DLTC, or any government body. Every question and flashcard is written to match the structure and content of the official K53 manual, and each fact traces back to a cited source — but it is study material, not government-issued material.",
@@ -34,7 +49,9 @@ const FAQ_ITEMS = [
   },
   {
     question: "Can I cancel? Do you offer refunds?",
-    answer: (
+    answer:
+      "Yes to both, and neither needs an email. Cancel yourself any time from Account → Billing & plan → Cancel plan: billing stops immediately and you keep full access until the end of the period you have already paid for. Cancel within 7 days of your first payment and that payment is refunded in full, automatically, as you cancel — in that case access ends with the refund. Your progress is kept either way. Duplicate or incorrect charges are always refunded too. Full details are in our Refund & Cancellation Policy.",
+    richAnswer: (
       <>
         Yes to both, and neither needs an email. Cancel yourself any time from{" "}
         <strong className="font-medium text-foreground">
@@ -101,7 +118,13 @@ export function Faq({ withSchema = false }: { withSchema?: boolean }) {
               Straight answers, no fine print
             </h2>
           </div>
-          <Accordion className="mt-10" items={FAQ_ITEMS} />
+          <Accordion
+            className="mt-10"
+            items={FAQ_ITEMS.map((item) => ({
+              question: item.question,
+              answer: item.richAnswer ?? item.answer,
+            }))}
+          />
         </div>
       </div>
     </section>

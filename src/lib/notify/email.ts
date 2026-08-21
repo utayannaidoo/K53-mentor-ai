@@ -29,6 +29,16 @@ export async function sendEmail(msg: EmailMessage): Promise<boolean> {
   if (await isSuppressed(msg.to)) return false;
 
   const from = process.env.NOTIFY_FROM_EMAIL ?? "K53 Mentor <onboarding@resend.dev>";
+  // The fallback only works on a verified test domain and cannot receive
+  // replies — receipts "sent" from it land in spam or nowhere. That is
+  // acceptable while hacking locally; in production it means every payment
+  // confirmation silently misfires, so say so every time it happens.
+  if (!process.env.NOTIFY_FROM_EMAIL && process.env.NODE_ENV === "production") {
+    console.error(
+      "NOTIFY_FROM_EMAIL is not set: emails are sending from the resend.dev test sender. " +
+        "Set NOTIFY_FROM_EMAIL to a verified sender before launch.",
+    );
+  }
 
   try {
     const res = await fetch("https://api.resend.com/emails", {

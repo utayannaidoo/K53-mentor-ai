@@ -78,6 +78,9 @@ export const viewport: Viewport = {
   ],
   width: "device-width",
   initialScale: 1,
+  // Extends the page under the home indicator so the bottom nav can pad to
+  // the real safe-area inset instead of sitting above a white bar.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

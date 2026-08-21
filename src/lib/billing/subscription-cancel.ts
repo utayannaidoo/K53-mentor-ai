@@ -27,10 +27,18 @@ export function refundEligible(ctx: RefundContext): boolean {
 }
 
 /**
- * Disable EVERY active Paystack subscription for a customer and return how many
+ * Disable EVERY live Paystack subscription for a customer and return how many
  * were disabled. Shared by self-serve cancellation and account deletion so both
  * stop billing identically — a plan change can briefly leave two subscriptions
  * live, and leaving even one running keeps charging a card the user has left.
+ *
+ * "Live" means `active` OR `non-renewing`. Paystack's disable API doesn't
+ * cancel outright — it flips the subscription to `non-renewing` (fires
+ * `subscription.not_renew`, keeps it paid through the period) — so a learner
+ * who cancels, thinks better of it, and re-subscribes now has a non-renewing
+ * row beside the new one. Filtering on `active` alone made the second cancel
+ * report "no active subscription found" and leave that old sub's state
+ * ambiguous; disabling both is idempotent and always ends in the same place.
  *
  * THROWS if any disable fails: the caller must then treat billing as still live
  * and NOT proceed as if it stopped (in particular, must not delete the account),
@@ -38,9 +46,11 @@ export function refundEligible(ctx: RefundContext): boolean {
  */
 export async function disableActiveSubscriptions(customerCode: string): Promise<number> {
   const customer = await fetchCustomer(customerCode);
-  const active = customer.subscriptions.filter((s) => s.status === "active");
-  for (const s of active) {
+  const live = customer.subscriptions.filter(
+    (s) => s.status === "active" || s.status === "non-renewing",
+  );
+  for (const s of live) {
     await disableSubscription(s.subscription_code, s.email_token);
   }
-  return active.length;
+  return live.length;
 }

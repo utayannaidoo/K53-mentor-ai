@@ -13,6 +13,9 @@ import { recordAiUsage } from "@/lib/billing/usage.server";
 import { hasFeature } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
+// Streaming replies can legitimately take tens of seconds; declare it rather
+// than letting the platform default cut a slow provider off mid-sentence.
+export const maxDuration = 60;
 
 /** Keep the last N messages so token cost/latency don't grow with chat length. */
 const MAX_TURNS = 10;

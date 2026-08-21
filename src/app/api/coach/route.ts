@@ -13,6 +13,8 @@ import {
 } from "@/lib/ai/coach";
 
 export const runtime = "nodejs";
+// One-shot calls, but the same provider ceiling applies — declare it explicitly.
+export const maxDuration = 60;
 
 /**
  * Short, one-shot coach copy: the "why" line on today's plan and the recap

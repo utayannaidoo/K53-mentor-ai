@@ -66,6 +66,15 @@ const CONFIDENCE_LABELS: Record<ConfidenceLevel, string> = {
   5: "Pretty confident",
 };
 
+// Whitelists for draft restore. The draft comes from localStorage, which the
+// user (or a corrupt write) controls — restoring it blindly once let a tampered
+// `vehicleCode: "99"` flow through the wizard into labels and content gates.
+// Truthiness checks alone can't catch that; enum membership can.
+const GOALS: readonly LicenceGoal[] = ["learners", "drivers", "both"];
+const VEHICLE_CODES: readonly VehicleCode[] = ["8", "10", "14", "A1", "A"];
+const KNOWLEDGE_LEVELS: readonly KnowledgeLevel[] = ["beginner", "some", "confident"];
+const FREQUENCIES: readonly StudyFrequency[] = ["casual", "steady", "intense"];
+
 const CODE_LABEL: Record<VehicleCode, string> = {
   "8": "Car (Code 08)",
   A: "Motorcycle (Code A)",
@@ -112,17 +121,32 @@ export function OnboardingWizard() {
       if (raw) {
         const d = JSON.parse(raw) as Partial<WizardDraft>;
         if (typeof d.step === "number") setStep(Math.min(Math.max(d.step, 0), TOTAL_STEPS));
-        if (d.goal) setGoal(d.goal);
-        if (d.vehicleCode) setVehicleCode(d.vehicleCode);
+        if (d.goal && GOALS.includes(d.goal)) setGoal(d.goal);
+        if (d.vehicleCode && VEHICLE_CODES.includes(d.vehicleCode)) setVehicleCode(d.vehicleCode);
         if (typeof d.testDate === "string") setTestDate(d.testDate);
         if (typeof d.noDate === "boolean") setNoDate(d.noDate);
         if (typeof d.driversTestDate === "string") setDriversTestDate(d.driversTestDate);
         if (typeof d.noDriversDate === "boolean") setNoDriversDate(d.noDriversDate);
         if (typeof d.priorAttempts === "number") setPriorAttempts(d.priorAttempts);
-        if (d.confidence) setConfidence(d.confidence);
-        if (Array.isArray(d.worryCategories)) setWorryCategories(d.worryCategories);
-        if (d.knowledge) setKnowledge(d.knowledge);
-        if (d.frequency) setFrequency(d.frequency);
+        // Confidence is 1–5 by construction of the number check below — but a
+        // tampered 7 would render an empty scale, so bound it too.
+        if (
+          typeof d.confidence === "number" &&
+          d.confidence >= 1 &&
+          d.confidence <= 5 &&
+          Number.isInteger(d.confidence)
+        ) {
+          setConfidence(d.confidence as ConfidenceLevel);
+        }
+        if (Array.isArray(d.worryCategories)) {
+          setWorryCategories(
+            d.worryCategories.filter((c): c is CategoryId =>
+              CATEGORIES.some((cat) => cat.id === c),
+            ),
+          );
+        }
+        if (d.knowledge && KNOWLEDGE_LEVELS.includes(d.knowledge)) setKnowledge(d.knowledge);
+        if (d.frequency && FREQUENCIES.includes(d.frequency)) setFrequency(d.frequency);
       }
     } catch {
       // Corrupt or unavailable storage (private mode, quota) just means a fresh start.

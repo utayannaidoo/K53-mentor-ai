@@ -19,6 +19,7 @@ vi.mock("@/lib/paystack/client", () => ({
   verifyPaystackSignature: vi.fn(() => true),
   fetchCustomer: vi.fn(),
   disableSubscription: vi.fn(),
+  verifyTransaction: vi.fn(),
 }));
 vi.mock("@/lib/notify/email", () => ({
   isEmailConfigured: false,
@@ -64,17 +65,31 @@ function makeAdmin() {
         },
         update(values: Record<string, unknown>) {
           const call: UpdateCall = { table, values };
-          return {
+          type Filter = (col: string, val: unknown) => typeof chain;
+          const chain: {
+            eq: Filter;
+            neq: Filter;
+            select: () => { maybeSingle: () => Promise<{ data: unknown; error: null }> };
+            then: Promise<{ error: null; data: null }>["then"];
+          } = {
             eq(eqColumn: string, eqValue: unknown) {
               call.eqColumn = eqColumn;
               call.eqValue = eqValue;
               updates.push(call);
-              const done = Promise.resolve({ error: null, data: null });
-              return Object.assign(done, {
-                select: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }),
-              });
+              return chain;
+            },
+            // Real queries chain further filters (e.g. .neq("tier","free"));
+            // they only narrow the WHERE clause, so recording once at the
+            // first filter is enough for the assertions below.
+            neq() {
+              return chain;
+            },
+            select: () => ({ maybeSingle: () => Promise.resolve({ data: null, error: null }) }),
+            then(res, rej) {
+              return Promise.resolve({ error: null, data: null }).then(res, rej);
             },
           };
+          return chain;
         },
       };
     },
@@ -84,6 +99,7 @@ function makeAdmin() {
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => makeAdmin() }));
 
 import { POST } from "@/app/api/paystack/webhook/route";
+import { verifyTransaction } from "@/lib/paystack/client";
 
 function send(event: string, data: unknown) {
   return POST(
@@ -99,6 +115,7 @@ beforeEach(() => {
   updates.length = 0;
   subscriptionRow = null;
   process.env.PAYSTACK_SECRET_KEY = "sk_test_stub";
+  vi.mocked(verifyTransaction).mockReset();
   vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
@@ -145,6 +162,36 @@ describe("subscription.disable", () => {
     });
     expect(updates[0].values).toMatchObject({ tier: "free", status: "canceled" });
   });
+
+  it("ignores a disable for a superseded plan (plan switch cleanup)", async () => {
+    // applyChargeSuccess disables the OLD plan after granting the new one, and
+    // Paystack fires this event for it. The row points at the NEW subscription;
+    // downgrading here would strip a tier paid for seconds earlier — observed
+    // in production on a Plus→Premium switch.
+    subscriptionRow = {
+      current_period_end: new Date(Date.now() - 86_400_000).toISOString(), // even a past period must not trigger
+      provider_subscription_id: "SUB_NEW_PREMIUM",
+    };
+    await send("subscription.disable", {
+      subscription_code: "SUB_OLD_PLUS",
+      customer: { customer_code: "CUS_1" },
+    });
+    expect(updates).toHaveLength(0);
+  });
+
+  it("still handles the disable when the event matches the recorded subscription", async () => {
+    // Self-serve cancel and Paystack-initiated disables concern the sub our
+    // row represents — normal handling applies.
+    subscriptionRow = {
+      current_period_end: new Date(Date.now() - 86_400_000).toISOString(),
+      provider_subscription_id: "SUB_CURRENT",
+    };
+    await send("subscription.disable", {
+      subscription_code: "SUB_CURRENT",
+      customer: { customer_code: "CUS_1" },
+    });
+    expect(updates[0].values).toMatchObject({ tier: "free", status: "canceled" });
+  });
 });
 
 describe("subscription.not_renew", () => {
@@ -186,7 +233,45 @@ describe("charge.dispute.create", () => {
 });
 
 describe("refund.processed", () => {
-  it("downgrades the subscription whose charge was refunded", async () => {
+  it("downgrades by customer when Paystack confirms a subscription charge", async () => {
+    // Renewal charges never land in last_charge_reference, so the only way a
+    // renewal refundee loses their tier is via this lookup path.
+    vi.mocked(verifyTransaction).mockResolvedValue({
+      id: 7,
+      status: "success",
+      reference: "ref_renewal",
+      customer: { customer_code: "CUS_9", email: "a@b.c" },
+      plan: { plan_code: "PLN_premium" },
+    });
+    const res = await send("refund.processed", {
+      transaction: { reference: "ref_renewal" },
+      status: "processed",
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].values).toMatchObject({ tier: "free", status: "canceled" });
+    expect(updates[0].values).toHaveProperty("refunded_at");
+    expect(updates[0].eqColumn).toBe("provider_customer_id");
+    expect(updates[0].eqValue).toBe("CUS_9");
+  });
+
+  it("does NOT strip a subscription when the refunded charge was a tutor top-up", async () => {
+    vi.mocked(verifyTransaction).mockResolvedValue({
+      id: 8,
+      status: "success",
+      reference: "ref_topup",
+      customer: { customer_code: "CUS_9", email: "a@b.c" },
+      plan: null,
+    });
+    const res = await send("refund.processed", { transaction: { reference: "ref_topup" } });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(0);
+  });
+
+  it("falls back to the last_charge_reference match when the lookup fails", async () => {
+    // Paystack outage must not turn a refund into a no-op for first charges,
+    // which are exactly the ones recorded in last_charge_reference.
+    vi.mocked(verifyTransaction).mockRejectedValue(new Error("paystack down"));
     const res = await send("refund.processed", {
       transaction: { reference: "ref_first_charge" },
       status: "processed",
@@ -194,19 +279,14 @@ describe("refund.processed", () => {
     expect(res.status).toBe(200);
     expect(updates).toHaveLength(1);
     expect(updates[0].values).toMatchObject({ tier: "free", status: "canceled" });
-    expect(updates[0].values).toHaveProperty("refunded_at");
-  });
-
-  it("matches on the charge reference, not the customer", async () => {
-    // Matching by customer would strip a subscription when a one-off tutor
-    // top-up is refunded.
-    await send("refund.processed", { transaction: { reference: "ref_first_charge" } });
     expect(updates[0].eqColumn).toBe("last_charge_reference");
     expect(updates[0].eqValue).toBe("ref_first_charge");
   });
 
   it("accepts the flat transaction_reference shape too", async () => {
+    vi.mocked(verifyTransaction).mockRejectedValue(new Error("paystack down"));
     await send("refund.processed", { transaction_reference: "ref_flat" });
+    expect(updates[0].eqColumn).toBe("last_charge_reference");
     expect(updates[0].eqValue).toBe("ref_flat");
   });
 

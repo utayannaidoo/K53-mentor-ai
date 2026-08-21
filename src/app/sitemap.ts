@@ -3,14 +3,16 @@ import { SITE_URL } from "@/lib/constants";
 import { GUIDES } from "./guides/guides";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const now = new Date();
   const page = (path: string, priority: number): MetadataRoute.Sitemap[number] => ({
     url: `${SITE_URL}${path}`,
-    lastModified: now,
     changeFrequency: "monthly",
     priority,
   });
 
+  // No `lastModified`: this function re-renders on every build, so stamping
+  // `now` claimed every page had changed on every deploy — a fake date search
+  // engines learn to ignore at best. Omitting it is the honest default; they
+  // fall back to their own crawl signals.
   return [
     page("/", 1),
     page("/pricing", 0.9),

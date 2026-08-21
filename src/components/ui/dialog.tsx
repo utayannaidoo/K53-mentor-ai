@@ -24,10 +24,20 @@ export function Dialog({
 }) {
   const [mounted, setMounted] = React.useState(false);
   const panelRef = React.useRef<HTMLDivElement>(null);
+  // Latest-callback ref: callers pass inline arrows, so `onClose` gets a new
+  // identity on every parent render. With it in the deps, this effect — which
+  // steals focus and re-subscribes listeners — re-ran on every keystroke of
+  // the parent (worst during tutor streaming), yanking focus back to the
+  // panel mid-interaction. The effect now runs only on open/close.
+  const onCloseRef = React.useRef(onClose);
+  React.useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
   React.useEffect(() => setMounted(true), []);
 
   React.useEffect(() => {
     if (!open) return;
+    const onClose = onCloseRef.current;
     // Focus management: move focus into the dialog on open, keep Tab cycling
     // inside it, and hand focus back to the opener on close.
     const opener = document.activeElement as HTMLElement | null;
@@ -66,7 +76,7 @@ export function Dialog({
       document.body.style.overflow = "";
       opener?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open || !mounted) return null;
 

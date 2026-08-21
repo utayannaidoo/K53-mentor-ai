@@ -68,11 +68,15 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
+      {/* TodaySheet's own headings start at h2 (its bands are sections), so the
+          page's h1 lives here — visually hidden to keep the sheet's design. */}
+      <h1 className="sr-only">Today&apos;s study plan</h1>
       <TodaySheet
         firstName={state.profile?.name?.split(" ")[0] ?? "there"}
         vehicleLabel={CODE_LABEL[studyCodeOf(state)]}
         readiness={readiness.readiness}
         passProbability={readiness.passProbability}
+        measured={readiness.measured}
         delta={weekDelta(state.readinessHistory, readiness.readiness)}
         streak={state.streak.current}
         cp={state.cp}

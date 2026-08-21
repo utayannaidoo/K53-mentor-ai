@@ -671,7 +671,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "Reduced visibility can be expected ahead (e.",
+      "Reduced visibility can be expected ahead (e.g. frequent mist).",
       "General warning sign, usually with an explanatory plate beneath it.",
       "Speed humps ahead. Slow down and obey any speed limit sign.",
       "Steep uphill ahead. You may not cross a No Overtaking line to overtake a slow moving vehicle."
@@ -722,7 +722,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "Priority road. The road you are travelling on has priority at the junction ahead.",
       "Temporary high speed exit countdown sign.",
       "High speed freeway exit countdown signs.",
-      "Modal transfer. At this point you can change your mode of transport, e."
+      "Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus."
     ],
     "correctIndex": 0,
     "explanation": "Priority road: Priority road. The road you are travelling on has priority at the junction ahead.",

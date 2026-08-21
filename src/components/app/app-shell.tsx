@@ -174,8 +174,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <TestDayDialog />
       </div>
 
-      {/* Mobile bottom nav */}
-      <nav className="glass-panel fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t md:hidden">
+      {/* Mobile bottom nav. The padding bottoms out at the safe-area inset so
+          a phone's home indicator never overlays the labels when the app runs
+          standalone (installed PWA, viewportFit=cover). */}
+      <nav className="glass-panel fixed inset-x-0 bottom-0 z-40 flex items-stretch border-t md:hidden pb-[max(0px,env(safe-area-inset-bottom))]">
         {NAV.map((item) => {
           const active = item.match(pathname);
           const locked = item.lockedForFree && prepLocked;

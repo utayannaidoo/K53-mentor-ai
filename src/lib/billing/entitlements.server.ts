@@ -125,34 +125,10 @@ export async function resolveTier(): Promise<ResolvedTier | Response> {
       .select("tier,status,cancel_at_period_end,current_period_end")
       .eq("user_id", user.id)
       .maybeSingle();
-    const row = data as {
-      tier: SubscriptionTier;
-      status: string;
-      cancel_at_period_end: boolean | null;
-      current_period_end: string | null;
-    } | null;
-    // past_due = failed renewal inside Paystack's retry window — a grace
-    // state. The hard cutoff is subscription.disable → tier back to free.
-    if (row && (row.status === "active" || row.status === "trialing" || row.status === "past_due")) {
-      tier = row.tier;
-    }
-
-    // A cancelled-but-not-yet-expired subscription keeps its tier until the
-    // paid period runs out. Once it has, access ends here — independently of
-    // the `subscription.disable` webhook that is *supposed* to do the
-    // downgrade.
-    //
-    // That redundancy is the point. Paystack's disable event is the only thing
-    // that would otherwise end this, and a single dropped webhook would leave
-    // someone on a paid tier forever, for free, with nothing to notice it.
-    // Checking a date we already hold costs nothing and cannot be missed.
-    //
-    // Only consulted when `cancel_at_period_end` is set, so a stale date on an
-    // actively-renewing subscription can never lock out a paying customer.
-    if (tier !== "free" && row?.cancel_at_period_end && row.current_period_end) {
-      const endsAt = Date.parse(row.current_period_end);
-      if (Number.isFinite(endsAt) && Date.now() >= endsAt) tier = "free";
-    }
+    tier = tierFromSubscriptionRow(
+      data as SubscriptionRowLike | null,
+      Date.now(),
+    );
   } catch {
     // Fail closed: an unreadable subscription is a free one.
   }
@@ -161,6 +137,55 @@ export async function resolveTier(): Promise<ResolvedTier | Response> {
 }
 
 const DAY_MS = 86_400_000;
+
+/**
+ * How far past `current_period_end` a still-"active" row is treated as expired.
+ *
+ * Paystack charges ON the renewal date, and a card retry can leave the stored
+ * end date stale by a day or two while the customer is still current — so the
+ * cutoff needs slack. Three days covers that retry window; anything longer is
+ * a subscription Paystack has stopped renewing but whose `subscription.disable`
+ * event we never received (dropped webhook, ledger gap). Without this check
+ * such a row resolves paid forever.
+ */
+export const EXPIRY_GRACE_MS = 3 * DAY_MS;
+
+export interface SubscriptionRowLike {
+  tier: SubscriptionTier;
+  status: string;
+  cancel_at_period_end: boolean | null;
+  current_period_end: string | null;
+}
+
+/**
+ * Resolve a `subscriptions` row to the tier it entitles, right now.
+ *
+ * Rules, in order:
+ *  - only active / trialing / past_due statuses carry a paid tier at all;
+ *  - a row flagged `cancel_at_period_end` expires the moment its period ends —
+ *    no grace, because the learner was told access stops on that date;
+ *  - ANY paid row whose period ended more than EXPIRY_GRACE_MS ago expires too,
+ *    flag or no flag. This is the backstop for a missed
+ *    `subscription.disable`: before it existed, an `active` row with a stale
+ *    date resolved paid forever.
+ */
+export function tierFromSubscriptionRow(
+  row: SubscriptionRowLike | null,
+  now = Date.now(),
+): SubscriptionTier {
+  let tier: SubscriptionTier = "free";
+  if (row && (row.status === "active" || row.status === "trialing" || row.status === "past_due")) {
+    tier = row.tier;
+  }
+  if (tier === "free" || !row?.current_period_end) return tier;
+
+  const endsAt = Date.parse(row.current_period_end);
+  if (!Number.isFinite(endsAt)) return tier;
+
+  if (row.cancel_at_period_end && now >= endsAt) return "free";
+  if (now >= endsAt + EXPIRY_GRACE_MS) return "free";
+  return tier;
+}
 
 /**
  * Is this free account still inside its free week?

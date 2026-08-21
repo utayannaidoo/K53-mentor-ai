@@ -1,6 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { manageSubscriptionLink, verifyPaystackSignature } from "@/lib/paystack/client";
+import {
+  manageSubscriptionLink,
+  verifyPaystackSignature,
+  verifyTransaction,
+} from "@/lib/paystack/client";
 import { applyChargeSuccess, type ChargeSuccessData } from "@/lib/paystack/apply";
+import { webhookLedgerId } from "@/lib/paystack/ledger";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildPaymentFailedEmail } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
@@ -51,22 +56,34 @@ export async function POST(req: Request) {
 
   // Paystack redelivers events. The ledger makes every event apply exactly
   // once — a duplicate charge.success can't double-grant top-up credits.
-  const dataId =
-    typeof (payload.data as { id?: unknown; reference?: unknown })?.id !== "undefined"
-      ? String((payload.data as { id: unknown }).id)
-      : String((payload.data as { reference?: unknown })?.reference ?? "");
-  const ledgerId = `${payload.event}:${dataId}`;
-  const { error: ledgerError } = await admin
-    .from("payment_events")
-    .insert({ id: ledgerId, type: payload.event });
-  if (ledgerError?.code === "23505") {
-    return Response.json({ received: true, duplicate: true });
+  // The id must be unique per event INSTANCE: lifecycle events carry no
+  // transaction id, so the id comes from webhookLedgerId (subscription code,
+  // refund reference, dispute id). When no reliable identity exists the event
+  // is applied without a ledger claim — every such handler is an idempotent
+  // state write, so a redelivery converges on the same state. charge.success
+  // is the exception: its grant is NOT idempotent (credits), so an unclaimable
+  // one fails instead of applying unprotected.
+  const ledgerId = webhookLedgerId(payload.event, payload.data);
+  if (ledgerId === null) {
+    if (payload.event === "charge.success") {
+      console.error("paystack webhook: charge.success without transaction id; refusing to apply unclaimed");
+      return Response.json({ error: "Event has no dedup identity" }, { status: 400 });
+    }
+    console.error("paystack webhook: no ledger id derivable, applying unclaimed", payload.event);
   }
-  if (ledgerError) {
-    // The dedup state is unknown — applying anyway could double-grant on a
-    // redelivery. Fail so Paystack retries once the ledger is reachable.
-    console.error("paystack webhook: ledger insert failed", payload.event, ledgerError.message);
-    return Response.json({ error: "Ledger unavailable" }, { status: 500 });
+  if (ledgerId !== null) {
+    const { error: ledgerError } = await admin
+      .from("payment_events")
+      .insert({ id: ledgerId, type: payload.event });
+    if (ledgerError?.code === "23505") {
+      return Response.json({ received: true, duplicate: true });
+    }
+    if (ledgerError) {
+      // The dedup state is unknown — applying anyway could double-grant on a
+      // redelivery. Fail so Paystack retries once the ledger is reachable.
+      console.error("paystack webhook: ledger insert failed", payload.event, ledgerError.message);
+      return Response.json({ error: "Ledger unavailable" }, { status: 500 });
+    }
   }
 
   try {
@@ -137,16 +154,44 @@ export async function POST(req: Request) {
         // on charge success, and entitlements re-checks it on every request, so
         // access still ends on time without this event having to be the thing
         // that ends it.
+        //
+        // Plan switches also fire this event — applyChargeSuccess deliberately
+        // disables every superseded plan after granting the newly-paid one. The
+        // disabled code belongs to the OLD plan; our row already points at the
+        // new subscription. Acting anyway would downgrade a learner seconds
+        // after they paid (observed in production: a Plus→Premium switch landed
+        // as "no subscription"). So when the row names its subscription and the
+        // event is for a different one, ignore it. Rows without a recorded id
+        // (pre-0008 data) fall through to the customer-based rule below.
         const data = payload.data as SubscriptionEventData;
         const customerCode = data.customer?.customer_code;
         if (!customerCode) break;
 
         const { data: row } = await admin
           .from("subscriptions")
-          .select("current_period_end")
+          .select("current_period_end, provider_subscription_id")
           .eq("provider_customer_id", customerCode)
           .maybeSingle();
-        const endsAt = (row as { current_period_end: string | null } | null)?.current_period_end;
+        const sub = row as {
+          current_period_end: string | null;
+          provider_subscription_id: string | null;
+        } | null;
+
+        if (
+          sub?.provider_subscription_id &&
+          data.subscription_code &&
+          data.subscription_code !== sub.provider_subscription_id
+        ) {
+          console.error(
+            "subscription.disable for a superseded plan; ignoring",
+            data.subscription_code,
+            "row points at",
+            sub.provider_subscription_id,
+          );
+          break;
+        }
+
+        const endsAt = sub?.current_period_end ?? null;
         const stillPaidFor = endsAt ? Date.parse(endsAt) > Date.now() : false;
 
         const { error } = await admin
@@ -222,10 +267,14 @@ export async function POST(req: Request) {
         // harmless. The case this exists for is a refund issued from the
         // Paystack dashboard, which previously left the account paid forever.
         //
-        // Matched on the refunded transaction's reference rather than the
-        // customer, so refunding a one-off tutor top-up cannot strip someone's
-        // subscription: only the charge recorded as the subscription's own
-        // last_charge_reference downgrades it.
+        // The refunded charge is resolved through Paystack's API first: a
+        // renewal charge carries no checkout metadata and never lands in
+        // `last_charge_reference`, so reference-matching alone silently kept
+        // every renewal refundee on a paid tier. Verifying the transaction
+        // also tells a subscription charge (it has a plan) from a one-off
+        // tutor top-up (it doesn't) — only the former may strip the tier.
+        // If Paystack can't be reached, fall back to the legacy
+        // last_charge_reference match, which still covers first charges.
         const data = payload.data as {
           transaction?: { reference?: string };
           transaction_reference?: string;
@@ -233,15 +282,42 @@ export async function POST(req: Request) {
         };
         const reference = data.transaction?.reference ?? data.transaction_reference;
         if (!reference) break;
-        const { error } = await admin
-          .from("subscriptions")
-          .update({
-            tier: "free",
-            status: "canceled",
-            refunded_at: new Date().toISOString(),
-          })
-          .eq("last_charge_reference", reference);
-        if (error) throw new Error(`refund downgrade failed: ${error.message}`);
+
+        let applied = false;
+        try {
+          const tx = await verifyTransaction(reference);
+          const customerCode = tx.customer?.customer_code;
+          if (customerCode && tx.plan) {
+            const { error } = await admin
+              .from("subscriptions")
+              .update({
+                tier: "free",
+                status: "canceled",
+                refunded_at: new Date().toISOString(),
+              })
+              .eq("provider_customer_id", customerCode)
+              .neq("tier", "free");
+            if (error) throw new Error(`refund downgrade failed: ${error.message}`);
+            applied = true;
+          } else if (customerCode && !tx.plan) {
+            // A refunded tutor top-up: credits stay spent, subscription stays.
+            applied = true;
+          }
+        } catch (err) {
+          console.error("paystack webhook: refund lookup failed, falling back", err);
+        }
+
+        if (!applied) {
+          const { error } = await admin
+            .from("subscriptions")
+            .update({
+              tier: "free",
+              status: "canceled",
+              refunded_at: new Date().toISOString(),
+            })
+            .eq("last_charge_reference", reference);
+          if (error) throw new Error(`refund downgrade failed: ${error.message}`);
+        }
         break;
       }
 
@@ -256,13 +332,15 @@ export async function POST(req: Request) {
     // can fix. The delete is best-effort; if it also fails, the retry hits
     // the 23505 path and ops must reconcile from the logs.
     console.error("paystack webhook: apply failed, releasing ledger row", payload.event, err);
-    await admin
-      .from("payment_events")
-      .delete()
-      .eq("id", ledgerId)
-      .then(({ error }) => {
-        if (error) console.error("paystack webhook: ledger release failed", ledgerId, error.message);
-      });
+    if (ledgerId !== null) {
+      await admin
+        .from("payment_events")
+        .delete()
+        .eq("id", ledgerId)
+        .then(({ error }) => {
+          if (error) console.error("paystack webhook: ledger release failed", ledgerId, error.message);
+        });
+    }
     return Response.json({ error: "Event could not be applied" }, { status: 500 });
   }
 

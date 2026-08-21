@@ -71,10 +71,14 @@ export function MockExam() {
   const [answers, setAnswers] = React.useState<number[]>([]);
   const [i, setI] = React.useState(0);
   const [secondsLeft, setSecondsLeft] = React.useState(EXAM_SECONDS);
-  // Mini results live here — minis feed the predictor but are not full mocks,
-  // so nothing is written to state.mockExams.
+  // Mini results live here. Minis feed the predictor AND are recorded to
+  // state.mockExams with a `mini` flag, so the daily mock allowances count them.
   const [miniResult, setMiniResult] = React.useState<ExamResult | null>(null);
   const startRef = React.useRef(0);
+  // Fire-once guard: submit() is reachable from the X button, "Submit now",
+  // the finish arrow AND the timer expiry. A racing double-click used to push
+  // two identical exam rows and double the CP.
+  const submittedRef = React.useRef(false);
   // Pass probability before this exam's answers hit the readiness model —
   // shown against the recomputed value so the learner sees the number move.
   const preProbRef = React.useRef<number | null>(null);
@@ -83,6 +87,8 @@ export function MockExam() {
   const remainingMocks = drill ? drillsRemaining(state) : mocksRemaining(state, mini ? "mini" : "full");
 
   const submit = React.useCallback(() => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
     const correct = questions.reduce((n, q, idx) => n + (answers[idx] === q.correctIndex ? 1 : 0), 0);
     const perCategory: Partial<Record<CategoryId, CategoryScore>> = {};
     for (const cat of CATEGORIES) {
@@ -354,6 +360,11 @@ export function MockExam() {
       .map(categoryName);
     return (
       <div className="mx-auto max-w-2xl">
+        {/* Results phase renders only h2 sections below, so the page's h1 is
+            this visually-hidden one naming what was just completed. */}
+        <h1 className="sr-only">
+          {drill ? "Section drill results" : mini ? "Mini mock results" : "Mock exam results"}
+        </h1>
         <Card className="p-8 text-center">
           <ScoreRing
             value={Math.round((last.score / last.total) * 100)}

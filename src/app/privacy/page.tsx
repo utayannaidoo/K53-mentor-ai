@@ -61,6 +61,11 @@ export default function PrivacyPage() {
           study context, such as your weak categories) is sent to our AI provider to generate the
           reply. We do not send your name, email or payment details with tutor requests.
         </p>
+        <p>
+          If you attach a photo — to the sign scanner or to a tutor message — the image itself is
+          sent to whichever AI provider can analyse images. Photos are not sent to DeepSeek (which
+          handles text only), and they are not stored by us after the reply is generated.
+        </p>
       </section>
 
       <section>

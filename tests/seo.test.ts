@@ -62,6 +62,19 @@ describe("structured data", () => {
     expect(src).toContain('"@type": "Answer"');
   });
 
+  it("every FAQ answer is plain text — the schema serialises it verbatim", () => {
+    // A JSX answer stringifies into React internals ("props", "_owner"),
+    // which Google reads as an invalid Answer and drops the rich result for.
+    // Rich rendering lives in `richAnswer`; `answer` must stay a plain string.
+    // Asserted at source level: vitest runs in a node environment, which does
+    // not transform this component's JSX for direct import.
+    const src = read("src/components/landing/faq.tsx");
+    expect(src).not.toMatch(/answer:\s*\(/);
+    const textAnswers = src.match(/^\s{4}answer:\s*`?"/gm) ?? [];
+    expect(textAnswers.length).toBeGreaterThanOrEqual(8);
+    expect(src).toMatch(/richAnswer\?:/);
+  });
+
   it("every guide claims its own Article schema, with a slug that matches its route", () => {
     const dir = path.join(ROOT, "src/app/guides");
     const guides = readdirSync(dir, { withFileTypes: true })

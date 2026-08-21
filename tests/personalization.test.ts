@@ -20,8 +20,27 @@ const readiness: ReadinessBreakdown = {
     following_distance: 40,
     hazard_awareness: 40,
   },
+  perCategoryEvidence: {
+    signs: 10,
+    rules: 10,
+    controls: 10,
+    intersections: 10,
+    parking: 10,
+    following_distance: 10,
+    hazard_awareness: 10,
+  },
+  perCategoryFloor: {
+    signs: 30,
+    rules: 30,
+    controls: 30,
+    intersections: 30,
+    parking: 30,
+    following_distance: 30,
+    hazard_awareness: 30,
+  },
   weakCategories: [],
   strongCategories: [],
+  measured: true,
 };
 
 function planSum(plan: Record<CategoryId, number>): number {

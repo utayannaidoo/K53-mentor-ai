@@ -120,7 +120,11 @@ export function QuestionPractice() {
     new Array(queue.length).fill(null),
   );
   const sessionRecorded = React.useRef(false);
-
+  // Synchronous double-tap lock. `answers[i] !== null` alone cannot stop two
+  // taps in the same tick — both read the same stale closure before either
+  // re-render lands, recording the attempt (and its CP) twice. Same pattern
+  // as diagnostic-runner.tsx, which documents the full failure mode.
+  const answering = React.useRef(false);
   // Must sit with the other hooks, above the early returns below — the cap
   // paywall, the empty state and the summary all return before the question
   // renders, and a hook declared after them would run conditionally.
@@ -128,6 +132,8 @@ export function QuestionPractice() {
   const shownAt = React.useRef<number>(Date.now());
   React.useEffect(() => {
     shownAt.current = Date.now();
+    // Release the double-tap lock once the next question has rendered.
+    answering.current = false;
   }, [i]);
 
   /**
@@ -262,7 +268,8 @@ export function QuestionPractice() {
   const isLast = i + 1 >= queue.length;
 
   function choose(optionIndex: number) {
-    if (answers[i] !== null) return; // already answered — don't re-record
+    if (answering.current || answers[i] !== null) return; // already answered — don't re-record
+    answering.current = true;
     // Acknowledge the tap physically before the visual result lands.
     if (optionIndex === q.correctIndex) haptics.success();
     else haptics.error();

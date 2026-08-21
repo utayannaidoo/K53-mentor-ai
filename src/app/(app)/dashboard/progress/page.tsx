@@ -396,7 +396,10 @@ export default function ProgressPage() {
               app-shell header, and on this page the sentence outranks it. */}
           <FigureRow>
             <Figure label="Readiness" value={`${readiness.readiness}%`} />
-            <Figure label="Predicted pass" value={`${readiness.passProbability}%`} />
+            <Figure
+              label={readiness.measured ? "Predicted pass" : "Predicted pass (estimate)"}
+              value={`${readiness.passProbability}%`}
+            />
             <Figure label="Accuracy" value={hasAttempts ? `${accuracy}%` : "—"} />
             <Figure label="Questions" value={answered.toLocaleString()} />
           </FigureRow>

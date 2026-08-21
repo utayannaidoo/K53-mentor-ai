@@ -365,7 +365,9 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
               <Sparkles className="h-4 w-4" />
             </span>
             <div>
-              <p className="text-sm font-semibold">K53 Mentor</p>
+              {/* h1: this page renders no other heading, and the chat title
+                  was a <p>, leaving the view without one for assistive tech. */}
+              <h1 className="text-sm font-semibold">K53 Mentor</h1>
               {thread?.contextLabel ? (
                 <Badge variant="secondary" className="mt-0.5">{thread.contextLabel}</Badge>
               ) : (
@@ -391,8 +393,9 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
           </div>
         </div>
 
-        {/* Messages */}
-        <div ref={scrollRef} className="flex-1 space-y-4 overflow-y-auto p-4">
+        {/* Messages. role="log" + aria-live so a streaming reply is announced
+            as it arrives instead of silently appearing for screen readers. */}
+        <div ref={scrollRef} role="log" aria-live="polite" className="flex-1 space-y-4 overflow-y-auto p-4">
           {messages.length === 0 &&
             (opener ? (
               // The tutor opens with what it noticed, rather than leaving the
@@ -428,7 +431,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   <Markdown>{m.content}</Markdown>
                 </div>
               ) : (
-                <div className="max-w-[85%] animate-fade-in rounded-2xl rounded-tr-sm bg-gradient-to-br from-primary to-primary-light px-4 py-3 text-sm text-primary-foreground shadow-[0_8px_22px_-10px_hsl(var(--primary)/0.6)]">
+                <div className="max-w-[85%] animate-fade-in break-words rounded-2xl rounded-tr-sm bg-gradient-to-br from-primary to-primary-light px-4 py-3 text-sm text-primary-foreground shadow-[0_8px_22px_-10px_hsl(var(--primary)/0.6)]">
                   {m.content}
                 </div>
               )}

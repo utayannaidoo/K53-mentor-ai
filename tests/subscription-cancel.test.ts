@@ -36,6 +36,21 @@ describe("disableActiveSubscriptions", () => {
     expect(disableSubscription).toHaveBeenCalledWith("SUB_1", "tok_1");
   });
 
+  it("treats non-renewing subscriptions as live and disables them too", async () => {
+    // Paystack's disable API flips a subscription to `non-renewing` rather
+    // than removing it, so a cancel-then-resubscribe customer carries one of
+    // these beside their new sub. Counting only `active` made the second
+    // cancel report "no active subscription found" — observed in production.
+    vi.mocked(fetchCustomer).mockResolvedValue(customer(["non-renewing", "active", "cancelled"]) as never);
+
+    const n = await disableActiveSubscriptions("CUS_x");
+
+    expect(n).toBe(2);
+    expect(disableSubscription).toHaveBeenCalledWith("SUB_0", "tok_0");
+    expect(disableSubscription).toHaveBeenCalledWith("SUB_1", "tok_1");
+    expect(disableSubscription).not.toHaveBeenCalledWith("SUB_2", "tok_2");
+  });
+
   it("returns 0 and disables nothing when none are active", async () => {
     vi.mocked(fetchCustomer).mockResolvedValue(customer(["cancelled"]) as never);
     expect(await disableActiveSubscriptions("CUS_x")).toBe(0);
