@@ -47,3 +47,6 @@ build.log
 
 # tutor grounding eval reports (scripts/tutor-eval.mjs) — run output, not source
 .tutor-eval/
+
+# opencode session scratch — throwaway by definition
+.opencode-tmp/

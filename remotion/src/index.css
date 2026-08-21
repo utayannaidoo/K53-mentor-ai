@@ -1,0 +1,15 @@
+/*
+ * The only global CSS in the project. Everything else is an inline `style`
+ * object so Remotion Studio can select an element and write edits back to
+ * source. Nothing here animates — CSS animation does not render deterministically.
+ */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
