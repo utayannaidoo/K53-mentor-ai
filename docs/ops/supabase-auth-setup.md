@@ -118,6 +118,40 @@ is how these links start failing silently.
 Verify each one after saving: sign up with a throwaway address, open the mail **on a
 different device**, and confirm you land on the app rather than `/login?error=…`.
 
+## Security settings checklist (verify in the dashboard)
+
+Sections 1–3 are one-time setup; the switches below are GoTrue posture that only stays
+true while someone actually checks it in the dashboard — no test or CI job in this repo
+can see them. Find each under Dashboard → **Authentication**; exact grouping shifts
+between projects, the feature names don't.
+
+- [ ] **Confirm email** ON for password signups. Everything in this doc presumes an
+      unconfirmed account has no session (`auth-form.tsx` shows its "check your inbox"
+      panel precisely because of it) — yet nowhere else does any page state the switch
+      itself. Verify, don't assume.
+- [ ] **Leaked password protection** ON when the plan allows — signup/sign-in then
+      rejects passwords seen in known breaches. A paid-plan feature, currently a
+      recorded deferral on the free tier (launch runbook §4); flip it when the project
+      upgrades.
+- [ ] **Refresh token rotation** left ON (it is the default). A stolen refresh token
+      dies the first time it is replayed, instead of coexisting quietly with its owner.
+- [ ] **Access-token (JWT) expiry** left at the default of roughly an hour — do not
+      raise it casually. Short-lived access tokens refreshed via rotating refresh
+      tokens is the model the middleware's session refresh assumes; a longer token
+      widens every theft window for no UX gain.
+- [ ] **OTP / email-link expiry** kept at its default (short). `/auth/callback` and the
+      login screen already explain an expired link and offer a fresh one, so a tight
+      window costs a legitimate learner nothing.
+- [ ] **Anonymous sign-ins** OFF. Nothing in `src/` calls `signInAnonymously`, so an
+      enabled provider is pure surface area — throwaway sessions that burn quota and
+      mail capacity while belonging to nobody.
+- [ ] **Site URL + Redirect URLs** still read exactly as §2 above — apex origin, the
+      listed callback paths, nothing added. Every origin the allowlist accepts is one
+      Supabase will hand auth codes to.
+- [ ] Optional, only if signup spam ever appears: **CAPTCHA / bot protection**
+      (hCaptcha or Turnstile) on the signup flow. Real learners pay the friction too,
+      so leave it off until abuse asks for it.
+
 ## What the code already covers
 
 | Situation | Handling |

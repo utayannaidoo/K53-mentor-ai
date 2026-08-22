@@ -191,6 +191,10 @@ Set these in Vercel → Settings → Environment Variables, **Production** scope
       plan, and the decision is to launch without it. The advisors will keep flagging it;
       that is expected, not an outstanding task. Revisit when the project moves off the
       free tier.
+- [ ] **GoTrue security switches** — refresh-token rotation, anonymous sign-ins off,
+      confirm-email on, JWT/link expiry defaults: work through
+      [Security settings checklist](./supabase-auth-setup.md#security-settings-checklist-verify-in-the-dashboard)
+      in [`supabase-auth-setup.md`](./supabase-auth-setup.md)
 - [ ] Backup/PITR situation confirmed and the restore path understood
 
 > None of the above is verified by CI. It is entirely dashboard-side, which is exactly why
