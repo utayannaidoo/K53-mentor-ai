@@ -28,10 +28,11 @@ rather than alarming. Already in place and tested:
 
 ## 0. Status as of 9 Aug 2026
 
-**Live:** `https://k53mentorai.co.za` serves the app from Vercel. `www` resolves and
-serves too (200, not a redirect — the canonical tag points at the apex, so Google
-consolidates, but a 308 would be tidier). Canonicals, sitemap, robots and OG all emit
-the correct origin. Migrations `0001` → `0020` applied and verified.
+**Live:** `https://k53mentorai.co.za` serves the app from Vercel. `www` 308s to the apex
+in middleware (`src/lib/auth/canonical-host.ts`, enforced on production only) — the old
+"200, not a redirect" note is stale. Canonicals, sitemap, robots and OG all emit
+the correct origin. Migrations `0001` → `0025` applied and verified; **0026 pending —
+apply via SQL editor before relying on licence-result sync.**
 
 > **Migration status corrected 21 Aug 2026:** the repo now ships through `0025`, and a
 > read-only introspection of the live database (`/rest/v1/` OpenAPI, service role) on

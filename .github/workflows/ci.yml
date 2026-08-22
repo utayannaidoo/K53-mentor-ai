@@ -5,12 +5,20 @@ on:
     branches: [main]
   pull_request:
 
+# Superseded runs on the same branch are cancelled — main pushes land faster
+# and PR checks don't pile up.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    # A hung step fails loudly instead of burning 6 hours of runner time.
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
