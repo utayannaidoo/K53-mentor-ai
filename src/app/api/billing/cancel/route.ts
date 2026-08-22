@@ -96,8 +96,14 @@ export async function POST(req: Request) {
 
   // RLS only allows the client to SELECT its own subscription row — writing
   // (the claim, the revoke, the period-end flag) needs the service-role
-  // client, same as the webhook uses.
+  // client, same as the webhook uses. Fail fast when it is unavailable: every
+  // write below is unconditional, and billing must not be reported stopped
+  // (or refunded) on a request whose database writes silently no-op'd.
   const admin = createAdminClient();
+  if (!admin) {
+    console.error("billing/cancel: SUPABASE_SERVICE_ROLE_KEY not set; cannot apply cancellation");
+    return Response.json({ error: "Storage not configured" }, { status: 500 });
+  }
 
   /**
    * Atomically CLAIM the one-time money-back slot before any refund is issued.
@@ -198,8 +204,9 @@ export async function POST(req: Request) {
   const periodEnd = sub?.current_period_end ?? null;
 
   if (endsNow) {
-    await admin
-      ?.from("subscriptions")
+    // Admin is guaranteed non-null here (fail-fast above), so these writes are
+    // unconditional — no optional-chaining that could silently no-op.
+    await admin.from("subscriptions")
       .update({ tier: "free", status: "canceled", money_back_used: true, cancel_at_period_end: false })
       .eq("user_id", user.id);
     return Response.json({ ok: true, refunded: true, refundError: false, endsNow: true, daysActive });
@@ -209,9 +216,9 @@ export async function POST(req: Request) {
   // until the period runs out, and `status` must stay one of the values
   // entitlements honours or access would be revoked on the spot.
   const { error: flagError } = await admin
-    ?.from("subscriptions")
+    .from("subscriptions")
     .update({ cancel_at_period_end: true })
-    .eq("user_id", user.id) ?? { error: null };
+    .eq("user_id", user.id);
   if (flagError) {
     // Billing has stopped at Paystack, so nobody is being charged again — but
     // we could not record it, and the UI would keep claiming it renews. Say so
