@@ -338,6 +338,19 @@
   backdrop-filter: none !important;
   background-color: hsl(var(--card)) !important;
 }
+/* Glass built from the utility strings in src/lib/utils.ts (and button/chip
+   variants) carries its blur as a backdrop-blur-* utility rather than one of
+   the .glass-* classes above — drop those too, however the surface applied it.
+   Backgrounds stay as authored: scrims and tints must keep their translucency
+   even with the blur gone. */
+.data-saver .backdrop-blur-sm,
+.data-saver .backdrop-blur-md,
+.data-saver .backdrop-blur-lg,
+.data-saver .backdrop-blur-xl,
+.data-saver .backdrop-blur-2xl {
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
 
 /* Lenis inertial scroll baseline (marketing). Lenis adds `.lenis`/`.lenis-smooth`
    to <html>; disabling native smooth here stops it fighting the lerp, and

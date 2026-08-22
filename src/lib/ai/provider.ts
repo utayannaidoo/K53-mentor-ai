@@ -406,7 +406,11 @@ export async function streamTutorReply(
         { type: "text" as const, text: args.persona },
         ...(args.grounding ? [{ type: "text" as const, text: args.grounding }] : []),
       ];
-      const lastUserIdx = args.messages.length - 1;
+      // The photo belongs to the LEARNER'S last turn. Indexing from the end
+      // assumed messages always ended with a user message — a history that
+      // ends with an assistant reply (the schema allows it) silently dropped
+      // the image while chooseProvider("image") still paid for a vision model.
+      const lastUserIdx = args.messages.map((m) => m.role).lastIndexOf("user");
       // Abandoned replies must stop billing: the controller is aborted when
       // the consumer goes away (learner closed the tab / navigated mid-answer),
       // which unwinds the upstream SDK request instead of letting the model
@@ -493,7 +497,8 @@ export async function streamTutorReply(
       // its context caching is automatic and prefix-based, so there is no
       // marker to set, only a prefix to keep stable.
       const system = args.grounding ? `${args.persona}\n\n${args.grounding}` : args.persona;
-      const lastUserIdx = args.messages.length - 1;
+      // Photo rides the learner's last turn — see the Anthropic branch comment.
+      const lastUserIdx = args.messages.map((m) => m.role).lastIndexOf("user");
       // Same abandoned-reply guard as the Anthropic branch: cancel() aborts
       // the upstream request so a closed tab stops generating.
       const upstreamAbort = new AbortController();
