@@ -88,6 +88,32 @@ describe("structured data", () => {
     }
   });
 
+  it("every guide owns its OG share card, and every card names a real guide", () => {
+    // WhatsApp crops share cards into a small tile where the actual headline
+    // is the hook — a guide without its own opengraph-image silently falls
+    // back to the generic homepage card. Conversely a card naming a slug that
+    // is not in the catalogue throws at render time; both directions pinned.
+    const dir = path.join(ROOT, "src/app/guides");
+    const slugs = readdirSync(dir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+
+    const catalogueSrc = read("src/app/guides/guides.ts");
+    const catalogued = [...catalogueSrc.matchAll(/slug: "([^"]+)"/g)].map((m) => m[1]);
+
+    for (const slug of slugs) {
+      expect(
+        existsSync(path.join(ROOT, `src/app/guides/${slug}/opengraph-image.tsx`)),
+        `${slug} has no opengraph-image.tsx — it would share with the homepage's generic card`,
+      ).toBe(true);
+    }
+    for (const slug of catalogued) {
+      expect(slugs, `catalogue lists "${slug}" but the guide route does not exist`).toContain(
+        slug,
+      );
+    }
+  });
+
   it("legal pages do NOT claim to be articles", () => {
     for (const p of ["src/app/privacy/page.tsx", "src/app/terms/page.tsx"]) {
       expect(read(p)).not.toContain("articleSlug");
