@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { QUESTIONS } from "@/lib/content/questions";
 import { diagnosticPlanFor, sampleDiagnostic, easyFirst } from "@/lib/diagnostic/select";
 import { generateTodayPlan, SIZE_BY_FREQUENCY } from "@/lib/plan";
+import { openMistakes } from "@/lib/learning/mistakes";
 import { defaultUserState } from "@/lib/store/local-store";
 import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
-import type { CategoryId, Question, StudyFrequency } from "@/types";
+import type { CategoryId, Question, QuestionAttempt, StudyFrequency } from "@/types";
 
 const BASE_TOTAL = 15;
 
@@ -112,6 +113,47 @@ describe("generateTodayPlan — sized by studyFrequency", () => {
     const s = defaultUserState();
     const q = generateTodayPlan(s, readiness).find((t) => t.type === "questions")!;
     expect(q.targetCount).toBe(SIZE_BY_FREQUENCY.steady.questions);
+  });
+});
+
+describe("generateTodayPlan — open mistakes surfaced on the questions task", () => {
+  // Same shape as tests/mistakes.test.ts: one wrong answer (with a real
+  // distractor, not a blank) opens a mistake that stays open until two
+  // correct answers on separate days — so this fixture always yields an
+  // open mistake.
+  function attempt(questionId: string, correct: boolean): QuestionAttempt {
+    return {
+      id: `att_${questionId}`,
+      questionId,
+      categoryId: "signs",
+      correct,
+      selectedIndex: correct ? 0 : 1,
+      at: "2026-07-01T10:00:00.000Z",
+      context: "practice",
+    };
+  }
+
+  function questionsSubtitle(attempts: QuestionAttempt[]): string {
+    const s = defaultUserState();
+    s.attempts = attempts;
+    return generateTodayPlan(s, readiness).find((t) => t.type === "questions")!.subtitle;
+  }
+
+  it("appends the singular mistake count to the subtitle", () => {
+    const attempts = [attempt("q1", false)];
+    expect(openMistakes({ ...defaultUserState(), attempts })).toHaveLength(1);
+    expect(questionsSubtitle(attempts)).toContain("1 past mistake waiting at the front");
+  });
+
+  it("pluralises the count for several unresolved mistakes", () => {
+    const attempts = [attempt("q1", false), attempt("q2", false), attempt("q3", false)];
+    expect(openMistakes({ ...defaultUserState(), attempts })).toHaveLength(3);
+    expect(questionsSubtitle(attempts)).toContain("3 past mistakes waiting at the front");
+  });
+
+  it("leaves subtitles unchanged with no wrong answers", () => {
+    expect(questionsSubtitle([])).toBe("Mixed practice across all categories");
+    expect(questionsSubtitle([attempt("q1", true)])).toBe("Mixed practice across all categories");
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   dominantCategory,
   nextStepAfterFlashcards,
+  nextStepAfterMini,
   nextStepAfterMock,
   nextStepAfterQuestions,
 } from "@/lib/learning/next-step";
@@ -114,5 +115,46 @@ describe("nextStepAfterMock", () => {
       weakestCategoryId: null,
     });
     expect(step).toBeNull();
+  });
+});
+
+describe("nextStepAfterMini", () => {
+  it("prescribes nothing after a passed mini", () => {
+    expect(
+      nextStepAfterMini({
+        passed: true,
+        perCategory: { signs: { correct: 4, total: 5, score: 80 } },
+      }),
+    ).toBeNull();
+  });
+
+  it("aims a failed mini at its lowest-scoring category", () => {
+    const step = nextStepAfterMini({
+      passed: false,
+      perCategory: {
+        signs: { correct: 4, total: 5, score: 80 },
+        rules: { correct: 1, total: 4, score: 25 },
+      },
+    });
+    expect(step?.href).toBe("/study/questions?category=rules");
+    expect(step?.body).toContain("(1/4)");
+  });
+
+  it("breaks score ties deterministically", () => {
+    // Equal scores: the first measured category wins rather than an arbitrary pick.
+    const step = nextStepAfterMini({
+      passed: false,
+      perCategory: {
+        parking: { correct: 2, total: 4, score: 50 },
+        signs: { correct: 3, total: 6, score: 50 },
+      },
+    });
+    expect(["/study/questions?category=parking", "/study/questions?category=signs"]).toContain(
+      step?.href,
+    );
+  });
+
+  it("stays quiet without measurable categories", () => {
+    expect(nextStepAfterMini({ passed: false, perCategory: {} })).toBeNull();
   });
 });

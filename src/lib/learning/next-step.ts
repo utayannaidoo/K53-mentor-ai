@@ -1,4 +1,4 @@
-import type { CategoryId } from "@/types";
+import type { CategoryId, CategoryScore } from "@/types";
 import { categoryName } from "@/lib/content/categories";
 import { SECTION_LABEL, type ExamSection } from "@/lib/constants";
 
@@ -165,4 +165,42 @@ export function nextStepAfterMock({
     };
   }
   return null;
+}
+
+/**
+ * What to recommend after a mini mock or section drill that failed.
+ *
+ * These short papers have no per-section pass marks to fail, but they still
+ * record a score per category — so the one actionable fact is which category
+ * sat lowest. A passed short paper recommends nothing; the learner is on
+ * track, and prescribing practice would undercut that.
+ */
+export function nextStepAfterMini({
+  passed,
+  perCategory,
+}: {
+  passed: boolean;
+  perCategory: Partial<Record<CategoryId, CategoryScore>>;
+}): NextStep | null {
+  if (passed) return null;
+  // Weakest measured category by score; strict `<` keeps ties on the first
+  // encountered, and total === 0 rows are noise rather than evidence.
+  let weakest: CategoryId | null = null;
+  let weakestScore = Infinity;
+  for (const id of Object.keys(perCategory) as CategoryId[]) {
+    const s = perCategory[id];
+    if (!s || s.total <= 0) continue;
+    if (s.score < weakestScore) {
+      weakest = id;
+      weakestScore = s.score;
+    }
+  }
+  if (!weakest) return null;
+  const stats = perCategory[weakest]!;
+  return {
+    title: `Practise ${categoryName(weakest)}`,
+    body: `${categoryName(weakest)} sat lowest (${stats.correct}/${stats.total}) — untimed practice there turns a near-pass into a pass.`,
+    href: `/study/questions?category=${weakest}`,
+    cta: `Practise ${categoryName(weakest)}`,
+  };
 }

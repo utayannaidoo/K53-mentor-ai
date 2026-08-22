@@ -24,7 +24,7 @@ import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT, SECTION_LABEL } from "@/lib/constants";
 import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
-import { nextStepAfterMock } from "@/lib/learning/next-step";
+import { nextStepAfterMock, nextStepAfterMini } from "@/lib/learning/next-step";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
 import { sourceFor } from "@/lib/content/provenance";
 import { haptics } from "@/lib/haptics";
@@ -384,9 +384,11 @@ export function MockExam() {
       .slice(0, 2)
       .map(categoryName);
     // The paper just named exactly where the learner stands — route the next
-    // move at it. A failed section gets its own drill while the miss is fresh;
-    // with the drill allowance spent, untimed practice on the weakest category
-    // carries the same intent. A passed full paper recommends nothing.
+    // move at it. A failed full-mock section gets its own drill while the miss
+    // is fresh; with the drill allowance spent, untimed practice on the weakest
+    // category carries the same intent. Minis and drills have no section marks
+    // to fail, so their lowest-scoring category is the one honest pointer. A
+    // passed paper of any length recommends nothing.
     const mockNextStep =
       !mini && !drill
         ? nextStepAfterMock({
@@ -399,7 +401,7 @@ export function MockExam() {
                 (a, b) => last.perCategory[a]!.score - last.perCategory[b]!.score,
               )[0] ?? null,
           })
-        : null;
+        : nextStepAfterMini({ passed: last.passed, perCategory: last.perCategory });
     return (
       <div className="mx-auto max-w-2xl">
         {/* Results phase renders only h2 sections below, so the page's h1 is

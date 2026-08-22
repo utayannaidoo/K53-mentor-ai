@@ -18,6 +18,9 @@ import { getTodayUsage, todayKey } from "@/lib/store/local-store";
 import { PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
 import { trialExhausted } from "@/lib/billing/trial";
 import { categoryName } from "@/lib/content/categories";
+// Index-only like everything here: mistakes derives from the attempt log,
+// never the question bank.
+import { openMistakes } from "@/lib/learning/mistakes";
 import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 
 export type PlanTaskType = "flashcards" | "questions" | "scenario" | "mock";
@@ -152,6 +155,13 @@ export function generateTodayPlan(
 ): PlanTask[] {
   const tasks: PlanTask[] = [];
   const size = SIZE_BY_FREQUENCY[state.onboarding?.studyFrequency ?? "steady"];
+  // Due mistakes lead every practice queue (question-practice's buildQueue),
+  // so the questions task should say they're waiting, whichever focus won.
+  const openCount = openMistakes(state).length;
+  const mistakeLine =
+    openCount > 0
+      ? ` · ${openCount} past mistake${openCount === 1 ? "" : "s"} waiting at the front`
+      : "";
 
   const due = countDueFlashcards(state, now);
   const flashTarget = Math.min(Math.max(due, size.flashMin), size.flashMax);
@@ -173,9 +183,10 @@ export function generateTodayPlan(
       id: "task-questions",
       type: "questions",
       title: `Practice: ${categoryName(weakest)}`,
-      subtitle: hasSignal
-        ? `Your weakest area at ${readiness.perCategory[weakest]}% — let's close the gap`
-        : "You told us this one worries you most — let's start here",
+      subtitle:
+        (hasSignal
+          ? `Your weakest area at ${readiness.perCategory[weakest]}% — let's close the gap`
+          : "You told us this one worries you most — let's start here") + mistakeLine,
       targetCount: size.questions,
       estMinutes: 5,
       href: `/study/questions?category=${weakest}`,
@@ -186,7 +197,7 @@ export function generateTodayPlan(
       id: "task-questions",
       type: "questions",
       title: "Practice questions",
-      subtitle: "Mixed practice across all categories",
+      subtitle: `Mixed practice across all categories${mistakeLine}`,
       targetCount: size.questions,
       estMinutes: 5,
       href: "/study/questions",

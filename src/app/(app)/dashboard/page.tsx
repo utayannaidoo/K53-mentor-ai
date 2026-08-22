@@ -5,7 +5,7 @@ import { TodaySheet } from "@/components/dashboard/today-sheet";
 import { trialExhausted } from "@/components/app/trial-end-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { usePlanRationale } from "@/components/dashboard/coach-plan";
-import { countDueFlashcards, generateTodayPlan, isTaskDone, planFocus } from "@/lib/plan";
+import { countDueFlashcards, generateTodayPlan, isTaskDone, mockRetestStatus, planFocus } from "@/lib/plan";
 import { isCramWindow, daysUntilTest } from "@/lib/learning/cram";
 import { openMistakes } from "@/lib/learning/mistakes";
 import { categoryName } from "@/lib/content/categories";
@@ -91,6 +91,7 @@ export default function DashboardPage() {
         doneMap={doneMap}
         scenariosUnlocked={hasFeature(state.tier, "scenarios")}
         planLocked={!PLAN_MAP[state.tier].limits.studyPlan}
+        mockDue={mockRetestStatus(state).due}
         rationale={rationale}
         alert={alertBand(alertKey, {
           mistakes: mistakes.length,

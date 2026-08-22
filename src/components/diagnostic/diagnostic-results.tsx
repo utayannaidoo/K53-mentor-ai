@@ -82,14 +82,20 @@ export function DiagnosticResults() {
               fix the gaps below first.
             </p>
           )}
+          {/* Only promised when there is something to tap — a learner who
+              cleared every category sees no focus list at all. */}
+          {focus.length > 0 && (
+            <p className="mt-2 text-sm text-muted-foreground">Tap any to start practising it.</p>
+          )}
           <div className="mt-5 space-y-4">
             {focus.map((cat) => (
-              <MasteryBar
-                key={cat}
-                label={categoryName(cat)}
-                value={latest.perCategory[cat]?.score ?? 0}
-                icon={<CategoryIcon id={cat} className="h-4 w-4 text-muted-foreground" />}
-              />
+              <Link key={cat} href={`/study/questions?category=${cat}`} className="group block">
+                <MasteryBar
+                  label={<span className="group-hover:text-primary">{categoryName(cat)}</span>}
+                  value={latest.perCategory[cat]?.score ?? 0}
+                  icon={<CategoryIcon id={cat} className="h-4 w-4 text-muted-foreground" />}
+                />
+              </Link>
             ))}
           </div>
         </Card>

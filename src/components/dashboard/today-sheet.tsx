@@ -52,6 +52,7 @@ export function TodaySheet({
   doneMap,
   scenariosUnlocked,
   planLocked,
+  mockDue,
   rationale,
   alert,
   trend,
@@ -88,6 +89,12 @@ export function TodaySheet({
   doneMap: Record<string, boolean>;
   scenariosUnlocked: boolean;
   planLocked: boolean;
+  /**
+   * True when a mock is due (never taken, or the pass prediction has gone
+   * stale — `mockRetestStatus`). The plan-complete line then points the freed
+   * time at a quick mock instead of ending on "come back tomorrow".
+   */
+  mockDue?: boolean;
   /** The coach's one-line reason for today's plan, once it has resolved. */
   rationale: React.ReactNode;
   /** The single most urgent thing, already chosen — rendered as a band. */
@@ -327,6 +334,19 @@ export function TodaySheet({
             >
               Start today&apos;s plan <ArrowRight />
             </Link>
+          ) : mockDue ? (
+            // The sentence stays success-coloured; the action follows the
+            // sheet's standard inline link so it reads as the next step.
+            <p className="mt-4 text-sm font-medium text-success">
+              Plan complete —{" "}
+              <Link
+                href="/study/mock-exam?mode=mini"
+                className="font-medium text-primary hover:underline"
+              >
+                a quick mock
+              </Link>{" "}
+              would sharpen your pass prediction.
+            </p>
           ) : (
             <p className="mt-4 text-sm font-medium text-success">
               Plan complete — come back tomorrow to keep your streak.
