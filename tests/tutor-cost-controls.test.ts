@@ -31,6 +31,12 @@ const ENV_KEYS = [
 const env = process.env as Record<string, string | undefined>;
 const original = Object.fromEntries(ENV_KEYS.map((k) => [k, env[k]]));
 
+// Every test here re-imports the provider chain after resetModules, so the
+// first one pays the module transform cost — which under a fully loaded CI
+// runner or parallel local suite can exceed the 5s default and flake red
+// with no code change involved.
+vi.setConfig({ testTimeout: 20_000 });
+
 beforeEach(() => {
   for (const k of ENV_KEYS) delete env[k];
   vi.resetModules();
