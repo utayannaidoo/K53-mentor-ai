@@ -672,6 +672,8 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                 {canAttachImage && (
                   <>
                     <input
+                      id="tutor-photo"
+                      name="photo"
                       ref={fileRef}
                       type="file"
                       accept="image/*"
@@ -706,6 +708,8 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   </>
                 )}
                 <Input
+                  id="tutor-message"
+                  name="message"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={pendingImage ? "Ask about the photo..." : "Ask the tutor..."}

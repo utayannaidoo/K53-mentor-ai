@@ -134,6 +134,8 @@ export function SignScanner() {
     <div className="mx-auto max-w-xl">
       {/* Hidden inputs: rear camera on mobile; plain picker on desktop. */}
       <input
+        id="scanner-camera"
+        name="camera-capture"
         ref={cameraRef}
         type="file"
         accept="image/*"
@@ -142,6 +144,8 @@ export function SignScanner() {
         onChange={(e) => onFile(e.target.files?.[0])}
       />
       <input
+        id="scanner-upload"
+        name="file-upload"
         ref={uploadRef}
         type="file"
         accept="image/*"
@@ -184,6 +188,8 @@ export function SignScanner() {
       {phase.kind === "preview" && (
         <Card className={cn(glass, "mt-4 p-5")}>
           <Input
+            id="sign-hint"
+            name="hint"
             value={hint}
             onChange={(e) => setHint(e.target.value)}
             placeholder="Optional hint — e.g. “the round blue one”"

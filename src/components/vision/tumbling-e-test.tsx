@@ -552,6 +552,8 @@ function CalibrateStep({
       <label className="mt-5 block">
         <span className="text-xs font-medium text-muted-foreground">Card width</span>
         <input
+          id="eye-card-size"
+          name="card-width"
           type="range"
           min={CARD_MIN_PX}
           max={cardMax}
@@ -616,6 +618,8 @@ function DistanceStep({
           <span className="tabular-nums text-foreground">{distanceCm} cm</span>
         </span>
         <input
+          id="eye-distance"
+          name="viewing-distance"
           type="range"
           min={DISTANCE_MIN_CM}
           max={DISTANCE_MAX_CM}

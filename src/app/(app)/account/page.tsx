@@ -332,6 +332,8 @@ function AccountInner() {
               Type <span className="font-mono font-bold">DELETE</span> to confirm:
             </p>
             <input
+              id="delete-confirm"
+              name="delete-confirmation"
               value={confirmDelete}
               onChange={(e) => setConfirmDelete(e.target.value)}
               className="mt-1.5 h-9 w-40 rounded-md border border-border bg-card px-3 text-sm font-mono"
@@ -352,6 +354,8 @@ function AccountInner() {
               <div className="mt-3">
                 <p className="text-xs font-medium text-foreground">Confirm your password:</p>
                 <Input
+                  id="delete-password"
+                  name="current-password"
                   type="password"
                   value={deletePassword}
                   onChange={(e) => setDeletePassword(e.target.value)}
@@ -386,6 +390,8 @@ function AccountInner() {
                       Enter the 6-digit code we emailed you:
                     </p>
                     <Input
+                      id="delete-code"
+                      name="deletion-code"
                       inputMode="numeric"
                       value={deleteCode}
                       onChange={(e) => setDeleteCode(e.target.value.replace(/\D/g, "").slice(0, 6))}

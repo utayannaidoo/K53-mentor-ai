@@ -324,6 +324,8 @@ export function FlashcardDeck() {
           >
             <div className="flex items-center gap-2">
               <Input
+                id="flashcard-attempt"
+                name="active-recall-attempt"
                 value={attempt}
                 onChange={(e) => setAttempt(e.target.value)}
                 placeholder="Answer in your own words first (optional)"
