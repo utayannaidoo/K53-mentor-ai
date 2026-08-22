@@ -3,6 +3,8 @@ import { defaultUserState, resolveStreak } from "@/lib/store/local-store";
 import { LICENCE_RANK_INDEX } from "@/lib/engagement";
 import { licenceHeld } from "@/lib/licence/test-day";
 import { mergeProgress, type RemoteProgress } from "@/lib/supabase/progress";
+import { computeReadiness } from "@/lib/diagnostic/scoring";
+import { achievementInputs, evaluateAchievements } from "@/lib/achievements";
 
 export type AccountFields = Partial<
   Pick<UserState, "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence">
@@ -61,6 +63,25 @@ export function hydrateAccountState(
   }
 
   if (progress) next = mergeProgress(next, progress);
+
+  // Bank whatever the restored log already earned, silently — keep `.next`,
+  // drop `.newly`, the same move as `withArrivalEffects` at app open.
+  // Achievements are derived high-water marks over these logs and are never
+  // synced to the server, so a learner signing in on a fresh browser holds a
+  // full history against an empty banked map. Without this, their first study
+  // action would evaluate every threshold at once and queue the whole
+  // catalogue into `pendingAchievements` — every achievement appearing to
+  // unlock in a single burst of toasts.
+  const banked = evaluateAchievements(
+    achievementInputs(
+      next,
+      computeReadiness(next).perCategory,
+      next.rankAchieved >= LICENCE_RANK_INDEX,
+    ),
+    next.achievements,
+  ).next;
+  if (banked !== next.achievements) next = { ...next, achievements: banked };
+
   return next;
 }
 

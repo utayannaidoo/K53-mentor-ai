@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hydrateAccountState, hydrateSessionOnly } from "@/lib/store/account-hydrate";
 import { defaultUserState } from "@/lib/store/local-store";
+import type { MockExamAttempt } from "@/types";
 import type { RemoteProgress } from "@/lib/supabase/progress";
 import type { QuestionAttempt, UserState } from "@/types";
 
@@ -87,6 +88,51 @@ describe("hydrateAccountState — cross-account isolation", () => {
     expect(next.ownerEmail).toBe("new@example.com");
     expect(next.tier).toBe("premium");
     expect(next.cp).toBe(5);
+  });
+});
+
+describe("hydrateAccountState — the silent achievement bank", () => {
+  it("banks restored history without queueing a toast for each unlock", () => {
+    // The flood this prevents: achievements are not synced to the server, so
+    // signing in on a fresh browser restores months of work against an empty
+    // banked map. Without banking here, the learner's first answer evaluated
+    // every threshold at once and every achievement appeared to unlock
+    // together in a burst of toasts.
+    const history: RemoteProgress = {
+      ...emptyRemote,
+      attempts: Array.from({ length: 600 }, (_, i) =>
+        attempt(`v${i}`, `2026-${String(1 + Math.floor(i / 100)).padStart(2, "0")}-01T09:00:00Z`),
+      ),
+      mockExams: [
+        {
+          id: "m1",
+          at: "2026-07-02T10:00:00Z",
+          score: 50,
+          total: 64,
+          passed: true,
+          perCategory: {},
+          durationSeconds: 1800,
+        } satisfies MockExamAttempt,
+      ],
+    };
+    const s = defaultUserState();
+    s.ownerEmail = "alice@example.com";
+    const next = hydrateAccountState(s, { tier: "free" }, history, "alice@example.com");
+
+    // Earned tiers are banked — the grid shows the record of their work.
+    expect(next.achievements.volume).toBe(1); // 600 ≥ 500
+    expect(next.achievements.first_mock).toBe(0);
+    expect(next.achievements.mock_pass).toBe(0); // one full pass
+    // …but silently: nothing waits in the celebration queue.
+    expect(next.pendingAchievements).toEqual([]);
+  });
+
+  it("leaves an empty map alone when nothing has been earned yet", () => {
+    const s = defaultUserState();
+    s.ownerEmail = "alice@example.com";
+    const next = hydrateAccountState(s, { tier: "free" }, emptyRemote, "alice@example.com");
+    expect(next.achievements).toEqual({});
+    expect(next.pendingAchievements).toEqual([]);
   });
 });
 
