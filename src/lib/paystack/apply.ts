@@ -245,10 +245,19 @@ export async function applyChargeSuccess(
 ): Promise<void> {
   const meta = data.metadata ?? {};
   const userId = meta.user_id;
-  if (!userId) {
-    // Renewal charges don't carry our checkout metadata. A successful plan
-    // charge for a known customer clears any past_due grace state.
-    if (data.plan?.plan_code && data.customer?.customer_code) {
+    if (!userId) {
+      // Renewal charges don't carry our checkout metadata. A successful plan
+      // charge for a known customer clears any past_due grace state.
+      //
+      // IDENTITY — no subscription-code guard possible here: a transaction
+      // payload names no subscription at all (webhook and verify shapes
+      // alike — see the ChargeSuccessData note near partitionSamePlanDuplicates
+      // below), so there is nothing comparable against the row's stored
+      // provider_subscription_id. The write stays scoped the way pre-0008
+      // rows were always handled: customer code, non-free tiers only. The
+      // plan code disambiguates only the period-end lookup above; it cannot
+      // strengthen this WHERE clause.
+      if (data.plan?.plan_code && data.customer?.customer_code) {
       // Roll the period forward too. Without this the stored end date stays at
       // the *first* month's, and the billing page would tell a paying
       // subscriber their access ran out weeks ago. Best-effort: a Paystack

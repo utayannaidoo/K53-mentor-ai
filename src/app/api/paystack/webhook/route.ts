@@ -23,6 +23,12 @@ export const runtime = "nodejs";
  * which is how we tie a payment to a user without ever handling card data.
  * subscription.disable has no such metadata (it's not initiated by us), so
  * it's resolved by matching the Paystack customer_code we stored earlier.
+ *
+ * Identity guard invariant: every lifecycle event that mutates a row and
+ * names a subscription (disable, not_renew, payment_failed) is checked
+ * against the row's stored provider_subscription_id before anything is
+ * written. On mismatch the event is logged loudly and skipped — acknowledged
+ * with 200 so Paystack stops redelivering an event that will never match.
  */
 
 interface SubscriptionEventData {
@@ -109,18 +115,50 @@ export async function POST(req: Request) {
         const data = payload.data as {
           customer?: { customer_code?: string; email?: string; first_name?: string | null };
           subscription?: { subscription_code?: string } | null;
+          // Some deliveries carry the code flat instead of nested — the same
+          // field webhookLedgerId keys this event on.
+          subscription_code?: string;
         };
         const customerCode = data.customer?.customer_code;
         if (!customerCode) break;
-        const { data: row, error } = await admin
+
+        // Identity guard, identical rule to subscription.disable below:
+        // resolve our row first, and when BOTH the event and the row name a
+        // subscription, they must agree before anything is written. A failed
+        // invoice for a superseded/foreign subscription must never flag this
+        // row past_due or send its dunning email just because the customer
+        // mapping collides. Rows without a recorded id (pre-0008 data) fall
+        // through to the customer-based rule below.
+        const { data: row, error: readError } = await admin
+          .from("subscriptions")
+          .select("tier, provider_subscription_id")
+          .eq("provider_customer_id", customerCode)
+          .maybeSingle();
+        if (readError) throw new Error(`past_due lookup failed: ${readError.message}`);
+        const sub = row as { tier?: string; provider_subscription_id?: string | null } | null;
+
+        const eventSubCode = data.subscription?.subscription_code ?? data.subscription_code;
+        if (
+          sub?.provider_subscription_id &&
+          eventSubCode &&
+          eventSubCode !== sub.provider_subscription_id
+        ) {
+          console.error(
+            `${payload.event} for a different subscription; ignoring`,
+            eventSubCode,
+            "row points at",
+            sub.provider_subscription_id,
+          );
+          break;
+        }
+        if (!sub) break; // no row for this customer — nothing to flag
+
+        const { error } = await admin
           .from("subscriptions")
           .update({ status: "past_due" })
-          .eq("provider_customer_id", customerCode)
-          .select("tier, provider_subscription_id")
-          .maybeSingle();
+          .eq("provider_customer_id", customerCode);
         if (error) throw new Error(`past_due update failed: ${error.message}`);
-        const sub = row as { tier?: string; provider_subscription_id?: string | null } | null;
-        const tier = sub?.tier;
+        const tier = sub.tier;
         if (isEmailConfigured && data.customer?.email && (tier === "premium" || tier === "premium_plus")) {
           // This email exists because a card needs replacing, so put the
           // hosted card-update page *in* it rather than making the reader sign
@@ -223,6 +261,32 @@ export async function POST(req: Request) {
         const data = payload.data as SubscriptionEventData;
         const customerCode = data.customer?.customer_code;
         if (!customerCode) break;
+
+        // Identity guard, identical rule to subscription.disable above: a
+        // not_renew naming some other subscription must never flag this row
+        // (one customer's event cannot mutate another row on a colliding or
+        // tampered customer mapping). Rows without a recorded id (pre-0008
+        // data) fall through to the customer-based rule.
+        const { data: row } = await admin
+          .from("subscriptions")
+          .select("provider_subscription_id")
+          .eq("provider_customer_id", customerCode)
+          .maybeSingle();
+        const sub = row as { provider_subscription_id: string | null } | null;
+        if (
+          sub?.provider_subscription_id &&
+          data.subscription_code &&
+          data.subscription_code !== sub.provider_subscription_id
+        ) {
+          console.error(
+            `${payload.event} for a different subscription; ignoring`,
+            data.subscription_code,
+            "row points at",
+            sub.provider_subscription_id,
+          );
+          break;
+        }
+
         const { error } = await admin
           .from("subscriptions")
           .update({ cancel_at_period_end: true })
@@ -240,6 +304,16 @@ export async function POST(req: Request) {
         //
         // What matters is that it stops being invisible — it currently lands
         // in the default branch and is acknowledged with no trace anywhere.
+        //
+        // IDENTITY — no subscription-code guard, deliberately. A dispute
+        // references a TRANSACTION, not a subscription: the payload carries
+        // no subscription_code, and /transaction/verify exposes none either,
+        // so there is nothing comparable against the row's stored
+        // provider_subscription_id (the same gap that keeps charge-driven
+        // renewals unguarded in apply.ts). The write is also annotation-only:
+        // disputed_at never changes tier/status/access, so even in the worst
+        // collision it timestamps a stranger's row without touching their
+        // entitlements.
         const data = payload.data as {
           transaction?: { reference?: string };
           customer?: { customer_code?: string };
@@ -281,6 +355,16 @@ export async function POST(req: Request) {
         // tutor top-up (it doesn't) — only the former may strip the tier.
         // If Paystack can't be reached, fall back to the legacy
         // last_charge_reference match, which still covers first charges.
+        //
+        // IDENTITY — no subscription-code guard, deliberately: the refund
+        // names a charge by reference, and neither the event nor
+        // /transaction/verify exposes which subscription (if any) that charge
+        // belonged to, so there is nothing comparable against the row's
+        // provider_subscription_id. Both paths below are per-charge keys, not
+        // customer guesses: the fallback matches last_charge_reference, which
+        // only our own grant writes from checkout metadata (globally unique
+        // per charge), and the verified path strips a tier only after
+        // Paystack itself confirms the refunded charge carried a plan.
         const data = payload.data as {
           transaction?: { reference?: string };
           transaction_reference?: string;

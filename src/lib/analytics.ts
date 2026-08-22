@@ -1,12 +1,24 @@
 "use client";
 
-import posthog from "posthog-js";
-
 /**
  * Product analytics (PostHog), fully gated by NEXT_PUBLIC_POSTHOG_KEY —
  * without it every call is a no-op, so demo/dev deployments send nothing.
- * Pageviews are captured manually (App Router route changes don't reload),
- * and events are named here so the vocabulary stays small and greppable.
+ *
+ * posthog-js is loaded DYNAMICALLY, and that is load-bearing: statically it
+ * cost ~60KB gzipped inside the chunk shared by every route on the site —
+ * paid by every visitor on SA mobile data before this page's first question,
+ * including the marketing pages whose whole job is to load fast on a weak
+ * signal. Now the library is fetched after hydration, off the critical path,
+ * and not at all when unconfigured.
+ *
+ * The public API stays synchronous: callers keep writing plain `track(...)`.
+ * Calls that land before the library has loaded are buffered (in call order)
+ * and flushed on load, so nothing fired during first paint is lost — the
+ * diagnostic-start event a learner triggers 300ms into the session still
+ * arrives. Ordering holds because `.then` callbacks on one promise resolve in
+ * registration order.
+ *
+ * Pageviews are captured manually (App Router route changes don't reload).
  */
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
@@ -16,23 +28,69 @@ const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
 // rather than relying on this fallback.
 const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
 
-let initialized = false;
+type PostHog = typeof import("posthog-js").default;
 
+let instance: PostHog | null = null;
+let loading: Promise<void> | null = null;
+/** Ops captured before init finished; flushed in order once it has. */
+let buffer: Array<(ph: PostHog) => void> = [];
+/** Buffered ops are non-critical telemetry — never let the queue grow unbounded. */
+const BUFFER_CAP = 100;
+
+function load(): Promise<void> {
+  if (!loading) {
+    loading = import("posthog-js")
+      .then((m) => {
+        const ph = m.default;
+        ph.init(KEY!, {
+          api_host: HOST,
+          capture_pageview: false, // manual — see trackPageview
+          capture_pageleave: true,
+          autocapture: false, // explicit events only; keeps payloads and noise down
+          persistence: "localStorage",
+        });
+        return ph;
+      })
+      .then((ph) => {
+        instance = ph;
+        const ops = buffer;
+        buffer = [];
+        for (const op of ops) {
+          try {
+            op(ph);
+          } catch {
+            /* one bad event must not kill the flush */
+          }
+        }
+      })
+      // Analytics is never allowed to break the app — an ad-blocker or a
+      // failed chunk fetch just means no telemetry this page load.
+      .catch(() => {});
+  }
+  return loading;
+}
+
+function run(op: (ph: PostHog) => void): void {
+  if (!KEY || typeof window === "undefined") return;
+  if (instance) {
+    op(instance);
+    return;
+  }
+  if (buffer.length < BUFFER_CAP) buffer.push(op);
+  void load();
+}
+
+/** Boots PostHog (no-op without a key). Called by AnalyticsProvider on mount. */
 export function initAnalytics(): void {
-  if (!KEY || initialized || typeof window === "undefined") return;
-  initialized = true;
-  posthog.init(KEY, {
-    api_host: HOST,
-    capture_pageview: false, // manual — see trackPageview
-    capture_pageleave: true,
-    autocapture: false, // explicit events only; keeps payloads and noise down
-    persistence: "localStorage",
-  });
+  if (!KEY || typeof window === "undefined") return;
+  void load();
 }
 
 export function trackPageview(path: string): void {
-  if (!KEY || !initialized) return;
-  posthog.capture("$pageview", { $current_url: window.location.origin + path });
+  // Resolve the URL now: a buffered pageview must describe where the learner
+  // was when it fired, not where they are when the flush happens.
+  const url = window.location.origin + path;
+  run((ph) => ph.capture("$pageview", { $current_url: url }));
 }
 
 export type AnalyticsEvent =
@@ -41,15 +99,6 @@ export type AnalyticsEvent =
   | "trial_end_shown"
   | "checkout_started"
   | "plan_activated"
-  /**
-   * The other end of checkout_started that plan_activated can't see: the
-   * buyer came back from Paystack and the payment did NOT verify — either
-   * Paystack itself said not-paid (`reason: "not_paid"`), the reference was
-   * missing (`"no_reference"`), or verification never confirmed within the
-   * polling window (`"timeout"`). Without this event an abandoned checkout is
-   * indistinguishable from a successful one in the funnel until you diff
-   * counts.
-   */
   | "payment_return_unverified"
   /**
    * The other end of `plan_activated`. Without it the funnel could show people
@@ -86,8 +135,7 @@ export type AnalyticsEvent =
   | "landing_preview_interacted";
 
 export function track(event: AnalyticsEvent, props?: Record<string, string | number | boolean>): void {
-  if (!KEY || !initialized) return;
-  posthog.capture(event, props);
+  run((ph) => ph.capture(event, props));
 }
 
 /**
@@ -100,12 +148,10 @@ export function track(event: AnalyticsEvent, props?: Record<string, string | num
  * mobile. Two sinks, neither load-bearing on its own.
  */
 export function captureException(error: Error, props?: Record<string, string>): void {
-  if (!KEY || !initialized) return;
-  posthog.captureException(error, props);
+  run((ph) => ph.captureException(error, props));
 }
 
 /** Tie events to the account (called after sign-in). */
 export function identify(userId: string, props?: Record<string, string>): void {
-  if (!KEY || !initialized) return;
-  posthog.identify(userId, props);
+  run((ph) => ph.identify(userId, props));
 }

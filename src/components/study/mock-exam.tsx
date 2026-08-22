@@ -117,6 +117,10 @@ export function MockExam() {
   // Mini results live here. Minis feed the predictor AND are recorded to
   // state.mockExams with a `mini` flag, so the daily mock allowances count them.
   const [miniResult, setMiniResult] = React.useState<ExamResult | null>(null);
+  // The paper JUST submitted — the results screen renders this rather than
+  // reading the store's last row, which a cross-tab adoption could have
+  // replaced between submit and render.
+  const [justSubmitted, setJustSubmitted] = React.useState<ExamResult | null>(null);
   const startRef = React.useRef(0);
   // Fire-once guard: submit() is reachable from the X button, "Submit now",
   // the finish arrow AND the timer expiry. A racing double-click used to push
@@ -201,6 +205,11 @@ export function MockExam() {
       correct: answers[idx] === q.correctIndex,
       selectedIndex: answers[idx],
     }));
+    // The result the learner is about to see, captured at submit time. The
+    // results screen used to read state.mockExams[last] instead — correct in
+    // isolation, but a cross-tab adoption landing between submit and render
+    // could display a DIFFERENT paper than the one just sat.
+    setJustSubmitted({ score: correct, total: questions.length, passed, perCategory });
     if (drill) {
       // Drills carry their section so the per-plan drill allowance can count
       // them; like minis, they feed the readiness model but aren't full mocks.
@@ -646,9 +655,11 @@ export function MockExam() {
   }
 
   if (phase === "results") {
-    const last: ExamResult | undefined = mini || drill
-      ? (miniResult ?? undefined)
-      : state.mockExams[state.mockExams.length - 1];
+    // The paper just sat — captured at submit, immune to concurrent store
+    // writes. Falls back to the store's last row only if somehow missing.
+    const last: ExamResult | undefined =
+      justSubmitted ??
+      (mini || drill ? (miniResult ?? undefined) : state.mockExams[state.mockExams.length - 1]);
     if (!last) return null;
     const wrong = questions
       .map((q, idx) => ({ q, idx }))

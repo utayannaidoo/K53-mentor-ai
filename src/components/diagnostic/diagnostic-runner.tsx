@@ -62,7 +62,7 @@ function DiagnosticQuiz() {
   const router = useRouter();
   const { state, isAuthed, recordQuestionAttempt, recordDiagnostic, recordSession } =
     useStudyStore();
-  const { questions: bank } = useContentPool();
+  const { questions: bank, full } = useContentPool();
   // Wall-clock length of the diagnostic — recorded as a study session so
   // "Time studied" doesn't pretend the assessment took zero minutes.
   const startRef = React.useRef(Date.now());
@@ -121,6 +121,32 @@ function DiagnosticQuiz() {
     }
     setResumeOffer(verdict.draft);
   }, [resumeOffer, phase, responses.length, bankIds, state.profile?.id]);
+
+  // The full bank arrives after mount, so a set sampled from the bundled
+  // starter pack is a placeholder — thinner category coverage than the
+  // diagnostic plan assumes, and possibly zero items in some categories for
+  // motorcycle/heavy codes. Rebuild ONCE when the pool upgrades, and only
+  // while the paper is still completely untouched: swapping questions under
+  // someone mid-diagnostic would invalidate answers already given, and a
+  // resumed draft is already drawn from whatever bank validated it.
+  const sampledFromFull = React.useRef(full);
+  React.useEffect(() => {
+    if (!full || sampledFromFull.current) return;
+    if (phase !== "quiz" || responses.length > 0 || resumeOffer !== null) return;
+    sampledFromFull.current = true;
+    setQuestions(
+      sampleDiagnostic(
+        bank,
+        state.attempts,
+        studyCodeOf(state),
+        state.onboarding?.worryCategories ?? [],
+      ),
+    );
+    setIndex(0);
+    // Sampling reads this render's state/pool by design; re-running on every
+    // change would reshuffle the paper under the learner.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [full]);
 
   const current = questions[index];
   const total = questions.length;

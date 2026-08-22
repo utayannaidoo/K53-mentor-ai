@@ -35,6 +35,9 @@ interface UpdateCall {
 
 const updates: UpdateCall[] = [];
 
+/** Captured console.error spy — the identity guards log loudly on mismatch. */
+let errLog: ReturnType<typeof vi.spyOn>;
+
 /**
  * Row the `subscriptions` SELECT returns. `subscription.disable` reads
  * `current_period_end` before deciding whether to downgrade, so tests set this
@@ -116,7 +119,7 @@ beforeEach(() => {
   subscriptionRow = null;
   process.env.PAYSTACK_SECRET_KEY = "sk_test_stub";
   vi.mocked(verifyTransaction).mockReset();
-  vi.spyOn(console, "error").mockImplementation(() => {});
+  errLog = vi.spyOn(console, "error").mockImplementation(() => {});
 });
 
 describe("subscription.disable", () => {
@@ -207,6 +210,115 @@ describe("subscription.not_renew", () => {
     expect(updates[0].values).not.toHaveProperty("tier");
     expect(updates[0].values).not.toHaveProperty("status");
     expect(updates[0].eqColumn).toBe("provider_customer_id");
+  });
+
+  it("flags the row when the event matches the recorded subscription", async () => {
+    subscriptionRow = { provider_subscription_id: "SUB_1" };
+    const res = await send("subscription.not_renew", {
+      subscription_code: "SUB_1",
+      customer: { customer_code: "CUS_1" },
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].values).toEqual({ cancel_at_period_end: true });
+  });
+
+  it("skips a not_renew naming a DIFFERENT subscription than the row records", async () => {
+    // Identity guard, mirroring subscription.disable: one customer's
+    // lifecycle event must never mutate another row on a colliding or
+    // tampered customer mapping. Skipped loudly, still acknowledged so
+    // Paystack stops redelivering an event that will never match.
+    subscriptionRow = { provider_subscription_id: "SUB_MINE" };
+    const res = await send("subscription.not_renew", {
+      subscription_code: "SUB_THEIRS",
+      customer: { customer_code: "CUS_1" },
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(0);
+    expect(
+      errLog.mock.calls.some(
+        (c: unknown[]) => c.join(" ").includes("not_renew") && c.join(" ").includes("SUB_THEIRS"),
+      ),
+    ).toBe(true);
+  });
+
+  it("legacy rows without a recorded subscription id fall through to the customer rule", async () => {
+    // Precedent pinned by subscription.disable: pre-0008 rows carry no
+    // provider_subscription_id, so there is nothing to compare against and
+    // handling is unchanged.
+    subscriptionRow = { provider_subscription_id: null };
+    const res = await send("subscription.not_renew", {
+      subscription_code: "SUB_1",
+      customer: { customer_code: "CUS_1" },
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].values).toEqual({ cancel_at_period_end: true });
+  });
+});
+
+describe("invoice.payment_failed", () => {
+  it("marks the row past_due when the failed subscription matches the record", async () => {
+    subscriptionRow = { tier: "premium", provider_subscription_id: "SUB_7" };
+    const res = await send("invoice.payment_failed", {
+      customer: { customer_code: "CUS_1", email: "l@example.com" },
+      subscription: { subscription_code: "SUB_7" },
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].values).toEqual({ status: "past_due" });
+    expect(updates[0].eqColumn).toBe("provider_customer_id");
+  });
+
+  it("accepts the flat subscription_code delivery shape too", async () => {
+    // webhookLedgerId keys this event on the flat field; deliveries have been
+    // seen nested and flat, so the identity guard must read both.
+    subscriptionRow = { tier: "premium", provider_subscription_id: "SUB_7" };
+    const res = await send("invoice.payment_failed", {
+      customer: { customer_code: "CUS_1" },
+      subscription_code: "SUB_7",
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].values).toEqual({ status: "past_due" });
+  });
+
+  it("skips a failure naming a different subscription than the row records", async () => {
+    // Same mismatched-code rule as subscription.disable: no past_due flag,
+    // no dunning email, loud log, still acknowledged so Paystack stops.
+    subscriptionRow = { tier: "premium_plus", provider_subscription_id: "SUB_MINE" };
+    const res = await send("invoice.payment_failed", {
+      customer: { customer_code: "CUS_1", email: "l@example.com" },
+      subscription: { subscription_code: "SUB_THEIRS" },
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(0);
+    expect(
+      errLog.mock.calls.some(
+        (c: unknown[]) =>
+          c.join(" ").includes("payment_failed") && c.join(" ").includes("SUB_THEIRS"),
+      ),
+    ).toBe(true);
+  });
+
+  it("legacy rows without a recorded subscription id still get the grace state", async () => {
+    subscriptionRow = { tier: "premium", provider_subscription_id: null };
+    const res = await send("invoice.payment_failed", {
+      customer: { customer_code: "CUS_1" },
+      subscription: { subscription_code: "SUB_ANY" },
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(1);
+    expect(updates[0].values).toEqual({ status: "past_due" });
+  });
+
+  it("is still acknowledged when the payload carries no customer", async () => {
+    // Paystack must not be left retrying an event we can't attribute.
+    const res = await send("invoice.payment_failed", {
+      subscription: { subscription_code: "SUB_7" },
+    });
+    expect(res.status).toBe(200);
+    expect(updates).toHaveLength(0);
   });
 });
 

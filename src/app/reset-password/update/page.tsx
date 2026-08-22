@@ -8,7 +8,6 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
 import { isPasswordValid } from "@/lib/auth/password";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 
@@ -37,6 +36,11 @@ export default function UpdatePasswordPage() {
     }
     setLoading(true);
 
+    // Dynamic import: supabase-js is ~240KB of raw JS needed only once, at the
+    // moment the new password is actually submitted — same reasoning as
+    // auth-form. This page is reached from an email link; its first paint
+    // should not wait on a library the visitor may never use.
+    const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     if (supabase) {
       const { error: updateError } = await supabase.auth.updateUser({ password });

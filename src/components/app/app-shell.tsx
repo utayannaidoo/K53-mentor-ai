@@ -182,7 +182,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <main id="main-content" tabIndex={-1} className="flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-10">
-          <StreakBanner />
+          {/* The tutor sizes itself to exactly viewport-minus-chrome so its
+              composer stays clear of the tab bar; a banner above it pushed the
+              input under the nav. The nudge matters most on the study hub,
+              least on an immersive chat surface — hide it there. */}
+          {pathname !== "/tutor" && <StreakBanner />}
           {children}
         </main>
         <RankUpToast />
