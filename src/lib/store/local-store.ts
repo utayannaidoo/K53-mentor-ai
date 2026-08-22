@@ -28,6 +28,23 @@ export function todayKey(now = new Date()): string {
   return `${y}-${m}-${d}`;
 }
 
+/**
+ * The LOCAL calendar day a stored timestamp (`at`, always an ISO instant)
+ * falls on — the counterpart of {@link todayKey} for comparisons.
+ *
+ * Timestamps are stored as UTC ISO strings, so `at.slice(0, 10)` yields the
+ * *UTC* date. South Africa is UTC+2 year-round, so between 00:00 and 02:00
+ * local that prefix still reads yesterday: a mock submitted at 00:30 did not
+ * count against that day's allowance, and mistakes answered after midnight
+ * looked like they belonged to the previous "separate day". Always pair this
+ * with `todayKey()` — never compare a UTC slice to a local key.
+ */
+export function atDayKey(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso.slice(0, 10);
+  return todayKey(d);
+}
+
 /** ISO week key like "2026-W25" — used to refresh the weekly streak freeze. */
 export function isoWeekKey(now = new Date()): string {
   const d = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));

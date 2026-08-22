@@ -22,7 +22,9 @@ import { mergeProgress } from "@/lib/supabase/progress";
  *  - identity/profile/scalar fields take the INCOMING writer's copy — both
  *    tabs are the same signed-in learner, so those agree anyway;
  *  - celebration queues (pendingRankUp/pendingAchievements) stay whichever
- *    exists so an unseen toast survives the merge.
+ *    exists so an unseen toast reaches every tab — they are session-scoped
+ *    (saveState strips them), so the merge can only ever carry a live toast,
+ *    never resurrect a shown one.
  */
 export function mergeAdoptedTabState(local: UserState, incoming: UserState): UserState {
   // Progress unions lose nothing from either side (local wins id collisions).

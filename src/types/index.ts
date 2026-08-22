@@ -380,7 +380,11 @@ export interface UserState {
   cp: number;
   /** Highest Driver Rank index ever reached — monotonic, never regresses. */
   rankAchieved: number;
-  /** Rank index of an unseen rank-up celebration, cleared on acknowledgement. */
+  /**
+   * Rank index of an unseen rank-up celebration. Ephemeral like
+   * pendingAchievements — banked into `rankAchieved` when queued, stripped by
+   * saveState — so a seen celebration can never re-fire.
+   */
   pendingRankUp: number | null;
   /**
    * Highest tier index ever earned per achievement id — monotonic, never
@@ -389,7 +393,12 @@ export interface UserState {
    * what happened, so it is banked rather than recomputed.
    */
   achievements: Record<string, number>;
-  /** Unseen achievement unlocks, cleared on acknowledgement. */
+  /**
+   * Unseen achievement unlocks, cleared on acknowledgement. Deliberately
+   * ephemeral — stripped by saveState and emptied by loadState — because every
+   * entry is banked into `achievements` the moment it is queued, so a queue
+   * that outlives the session can only re-show something already earned.
+   */
   pendingAchievements: { id: string; tier: number }[];
   /** Day (yyyy-mm-dd) the daily plan-complete CP bonus was last granted. */
   planBonusDate: string | null;
