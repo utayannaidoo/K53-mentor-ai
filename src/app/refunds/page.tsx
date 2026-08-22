@@ -60,7 +60,8 @@ export default function RefundsPage() {
             <strong>7 days</strong> of your most recent subscription payment, we refund that
             payment <strong>in full, automatically</strong> — right from{" "}
             <strong>Account → Billing</strong>, with no need to email us. The guarantee can be used{" "}
-            <strong>once per subscription</strong>.
+            <strong>once per subscription</strong>. (Window measured from your most recent plan
+            payment; tutor credit top-ups don&apos;t affect it.)
           </li>
           <li>
             <strong>Incorrect, duplicate or unrecognised charges are refunded in full.</strong> If

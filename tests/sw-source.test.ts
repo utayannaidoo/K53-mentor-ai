@@ -38,4 +38,12 @@ describe("service worker source policy", () => {
   it("keeps an offline fallback wired for navigations", () => {
     expect(sw).toContain('"/offline"');
   });
+
+  it("gives client-router (RSC) payloads a cached fallback too", () => {
+    // Offline client-side navigation used to throw into the error boundary
+    // even for pages visited minutes earlier, because RSC fetches matched no
+    // cache branch at all. If this branch disappears, installed-app
+    // navigation regresses to that.
+    expect(sw).toMatch(/searchParams\.has\("_rsc"\)|headers\.get\("rsc"\)/);
+  });
 });

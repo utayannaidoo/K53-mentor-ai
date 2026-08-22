@@ -7,8 +7,10 @@ import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vite
  * per-IP daily cap BEFORE anything touches Supabase, answer identically
  * whether or not an account exists (enumeration safety), and surface only
  * genuine rate limiting honestly. These tests pin that posture for both
- * routes: forward the call intact, cap first, swallow unknown-email errors,
- * and short-circuit in demo mode without ever constructing the SSR client.
+ * routes: forward the call intact (including an optional Turnstile
+ * captchaToken, which GoTrue verifies server-side), cap first, swallow
+ * unknown-email errors, and short-circuit in demo mode without ever
+ * constructing the SSR client.
  */
 
 const limitAuthReset = vi.fn();
@@ -105,6 +107,38 @@ describe(`POST ${RESET_PATH}`, () => {
     expect(resetForEmail).toHaveBeenCalledWith(EMAIL, { redirectTo: RESET_REDIRECT });
   });
 
+  it("relays a captchaToken to GoTrue when the client sends one", async () => {
+    const res = await post(RESET_PATH, {
+      email: EMAIL,
+      redirectTo: RESET_REDIRECT,
+      captchaToken: "cf-token",
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true });
+    // Verification is GoTrue's job (dashboard secret) — we only forward.
+    expect(resetForEmail).toHaveBeenCalledWith(EMAIL, {
+      redirectTo: RESET_REDIRECT,
+      captchaToken: "cf-token",
+    });
+  });
+
+  it("sends no options object at all when neither redirect nor token is present", async () => {
+    const res = await post(RESET_PATH, { email: EMAIL });
+
+    expect(res.status).toBe(200);
+    // Exact-shape assertion: legacy callers must see the same call as before,
+    // with no captchaToken key (not undefined, not an empty string).
+    expect(resetForEmail).toHaveBeenCalledWith(EMAIL, undefined);
+  });
+
+  it("rejects a malformed captchaToken with 400 before reaching Supabase", async () => {
+    const res = await post(RESET_PATH, { email: EMAIL, captchaToken: "x".repeat(2049) });
+
+    expect(res.status).toBe(400);
+    expect(resetForEmail).not.toHaveBeenCalled();
+  });
+
   it("maps a GoTrue rate-limit error to 429 with Retry-After", async () => {
     resetForEmail.mockResolvedValue({ error: { status: 429, message: "Too many requests" } });
     const res = await post(RESET_PATH, { email: EMAIL, redirectTo: RESET_REDIRECT });
@@ -162,6 +196,37 @@ describe(`POST ${RESEND_PATH}`, () => {
       email: EMAIL,
       options: { emailRedirectTo: CONFIRM_REDIRECT },
     });
+  });
+
+  it("relays a captchaToken through the resend options when the client sends one", async () => {
+    const res = await post(RESEND_PATH, {
+      email: EMAIL,
+      redirectTo: CONFIRM_REDIRECT,
+      captchaToken: "cf-token",
+    });
+
+    expect(res.status).toBe(200);
+    // Verification is GoTrue's job (dashboard secret) — we only forward.
+    expect(resend).toHaveBeenCalledWith({
+      type: "signup",
+      email: EMAIL,
+      options: { emailRedirectTo: CONFIRM_REDIRECT, captchaToken: "cf-token" },
+    });
+  });
+
+  it("keeps the bare {} options shape when neither redirect nor token is present", async () => {
+    const res = await post(RESEND_PATH, { email: EMAIL });
+
+    expect(res.status).toBe(200);
+    // Exact-shape assertion: no captchaToken key (not undefined, not empty).
+    expect(resend).toHaveBeenCalledWith({ type: "signup", email: EMAIL, options: {} });
+  });
+
+  it("rejects a malformed captchaToken with 400 before reaching Supabase", async () => {
+    const res = await post(RESEND_PATH, { email: EMAIL, captchaToken: "" });
+
+    expect(res.status).toBe(400);
+    expect(resend).not.toHaveBeenCalled();
   });
 
   it("maps a GoTrue rate-limit error to 429 with Retry-After", async () => {

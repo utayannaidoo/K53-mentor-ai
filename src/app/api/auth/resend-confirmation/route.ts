@@ -1,6 +1,7 @@
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { clientIp, limitAuthResend } from "@/lib/ai/rate-limit";
+import { buildAuthCaptchaOptions } from "@/lib/auth/captcha";
 
 export const runtime = "nodejs";
 
@@ -50,7 +51,7 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, demo: true });
   }
 
-  let body: { email?: unknown; redirectTo?: unknown } = {};
+  let body: { email?: unknown; redirectTo?: unknown; captchaToken?: unknown } = {};
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -64,6 +65,15 @@ export async function POST(req: Request) {
   if (redirectTo === null && body.redirectTo !== undefined) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
+  // Same shape check as redirectTo; verification itself is GoTrue's job (its
+  // dashboard secret), we only relay what the widget produced.
+  const captchaToken =
+    typeof body.captchaToken === "string" && body.captchaToken.length > 0 && body.captchaToken.length <= 2048
+      ? body.captchaToken
+      : null;
+  if (captchaToken === null && body.captchaToken !== undefined) {
+    return Response.json({ error: "Invalid request" }, { status: 400 });
+  }
 
   const supabase = await createClient();
   if (!supabase) return Response.json({ ok: true, demo: true });
@@ -71,7 +81,10 @@ export async function POST(req: Request) {
   const { error } = await supabase.auth.resend({
     type: "signup",
     email,
-    options: redirectTo ? { emailRedirectTo: redirectTo } : {},
+    options: {
+      ...(redirectTo !== null && { emailRedirectTo: redirectTo }),
+      ...buildAuthCaptchaOptions(captchaToken),
+    },
   });
   if (error) {
     // Unlike recover, resend CAN error on an unknown address — which would

@@ -15,9 +15,34 @@ export interface RefundContext {
 }
 
 /**
- * True when the first charge is still inside the money-back window and hasn't
- * already been refunded. These fields are written only by trusted server code
- * (subscriptions is SELECT-only under RLS), so they're safe to trust.
+ * POLICY CONTRACT — the 7-day money-back guarantee, stated once and pinned by
+ * tests/money-back-anchor.test.ts. Change code, tests and /refunds copy
+ * together or not at all.
+ *
+ *  - ANCHOR: `paidAt` is the date of the learner's MOST RECENT PLAN payment.
+ *    Every successful plan charge re-anchors it — the grant upsert at checkout
+ *    (first payment, resubscribe, plan/cycle change) and the ownerless renewal
+ *    branch of applyChargeSuccess (auto-renewals). Renewing therefore restarts
+ *    the window; that generosity is published policy (/refunds §2), not a bug.
+ *
+ *  - REFUND TARGET: `lastChargeReference` is the reference of that SAME most
+ *    recent charge. Both columns are written together by both paths, so an
+ *    automatic money-back cancellation always refunds exactly the payment the
+ *    window is measured from — never an older one.
+ *
+ *  - ONE REDEMPTION PER SUBSCRIPTION LIFETIME: `moneyBackUsed` latches true on
+ *    the atomic claim before any refund is issued, and is released only when
+ *    the refund itself failed so a retry stays possible. No later event —
+ *    renewal, resubscribe, top-up — ever resets it; eligibility is NOT re-armed.
+ *
+ *  - TOP-UPS EXCLUDED: tutor credit purchases are not plan payments. Their
+ *    charges carry no plan code and their grant path returns before any
+ *    subscriptions write, so buying credits can neither restart the window nor
+ *    re-point the refundable charge.
+ *
+ * These fields are written only by trusted server code (subscriptions is
+ * SELECT-only under RLS), so they're safe to trust. A row missing any leg of
+ * this contract (no reference, no anchor date, free tier) fails closed below.
  */
 export function refundEligible(ctx: RefundContext): boolean {
   const paidAtMs = ctx.paidAt ? Date.parse(ctx.paidAt) : NaN;

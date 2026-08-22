@@ -1,3 +1,6 @@
+"use client";
+
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
 import { EXAM_FORMAT } from "@/lib/constants";
 
@@ -39,7 +42,37 @@ function Cell({ value }: { value: CellValue }) {
   return <span className="text-sm text-muted-foreground">{value}</span>;
 }
 
+/** Four comparison columns cannot fit a phone readably, so the table scrolls
+ *  inside its own pane on small screens. Scrolling inside a pane is invisible
+ *  to page-level overflow checks AND invisible to thumbs unless it is signed —
+ *  so the feature column pins (rows keep their meaning mid-swipe) and edge
+ *  fades appear only while there is more table in that direction. */
 export function Comparison() {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [fade, setFade] = useState<{ left: boolean; right: boolean }>({
+    left: false,
+    right: false,
+  });
+
+  const sync = useCallback(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setFade({ left: el.scrollLeft > 8, right: max > 8 && el.scrollLeft < max - 8 });
+  }, []);
+
+  useEffect(() => {
+    sync();
+    window.addEventListener("resize", sync);
+    return () => window.removeEventListener("resize", sync);
+  }, [sync]);
+
+  // The pinned column paints an opaque page-coloured plate so scrolled cells
+  // slide beneath it rather than through it — which also means the zebra tint
+  // and row-hover do not apply to it (they are translucency effects).
+  const stickyCell =
+    "sticky left-0 z-10 bg-background transition-colors duration-200";
+
   return (
     <section className="mx-auto max-w-[1120px] px-6 py-16">
       <div className="mb-10 max-w-[620px]">
@@ -51,51 +84,81 @@ export function Comparison() {
         </h2>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[680px] border-separate border-spacing-0 text-left">
-          <thead>
-            <tr>
-              <th className="px-5 py-4 text-[13px] font-medium uppercase tracking-[0.08em] text-muted-foreground">
-                Feature
-              </th>
-              <th className="rounded-t-2xl border-b-2 border-accent bg-primary/[0.07] px-5 py-4 text-center font-display text-[15px] font-semibold">
-                K53 Mentor AI
-              </th>
-              <th className="px-5 py-4 text-center text-[15px] font-medium text-muted-foreground">
-                Free apps
-              </th>
-              <th className="px-5 py-4 text-center text-[15px] font-medium text-muted-foreground">
-                Study book
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {ROWS.map((row, i) => {
-              const last = i === ROWS.length - 1;
-              const alt = i % 2 === 1 ? "bg-card/30" : "";
-              return (
-                <tr key={row.feature} className="group">
-                  <td
-                    className={`border-t border-border/40 px-5 py-3.5 text-[0.95rem] font-medium transition-colors duration-200 group-hover:bg-foreground/[0.035] ${alt}`}
-                  >
-                    {row.feature}
-                  </td>
-                  <td
-                    className={`bg-primary/[0.07] px-5 py-3.5 text-center transition-colors duration-200 group-hover:bg-primary/[0.13] ${last ? "rounded-b-2xl" : ""}`}
-                  >
-                    <Cell value={row.values[0]} />
-                  </td>
-                  <td className={`border-t border-border/40 px-5 py-3.5 text-center transition-colors duration-200 group-hover:bg-foreground/[0.035] ${alt}`}>
-                    <Cell value={row.values[1]} />
-                  </td>
-                  <td className={`border-t border-border/40 px-5 py-3.5 text-center transition-colors duration-200 group-hover:bg-foreground/[0.035] ${alt}`}>
-                    <Cell value={row.values[2]} />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div className="relative">
+        <div
+          ref={scrollerRef}
+          onScroll={sync}
+          role="region"
+          aria-label="Feature comparison — scrolls horizontally"
+          tabIndex={0}
+          className="overflow-x-auto focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+        >
+          {/* Narrower floor below sm: tighter gutters buy back ~100px of the
+              viewport so a competitor column peeks in at 390px instead of
+              hiding entirely past the fade. */}
+          <table className="w-full min-w-[580px] border-separate border-spacing-0 text-left sm:min-w-[680px]">
+            <thead>
+              <tr>
+                <th
+                  className={`${stickyCell} rounded-tl-2xl px-4 py-4 text-[13px] font-medium uppercase tracking-[0.08em] text-muted-foreground sm:px-5`}
+                >
+                  Feature
+                </th>
+                <th className="rounded-t-2xl border-b-2 border-accent bg-primary/[0.07] px-4 py-4 text-center font-display text-[15px] font-semibold sm:px-5">
+                  K53 Mentor AI
+                </th>
+                <th className="px-4 py-4 text-center text-[15px] font-medium text-muted-foreground sm:px-5">
+                  Free apps
+                </th>
+                <th className="px-4 py-4 text-center text-[15px] font-medium text-muted-foreground sm:px-5">
+                  Study book
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {ROWS.map((row, i) => {
+                const last = i === ROWS.length - 1;
+                const alt = i % 2 === 1 ? "bg-card/30" : "";
+                return (
+                  <tr key={row.feature} className="group">
+                    <td
+                      className={`${stickyCell} border-t border-border/40 px-4 py-3.5 text-[0.95rem] font-medium sm:px-5`}
+                    >
+                      {row.feature}
+                    </td>
+                    <td
+                      className={`bg-primary/[0.07] px-4 py-3.5 text-center transition-colors duration-200 group-hover:bg-primary/[0.13] ${last ? "rounded-b-2xl" : ""}`}
+                    >
+                      <Cell value={row.values[0]} />
+                    </td>
+                    <td className={`border-t border-border/40 px-4 py-3.5 text-center transition-colors duration-200 group-hover:bg-foreground/[0.035] ${alt}`}>
+                      <Cell value={row.values[1]} />
+                    </td>
+                    <td className={`border-t border-border/40 px-4 py-3.5 text-center transition-colors duration-200 group-hover:bg-foreground/[0.035] ${alt}`}>
+                      <Cell value={row.values[2]} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Edge fades: the scroll affordance. Each renders only while table
+            remains hidden past that edge, so the final swipe lands on a clean,
+            unfaded table and reads as complete. */}
+        {fade.left && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 left-0 w-8 rounded-tl-2xl bg-gradient-to-r from-background to-transparent"
+          />
+        )}
+        {fade.right && (
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-y-0 right-0 w-8 rounded-tr-2xl bg-gradient-to-l from-background to-transparent"
+          />
+        )}
       </div>
     </section>
   );

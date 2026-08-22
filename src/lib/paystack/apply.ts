@@ -274,9 +274,25 @@ export async function applyChargeSuccess(
         console.error("applyChargeSuccess: renewal period lookup failed", err);
       }
 
+      // MONEY-BACK ANCHOR (policy contract documented atop refundEligible in
+      // subscription-cancel.ts, pinned by tests/money-back-anchor.test.ts):
+      // `paid_at` is the MOST RECENT PLAN payment and `last_charge_reference`
+      // must point at that same charge, because an automatic money-back
+      // cancellation refunds exactly what the anchor names. A renewal IS a
+      // plan payment, so it re-points both here — restarting the window is
+      // the published, generous policy (/refunds §2), not an accident. Both
+      // columns move together or not at all; a tutor top-up can never reach
+      // this branch (no plan code, and its metadata routes away above), so
+      // buying credits can neither extend the window nor move its target.
       const { error } = await admin
         .from("subscriptions")
-        .update({ status: "active", cancel_at_period_end: false, ...period })
+        .update({
+          status: "active",
+          cancel_at_period_end: false,
+          paid_at: new Date().toISOString(),
+          last_charge_reference: data.reference,
+          ...period,
+        })
         .eq("provider_customer_id", data.customer.customer_code)
         .neq("tier", "free");
       if (error) throw new Error(`applyChargeSuccess: renewal status update failed: ${error.message}`);
@@ -339,8 +355,11 @@ export async function applyChargeSuccess(
       provider: "paystack",
       provider_customer_id: data.customer.customer_code,
       // Recorded so a 7-day money-back cancellation can refund this exact
-      // charge automatically. Renewals don't carry our metadata, so they
-      // never reach here — paid_at stays the first-payment date.
+      // charge automatically. Checkout charges land here on first purchase,
+      // on a cancel→resubscribe, and on a plan/cycle change; plain renewals
+      // don't carry our metadata and re-anchor these same two columns via the
+      // ownerless renewal branch above. Top-up charges return earlier still
+      // and never touch either column (pinned by money-back-anchor tests).
       last_charge_reference: data.reference,
       paid_at: new Date().toISOString(),
     },

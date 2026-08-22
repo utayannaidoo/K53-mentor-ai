@@ -19,12 +19,18 @@ import { useStudyStore } from "@/hooks/use-study-store";
 
 export function DiagnosticResults() {
   const router = useRouter();
-  const { ready, state, isAuthed, readiness } = useStudyStore();
+  const { ready, state, isAuthed, hasOnboarded, readiness } = useStudyStore();
   const latest = state.diagnostics[state.diagnostics.length - 1];
 
   React.useEffect(() => {
-    if (ready && !latest) router.replace("/diagnostic");
-  }, [ready, latest, router]);
+    if (!ready || latest) return;
+    // A deep link with nothing to show must not quietly restart a 15-question
+    // quiz on someone who can't see why. Signed-in learners are routed like
+    // /continue routes them — the dashboard's alert band then offers the
+    // diagnostic deliberately, with an explanation. Guests ARE the funnel:
+    // for them the quiz is the front door, so starting it is correct.
+    router.replace(!isAuthed ? "/diagnostic" : hasOnboarded ? "/dashboard" : "/onboarding");
+  }, [ready, latest, isAuthed, hasOnboarded, router]);
 
   if (!ready || !latest) {
     return (

@@ -89,5 +89,30 @@ self.addEventListener("fetch", (event) => {
         })
         .catch(async () => (await caches.match(request, { ignoreSearch: true })) ?? (await caches.match(OFFLINE_URL))),
     );
+    return;
+  }
+
+  // Next.js client-router payloads (RSC fetches: ?_rsc=…, `RSC: 1` header).
+  // They are same-origin GETs that match neither branch above, which meant
+  // offline CLIENT-SIDE navigation — tapping a link inside the installed app
+  // — threw into the route error boundary even for pages seen minutes ago,
+  // while a full reload of the same route worked from its cached HTML. Give
+  // them the pages' network-first contract: cache each payload under its own
+  // URL (the _rsc token changes with every deploy, so stale entries are
+  // already swept by the VERSION activate step) and fall back to the cached
+  // copy offline. An uncached miss still fails through to the error boundary
+  // — respondWith(undefined) restores the default network behaviour.
+  if (url.searchParams.has("_rsc") || request.headers.get("rsc") === "1") {
+    event.respondWith(
+      fetch(request)
+        .then((res) => {
+          if (res.ok) {
+            const copy = res.clone();
+            event.waitUntil(putSafe(request, copy).catch(() => {}));
+          }
+          return res;
+        })
+        .catch(async () => await caches.match(request)),
+    );
   }
 });

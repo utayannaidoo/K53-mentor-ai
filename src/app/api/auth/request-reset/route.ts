@@ -1,6 +1,7 @@
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { clientIp, limitAuthReset } from "@/lib/ai/rate-limit";
+import { buildAuthCaptchaOptions } from "@/lib/auth/captcha";
 
 export const runtime = "nodejs";
 
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
     return Response.json({ ok: true, demo: true });
   }
 
-  let body: { email?: unknown; redirectTo?: unknown } = {};
+  let body: { email?: unknown; redirectTo?: unknown; captchaToken?: unknown } = {};
   try {
     body = (await req.json()) as typeof body;
   } catch {
@@ -67,13 +68,25 @@ export async function POST(req: Request) {
   if (redirectTo === null && body.redirectTo !== undefined) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
+  // Same shape check as redirectTo: present-but-garbage is a 400, absent is
+  // normal (captcha off, or a client that predates the widget). We do NOT
+  // verify the token — GoTrue owns verification via its dashboard secret.
+  const captchaToken =
+    typeof body.captchaToken === "string" && body.captchaToken.length > 0 && body.captchaToken.length <= 2048
+      ? body.captchaToken
+      : null;
+  if (captchaToken === null && body.captchaToken !== undefined) {
+    return Response.json({ error: "Invalid request" }, { status: 400 });
+  }
 
   const supabase = await createClient();
   if (!supabase) return Response.json({ ok: true, demo: true });
 
   const { error } = await supabase.auth.resetPasswordForEmail(
     email,
-    redirectTo ? { redirectTo } : undefined,
+    redirectTo !== null || captchaToken !== null
+      ? { ...(redirectTo !== null && { redirectTo }), ...buildAuthCaptchaOptions(captchaToken) }
+      : undefined,
   );
   if (error) {
     // GoTrue's recover endpoint returns 200 whether or not the account exists;

@@ -15,6 +15,8 @@ import { checkAuthAttempt, recordAuthResult, type ThrottleSurface } from "@/lib/
 import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
 import { safeNextPath } from "@/lib/auth/safe-next";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
+import { TurnstileChallenge, useTurnstile } from "@/components/auth/turnstile";
+import { buildAuthCaptchaOptions, shouldBlockSubmit } from "@/lib/auth/captcha";
 import { SITE_DOMAIN } from "@/lib/constants";
 
 // AuthForm brings its own provider. The auth pages live in the (auth) route
@@ -73,6 +75,12 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   // (existing accounts predate the rules), and demo mode's "any password works"
   // promise stays intact when Supabase isn't configured.
   const enforcePassword = mode === "signup" && isSupabaseConfigured;
+
+  // GoTrue-native captcha: Supabase verifies the token server-side once the
+  // operator enables Turnstile (site key here + secret in their dashboard);
+  // we only render the widget and relay its token. No-op without a key —
+  // renders nothing, never blocks, demo mode never sees it.
+  const captcha = useTurnstile();
 
   // Landing pricing buttons arrive as /signup?plan=…&cycle=…. Carry that choice
   // through auth so the user lands straight in that plan's checkout; the billing
@@ -222,6 +230,26 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
       return;
     }
 
+    // Captcha gate, production path only — demo mode never reaches GoTrue, so
+    // even with a site key present it must keep working untouched. It sits
+    // ahead of the throttle on purpose: an attempt we already know will be
+    // rejected must not spend the user's limited failure budget.
+    if (isSupabaseConfigured) {
+      const captchaGate = shouldBlockSubmit({
+        enabled: captcha.enabled,
+        token: captcha.token,
+        failed: captcha.failed,
+      });
+      if (captchaGate.block) {
+        setError(
+          captchaGate.reason === "unavailable"
+            ? "The verification check is unavailable right now — please retry in a moment."
+            : "Please complete the verification check above.",
+        );
+        return;
+      }
+    }
+
     // Soft backoff UNDER GoTrue's own limits (see client-throttle): stops
     // accidental spam and casual scripted abuse, fails open on storage errors,
     // and never touches demo mode — there is nothing to gate without Supabase.
@@ -253,10 +281,19 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
                 // the code and forwards to the post-auth destination — same
                 // pattern as the Google OAuth redirect below.
                 emailRedirectTo: confirmRedirect(),
+                // Turnstile token when enabled; spreads nothing otherwise.
+                ...buildAuthCaptchaOptions(captcha.token),
               },
             })
-          : await supabase.auth.signInWithPassword({ email, password });
+          : await supabase.auth.signInWithPassword({
+              email,
+              password,
+              ...buildAuthCaptchaOptions(captcha.token),
+            });
       if (authError) {
+        // A solved token is single-use — GoTrue consumed (and rejected) it, so
+        // force a fresh challenge for whatever the learner tries next.
+        captcha.widget.reset();
         recordAuthResult(surface, false);
         // The password was right; the address just isn't verified yet. Say so
         // in plain language and put a fresh link one tap away.
@@ -385,6 +422,9 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           <Input id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" autoComplete={mode === "signup" ? "new-password" : "current-password"} />
           {enforcePassword && <PasswordRequirements password={password} className="pt-1" />}
         </div>
+
+        {/* Turnstile challenge (both modes) — renders nothing without a site key. */}
+        <TurnstileChallenge controller={captcha} />
 
         {/* role="alert" so screen readers actually announce the failure — this
             was silent text before, and it's the only feedback on a bad login. */}

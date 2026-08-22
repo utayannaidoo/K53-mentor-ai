@@ -43,6 +43,27 @@ function planCodeFor(
 }
 
 /**
+ * Boot-time config audit. Missing Plan codes otherwise surface only when the
+ * first buyer reaches for them — as a 500 mid-purchase, the worst possible
+ * moment to discover a deploy gap. Runs once per server instance and logs
+ * alongside the sk_test_ boot guard in lib/env.ts.
+ */
+if (isPaystackConfigured) {
+  const missing = [
+    "PAYSTACK_PLAN_PREMIUM_MONTHLY",
+    "PAYSTACK_PLAN_PREMIUM_ANNUAL",
+    "PAYSTACK_PLAN_PREMIUM_PLUS_MONTHLY",
+    "PAYSTACK_PLAN_PREMIUM_PLUS_ANNUAL",
+  ].filter((k) => !process.env[k]);
+  if (missing.length > 0) {
+    console.error(
+      `[billing] Paystack is configured but Plan codes are missing: ${missing.join(", ")}. ` +
+        'Checkout for those tiers will fail with "Price not configured" until they are set.',
+    );
+  }
+}
+
+/**
  * Paystack hosted checkout: subscriptions (monthly or annual, via a Plan
  * code) and one-off tutor top-up packs (a plain amount, no Plan). When
  * Paystack env vars are absent (the local demo) it returns 501 and the
