@@ -24,9 +24,11 @@ vi.mock("@/lib/ai/rate-limit", () => ({
 }));
 vi.mock("@/lib/paystack/client", () => ({
   refundTransaction: vi.fn(),
+  verifyTransaction: vi.fn(),
   fetchCustomer: vi.fn(),
   disableSubscription: vi.fn(),
 }));
+vi.mock("@/lib/notify/email", () => ({ isEmailConfigured: false, sendEmail: vi.fn() }));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 
@@ -69,16 +71,58 @@ function makeServerClient() {
 /**
  * Admin double carrying the SHARED claim state across concurrent requests:
  * the conditional `.update({money_back_used:true}).eq(money_back_used,false)`
- * succeeds exactly once, like Postgres would.
+ * succeeds exactly once, like Postgres would. Also serves a `pending_refunds`
+ * table so the queue path (a failed instant refund) can be exercised.
  */
 function makeAdminSharedState() {
   const writes: Record<string, unknown>[] = [];
+  const inserts: Record<string, unknown>[] = [];
+  const queuedRows: Record<string, unknown>[] = [];
   let moneyBackUsed = false;
   return {
     writes,
+    inserts,
     client: {
       from(table: string) {
-        void table;
+        if (table === "pending_refunds") {
+          return {
+            upsert(values: Record<string, unknown>) {
+              inserts.push(values);
+              queuedRows.push({
+                id: `pr-${queuedRows.length + 1}`,
+                attempts: 0,
+                status: "queued",
+                created_at: new Date().toISOString(),
+                ...values,
+              });
+              return Promise.resolve({ data: null, error: null });
+            },
+            update(values: Record<string, unknown>) {
+              const chain = {
+                eq(_col: string, _val: unknown) {
+                  return chain;
+                },
+                then(resolve?: (v: { data: null; error: null }) => unknown) {
+                  writes.push({ table, values });
+                  return Promise.resolve({ data: null, error: null }).then(resolve);
+                },
+              };
+              return chain;
+            },
+            select() {
+              return {
+                eq(_col: string, val: unknown) {
+                  return {
+                    maybeSingle: async () => ({
+                      data: queuedRows.find((r) => r.transaction_reference === val) ?? null,
+                      error: null,
+                    }),
+                  };
+                },
+              };
+            },
+          };
+        }
         return {
           update(values: Record<string, unknown>) {
             const filters: Record<string, unknown> = {};
@@ -151,7 +195,11 @@ describe("the money-back refund races itself exactly once", () => {
     expect(b.status).toBe(200);
 
     expect(refundTransaction).toHaveBeenCalledTimes(1);
-    expect(refundTransaction).toHaveBeenCalledWith("ref_first_charge");
+    // Notes ride along so the refund is identifiable on Paystack's dashboard.
+    expect(refundTransaction).toHaveBeenCalledWith("ref_first_charge", {
+      merchantNote: "K53 Mentor 7-day money-back cancellation",
+      customerNote: "Full refund of your most recent K53 Mentor payment.",
+    });
 
     const bodyA = (await a.json()) as { refunded?: boolean; endsNow?: boolean };
     const bodyB = (await b.json()) as { refunded?: boolean; endsNow?: boolean };
@@ -169,20 +217,38 @@ describe("the money-back refund races itself exactly once", () => {
     ).toBe(true);
   });
 
-  it("a failed refund releases the claim so a retry inside the window stays possible", async () => {
-    const { client, writes } = makeAdminSharedState();
+  it("a failed refund is QUEUED for automatic retry and the claim stays latched", async () => {
+    const { client, writes, inserts } = makeAdminSharedState();
     vi.mocked(createClient).mockResolvedValue(makeServerClient() as never);
     vi.mocked(createAdminClient).mockReturnValue(client as never);
-    vi.mocked(refundTransaction).mockRejectedValue(new Error("paystack 502"));
+    vi.mocked(refundTransaction).mockRejectedValue(
+      new Error("Paystack /refund: Insufficient balance to process refund"),
+    );
 
     const res = await send();
     expect(res.status).toBe(200);
-    const body = (await res.json()) as { refunded?: boolean; refundError?: boolean; endsNow?: boolean };
+    const body = (await res.json()) as {
+      refunded?: boolean;
+      refundError?: boolean;
+      refundQueued?: boolean;
+      endsNow?: boolean;
+    };
 
     expect(body.refunded).toBe(false);
-    expect(body.refundError).toBe(true);
+    // A queued refund is not an error from the learner's point of view.
+    expect(body.refundError).toBe(false);
+    expect(body.refundQueued).toBe(true);
     expect(body.endsNow).toBe(false);
-    // Claim released: the learner keeps access AND can retry the refund later.
-    expect(writes.some((w) => (w.values as Record<string, unknown>)?.money_back_used === false)).toBe(true);
+
+    // The charge went into the retry queue…
+    expect(inserts).toHaveLength(1);
+    expect(inserts[0].transaction_reference).toBe("ref_first_charge");
+    // …and the money-back claim STAYS latched: the cron now owns exactly this
+    // refund, and a latched slot is what stops a later manual cancel from
+    // racing it into a double refund.
+    expect(writes.filter((w) => w.claim)).toHaveLength(1);
+    expect(writes.some((w) => (w.values as Record<string, unknown>)?.money_back_used === false)).toBe(
+      false,
+    );
   });
 });

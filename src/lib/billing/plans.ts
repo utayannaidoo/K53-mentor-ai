@@ -70,6 +70,19 @@ export const FREE_TRIAL_DAYS = 7;
  */
 export const MONEY_BACK_DAYS = 7;
 
+/**
+ * Honest upper bound for how long a money-back refund takes when it cannot be
+ * issued instantly. The usual cause is an empty Paystack settlement balance
+ * (refunds are deducted from it, and it refills on the T+1–2 business-day
+ * settlement cycle); the daily reconciliation cron completes the refund on its
+ * first pass after funds exist. Quoted to learners at cancel time so
+ * "your refund is processing" never reads as "forgotten".
+ *
+ * Client-safe for the same reason MONEY_BACK_DAYS is: it is a promise made to
+ * the buyer, and the copy quoting it must match the behaviour the server ships.
+ */
+export const REFUND_PROCESSING_DAYS = 2;
+
 export interface PlanLimits {
   /**
    * All plans refill daily. Free additionally expires: its allowances reset

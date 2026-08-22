@@ -57,12 +57,14 @@ vi.mock("@/lib/supabase/admin", () => ({
 // modules must still resolve.
 vi.mock("@/lib/paystack/client", () => ({
   refundTransaction: vi.fn(),
+  verifyTransaction: vi.fn(),
   fetchCustomer: vi.fn(),
   disableSubscription: vi.fn(),
 }));
 vi.mock("@/lib/billing/subscription-cancel", () => ({
   disableActiveSubscriptions: vi.fn(),
   refundEligible: () => false,
+  refundBlockedReason: () => "outside_window",
 }));
 vi.mock("@/lib/notify/email", () => ({ isEmailConfigured: false, sendEmail: vi.fn() }));
 vi.mock("@/lib/account/deletion-code", () => ({

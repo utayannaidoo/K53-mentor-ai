@@ -210,11 +210,22 @@ export function disableSubscription(code: string, token: string): Promise<unknow
  * guarantee: cancelling within the window reverses the first charge. Omitting
  * `amount` refunds the whole transaction; Paystack sends the money back to the
  * customer's original payment method.
+ *
+ * Notes are attached because an unlabelled refund line on the dashboard is
+ * indistinguishable from fraud when it is reviewed weeks later — and when a
+ * refund silently fails, the note is how support finds every attempt.
  */
-export function refundTransaction(reference: string): Promise<unknown> {
+export function refundTransaction(
+  reference: string,
+  notes?: { merchantNote?: string; customerNote?: string },
+): Promise<unknown> {
   return paystackFetch("/refund", {
     method: "POST",
-    body: JSON.stringify({ transaction: reference }),
+    body: JSON.stringify({
+      transaction: reference,
+      ...(notes?.merchantNote ? { merchant_note: notes.merchantNote } : {}),
+      ...(notes?.customerNote ? { customer_note: notes.customerNote } : {}),
+    }),
   });
 }
 

@@ -1,6 +1,7 @@
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { refundEligible, MONEY_BACK_DAYS } from "@/lib/billing/subscription-cancel";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { refundBlockedReason, MONEY_BACK_DAYS } from "@/lib/billing/subscription-cancel";
 import {
   tierFromSubscriptionRow,
   type SubscriptionRowLike,
@@ -58,19 +59,47 @@ export async function GET() {
   // active after every server gate had already started refusing it.
   const effectiveTier = tierFromSubscriptionRow(sub);
 
+  /** Why cancelling now would NOT refund — null while it would. */
+  const refundBlocked = refundBlockedReason({
+    tier: sub.tier,
+    lastChargeReference: sub.last_charge_reference,
+    paidAt: sub.paid_at,
+    moneyBackUsed: sub.money_back_used,
+  });
+
+  // A queued money-back refund (Paystack refused the instant one — usually an
+  // empty settlement balance) is service-role data under RLS, so this needs
+  // the admin client. Read-only, and it only surfaces a timestamp: enough for
+  // the billing page to say "your refund is processing" durably, long after
+  // the cancel-time banner has scrolled away.
+  let refundProcessingSince: string | null = null;
+  const admin = createAdminClient();
+  if (admin) {
+    const { data: queued } = await admin
+      .from("pending_refunds")
+      .select("created_at")
+      .eq("user_id", user.id)
+      .eq("status", "queued")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (queued) {
+      refundProcessingSince = (queued as { created_at: string }).created_at;
+    }
+  }
+
   return Response.json({
     tier: effectiveTier,
     status: sub.status,
     hasBillingAccount: true,
     cancelAtPeriodEnd: Boolean(sub.cancel_at_period_end),
     currentPeriodEnd: sub.current_period_end,
-    /** Cancelling now would reverse the first charge and end access immediately. */
-    refundEligible: refundEligible({
-      tier: sub.tier,
-      lastChargeReference: sub.last_charge_reference,
-      paidAt: sub.paid_at,
-      moneyBackUsed: sub.money_back_used,
-    }),
+    /** Cancelling now would reverse the most recent charge and end access immediately. */
+    refundEligible: refundBlocked === null,
+    /** When refundEligible is false, the exact money-back gate that closed. */
+    refundIneligibleReason: refundBlocked,
+    /** Non-null while a money-back refund is queued for automatic retry. */
+    refundProcessingSince,
     moneyBackDays: MONEY_BACK_DAYS,
   });
 }

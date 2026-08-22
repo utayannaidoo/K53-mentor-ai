@@ -44,11 +44,31 @@ export interface RefundContext {
  * SELECT-only under RLS), so they're safe to trust. A row missing any leg of
  * this contract (no reference, no anchor date, free tier) fails closed below.
  */
+export type RefundBlockReason =
+  | "not_paid"
+  | "money_back_used"
+  | "no_payment_record"
+  | "outside_window";
+
+/**
+ * The same rule as `refundEligible` with its reason attached. The cancel route
+ * and billing status API report it so that a refund which silently doesn't
+ * happen — the merchant staring at Paystack's empty refunds list — can be
+ * traced to its exact gate instead of guessed at.
+ */
+export function refundBlockedReason(ctx: RefundContext): RefundBlockReason | null {
+  if (ctx.tier == null || ctx.tier === "free") return "not_paid";
+  if (ctx.moneyBackUsed) return "money_back_used";
+  if (!ctx.lastChargeReference || !ctx.paidAt) return "no_payment_record";
+  const paidAtMs = Date.parse(ctx.paidAt);
+  if (!Number.isFinite(paidAtMs) || Date.now() - paidAtMs > MONEY_BACK_DAYS * 86_400_000) {
+    return "outside_window";
+  }
+  return null;
+}
+
 export function refundEligible(ctx: RefundContext): boolean {
-  const paidAtMs = ctx.paidAt ? Date.parse(ctx.paidAt) : NaN;
-  const withinWindow =
-    Number.isFinite(paidAtMs) && Date.now() - paidAtMs <= MONEY_BACK_DAYS * 86_400_000;
-  return withinWindow && ctx.tier !== "free" && !ctx.moneyBackUsed && Boolean(ctx.lastChargeReference);
+  return refundBlockedReason(ctx) === null;
 }
 
 /**
