@@ -42,6 +42,16 @@ export type AnalyticsEvent =
   | "checkout_started"
   | "plan_activated"
   /**
+   * The other end of checkout_started that plan_activated can't see: the
+   * buyer came back from Paystack and the payment did NOT verify — either
+   * Paystack itself said not-paid (`reason: "not_paid"`), the reference was
+   * missing (`"no_reference"`), or verification never confirmed within the
+   * polling window (`"timeout"`). Without this event an abandoned checkout is
+   * indistinguishable from a successful one in the funnel until you diff
+   * counts.
+   */
+  | "payment_return_unverified"
+  /**
    * The other end of `plan_activated`. Without it the funnel could show people
    * arriving and never show them leaving, so retention was unanswerable — you
    * could count subscribers but not how long they stayed. `refunded` separates

@@ -23,7 +23,10 @@ const FEATURES: Feature[] = [
   {
     icon: Gauge,
     title: "AI diagnostic",
-    body: "A 15-question adaptive assessment that produces a readiness score, a predicted pass probability, and a per-category weakness breakdown.",
+    // Not "adaptive": questions are sampled once from the learner's profile
+    // (worry categories, licence code), not re-chosen per answer. Say what it
+    // actually does.
+    body: "A 15-question assessment, sampled around your licence code and self-declared weak spots, that produces a readiness score, a predicted pass probability, and a per-category weakness breakdown.",
   },
   {
     icon: ClipboardList,

@@ -71,8 +71,10 @@ export interface ReadinessBreakdown {
   /**
    * Conservative lower bound (≈80% one-sided) on each category's competence.
    * An untouched category floors near 0 — "could be anything" — while a
-   * well-sampled 55% floors near 42. Ranking weakness by this floor stops
-   * never-attempted categories from masquerading as the weakest.
+   * well-sampled 55% floors near 42. Exported for surfaces that want a
+   * pessimistic per-category figure; the weak-category ranking itself uses
+   * the evidence-bucketed mean above, which orders measured weakness first
+   * and keeps never-attempted categories from topping the list.
    */
   perCategoryFloor: Record<CategoryId, number>;
   weakCategories: CategoryId[];
@@ -336,9 +338,12 @@ export function computeReadiness(state: UserState): ReadinessBreakdown {
     perCategoryEvidence,
     perCategoryFloor,
     weakCategories,
-    strongCategories: [...(Object.keys(perCategory) as CategoryId[])]
-      .reverse()
+    // Strongest first, sorted by score — insertion order (CATEGORIES order)
+    // used to decide which three surfaced, so a 96% category could lose its
+    // slot to an 80% one that happened to sit earlier in the list.
+    strongCategories: (Object.keys(perCategory) as CategoryId[])
       .filter((c) => perCategory[c] >= 75)
+      .sort((a, b) => perCategory[b] - perCategory[a])
       .slice(0, 3),
     measured: answered >= MIN_EVIDENCE_FOR_CONFIDENCE,
   };

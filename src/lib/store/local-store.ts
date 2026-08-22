@@ -1,6 +1,7 @@
-import type { DailyUsage, Streak, UserState } from "@/types";
+import type { DailyUsage, Profile, Streak, UserState } from "@/types";
 import { computeRankIndex, endowCp } from "@/lib/engagement";
 import { computeReadiness } from "@/lib/diagnostic/scoring";
+import { uid } from "@/lib/utils";
 
 export const STORAGE_KEY = "k53mentor.state.v1";
 export const STATE_VERSION = 4;
@@ -73,6 +74,44 @@ export function defaultUserState(): UserState {
     pendingComeback: null,
     licence: {},
     licenceDeferredOn: {},
+  };
+}
+
+/**
+ * The sign-in identity rule, defined once.
+ *
+ * A different email is a different person: start from a clean slate instead
+ * of inheriting the previous account's tier, progress and streaks from this
+ * browser's store. The same email signing back in — or any sign-in on a
+ * browser whose store has no owner yet (`ownerEmail` null) — keeps whatever
+ * this browser already holds.
+ *
+ * Both writers call THIS function: the full study store (use-study-store,
+ * which folds it into React state and persists via its debounced effect) and
+ * the lightweight provider on the public auth pages (auth-local-provider,
+ * which must persist synchronously — see that file for why the debounce is
+ * unsafe across the (auth)/(app) route-group boundary). Sharing it is what
+ * guarantees the two stores behave identically; a second hand-rolled copy is
+ * how the rule would drift — one gains a field, the other forgets it, and
+ * signing in from /login silently diverges from signing in anywhere else.
+ */
+export function applySignIn(state: UserState, name: string, email: string): UserState {
+  const owner = state.ownerEmail ?? state.profile?.email ?? null;
+  const isNewIdentity =
+    owner !== null && owner.toLowerCase() !== email.toLowerCase();
+  const base = isNewIdentity ? defaultUserState() : state;
+  const profile: Profile =
+    base.profile ??
+    {
+      id: uid("user"),
+      name: name || "Learner",
+      email,
+      createdAt: new Date().toISOString(),
+    };
+  return {
+    ...base,
+    ownerEmail: email,
+    profile: { ...profile, name: name || profile.name, email },
   };
 }
 

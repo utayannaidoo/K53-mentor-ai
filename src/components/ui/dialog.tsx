@@ -70,7 +70,15 @@ export function Dialog({
       if (e.key !== "Tab" || !panelRef.current) return;
       const focusables = Array.from(
         panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE),
-      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      ).filter(
+        (el) =>
+          // offsetParent is null not only for display:none but also for
+          // position:fixed descendants, which used to drop legitimately
+          // focusable fixed buttons from the Tab cycle.
+          el.offsetParent !== null ||
+          getComputedStyle(el).position === "fixed" ||
+          el === document.activeElement,
+      );
       if (focusables.length === 0) {
         e.preventDefault();
         panelRef.current.focus();

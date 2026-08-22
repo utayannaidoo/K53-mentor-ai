@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
-import { buttonVariants } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { signQuestionAlt } from "@/lib/content/sign-alt";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -17,6 +17,15 @@ import { scoreDiagnostic } from "@/lib/diagnostic/scoring";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
+import type { Question } from "@/types";
+import {
+  MAX_DRAFT_AGE_MS,
+  clearDiagnosticDraft,
+  loadDiagnosticDraft,
+  saveDiagnosticDraft,
+  validateDiagnosticDraft,
+  type DiagnosticDraft,
+} from "@/lib/study/exam-draft";
 
 const LETTERS = ["A", "B", "C", "D"];
 
@@ -58,7 +67,7 @@ function DiagnosticQuiz() {
   // "Time studied" doesn't pretend the assessment took zero minutes.
   const startRef = React.useRef(Date.now());
 
-  const [questions] = React.useState(() =>
+  const [questions, setQuestions] = React.useState(() =>
     sampleDiagnostic(
       bank,
       state.attempts,
@@ -73,6 +82,45 @@ function DiagnosticQuiz() {
   >([]);
   const [phase, setPhase] = React.useState<"quiz" | "analyzing">("quiz");
   const [lit, setLit] = React.useState(0);
+  // ── Reload resume ──
+  // A diagnostic interrupted by a refresh or closed tab. Restoring replays the
+  // recorded responses WITHOUT re-recording attempts (those were written live
+  // before the interruption) and drops the learner at the first unanswered
+  // question. Completion side-effects stay intact for free: the paper simply
+  // continues to its end and goes through the normal recordDiagnostic path.
+  const [resumeOffer, setResumeOffer] = React.useState<DiagnosticDraft | null>(null);
+
+  // Id → question lookups over the CURRENT pool. The bank can still be the
+  // bundled starter pack when this first runs — the effect below re-runs when
+  // a fuller pack lands.
+  const bankIds = React.useMemo(() => new Set(bank.map((q) => q.id)), [bank]);
+  const bankById = React.useMemo(() => new Map(bank.map((q) => [q.id, q] as const)), [bank]);
+
+  // Offer the saved diagnostic back before anything else renders. Same rules
+  // as the mock exam's draft: age, owner, resolvable ids, coherent shape. Runs
+  // once per mount per bank identity — a cold load usually validates against
+  // the starter pack first, so drafts drawn from the full bank only surface
+  // once the sync lands. Guarded to the pre-answer state: once this session
+  // has started (resumed or otherwise) the draft must be left alone — it is
+  // deliberately kept alive until completion, so a refresh during the final
+  // analysis window still resumes rather than dropping the score.
+  React.useEffect(() => {
+    if (resumeOffer !== null || phase !== "quiz" || responses.length > 0) return;
+    const saved = loadDiagnosticDraft();
+    if (!saved) return;
+    const verdict = validateDiagnosticDraft(saved, {
+      profileId: state.profile?.id ?? null,
+      bankQuestionIds: bankIds,
+      maxAgeMs: MAX_DRAFT_AGE_MS,
+    });
+    if (!verdict.ok) {
+      // Expired drafts are debris — clear them outright. Other refusals may be
+      // transient (bank still syncing, account still hydrating).
+      if (verdict.reason === "stale") clearDiagnosticDraft();
+      return;
+    }
+    setResumeOffer(verdict.draft);
+  }, [resumeOffer, phase, responses.length, bankIds, state.profile?.id]);
 
   const current = questions[index];
   const total = questions.length;
@@ -97,6 +145,36 @@ function DiagnosticQuiz() {
     answering.current = false;
   }, [index]);
 
+  /**
+   * The completion side-effects, in one place. Extracted from answer() so the
+   * resume path can drive the SAME sequence when it restores a paper whose
+   * answers were already all given (a refresh during the analysis window).
+   *
+   * The draft is cleared only after recordDiagnostic — the whole point of the
+   * draft is that a refresh before this moment resumes instead of silently
+   * dropping the score row, the CP and the redirect.
+   */
+  function finishQuiz(finalResponses: typeof responses) {
+    setPhase("analyzing");
+    window.setTimeout(() => {
+      const result = scoreDiagnostic(finalResponses);
+      recordDiagnostic(result);
+      recordSession("diagnostic", Math.round((Date.now() - startRef.current) / 1000));
+      // Activation. Finishing the diagnostic is the moment the product
+      // first shows a learner something they didn't know about themselves,
+      // so it is the retention split worth measuring everything else against.
+      track("diagnostic_completed", {
+        readiness: result.readiness,
+        pass_probability: result.passProbability,
+        correct: result.correct,
+        total: result.total,
+        weakest: result.weakCategories[0] ?? "none",
+      });
+      clearDiagnosticDraft();
+      router.push("/diagnostic/results");
+    }, 3000);
+  }
+
   function answer(optionIndex: number) {
     if (answering.current || selected !== null) return;
     answering.current = true;
@@ -111,31 +189,79 @@ function DiagnosticQuiz() {
     recordQuestionAttempt({ ...response, context: "diagnostic" });
     const nextResponses = [...responses, response];
     setResponses(nextResponses);
+    // Crash insurance: persist the paper's shape and everything answered so
+    // far, so a refresh here resumes rather than restarting at question 1.
+    saveDiagnosticDraft({
+      kind: "diagnostic",
+      savedAt: new Date().toISOString(),
+      ownerProfileId: state.profile?.id ?? null,
+      questionIds: questions.map((q) => q.id),
+      responses: nextResponses.map((r) => ({
+        questionId: r.questionId,
+        selectedIndex: r.selectedIndex,
+      })),
+      index: Math.min(index + 1, total - 1),
+    });
 
     window.setTimeout(() => {
       setSelected(null);
       if (index + 1 >= total) {
-        setPhase("analyzing");
-        window.setTimeout(() => {
-          const result = scoreDiagnostic(nextResponses);
-          recordDiagnostic(result);
-          recordSession("diagnostic", Math.round((Date.now() - startRef.current) / 1000));
-          // Activation. Finishing the diagnostic is the moment the product
-          // first shows a learner something they didn't know about themselves,
-          // so it is the retention split worth measuring everything else against.
-          track("diagnostic_completed", {
-            readiness: result.readiness,
-            pass_probability: result.passProbability,
-            correct: result.correct,
-            total: result.total,
-            weakest: result.weakCategories[0] ?? "none",
-          });
-          router.push("/diagnostic/results");
-        }, 3000);
+        finishQuiz(nextResponses);
       } else {
         setIndex((i) => i + 1);
       }
     }, ADVANCE_MS);
+  }
+
+  /** Throw the offered draft away and continue with a fresh paper. */
+  function discardDraft() {
+    clearDiagnosticDraft();
+    setResumeOffer(null);
+  }
+
+  /**
+   * Rebuild the saved paper from the CURRENT pool and drop the learner back
+   * in. Responses are replayed as full records graded against the rebuilt
+   * questions (option order can't be reproduced across a reload — see
+   * exam-draft.ts), and previously-recorded attempts are NOT re-recorded:
+   * those writes already happened live before the interruption.
+   */
+  function resumeQuiz() {
+    const d = resumeOffer;
+    if (!d) return;
+    const qs: Question[] = [];
+    for (const id of d.questionIds) {
+      const found = bankById.get(id);
+      if (!found) {
+        discardDraft();
+        return;
+      }
+      qs.push(found);
+    }
+    const byId = new Map(qs.map((q) => [q.id, q] as const));
+    const restored = d.responses.flatMap((r) => {
+      const q = byId.get(r.questionId);
+      if (!q) return [];
+      return [
+        {
+          questionId: r.questionId,
+          categoryId: q.categoryId,
+          correct: r.selectedIndex === q.correctIndex,
+          selectedIndex: r.selectedIndex,
+        },
+      ];
+    });
+    setQuestions(qs);
+    setResponses(restored);
+    setResumeOffer(null);
+    // Everything was already answered (refresh during the analysis window) —
+    // go straight to completion so no question gets asked twice.
+    if (restored.length >= qs.length) {
+      finishQuiz(restored);
+      return;
+    }
+    startRef.current = Date.now();
+    setIndex(restored.length);
   }
 
   // Sequentially "light up" categories during analysis.
@@ -195,6 +321,34 @@ function DiagnosticQuiz() {
         >
           {isAuthed ? "Go to dashboard" : "Back to home"}
         </Link>
+      </div>
+    );
+  }
+
+  // An interrupted diagnostic gets first claim on the screen: resuming is the
+  // only way its completion side-effects (score row, CP, redirect) ever land,
+  // so the offer replaces the quiz entirely until answered. A fresh paper was
+  // already sampled by the state initializer — it simply waits unused if the
+  // learner resumes.
+  if (resumeOffer) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+        <Logo />
+        <h1 className="mt-6 font-display text-xl font-semibold tracking-tight">
+          You have an unfinished diagnostic
+        </h1>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+          {resumeOffer.responses.length} of {resumeOffer.questionIds.length} answered. Pick up
+          where you left off — your earlier answers still count.
+        </p>
+        <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
+          <Button size="lg" onClick={resumeQuiz}>
+            Resume
+          </Button>
+          <Button variant="outline" size="lg" onClick={discardDraft}>
+            Start over
+          </Button>
+        </div>
       </div>
     );
   }

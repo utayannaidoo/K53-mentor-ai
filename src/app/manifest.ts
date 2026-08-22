@@ -10,7 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
     display: "standalone",
     background_color: "#F8F5EC",
     theme_color: "#2C5F4F",
-    orientation: "portrait",
+    // Deliberately no `orientation`: forcing "portrait" also locks
+    // desktop-installed windows upright; let the OS decide.
     categories: ["education"],
     icons: [
       { src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },

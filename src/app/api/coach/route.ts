@@ -11,7 +11,7 @@ import {
   type SecondOpinionData,
   type SessionRecapData,
 } from "@/lib/ai/coach";
-import { requestBodyTooLarge, SMALL_BODY_MAX_BYTES } from "@/lib/http/request-size";
+import { readJsonCapped, requestBodyTooLarge, SMALL_BODY_MAX_BYTES } from "@/lib/http/request-size";
 
 export const runtime = "nodejs";
 // One-shot calls, but the same provider ceiling applies — declare it explicitly.
@@ -112,9 +112,19 @@ export async function POST(req: Request) {
   const ent = await resolveEntitlement("coach");
   if (ent instanceof Response) return ent;
 
+  // Chunked requests skip the header check above, so the read itself is capped:
+  // an undeclared flood dies mid-stream instead of buffering before zod.
+  const body = await readJsonCapped(req, SMALL_BODY_MAX_BYTES);
+  if (!body.ok) {
+    return Response.json(
+      { error: body.reason === "too_large" ? "Payload too large" : "Invalid request" },
+      { status: body.reason === "too_large" ? 413 : 400 },
+    );
+  }
+
   let parsed;
   try {
-    parsed = bodySchema.parse(await req.json());
+    parsed = bodySchema.parse(body.value);
   } catch {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }

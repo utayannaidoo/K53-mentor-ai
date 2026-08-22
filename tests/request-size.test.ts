@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   IMAGE_BODY_MAX_BYTES,
+  readJsonCapped,
   requestBodyTooLarge,
   SMALL_BODY_MAX_BYTES,
 } from "@/lib/http/request-size";
@@ -40,5 +41,49 @@ describe("requestBodyTooLarge", () => {
 
   it("treats garbage headers as absent rather than throwing", () => {
     expect(requestBodyTooLarge(req("not-a-number"), IMAGE_BODY_MAX_BYTES)).toBe(false);
+  });
+});
+
+/**
+ * A Request built from a ReadableStream body carries no Content-Length header —
+ * the exact chunked case the header-only backstop cannot see.
+ */
+function streamedRequest(chunks: string[]): Request {
+  const encoder = new TextEncoder();
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      for (const chunk of chunks) controller.enqueue(encoder.encode(chunk));
+      controller.close();
+    },
+  });
+  // undici requires duplex:"half" when a stream body is supplied; the DOM
+  // RequestInit type does not model it yet, hence the narrow cast.
+  return new Request("https://k53mentorai.co.za/api/tutor", {
+    method: "POST",
+    body: stream,
+    duplex: "half",
+  } as RequestInit & { duplex: "half" });
+}
+
+describe("readJsonCapped", () => {
+  it("parses a chunked body under the cap across multiple chunks", async () => {
+    const res = await readJsonCapped(streamedRequest(['{"a"', ":1}"]), 64);
+    expect(res).toEqual({ ok: true, value: { a: 1 } });
+  });
+
+  it("aborts mid-stream once cumulative bytes pass the cap (no hang)", async () => {
+    const res = await readJsonCapped(streamedRequest(['{"abcdefghij":1}']), 8);
+    expect(res).toEqual({ ok: false, reason: "too_large" });
+  });
+
+  it("reports invalid_json for malformed JSON under the cap", async () => {
+    const res = await readJsonCapped(streamedRequest(["{oops"]), 64);
+    expect(res).toEqual({ ok: false, reason: "invalid_json" });
+  });
+
+  it("reports invalid_json for a bodyless request", async () => {
+    const bodyless = new Request("https://k53mentorai.co.za/api/tutor", { method: "POST" });
+    const res = await readJsonCapped(bodyless, 64);
+    expect(res).toEqual({ ok: false, reason: "invalid_json" });
   });
 });

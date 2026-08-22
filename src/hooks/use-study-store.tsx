@@ -5,7 +5,6 @@ import type {
   DiagnosticResult,
   MockExamAttempt,
   OnboardingData,
-  Profile,
   ScenarioAttempt,
   SessionType,
   SrsRating,
@@ -20,6 +19,7 @@ import type {
 import {
   KEEP,
   STORAGE_KEY,
+  applySignIn,
   defaultUserState,
   getTodayUsage,
   loadState,
@@ -511,29 +511,10 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
    * against the plan cap, so it belongs with the values that change.
    */
   const actions = React.useMemo<StudyActions>(() => ({
-    signInLocal: (name, email) => {
-      setState((s) => {
-        // A different email is a different person: start from a clean slate
-        // instead of inheriting the previous account's tier, subscription
-        // track and progress from this browser's store.
-        const owner = s.ownerEmail ?? s.profile?.email ?? null;
-        const isNewIdentity =
-          owner !== null && owner.toLowerCase() !== email.toLowerCase();
-        const base = isNewIdentity ? defaultUserState() : s;
-        const profile: Profile =
-          base.profile ?? {
-            id: uid("user"),
-            name: name || "Learner",
-            email,
-            createdAt: new Date().toISOString(),
-          };
-        return {
-          ...base,
-          ownerEmail: email,
-          profile: { ...profile, name: name || profile.name, email },
-        };
-      });
-    },
+    signInLocal: (name, email) =>
+      // The identity-switch merge lives in applySignIn (local-store.ts) —
+      // shared verbatim with auth-local-provider so the rule cannot drift.
+      setState((s) => applySignIn(s, name, email)),
 
     signOut: () => {
       // The downloaded content bank is paid content: it must not sit in

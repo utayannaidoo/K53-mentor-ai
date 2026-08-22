@@ -24,6 +24,15 @@ import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT, SECTION_LABEL } from "@/lib/constants";
 import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
+import {
+  MAX_DRAFT_AGE_MS,
+  clearMockDraft,
+  loadMockDraft,
+  saveMockDraft,
+  scaledPassMark,
+  validateMockDraft,
+  type ExamDraft,
+} from "@/lib/study/exam-draft";
 import { nextStepAfterMock, nextStepAfterMini } from "@/lib/learning/next-step";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
 import { sourceFor } from "@/lib/content/provenance";
@@ -34,6 +43,9 @@ import type { CategoryId, CategoryScore, Question } from "@/types";
 const LETTERS = ["A", "B", "C", "D"];
 const EXAM_SECONDS = 60 * 60;
 
+/** Below this much time left, a saved draft is no longer worth a resume tap. */
+const RESUME_MIN_LEFT_MS = 30_000;
+
 const EXAM_SECTIONS = Object.keys(EXAM_FORMAT.sections) as ExamSection[];
 
 interface ExamResult {
@@ -41,6 +53,29 @@ interface ExamResult {
   total: number;
   passed: boolean;
   perCategory: Partial<Record<CategoryId, CategoryScore>>;
+}
+
+/**
+ * The paper the URL asks for, BEFORE sampling: advertised question count,
+ * pass mark and clock. The sampler may return fewer questions than advertised
+ * (a thin starter-pack bank), and that gap is exactly what `scaledPassMark`
+ * corrects for at sample time — this function is the "requested" side of that
+ * ratio, and the single derivation the timer, the draft and the intro share.
+ */
+function requestedConfig(
+  mode: ExamDraft["mode"],
+  drillSection: ExamSection | null,
+  miniTotal: number,
+): { total: number; mark: number; seconds: number } {
+  if (mode === "drill" && drillSection) {
+    const cfg = SECTION_DRILL[drillSection];
+    return { total: cfg.total, mark: cfg.passMark, seconds: cfg.seconds };
+  }
+  if (mode === "mini") {
+    const cfg = miniMockConfig(miniTotal);
+    return { total: cfg.total, mark: cfg.passMark, seconds: cfg.seconds };
+  }
+  return { total: EXAM_FORMAT.totalQuestions, mark: EXAM_FORMAT.passMark, seconds: EXAM_SECONDS };
 }
 
 export function MockExam() {
@@ -61,11 +96,16 @@ export function MockExam() {
     sp.get("mode") === "drill" && drillParam && drillParam in EXAM_FORMAT.sections
       ? drillParam
       : null;
-  const passMark = drill
-    ? SECTION_DRILL[drill].passMark
-    : mini
-      ? miniCfg.passMark
-      : EXAM_FORMAT.passMark;
+  // Mode as the resume-draft system names it — also the key requestedConfig
+  // switches on.
+  const draftMode: ExamDraft["mode"] = drill ? "drill" : mini ? "mini" : "full";
+  // Advertised shape of this url's paper. Memoised so it can sit in effect
+  // and callback dependency arrays without churning.
+  const requested = React.useMemo(
+    () => requestedConfig(draftMode, drill, miniLength),
+    [draftMode, drill, miniLength],
+  );
+  const passMark = requested.mark;
   // Named `bank` deliberately: `questions` below is the paper currently being
   // sat, and sampling from that instead of the bank builds an empty exam.
   const { questions: bank } = useContentPool();
@@ -86,12 +126,46 @@ export function MockExam() {
   // shown against the recomputed value so the learner sees the number move.
   const preProbRef = React.useRef<number | null>(null);
   const cpStartRef = React.useRef<number | null>(null);
+  // ── Crash/reload resume ──
+  // A validated draft of an interrupted paper, awaiting the learner's verdict
+  // on the intro screen. null = nothing worth offering.
+  const [resumeOffer, setResumeOffer] = React.useState<ExamDraft | null>(null);
+  // The pass mark computed from the ACTUAL sampled paper, stashed at sample
+  // time (start/resume). A thin bank can hand back fewer questions than were
+  // requested; grading and every displayed "pass at N" for minis/drills then
+  // use this instead of the advertised figure, so the pass RATIO stays honest.
+  // Full papers are deliberately exempt — the official 64-question format is
+  // kept verbatim (sampleMockExam returns 64 or nothing). Keyed by paper
+  // configuration so a value left by one mode can't leak onto another's intro.
+  const [paperMark, setPaperMark] = React.useState<{ key: string; mark: number } | null>(null);
 
   const remainingMocks = drill ? drillsRemaining(state) : mocksRemaining(state, mini ? "mini" : "full");
+
+  // Resume rebuilds papers by id, so it needs id → question lookups over the
+  // CURRENT pool. Recomputed when the pack lands: on first mount this may only
+  // cover the starter pack.
+  const bankIds = React.useMemo(() => new Set(bank.map((q) => q.id)), [bank]);
+  const bankById = React.useMemo(() => new Map(bank.map((q) => [q.id, q] as const)), [bank]);
+  // Identifies which paper configuration a stashed pass mark belongs to — a
+  // query-string switch between modes/lengths must fall back to advertised.
+  const paperKey = `${draftMode}:${drill ?? ""}:${mini ? miniLength : ""}`;
+  // The one pass mark every display and the grading path agree on: scaled to
+  // the actual paper for minis/drills once one has been sampled, the official
+  // section-mark regime's overall figure for full papers.
+  const effectivePassMark =
+    !mini && !drill
+      ? EXAM_FORMAT.passMark
+      : paperMark && paperMark.key === paperKey
+        ? paperMark.mark
+        : passMark;
 
   const submit = React.useCallback(() => {
     if (submittedRef.current) return;
     submittedRef.current = true;
+    // The paper just completed — its crash insurance goes with it. Cleared
+    // before any async work so a reload during recording can't resurrect a
+    // paper that was already graded.
+    clearMockDraft();
     const correct = questions.reduce((n, q, idx) => n + (answers[idx] === q.correctIndex ? 1 : 0), 0);
     const perCategory: Partial<Record<CategoryId, CategoryScore>> = {};
     for (const cat of CATEGORIES) {
@@ -100,7 +174,10 @@ export function MockExam() {
       const c = idxs.filter((x) => answers[x.idx] === x.q.correctIndex).length;
       perCategory[cat.id] = { correct: c, total: idxs.length, score: Math.round((c / idxs.length) * 100) };
     }
-    const mark = drill ? SECTION_DRILL[drill].passMark : mini ? miniCfg.passMark : EXAM_FORMAT.passMark;
+    // Minis and drills grade against the sample-time scaled mark: a thin bank
+    // shrinks the paper, not the pass ratio. Full papers keep the official
+    // mark — fullMockPassed below applies every section's own bar regardless.
+    const mark = mini || drill ? effectivePassMark : EXAM_FORMAT.passMark;
     // Minis and drills aren't sectioned, so they keep their single mark. A full
     // paper goes through fullMockPassed, which requires each section's own mark
     // as well as the total — the rule the DLTC actually applies.
@@ -163,7 +240,7 @@ export function MockExam() {
     // Finishing a full mock is the biggest moment in the app — mark it.
     haptics.celebrate();
     setPhase("results");
-  }, [answers, questions, mini, drill, miniCfg, recordMockExam, recordSession]);
+  }, [answers, questions, mini, drill, effectivePassMark, recordMockExam, recordSession]);
 
   // Countdown timer. The remainder is derived from the absolute deadline
   // (start + allotted seconds), not decremented once per tick: background
@@ -174,8 +251,7 @@ export function MockExam() {
   // a way to buy time.
   React.useEffect(() => {
     if (phase !== "exam") return;
-    const seconds = drill ? SECTION_DRILL[drill].seconds : mini ? miniCfg.seconds : EXAM_SECONDS;
-    const deadline = startRef.current + seconds * 1000;
+    const deadline = startRef.current + requested.seconds * 1000;
     let timeoutId = 0;
     const tick = () => {
       const left = Math.ceil((deadline - Date.now()) / 1000);
@@ -188,7 +264,141 @@ export function MockExam() {
     };
     tick();
     return () => window.clearTimeout(timeoutId);
-  }, [phase, drill, mini, miniCfg, submit]);
+  }, [phase, requested, submit]);
+
+  // ── Reload resume ──
+  // Offer the saved paper back while the intro shows. Deliberately re-runs
+  // when the bank identity changes: the first validation after a cold load
+  // usually runs against the starter pack, so a draft drawn from the full
+  // bank fails id resolution until the paid pack finishes syncing — at which
+  // point this fires again and the offer appears.
+  React.useEffect(() => {
+    if (phase !== "intro") return;
+    const saved = loadMockDraft();
+    if (!saved) {
+      // No draft behind the current offer any more (submit cleared it, say) —
+      // drop the offer too, or a stale card would outlive its paper.
+      setResumeOffer(null);
+      return;
+    }
+    const verdict = validateMockDraft(saved, {
+      profileId: state.profile?.id ?? null,
+      mode: draftMode,
+      drillSection: drill,
+      secondsAllotted: requested.seconds,
+      bankQuestionIds: bankIds,
+      maxAgeMs: MAX_DRAFT_AGE_MS,
+    });
+    if (!verdict.ok) {
+      setResumeOffer(null);
+      // Expired drafts are cleared outright — nothing can ever revive them.
+      // Every other refusal may be transient (bank still loading, account
+      // still hydrating), so those drafts stay where they are.
+      if (verdict.reason === "stale") clearMockDraft();
+      return;
+    }
+    const remainingMs = verdict.draft.deadlineMs - Date.now();
+    if (remainingMs >= verdict.draft.secondsAllotted * 1000) {
+      // The clock was never touched: nothing was really "started", so there
+      // is no paper to resume. Draft kept — Start will overwrite it anyway.
+      setResumeOffer(null);
+      return;
+    }
+    if (remainingMs <= RESUME_MIN_LEFT_MS) {
+      // Under 30 seconds the paper is effectively dead. Clear it rather than
+      // let it linger as debris behind an offer nobody can use.
+      clearMockDraft();
+      setResumeOffer(null);
+      return;
+    }
+    setResumeOffer(verdict.draft);
+  }, [phase, bankIds, state.profile?.id, draftMode, drill, requested]);
+
+  /**
+   * Rewrite the persisted draft after every in-exam change. Unthrottled on
+   * purpose — each write is one tiny JSON blob, and the write IS the crash
+   * insurance: a refresh the instant after an answer must keep that answer.
+   */
+  function persistDraft(nextAnswers: number[], nextIndex: number) {
+    if (questions.length === 0) return;
+    saveMockDraft({
+      kind: "mock",
+      savedAt: new Date().toISOString(),
+      ownerProfileId: state.profile?.id ?? null,
+      mode: draftMode,
+      drillSection: drill,
+      questionIds: questions.map((q) => q.id),
+      answers: nextAnswers,
+      index: nextIndex,
+      // Derived exactly like the timer's deadline: absolute wall-clock, so
+      // reloading neither pauses nor extends the paper.
+      deadlineMs: startRef.current + requested.seconds * 1000,
+      secondsAllotted: requested.seconds,
+    });
+  }
+
+  /** Throw the offered paper away — the learner chose a fresh start. */
+  function discardDraft() {
+    clearMockDraft();
+    setResumeOffer(null);
+  }
+
+  /**
+   * Put the learner back into their saved paper: resolve every id through the
+   * CURRENT pool preserving order, restore answers/index, and rebuild the
+   * clock from the absolute deadline. `startRef` is rewound to the original
+   * start moment (deadline − allotment) so durationSeconds reports the whole
+   * sitting honestly — the interruption counts as exam time, exactly as it
+   * would have had the tab stayed open.
+   */
+  function resumeExam() {
+    const d = resumeOffer;
+    if (!d) return;
+    const qs: Question[] = [];
+    for (const id of d.questionIds) {
+      const found = bankById.get(id);
+      if (!found) {
+        // The bank shrank between offering and clicking (an entitlement lapse,
+        // say). Refuse honestly rather than seat a shorter paper than the one
+        // that was started.
+        discardDraft();
+        return;
+      }
+      qs.push(found);
+    }
+    startRef.current = d.deadlineMs - d.secondsAllotted * 1000;
+    setQuestions(qs);
+    setAnswers([...d.answers]);
+    setI(Math.min(d.index, qs.length - 1));
+    setSecondsLeft(Math.max(0, Math.ceil((d.deadlineMs - Date.now()) / 1000)));
+    submittedRef.current = false;
+    preProbRef.current = readiness.passProbability;
+    cpStartRef.current = state.cp;
+    // Same sample-time mark logic as start(): the rebuilt paper's length may
+    // differ from advertised, so grade it on its own ratio (minis/drills only).
+    if (mini || drill) {
+      setPaperMark({ key: paperKey, mark: scaledPassMark(requested.total, requested.mark, qs.length) });
+    }
+    setResumeOffer(null);
+    setPhase("exam");
+  }
+
+  /** Prev arrow / bottom row — persists the index change with the draft. */
+  function goPrev() {
+    const prev = Math.max(0, i - 1);
+    setI(prev);
+    persistDraft(answers, prev);
+  }
+
+  /** Next arrow / bottom row — advancing past the final question submits. */
+  function advanceOrSubmit() {
+    if (i + 1 >= questions.length) {
+      submit();
+      return;
+    }
+    setI(i + 1);
+    persistDraft(answers, i + 1);
+  }
 
   function start() {
     const qs = drill
@@ -200,15 +410,87 @@ export function MockExam() {
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));
     setI(0);
-    setSecondsLeft(drill ? SECTION_DRILL[drill].seconds : mini ? miniCfg.seconds : EXAM_SECONDS);
-    startRef.current = Date.now();
+    setSecondsLeft(requested.seconds);
+    const startedAt = Date.now();
+    startRef.current = startedAt;
     // Reset the fire-once guard: "Take another" starts a fresh paper, and a
     // guard left over from the previous submission made every submit path —
     // button, arrow, nav row AND timer expiry — silently no-op until reload.
     submittedRef.current = false;
     preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
+    // Starting fresh supersedes any resume offer still on screen.
+    setResumeOffer(null);
+    // Crash insurance, written before the first tick: the sampled paper's ids
+    // plus an ABSOLUTE deadline, so a mid-paper reload can rebuild everything
+    // (the countdown itself is derived from start + allotment, see above).
+    saveMockDraft({
+      kind: "mock",
+      savedAt: new Date(startedAt).toISOString(),
+      ownerProfileId: state.profile?.id ?? null,
+      mode: draftMode,
+      drillSection: drill,
+      questionIds: qs.map((q) => q.id),
+      answers: new Array(qs.length).fill(-1),
+      index: 0,
+      deadlineMs: startedAt + requested.seconds * 1000,
+      secondsAllotted: requested.seconds,
+    });
+    // Honest numbers for THIS exact paper: if the bank came up short of the
+    // requested length, both the grading bar and every displayed "pass at N"
+    // shrink with it instead of quietly failing learners on missing content.
+    // Full papers stash nothing — their official mark never moves.
+    if (mini || drill) {
+      setPaperMark({ key: paperKey, mark: scaledPassMark(requested.total, requested.mark, qs.length) });
+    }
     setPhase("exam");
+  }
+
+  // ── Resume card (rendered on the intro screen, above the intro content) ──
+  // A static snapshot of the remaining time is fine here: the card is a
+  // decision point, not a live countdown — the clock itself restarts honestly
+  // from the deadline the moment they tap Resume.
+  const msLeft = resumeOffer ? Math.max(0, resumeOffer.deadlineMs - Date.now()) : 0;
+  const resumeMinutes = Math.floor(msLeft / 60_000);
+  const resumeSeconds = Math.floor((msLeft % 60_000) / 1000);
+  const resumeTitle = drill
+    ? `${SECTION_LABEL[drill]} drill`
+    : mini
+      ? "Mini mock"
+      : "Full mock exam";
+
+  const resumeCard = resumeOffer ? (
+    <Card className="p-6 text-center">
+      <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
+        <Timer className="h-5 w-5" />
+      </div>
+      <h2 className="mt-3 font-display text-lg font-semibold tracking-tight">
+        You have an unfinished paper
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {resumeTitle} · question {resumeOffer.index + 1} of {resumeOffer.questionIds.length},{" "}
+        {resumeMinutes} min {resumeSeconds} sec left on the clock.
+      </p>
+      {/* Resuming deliberately ignores the daily mock allowance: this paper
+          already spent it when it started. Starting something NEW below is
+          what the gate still applies to. */}
+      <Button size="lg" className="mt-5 w-full" onClick={resumeExam}>
+        Resume <ArrowRight />
+      </Button>
+      <Button variant="outline" size="lg" className="mt-2 w-full" onClick={discardDraft}>
+        Discard
+      </Button>
+    </Card>
+  ) : null;
+
+  // An unfinished paper already spent its allowance — resuming must NOT be
+  // gated behind mocks the learner no longer has. With an offer standing, the
+  // resume card replaces the paywall entirely: starting something new stays
+  // gated, finishing what was started does not.
+  if (phase === "intro" && remainingMocks <= 0 && resumeOffer) {
+    return (
+      <div className="mx-auto max-w-md py-10">{resumeCard}</div>
+    );
   }
 
   if (remainingMocks <= 0 && phase === "intro") {
@@ -259,7 +541,8 @@ export function MockExam() {
   if (phase === "intro") {
     return (
       <div className="mx-auto max-w-lg py-10">
-        <Card className="p-8 text-center">
+        {resumeCard}
+        <Card className={cn("p-8 text-center", resumeOffer && "mt-5")}>
           <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
             {mini || drill ? <Timer className="h-6 w-6" /> : <FileText className="h-6 w-6" />}
           </div>
@@ -268,7 +551,7 @@ export function MockExam() {
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {drill
-              ? `The real test's ${SECTION_LABEL[drill].toLowerCase()} section on its own — ${SECTION_DRILL[drill].total} questions at the real pace, and you need ${SECTION_DRILL[drill].passMark} to pass, exactly like on test day.`
+              ? `The real test's ${SECTION_LABEL[drill].toLowerCase()} section on its own — ${SECTION_DRILL[drill].total} questions at the real pace, and you need ${effectivePassMark} to pass, exactly like on test day.`
               : mini
                 ? `${miniCfg.total} questions at the real test's pass ratio, weighted toward your weakest areas — pick a length below.`
                 : `${EXAM_FORMAT.totalQuestions} questions, just like the real test. You must reach the pass mark in every section. The clock starts when you begin.`}
@@ -280,7 +563,9 @@ export function MockExam() {
               so the row reflows to two below `sm` and keeps three above. */}
           <div className="mt-6 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
             <Stat label="Questions" value={`${drill ? SECTION_DRILL[drill].total : mini ? miniCfg.total : EXAM_FORMAT.totalQuestions}`} />
-            <Stat label="To pass" value={`${passMark}`} />
+            {/* The scaled mark once a paper exists for this configuration —
+                before that, the advertised figure is all we can honestly say. */}
+            <Stat label="To pass" value={`${effectivePassMark}`} />
             <Stat label="Time" value={drill ? `${Math.round(SECTION_DRILL[drill].seconds / 60)} min` : mini ? `${Math.round(miniCfg.seconds / 60)} min` : "60 min"} />
           </div>
           {!mini && !drill && (
@@ -319,6 +604,8 @@ export function MockExam() {
                   <span className="block text-sm font-semibold text-foreground">{l.label}</span>
                   <span className="block text-xs text-muted-foreground">{l.blurb}</span>
                   <span className="mt-1 block font-mono text-2xs text-muted-foreground">
+                    {/* Advertised marks — each length only learns its actual
+                        sampled size (and scaled mark) once a paper is built. */}
                     {l.total} questions · pass {miniMockConfig(l.total).passMark}
                   </span>
                 </Link>
@@ -424,9 +711,9 @@ export function MockExam() {
                   : mini
                     ? "Mini mock passed 🎉"
                     : "You passed 🎉"
-                : last.score >= passMark
+                : last.score >= effectivePassMark
                   ? "Failed on a section"
-                  : `${passMark - last.score} short of passing`}
+                  : `${effectivePassMark - last.score} short of passing`}
             </Badge>
             {cpStartRef.current !== null && state.cp > cpStartRef.current && (
               <Badge variant="default" className="gap-1 font-mono text-sm">
@@ -584,11 +871,10 @@ export function MockExam() {
     // Exam conditions — correctness stays hidden until submit, so this is a
     // neutral acknowledgement rather than a right/wrong signal.
     haptics.tap();
-    setAnswers((prev) => {
-      const copy = [...prev];
-      copy[i] = optionIndex;
-      return copy;
-    });
+    const copy = [...answers];
+    copy[i] = optionIndex;
+    setAnswers(copy);
+    persistDraft(copy, i);
   }
 
   // Exam UI mirrors the practice screen: progress on top, the question in a
@@ -620,7 +906,7 @@ export function MockExam() {
       </div>
 
       <div className="mt-5 flex items-center gap-3">
-        <ExamNavButton dir="prev" onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0} className="hidden sm:flex" />
+        <ExamNavButton dir="prev" onClick={goPrev} disabled={i === 0} className="hidden sm:flex" />
 
         <div key={i} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in">
           {(q.image || q.sign) && (
@@ -651,7 +937,7 @@ export function MockExam() {
 
         <ExamNavButton
           dir="next"
-          onClick={() => (i + 1 >= questions.length ? submit() : setI((x) => x + 1))}
+          onClick={advanceOrSubmit}
           disabled={!answered}
           finish={i + 1 >= questions.length}
           className="hidden sm:flex"
@@ -661,8 +947,8 @@ export function MockExam() {
       {/* Phones: advance/submit under the answers, in thumb reach — see
           SessionNavRow. Submit keeps the exam's neutral tone until the end. */}
       <SessionNavRow
-        onPrev={() => setI((x) => Math.max(0, x - 1))}
-        onNext={() => (i + 1 >= questions.length ? submit() : setI((x) => x + 1))}
+        onPrev={goPrev}
+        onNext={advanceOrSubmit}
         prevDisabled={i === 0}
         nextDisabled={!answered}
         nextLabel="Next question"

@@ -7,19 +7,38 @@ import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useStudyStore } from "@/hooks/use-study-store";
-import { createClient } from "@/lib/supabase/client";
+import { AuthLocalProvider, useAuthLocal } from "@/components/auth/auth-local-provider";
 import { isSupabaseConfigured } from "@/lib/env";
 import { track } from "@/lib/analytics";
 import { isPasswordValid } from "@/lib/auth/password";
+import { checkAuthAttempt, recordAuthResult, type ThrottleSurface } from "@/lib/auth/client-throttle";
 import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
 import { safeNextPath } from "@/lib/auth/safe-next";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { SITE_DOMAIN } from "@/lib/constants";
 
+// AuthForm brings its own provider. The auth pages live in the (auth) route
+// group, whose layout deliberately mounts nothing (that is the point — see
+// that layout), so the form self-supplies the tiny localStorage context its
+// three reads need instead of leaning on the app-wide study store.
+
+/** Friendly backoff copy for a blocked attempt (client-throttle gate). */
+function tooManyAttemptsCopy(retryAfterS: number): string {
+  const mins = Math.max(1, Math.ceil(retryAfterS / 60));
+  return `Too many attempts — please wait ${mins} minute${mins === 1 ? "" : "s"} before trying again.`;
+}
+
 export function AuthForm({ mode }: { mode: "login" | "signup" }) {
+  return (
+    <AuthLocalProvider>
+      <AuthFormInner mode={mode} />
+    </AuthLocalProvider>
+  );
+}
+
+function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   const router = useRouter();
-  const { signInLocal, isAuthed, ready } = useStudyStore();
+  const { signInLocal, isAuthed, ready } = useAuthLocal();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -139,18 +158,35 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   // limiter kicked in.
   const resending = React.useRef(false);
   async function resendConfirmation() {
-    const supabase = createClient();
-    if (!supabase || resending.current) return;
+    if (!isSupabaseConfigured || resending.current) return;
+    // Same soft gate as handleSubmit — repeated resends are email bombs in
+    // waiting, and this blunts them before GoTrue's limiter has to.
+    const gate = checkAuthAttempt("resend");
+    if (!gate.allowed) {
+      setError(tooManyAttemptsCopy(gate.retryAfterS));
+      return;
+    }
     resending.current = true;
     setError(null);
     try {
+      // Dynamic import: supabase-js is ~240KB of raw JS and only ever needed
+      // once the user actually acts, so it must not sit on this crawlable
+      // page's critical path. Same reasoning at every call site below.
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      if (!supabase) return;
       const { error: resendError } = await supabase.auth.resend({
         type: "signup",
         email,
         options: { emailRedirectTo: confirmRedirect() },
       });
-      if (resendError) setError(resendError.message);
-      else setResent(true);
+      if (resendError) {
+        recordAuthResult("resend", false);
+        setError(resendError.message);
+      } else {
+        recordAuthResult("resend", true);
+        setResent(true);
+      }
     } finally {
       resending.current = false;
     }
@@ -170,11 +206,27 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       setError("Your password doesn't meet all the requirements below yet.");
       return;
     }
+
+    // Soft backoff UNDER GoTrue's own limits (see client-throttle): stops
+    // accidental spam and casual scripted abuse, fails open on storage errors,
+    // and never touches demo mode — there is nothing to gate without Supabase.
+    const surface: ThrottleSurface = mode === "signup" ? "signup" : "login";
+    const gate = isSupabaseConfigured ? checkAuthAttempt(surface) : null;
+    if (gate && !gate.allowed) {
+      setError(tooManyAttemptsCopy(gate.retryAfterS));
+      return;
+    }
     setLoading(true);
 
-    // Production path: real Supabase auth when configured.
-    const supabase = createClient();
-    if (supabase) {
+    // Production path: real Supabase auth when configured. Loaded on demand —
+    // see resendConfirmation above.
+    if (isSupabaseConfigured) {
+      const { createClient } = await import("@/lib/supabase/client");
+      const supabase = createClient();
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
       const { data, error: authError } =
         mode === "signup"
           ? await supabase.auth.signUp({
@@ -190,9 +242,14 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
             })
           : await supabase.auth.signInWithPassword({ email, password });
       if (authError) {
+        recordAuthResult(surface, false);
         // The password was right; the address just isn't verified yet. Say so
         // in plain language and put a fresh link one tap away.
         if (/email not confirmed|not confirmed/i.test(authError.message)) {
+          // GoTrue verified the password here — recording a failure would lock
+          // the real user out of the very form the resend flow tells them to
+          // come back to. Count it as success so their history stays clean.
+          recordAuthResult(surface, true);
           setUnconfirmed(true);
           setError(null);
         } else if (/already registered|already exists/i.test(authError.message)) {
@@ -204,6 +261,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         setLoading(false);
         return;
       }
+      // Credentials accepted (full session, or account created and awaiting
+      // confirmation) — clear this surface's failure history entirely.
+      recordAuthResult(surface, true);
       // Email confirmation is on: the account exists but there's no session
       // yet, so entering the app now would just bounce off the middleware.
       if (mode === "signup" && !data.session) {
@@ -214,21 +274,27 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
       }
     }
 
-    // Demo path / mirror profile into the local store.
+    // Demo path / mirror profile into the local store. Awaited, never
+    // fire-and-forget: the profile must be durably in localStorage BEFORE
+    // router.push unmounts this page — across route groups nothing carries it
+    // in memory, and a write still in flight is a write lost (see
+    // auth-local-provider for the full race).
     if (mode === "signup") track("signup_completed", { method: "password" });
-    signInLocal(name || email.split("@")[0] || "Learner", email || `demo@${SITE_DOMAIN}`);
+    await signInLocal(name || email.split("@")[0] || "Learner", email || `demo@${SITE_DOMAIN}`);
     router.push(postAuthDest());
   }
 
-  function continueAsGuest() {
-    signInLocal("Demo learner", `demo@${SITE_DOMAIN}`);
+  async function continueAsGuest() {
+    await signInLocal("Demo learner", `demo@${SITE_DOMAIN}`);
     router.push("/continue");
   }
 
   async function continueWithGoogle() {
+    if (!isSupabaseConfigured) return;
+    setError(null);
+    const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     if (!supabase) return;
-    setError(null);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

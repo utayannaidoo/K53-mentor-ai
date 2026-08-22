@@ -17,7 +17,7 @@ const STEPS = [
   {
     n: "01",
     title: "Diagnose",
-    body: "A 15-question adaptive assessment finds exactly where you stand — no more guessing what to study.",
+    body: "A 15-question assessment finds exactly where you stand — no more guessing what to study.",
   },
   {
     n: "02",

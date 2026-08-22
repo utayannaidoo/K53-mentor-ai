@@ -525,7 +525,10 @@ export function OnboardingWizard() {
               <div className="space-y-6">
                 <div>
                   <p className="mb-2 text-sm font-medium text-foreground">Your starting knowledge</p>
-                  <div className="grid grid-cols-3 gap-2">
+                  {/* Full-width rows below `sm`: three across left each tile
+                      ~72px at 320px, wrapping every label and leaving the row
+                      looking broken rather than merely compact. */}
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {(
                       [
                         ["beginner", "Beginner"],
@@ -537,7 +540,7 @@ export function OnboardingWizard() {
                         key={k}
                         onClick={() => setKnowledge(k)}
                         className={cn(
-                          "rounded-lg border-2 px-2 py-3 text-sm font-medium transition-colors",
+                          "min-h-12 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-colors",
                           knowledge === k ? "border-primary bg-primary/[0.04] text-primary" : "border-border text-muted-foreground hover:border-primary/40",
                         )}
                       >
@@ -548,7 +551,7 @@ export function OnboardingWizard() {
                 </div>
                 <div>
                   <p className="mb-2 text-sm font-medium text-foreground">How often will you practise?</p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                     {(
                       [
                         ["casual", "A few times a week"],
@@ -560,7 +563,7 @@ export function OnboardingWizard() {
                         key={k}
                         onClick={() => setFrequency(k)}
                         className={cn(
-                          "rounded-lg border-2 px-2 py-3 text-xs font-medium transition-colors",
+                          "min-h-12 rounded-lg border-2 px-4 py-2.5 text-sm font-medium transition-colors",
                           frequency === k ? "border-primary bg-primary/[0.04] text-primary" : "border-border text-muted-foreground hover:border-primary/40",
                         )}
                       >

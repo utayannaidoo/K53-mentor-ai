@@ -76,14 +76,18 @@ self.addEventListener("fetch", (event) => {
 
   // Page navigations: network-first, cached copy as fallback, then /offline.
   if (request.mode === "navigate") {
+    // Cache under the bare pathname: every UTM-tagged variant
+    // (/onboarding?utm_source=wa…) otherwise becomes its own permanent cache
+    // entry. ignoreSearch makes fallback lookups hit the canonical entry.
+    const canonical = new Request(url.pathname);
     event.respondWith(
       fetch(request)
         .then((res) => {
           const copy = res.clone();
-          event.waitUntil(putSafe(request, copy).catch(() => {}));
+          event.waitUntil(putSafe(canonical, copy).catch(() => {}));
           return res;
         })
-        .catch(async () => (await caches.match(request)) ?? (await caches.match(OFFLINE_URL))),
+        .catch(async () => (await caches.match(request, { ignoreSearch: true })) ?? (await caches.match(OFFLINE_URL))),
     );
   }
 });

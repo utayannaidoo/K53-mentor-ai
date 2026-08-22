@@ -24,4 +24,22 @@ export const GUIDES = [
     description:
       "How demerit points work, the learner threshold of 6 points, how points fall away, and why they matter the day you pass.",
   },
+  {
+    slug: "k53-mock-test",
+    title: "K53 mock tests: how to practise like it's test day",
+    description:
+      "Why answering questions isn't the same as being ready — how to run a timed, scored mock that rehearses the real pass-mark rules.",
+  },
+  {
+    slug: "k53-road-signs-explained",
+    title: "South African road signs explained: shapes, colours & categories",
+    description:
+      "Regulatory, warning and guidance signs — what each shape and colour is allowed to tell you, and how the test examines them.",
+  },
+  {
+    slug: "book-your-learners-licence",
+    title: "Booking your learner's licence: DLTC, documents & validity",
+    description:
+      "Where to book, what to take to the testing centre, what the eye test involves, and how long your learner's licence lasts.",
+  },
 ] as const;

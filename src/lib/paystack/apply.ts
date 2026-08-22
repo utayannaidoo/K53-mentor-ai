@@ -62,6 +62,89 @@ function findCurrentSubscription(
 }
 
 /**
+ * WHY a same-plan duplicate guard exists beside the superseded-plan guard:
+ * cancel→re-subscribe edge cases can leave TWO active subscriptions on the
+ * SAME plan code for one customer. The superseded guard below only disables
+ * subscriptions whose plan code DIFFERS from the one just paid for, so
+ * same-plan duplicates sail past it — and every renewal then charges the
+ * learner twice for one tier, forever. After a successful grant we collapse
+ * them to a single survivor.
+ *
+ * Survivor rule: latest period wins, where the only period marker the
+ * PaystackSubscription type offers is `next_payment_date` (Paystack nulls it
+ * once a sub stops renewing). If the dates are missing/unparseable/equal, the
+ * subscription whose CODE sorts last wins, so repeated webhooks converge on
+ * the same survivor instead of flapping between two live subs.
+ */
+function isLaterSubscription(a: PaystackSubscription, b: PaystackSubscription): boolean {
+  const endMs = (s: PaystackSubscription): number => {
+    if (!s.next_payment_date) return Number.NEGATIVE_INFINITY;
+    const parsed = Date.parse(s.next_payment_date);
+    return Number.isFinite(parsed) ? parsed : Number.NEGATIVE_INFINITY;
+  };
+  const [aEnd, bEnd] = [endMs(a), endMs(b)];
+  if (aEnd !== bEnd) return aEnd > bEnd;
+  // Deterministic tie-break: same dates (or both unknown) → higher code.
+  return a.subscription_code > b.subscription_code;
+}
+
+/**
+ * Split the ACTIVE subscriptions matching `planCode` into one survivor and
+ * zero or more same-plan duplicates. With fewer than two candidates this is
+ * exactly `findCurrentSubscription` semantics (first match), so behaviour is
+ * unchanged unless a real duplicate exists.
+ */
+function partitionSamePlanDuplicates(
+  subscriptions: PaystackSubscription[],
+  planCode: string,
+): { survivor?: PaystackSubscription; duplicates: PaystackSubscription[] } {
+  const candidates = subscriptions.filter(
+    (s) => s.status === "active" && subscriptionPlanCode(s) === planCode,
+  );
+  if (candidates.length < 2) return { survivor: candidates[0], duplicates: [] };
+  const survivor = candidates.reduce((kept, s) =>
+    kept === undefined || isLaterSubscription(s, kept) ? s : kept,
+  );
+  return {
+    survivor,
+    duplicates: candidates.filter((c) => c.subscription_code !== survivor.subscription_code),
+  };
+}
+
+/**
+ * Disable same-plan duplicates, keeping only `keepCode`. BEST-EFFORT by
+ * contract: the tier grant has already succeeded and the ledger row is
+ * committed, so any failure here must be logged loudly (customer code, plan
+ * code, kept vs disabled codes) and swallowed — throwing would release the
+ * ledger row, Paystack would redeliver an already-applied charge, and the
+ * duplicate would STILL be billing while the retry loop span forever.
+ */
+async function pruneDuplicateSamePlanSubscriptions(input: {
+  customerCode: string;
+  paidPlanCode: string;
+  keepCode?: string;
+  duplicates: PaystackSubscription[];
+}): Promise<void> {
+  const { customerCode, paidPlanCode, keepCode, duplicates } = input;
+  for (const dup of duplicates) {
+    try {
+      await disableSubscription(dup.subscription_code, dup.email_token);
+      console.error(
+        `applyChargeSuccess: disabled DUPLICATE subscription ${dup.subscription_code} ` +
+          `(same plan ${paidPlanCode}, customer ${customerCode}); kept ${keepCode ?? "unknown"}`,
+      );
+    } catch (err) {
+      console.error(
+        `applyChargeSuccess: FAILED to disable duplicate subscription ${dup.subscription_code} ` +
+          `(same plan ${paidPlanCode}, customer ${customerCode}); kept ${keepCode ?? "unknown"}; ` +
+          `the older subscription may keep charging — investigate.`,
+        err,
+      );
+    }
+  }
+}
+
+/**
  * Coerce a transaction from the list endpoint into the shape the grant expects.
  *
  * Two quirks, both load-bearing. `metadata` comes back as a JSON *string*
@@ -262,10 +345,23 @@ export async function applyChargeSuccess(
   // track, which silently moved a learner onto a different vehicle's content
   // the moment a charge landed.
 
-  // One live customer fetch drives both halves of the plan-switch cleanup:
-  // recording this row's identity from the newly-paid subscription, then
-  // disabling every other active one.
-  const customer = await fetchCustomer(data.customer.customer_code);
+  // One live customer fetch drives all post-grant reconciliation: recording
+  // this row's identity from the newly-paid subscription, disabling every
+  // other PLAN's active subscription, and collapsing same-plan duplicates.
+  // Guarded on purpose: the grant has already landed and the ledger row is
+  // committed, so a Paystack outage here must not throw past this point and
+  // replay an applied charge — log and continue with whatever we have.
+  const paidPlanCode = data.plan!.plan_code;
+  let customer: Awaited<ReturnType<typeof fetchCustomer>> | null = null;
+  try {
+    customer = await fetchCustomer(data.customer.customer_code);
+  } catch (err) {
+    console.error(
+      `applyChargeSuccess: customer lookup for ${data.customer.customer_code} failed after the ` +
+        `${data.reference} grant succeeded; subscription reconciliation skipped`,
+      err,
+    );
+  }
 
   // Record which Paystack subscription this row represents, and when the period
   // it just paid for runs out — BEFORE disabling any superseded plan below.
@@ -296,7 +392,19 @@ export async function applyChargeSuccess(
   // Best-effort on purpose. It runs after the grant, and failing to record
   // these must not throw — throwing releases the ledger row and replays a
   // charge that has already been applied.
-  const current = findCurrentSubscription(customer, data.plan!.plan_code);
+  // Same-plan duplicate detection runs BEFORE anything is disabled: if two
+  // live subs share the just-paid plan code, this row must be pointed at the
+  // SURVIVOR (not whichever came first in the embed), so that when the older
+  // duplicate is disabled below and Paystack fires subscription.disable, the
+  // webhook's mismatched-code guard sees a row that names the kept
+  // subscription and leaves the paid tier alone.
+  //
+  // The incoming charge itself cannot name its subscription — ChargeSuccessData
+  // carries no `subscription` field (webhook and verify shapes alike) — so the
+  // newest-wins rule above is the identification; there is no tx.subscription
+  // code to protect instead.
+  const { survivor, duplicates } = partitionSamePlanDuplicates(customer?.subscriptions ?? [], paidPlanCode);
+  const current = survivor ?? (customer ? findCurrentSubscription(customer, paidPlanCode) : undefined);
   if (current) {
     const { error } = await admin
       .from("subscriptions")
@@ -313,7 +421,7 @@ export async function applyChargeSuccess(
         `applyChargeSuccess: could not record subscription state for ${userId}: ${error.message}`,
       );
     }
-  } else {
+  } else if (customer) {
     // The grant landed but the subscription it belongs to could not be picked
     // out of the customer embed. This is the signature of Paystack returning
     // the fresh sub with an empty/incomplete plan object — the exact condition
@@ -322,7 +430,7 @@ export async function applyChargeSuccess(
     // log loudly so ops can reconcile by hand.
     console.error(
       `applyChargeSuccess: grant applied for ${userId} but no active subscription ` +
-        `matching plan ${data.plan!.plan_code} was found in the customer embed; ` +
+        `matching plan ${paidPlanCode} was found in the customer embed; ` +
         `provider_subscription_id/current_period_end not updated. Subs seen: ` +
         JSON.stringify(
           customer.subscriptions.map((s) => ({
@@ -331,6 +439,11 @@ export async function applyChargeSuccess(
             plan: s.plan,
           })),
         ),
+    );
+  } else {
+    console.error(
+      `applyChargeSuccess: grant applied for ${userId} but the Paystack customer embed was ` +
+        `unreachable; provider_subscription_id/current_period_end not updated`,
     );
   }
 
@@ -357,8 +470,7 @@ export async function applyChargeSuccess(
   // is retried until superseded subscriptions are actually gone. The tier grant
   // above is idempotent on retry, and the receipt email below runs only after
   // this succeeds — so a retry re-grants harmlessly and never double-sends.
-  const paidPlanCode = data.plan!.plan_code;
-  const stale = customer.subscriptions.filter((s) => {
+  const stale = (customer?.subscriptions ?? []).filter((s) => {
     if (s.status !== "active") return false;
     if (current && s.subscription_code === current.subscription_code) return false;
     const code = subscriptionPlanCode(s);
@@ -377,6 +489,20 @@ export async function applyChargeSuccess(
         `(plan ${subscriptionPlanCode(s)} ≠ paid ${paidPlanCode}) for customer ${data.customer.customer_code}`,
     );
     await disableSubscription(s.subscription_code, s.email_token);
+  }
+
+  // Collapse any remaining SAME-PLAN duplicates (the superseded guard above
+  // only ever touches different plan codes). Best-effort and never throwing —
+  // see pruneDuplicateSamePlanSubscriptions. Runs after the row points at the
+  // survivor, so the subscription.disable event Paystack fires for each
+  // dropped duplicate hits the webhook's mismatched-code guard.
+  if (duplicates.length > 0) {
+    await pruneDuplicateSamePlanSubscriptions({
+      customerCode: data.customer.customer_code,
+      paidPlanCode,
+      keepCode: current?.subscription_code,
+      duplicates,
+    });
   }
 
   // Receipt + welcome (best-effort; the ledger already made this once-only).

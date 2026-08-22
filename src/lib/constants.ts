@@ -20,7 +20,13 @@ export const SITE_URL =
  */
 export const SITE_DOMAIN = SITE_URL.replace(/^https?:\/\//, "").replace(/\/+$/, "");
 
-/** National first-time pass-rate figure used as the core marketing hook. */
+/**
+ * National learner's-licence pass rates, before and after the RTMC's
+ * Computerised Learner's Licence Testing rollout (2021→). Source: Road Traffic
+ * Management Corporation figures reported May 2026 (The Citizen, ITWeb, IOL):
+ * "the pass rate has plummeted from 68% to 40%". Overall pass rate, not a
+ * first-attempt figure — marketing copy must not call it one.
+ */
 export const PASS_RATE_NOW = 40;
 export const PASS_RATE_BEFORE = 68;
 

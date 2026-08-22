@@ -33,6 +33,10 @@ export function Select({
   // Without the flip, the option list ran off the sheet's clip edge — visible
   // only as options that could not be reached.
   const [dropUp, setDropUp] = React.useState(false);
+  // The list is also capped to whichever side it opens into, so a long option
+  // list (a month picker inside a sheet) can never extend past the visible
+  // space — viewport clipping and dialog-panel clipping both.
+  const [listMaxH, setListMaxH] = React.useState(240);
   const rootRef = React.useRef<HTMLDivElement>(null);
   const current = options.find((o) => o.value === value);
 
@@ -40,7 +44,15 @@ export function Select({
     if (!open && rootRef.current) {
       const rect = rootRef.current.getBoundingClientRect();
       const below = window.innerHeight - rect.bottom;
-      setDropUp(below < 248 && rect.top > below);
+      const above = rect.top;
+      // 24px of slack for sheet padding and the home indicator.
+      if (below < 264 && above > below) {
+        setDropUp(true);
+        setListMaxH(Math.max(132, Math.min(240, above - 24)));
+      } else {
+        setDropUp(false);
+        setListMaxH(Math.max(132, Math.min(240, below - 24)));
+      }
     }
     setOpen((v) => !v);
   }
@@ -87,8 +99,9 @@ export function Select({
       {open && (
         <div
           role="listbox"
+          style={{ maxHeight: listMaxH }}
           className={cn(
-            "glass-2 absolute z-50 max-h-60 w-full overflow-y-auto rounded-lg border border-border p-1 shadow-[0_16px_40px_-12px_hsl(var(--shadow)/0.5)]",
+            "glass-2 absolute z-50 w-full overflow-y-auto rounded-lg border border-border p-1 shadow-[0_16px_40px_-12px_hsl(var(--shadow)/0.5)]",
             dropUp ? "bottom-full mb-1.5" : "mt-1.5",
           )}
         >

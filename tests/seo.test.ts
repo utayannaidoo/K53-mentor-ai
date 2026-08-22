@@ -126,9 +126,11 @@ describe("sitemap", () => {
     for (const p of paths) {
       if (p === "/") continue;
       const direct = path.join(ROOT, "src/app", p, "page.tsx");
-      const grouped = path.join(ROOT, "src/app/(app)", p, "page.tsx");
+      // Grouped pages may live under any route group — /login and /signup sit
+      // in (auth) so they don't inherit (app)'s provider layout.
+      const grouped = ["(app)", "(auth)"].map((g) => path.join(ROOT, "src/app", g, p, "page.tsx"));
       expect(
-        existsSync(direct) || existsSync(grouped),
+        existsSync(direct) || grouped.some(existsSync),
         `sitemap lists ${p}, which is not a route`,
       ).toBe(true);
     }

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { checkAuthAttempt, recordAuthResult } from "@/lib/auth/client-throttle";
 
 export default function ResetPasswordPage() {
   const [email, setEmail] = React.useState("");
@@ -17,8 +18,19 @@ export default function ResetPasswordPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setLoading(true);
     setErrorCopy(null);
+    // Soft client-side backoff under GoTrue's own limits (see client-throttle)
+    // — reset requests are email-bomb bait. Fails open; GoTrue stays the hard
+    // gate. Checked before setLoading so a blocked tap never shows the spinner.
+    const gate = checkAuthAttempt("reset");
+    if (!gate.allowed) {
+      const mins = Math.max(1, Math.ceil(gate.retryAfterS / 60));
+      setErrorCopy(
+        `Too many attempts — please wait ${mins} minute${mins === 1 ? "" : "s"} before trying again.`,
+      );
+      return;
+    }
+    setLoading(true);
     const supabase = createClient();
     // The result was never checked, so rate-limited requests and SMTP outages
     // both landed on "Check your email" — a promise nothing would keep.
@@ -37,10 +49,13 @@ export default function ResetPasswordPage() {
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password/update`,
       });
       if (error) {
+        recordAuthResult("reset", false);
         console.error("reset-password: request failed", error.message);
         failure = /rate|too many/i.test(error.message)
           ? "Too many reset emails have been requested just now. Please wait a few minutes and try again."
           : "We couldn't send the email just now. Please check your connection and try again.";
+      } else {
+        recordAuthResult("reset", true);
       }
     }
     // Brief delay so the action feels real in demo mode.

@@ -95,13 +95,17 @@ function BillingInner() {
       const tier = await refreshAccount().catch(() => null);
       if (settle(tier)) return;
       if (tries < 8) timer = setTimeout(poll, 2500);
-      else
+      else {
+        trackEvent("payment_return_unverified", {
+          reason: reference ? "timeout" : "no_reference",
+        });
         showBanner(
           reference
             ? "We couldn't confirm your payment yet. If you were charged, your plan activates automatically within a few minutes — check back shortly."
             : "Your checkout didn't complete, so you haven't been charged. Pick a plan below whenever you're ready.",
           "warning",
         );
+      }
     };
 
     const run = async () => {
@@ -122,6 +126,7 @@ function BillingInner() {
               | { verified?: boolean }
               | null;
             if (verdict && verdict.verified === false) {
+              trackEvent("payment_return_unverified", { reason: "not_paid" });
               showBanner(
                 "That payment didn't go through, so you haven't been charged. If it was a mistake, pick a plan below to try again.",
                 "warning",
@@ -368,7 +373,11 @@ function BillingInner() {
     }
     void (async () => {
       const tier = await refreshAccount().catch(() => null);
-      if (tier && tier !== "free") {
+      // Anti-double-charge: only when the requested plan IS the current plan
+      // is there nothing to buy. A paid user asking for the OTHER paid plan is
+      // an upgrade (Premium → Premium Plus) and must reach checkout — bouncing
+      // them to /continue made every upgrade CTA a silent dead end.
+      if (tier && tier === buy) {
         router.replace("/continue");
         return;
       }

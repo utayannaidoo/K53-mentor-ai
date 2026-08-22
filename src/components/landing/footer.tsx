@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ShieldCheck, Lock } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { CopyrightYear } from "@/components/landing/copyright-year";
 import { APP_NAME } from "@/lib/constants";
 
 const GROUPS = [
@@ -80,7 +81,7 @@ export function Footer() {
         </div>
         <div className="mt-10 flex flex-col gap-2 border-t border-border pt-6 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {new Date().getFullYear()} {APP_NAME}. Not affiliated with or endorsed by the RTMC.
+            © <CopyrightYear year={new Date().getFullYear()} /> {APP_NAME}. Not affiliated with or endorsed by the RTMC.
           </p>
           <p>Made for South African roads. 🇿🇦</p>
         </div>

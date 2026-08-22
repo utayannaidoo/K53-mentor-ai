@@ -27,7 +27,11 @@ export default function ContinuePage() {
     // URL anyone can craft, and this is the hop that actually acts on it.
     const next = safeNextPath(new URLSearchParams(window.location.search).get("next"));
     if (!isAuthed) {
-      router.replace("/login");
+      // A stale tab parked here carries its own `?next=` — usually a purchase
+      // intent like /account/billing?buy=…. Hand it through the login bounce
+      // instead of dropping it at the door.
+      const here = safeNextPath(window.location.pathname + window.location.search);
+      router.replace(here ? `/login?next=${encodeURIComponent(here)}` : "/login");
     } else if (!hasOnboarded && !hasDiagnostic) {
       router.replace("/onboarding");
     } else if (!hasDiagnostic) {

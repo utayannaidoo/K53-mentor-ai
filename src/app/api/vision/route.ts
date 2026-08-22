@@ -3,7 +3,7 @@ import { completeVisionText, chooseProvider } from "@/lib/ai/provider";
 import { clientIp, limitVision, limitUserDaily, refundUserDaily } from "@/lib/ai/rate-limit";
 import { resolveEntitlement } from "@/lib/billing/entitlements.server";
 import { recordAiUsage } from "@/lib/billing/usage.server";
-import { IMAGE_BODY_MAX_BYTES, requestBodyTooLarge } from "@/lib/http/request-size";
+import { IMAGE_BODY_MAX_BYTES, readJsonCapped, requestBodyTooLarge } from "@/lib/http/request-size";
 
 export const runtime = "nodejs";
 // Vision models are slower than text; declare the ceiling explicitly.
@@ -102,9 +102,19 @@ export async function POST(req: Request) {
     return Response.json({ unavailable: true });
   }
 
+  // Chunked requests skip the header check above, so the read itself is capped:
+  // an undeclared flood dies mid-stream instead of buffering before zod.
+  const body = await readJsonCapped(req, IMAGE_BODY_MAX_BYTES);
+  if (!body.ok) {
+    return Response.json(
+      { error: body.reason === "too_large" ? "Payload too large" : "Invalid request" },
+      { status: body.reason === "too_large" ? 413 : 400 },
+    );
+  }
+
   let parsed;
   try {
-    parsed = bodySchema.parse(await req.json());
+    parsed = bodySchema.parse(body.value);
   } catch {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }

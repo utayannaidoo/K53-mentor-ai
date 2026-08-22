@@ -70,6 +70,10 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   const [loading, setLoading] = React.useState(false);
   // Text of the assistant reply as it streams in, before it's committed to the store.
   const [streaming, setStreaming] = React.useState<string | null>(null);
+  // Which thread the in-flight reply belongs to — the live bubble and thinking
+  // dots must not render into a different conversation the learner switches to
+  // mid-stream (the commit always targets the original thread).
+  const [streamingThreadId, setStreamingThreadId] = React.useState<string | null>(null);
   // Photo attached to the next message. Sent to the API but never persisted —
   // a base64 photo per message would blow out localStorage.
   const [pendingImage, setPendingImage] = React.useState<{
@@ -85,25 +89,57 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   const [capNotice, setCapNotice] = React.useState<{ canTopUp: boolean } | null>(null);
   const [topUpBusy, setTopUpBusy] = React.useState(false);
   const [topUpBanner, setTopUpBanner] = React.useState<string | null>(null);
+  const [topUpTone, setTopUpTone] = React.useState<"success" | "warning">("success");
 
-  // Paystack redirects back with ?topup=success after buying a pack.
+  // Paystack redirects back with ?topup=success after buying a pack — but the
+  // label on that redirect is not proof of payment, so ask the server before
+  // telling the learner their messages were added.
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("topup") !== "success") return;
-    // Confirm the charge server-side so the credits are banked immediately,
-    // rather than waiting for the async webhook to land.
     const reference = params.get("reference") ?? params.get("trxref");
-    if (reference) {
-      fetch("/api/paystack/verify", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ reference }),
-      }).catch(() => {});
-    }
-    track("tutor_topup_completed", { credits: TUTOR_TOPUP_CREDITS, amount: TUTOR_TOPUP_PRICE });
-    setTopUpBanner("Top-up added — your extra messages apply automatically. Carry on!");
-    setCapNotice(null);
     window.history.replaceState(null, "", window.location.pathname);
+    let cancelled = false;
+    void (async () => {
+      if (reference) {
+        try {
+          const res = await fetch("/api/paystack/verify", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ reference }),
+          });
+          if (res.ok && !cancelled) {
+            const verdict = (await res.json().catch(() => null)) as
+              | { verified?: boolean }
+              | null;
+            if (verdict && verdict.verified === false) {
+              // Definitive "not paid" — no webhook rescue is coming.
+              setTopUpTone("warning");
+              setTopUpBanner(
+                "That top-up payment didn't go through, so you haven't been charged. You can try again below.",
+              );
+              return;
+            }
+            track("tutor_topup_completed", { credits: TUTOR_TOPUP_CREDITS, amount: TUTOR_TOPUP_PRICE });
+            setTopUpBanner("Top-up added — your extra messages apply automatically. Carry on!");
+            setCapNotice(null);
+            return;
+          }
+        } catch {
+          /* fall through to the pending message */
+        }
+      }
+      if (cancelled) return;
+      // No reference / verify hiccup: the async webhook is still a backstop,
+      // but don't claim the purchase landed before anything has confirmed it.
+      setTopUpTone("warning");
+      setTopUpBanner(
+        "Your top-up purchase is processing — extra messages are added automatically once it confirms (usually under a minute).",
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Fired when the purchase offer is actually on screen, not when the cap was
@@ -129,8 +165,10 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         window.location.href = data.url;
         return;
       }
+      setTopUpTone("warning");
       setTopUpBanner("Top-ups aren't available right now — please try again later.");
     } catch {
+      setTopUpTone("warning");
       setTopUpBanner("Network error — please try again.");
     } finally {
       setTopUpBusy(false);
@@ -197,6 +235,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
     setPendingImage(null);
     setLoading(true);
     setStreaming("");
+    setStreamingThreadId(id);
 
     // Photo turns are stored as "📷 question" for human-readable history; the
     // model should never see that marker as literal prior-turn text.
@@ -321,6 +360,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
       });
     } finally {
       setStreaming(null);
+      setStreamingThreadId(null);
       setLoading(false);
     }
   }
@@ -440,8 +480,17 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         </div>
 
         {/* Messages. role="log" + aria-live so a streaming reply is announced
-            as it arrives instead of silently appearing for screen readers. */}
-        <div ref={scrollRef} role="log" aria-live="polite" className="flex-1 space-y-4 overflow-y-auto p-4">
+            as it arrives instead of silently appearing for screen readers.
+            aria-busy pauses announcements while tokens stream in — otherwise
+            every chunk re-announced the whole growing reply — and releases
+            them once the reply is committed. */}
+        <div
+          ref={scrollRef}
+          role="log"
+          aria-live="polite"
+          aria-busy={streaming !== null}
+          className="flex-1 space-y-4 overflow-y-auto p-4"
+        >
           {messages.length === 0 &&
             (opener ? (
               // The tutor opens with what it noticed, rather than leaving the
@@ -484,20 +533,27 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
             </div>
           ))}
 
-          {/* Live streaming reply */}
-          {streaming !== null && streaming.length > 0 && (
-            <div className="flex justify-start">
-              <div className="glass-subtle max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3">
-                <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
-                  <Sparkles className="h-3 w-3" /> Tutor
+          {/* Live streaming reply. Scoped to the thread it belongs to:
+              switching conversations mid-stream used to paint the arriving
+              answer into whichever thread was open, then commit it (correctly)
+              to the original one. */}
+          {streaming !== null &&
+            streaming.length > 0 &&
+            streamingThreadId === threadId && (
+              <div className="flex justify-start">
+                <div className="glass-subtle max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3">
+                  <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
+                    <Sparkles className="h-3 w-3" /> Tutor
+                  </div>
+                  <Markdown>{streaming}</Markdown>
                 </div>
-                <Markdown>{streaming}</Markdown>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Thinking dots — only before the first token arrives */}
-          {loading && (streaming === null || streaming.length === 0) && (
+          {loading &&
+            streamingThreadId === threadId &&
+            (streaming === null || streaming.length === 0) && (
             <div className="flex justify-start">
               <div className="glass-subtle rounded-2xl rounded-tl-sm px-4 py-3">
                 <div className="flex gap-1">
@@ -532,7 +588,15 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
             <>
               <TrialMeter feature="tutor" className="mb-2.5" />
               {topUpBanner && (
-                <div className="mb-2.5 rounded-lg border border-success/30 bg-success/[0.08] px-3 py-2 text-xs text-success">
+                <div
+                  className={cn(
+                    "mb-2.5 rounded-lg border px-3 py-2 text-xs",
+                    topUpTone === "success"
+                      ? "border-success/30 bg-success/[0.08] text-success"
+                      : "border-warning/30 bg-warning/[0.08] text-foreground",
+                  )}
+                  role="status"
+                >
                   {topUpBanner}
                 </div>
               )}
@@ -561,7 +625,15 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
               )}
               <div className="no-scrollbar mb-2.5 flex gap-2 overflow-x-auto">
                 {chips.map((c) => (
-                  <Chip key={c} onClick={() => send(c)} className="shrink-0">
+                  // Disabled while a reply is in flight — send() early-returns
+                  // when loading, which used to leave chip taps silently doing
+                  // nothing. Same disabled treatment as Button.
+                  <Chip
+                    key={c}
+                    onClick={() => send(c)}
+                    disabled={loading}
+                    className="shrink-0 disabled:pointer-events-none disabled:opacity-50"
+                  >
                     <Lightbulb className="h-3.5 w-3.5" /> {c}
                   </Chip>
                 ))}

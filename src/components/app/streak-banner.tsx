@@ -39,8 +39,12 @@ export function StreakBanner() {
     }
   });
 
-  // Don't interrupt an active study session — the session itself clears the risk.
-  const inFocusedFlow = pathname.startsWith("/study/");
+  // Don't interrupt an active study session — the session itself clears the
+  // risk. The tutor counts too: its pane is sized to the exact viewport (see
+  // tutor-chat.tsx), so a banner rendered above it would push the composer
+  // under the tab bar — and its CTA would navigate away mid-conversation
+  // regardless.
+  const inFocusedFlow = pathname.startsWith("/study/") || pathname.startsWith("/tutor");
   if (!ready || dismissed || inFocusedFlow) return null;
 
   const { current, lastStudyDate } = state.streak;
