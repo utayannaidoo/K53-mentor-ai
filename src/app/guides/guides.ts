@@ -42,4 +42,16 @@ export const GUIDES = [
     description:
       "Where to book, what to take to the testing centre, what the eye test involves, and how long your learner's licence lasts.",
   },
+  {
+    slug: "k53-road-markings",
+    title: "K53 road markings explained: lines, blocks & arrows",
+    description:
+      "What every painted line, block and arrow on South African roads means — and how markings are examined in the learner's test.",
+  },
+  {
+    slug: "failed-learners-test",
+    title: "Failed the learner's licence test? What happens next",
+    description:
+      "Retry rules, how to rebook, what the marks sheet tells you, and how to turn a near-miss into a pass on the next sitting.",
+  },
 ] as const;
