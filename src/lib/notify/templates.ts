@@ -349,6 +349,72 @@ export function buildAccountDeletionCodeEmail(input: {
   return { subject, html, text };
 }
 
+/**
+ * Learner confirmation that a queued money-back refund completed. Sent by the
+ * retry cron when Paystack finally accepts the reversal — possibly days after
+ * the learner cancelled, which is exactly why this email exists: without it
+ * the only signal is a line on a bank statement.
+ *
+ * `amountZar` may be null when Paystack's verify call failed; the copy still
+ * works, it just can't name the figure.
+ */
+export function buildRefundProcessedEmail(input: {
+  firstName: string;
+  amountZar: number | null;
+}): EmailContent {
+  const name = esc(input.firstName) || "there";
+  const amount =
+    input.amountZar === null ? null : `R ${input.amountZar.toFixed(2).replace(/\.00$/, "")}`;
+  const subject = "Your refund has been processed";
+  const text =
+    `Hi ${input.firstName || "there"} — good news: ${amount ? `your ${amount} refund` : "your refund"} has been processed and is on its way back to your card. ` +
+    `Banks typically take 5–10 business days to show it on your statement.\n\n` +
+    `Nothing further is needed from you, and your study progress stays exactly where it was.\n\n` +
+    `Manage your plan any time: ${SITE_URL}/account/billing`;
+  const html = wrap(
+    h("Refund processed") +
+      p(`Hi ${name} — ${amount ? `your <strong>${amount}</strong> refund` : "your refund"} has been processed and is on its way back to your card.`) +
+      p("Banks typically take 5–10 business days to show it on your statement. Nothing further is needed from you, and your progress stays exactly where it was."),
+    "Go to billing",
+    "/account/billing",
+    "transactional",
+  );
+  return { subject, html, text };
+}
+
+/**
+ * Operator alert: a queued money-back refund exhausted its retries.
+ *
+ * Goes to SUPPORT_EMAIL, never to a customer — same plain style as the price
+ * mismatch alert. The learner's money is owed; only a human can issue it from
+ * the Paystack dashboard once the balance covers it.
+ */
+export function buildQueuedRefundAlertEmail(input: {
+  reference: string;
+  userId: string;
+  attempts: number;
+  lastError: string | null;
+}): EmailContent {
+  const subject = `[K53 billing] Queued refund gave up: ${input.reference}`;
+  const lines = [
+    `A money-back refund could not be completed automatically.`,
+    ``,
+    `Reference:  ${input.reference}`,
+    `User:       ${input.userId}`,
+    `Attempts:   ${input.attempts}`,
+    `Last error: ${input.lastError ?? "(none recorded)"}`,
+    ``,
+    `The learner cancelled inside the 7-day window and was told their refund`,
+    `is processing. It isn't going through on its own — issue it manually from`,
+    `the Paystack dashboard (Transactions → the charge → Refund) once the`,
+    `balance covers it, then mark the pending_refunds row 'refunded'.`,
+  ];
+  const html =
+    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
+    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
+  return { subject, html, text: lines.join("\n") };
+}
+
 export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
   const { streak, longest, dueCards } = input;
   // The name is profile data the user typed — escape it so a crafted "name"

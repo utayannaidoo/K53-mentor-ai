@@ -3,7 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/lib/ai/rate-limit";
 import { refundTransaction } from "@/lib/paystack/client";
-import { disableActiveSubscriptions, refundEligible } from "@/lib/billing/subscription-cancel";
+import { disableActiveSubscriptions, refundBlockedReason } from "@/lib/billing/subscription-cancel";
+import { queuePendingRefund } from "@/lib/billing/pending-refunds";
+import { REFUND_PROCESSING_DAYS } from "@/lib/billing/plans";
 
 export const runtime = "nodejs";
 
@@ -25,6 +27,13 @@ export const runtime = "nodejs";
  *    back a month someone has already paid for — which is what this route used
  *    to do, honestly signposted ("you'll drop to Free immediately") and still
  *    wrong.
+ *
+ * A third sub-outcome exists inside the window: when Paystack refuses the
+ * instant refund (an empty settlement balance being the usual cause), the
+ * charge is queued in `pending_refunds` and retried by cron until it clears —
+ * the learner is told their refund is processing and roughly how long it
+ * takes, and access continues until the queued refund actually lands (the
+ * cron's revoke mirrors this route's).
  *
  * There is no separate "turn off auto-renew" endpoint because Paystack has no
  * such concept: disabling a subscription IS how you stop it renewing, and a
@@ -84,13 +93,17 @@ export async function POST(req: Request) {
   }
 
   // Eligible for an automatic full refund? Within the money-back window of the
-  // first charge, on a paid tier, guarantee not already used.
-  const eligible = refundEligible({
+  // most recent charge, on a paid tier, guarantee not already used. When not,
+  // `refundBlocked` names the exact gate — it is returned to the client and
+  // logged, because a cancellation that quietly skips its promised refund is
+  // indistinguishable from a broken one until somebody asks "why".
+  const refundBlocked = refundBlockedReason({
     tier: sub?.tier ?? null,
     lastChargeReference: sub?.last_charge_reference ?? null,
     paidAt: sub?.paid_at ?? null,
     moneyBackUsed: sub?.money_back_used ?? null,
   });
+  const eligible = refundBlocked === null;
 
   const userId = user.id;
 
@@ -151,11 +164,18 @@ export async function POST(req: Request) {
       ? Math.max(0, Math.floor((Date.now() - new Date(sub.created_at).getTime()) / 86_400_000))
       : null;
 
+  // A refund that is still owed survives an empty subscription list: the first
+  // cancel attempt may have stopped billing at Paystack and then failed to
+  // refund (claim released, tier untouched). The retry must be able to reach
+  // the money — returning 404 here walled it off forever, with Paystack holding
+  // no live subscription AND the app refusing to re-issue the refund.
+  const refundTarget =
+    eligible && sub?.last_charge_reference ? sub.last_charge_reference : null;
   try {
     // Disable EVERY active subscription, not just the first — a past plan change
     // can leave two live, and any one still running keeps charging the learner.
     const disabled = await disableActiveSubscriptions(customerCode);
-    if (disabled === 0) {
+    if (disabled === 0 && !refundTarget) {
       return Response.json({ error: "no_active_subscription" }, { status: 404 });
     }
   } catch (err) {
@@ -173,17 +193,60 @@ export async function POST(req: Request) {
   // retry inside the window stays possible.
   let refunded = false;
   let refundError = false;
-  if (eligible && sub?.last_charge_reference) {
+  /** Paystack's own refusal, when the refund API rejected the charge. */
+  let refundMessage: string | null = null;
+  /**
+   * True when the instant refund failed but the charge is now queued for
+   * automatic retry — the learner is told their refund is processing, and the
+   * cron owns completing it (revoke included). Mutually exclusive with
+   * `refundError` in practice: a queued refund is not an error from the
+   * learner's point of view.
+   */
+  let refundQueued = false;
+  if (refundTarget) {
     if (await claimMoneyBack()) {
       try {
-        await refundTransaction(sub.last_charge_reference);
+        await refundTransaction(refundTarget, {
+          merchantNote: "K53 Mentor 7-day money-back cancellation",
+          customerNote: "Full refund of your most recent K53 Mentor payment.",
+        });
         refunded = true;
       } catch (err) {
-        console.error("billing/cancel: refund error", err);
-        refundError = true;
-        await releaseMoneyBack();
+        // Named loudly and WITH the reference: in live mode the usual refusal is
+        // an account-level condition (insufficient balance after settlement
+        // payouts being the classic), which no amount of same-request retrying
+        // fixes — but it DOES resolve on its own once the next settlement
+        // lands, so queue it rather than bouncing the learner to support.
+        refundMessage = err instanceof Error ? err.message : String(err);
+        console.error(
+          `billing/cancel: refund of ${refundTarget} failed — Paystack said: ${refundMessage}`,
+        );
+        const queued = await queuePendingRefund(admin, {
+          userId,
+          reference: refundTarget,
+          lastError: refundMessage,
+        });
+        if (queued.ok && queued.rowStatus === "queued") {
+          // The claim STAYS latched: the cron now owns exactly this refund, and
+          // a latched slot is what stops a later manual cancel from racing it.
+          refundQueued = true;
+        } else if (!queued.ok) {
+          // Queue write failed too — fall back to releasing the claim so the
+          // learner's manual retry inside the window remains possible.
+          refundError = true;
+          await releaseMoneyBack();
+        } else {
+          // Row exists in a terminal state ('refunded' — e.g. the webhook's
+          // refund.processed landed first). Nothing owed; treat as done.
+          refunded = queued.rowStatus === "refunded";
+        }
       }
     }
+  } else if (refundBlocked) {
+    console.error(
+      `billing/cancel: no refund attempted (${refundBlocked}) for user ${user.id}` +
+        ` tier=${sub?.tier ?? "?"} paid_at=${sub?.paid_at ?? "null"}`,
+    );
   }
 
   // ── Two different cancellations ─────────────────────────────────────────────
@@ -209,7 +272,14 @@ export async function POST(req: Request) {
     await admin.from("subscriptions")
       .update({ tier: "free", status: "canceled", money_back_used: true, cancel_at_period_end: false })
       .eq("user_id", user.id);
-    return Response.json({ ok: true, refunded: true, refundError: false, endsNow: true, daysActive });
+    return Response.json({
+      ok: true,
+      refunded: true,
+      refundError: false,
+      refundQueued: false,
+      endsNow: true,
+      daysActive,
+    });
   }
 
   // Tier and status deliberately unchanged — they are still a paying customer
@@ -234,6 +304,14 @@ export async function POST(req: Request) {
     ok: true,
     refunded: false,
     refundError,
+    /** True when the refund failed instantly but is queued for automatic retry. */
+    refundQueued,
+    /** Paystack's verbatim refusal when refundError is set (queue write also failed). */
+    refundMessage,
+    /** Why no refund was even attempted, when that is the case (money-back gates). */
+    refundReason: refunded ? null : refundBlocked,
+    /** The honest upper bound quoted to the learner for a queued refund. */
+    refundProcessingDays: REFUND_PROCESSING_DAYS,
     endsNow: false,
     daysActive,
     /** null when the period end was never recorded — the UI degrades to vaguer copy. */
