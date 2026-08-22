@@ -8,6 +8,25 @@ import { cn } from "@/lib/utils";
 const FOCUSABLE =
   'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+/**
+ * Scroll-lock refcount. Two stacked Dialogs each set body overflow hidden;
+ * an unconditional reset on cleanup meant whichever closed FIRST un-locked
+ * the background while the other was still open.
+ */
+let openDialogs = 0;
+let prevBodyOverflow = "";
+function lockBodyScroll() {
+  if (openDialogs === 0) {
+    prevBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+  }
+  openDialogs += 1;
+}
+function unlockBodyScroll() {
+  openDialogs = Math.max(0, openDialogs - 1);
+  if (openDialogs === 0) document.body.style.overflow = prevBodyOverflow;
+}
+
 export function Dialog({
   open,
   onClose,
@@ -70,10 +89,10 @@ export function Dialog({
     };
 
     document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
+    lockBodyScroll();
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
+      unlockBodyScroll();
       opener?.focus?.();
     };
   }, [open]);
@@ -85,7 +104,10 @@ export function Dialog({
   // overlay (a CSS spec quirk), clipping the backdrop and panel to that
   // ancestor's box instead of the viewport.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
+    // Bottom padding clears the home indicator (viewportFit=cover) so a sheet's
+    // content never sits under it on a notched phone; `max()` keeps desktop
+    // spacing identical.
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center">
       <div
         className="absolute inset-0 bg-foreground/30 backdrop-blur-md animate-fade-in"
         onClick={onClose}

@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { WifiOff } from "lucide-react";
 
-export const metadata: Metadata = { title: "Offline" };
+export const metadata: Metadata = {
+  title: "Offline",
+  // Service-worker fallback shell — only ever shown to someone who is already
+  // on the site and lost connectivity. Nothing here for a search result.
+  robots: { index: false, follow: false },
+};
 
 /** Service-worker fallback when a page isn't cached and the network is gone. */
 export default function OfflinePage() {

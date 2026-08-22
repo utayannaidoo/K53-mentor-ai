@@ -55,8 +55,13 @@ export async function updateSession(request: NextRequest) {
   // Unauthenticated user hitting a protected page → bounce to login (remember where).
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
+    // Remember the full URL, not just the path — a bounce from a filtered or
+    // paginated view (/study/questions?category=signs) that dropped its query
+    // sent the learner back to the unfiltered top of the page after login.
+    const target = `${path}${request.nextUrl.search}`;
+    url.search = ""; // the protected page's own params must not leak onto /login
     url.pathname = "/login";
-    url.searchParams.set("next", path);
+    url.searchParams.set("next", target);
     return copyCookies(response, NextResponse.redirect(url));
   }
 

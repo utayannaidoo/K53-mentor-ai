@@ -47,6 +47,11 @@ export function SmoothScroll() {
       if (!href || href === "#") return;
       const target = document.querySelector(href);
       if (!target) return;
+      // Skip links move KEYBOARD FOCUS to their target, not just the scroll
+      // position. Intercepting them meant a screen-reader user who activated
+      // "Skip to main content" was scrolled down while focus stayed trapped
+      // behind the whole header — the exact thing the link exists to prevent.
+      if (anchor?.hasAttribute("data-lenis-skip")) return;
       e.preventDefault();
       lenis.scrollTo(target as HTMLElement, { offset: -80 });
       history.pushState(null, "", href);

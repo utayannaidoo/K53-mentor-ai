@@ -1,7 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { assertSupabaseConfiguredInProduction, isHostedProduction, isSupabaseConfigured } from "@/lib/env";
+import { assertSupabaseConfiguredInProduction, isProductionRuntime, isSupabaseConfigured } from "@/lib/env";
 import { FREE_TRIAL_DAYS, PLAN_MAP } from "@/lib/billing/plans";
 import type { SubscriptionTier } from "@/types";
 
@@ -67,12 +67,14 @@ export interface Entitlement {
  *   — entitlement fails closed, never open.
  */
 export async function resolveEntitlement(surface: AiSurface): Promise<Entitlement | Response> {
-  // A hosted deploy with no Supabase has no accounts, so there is nobody to
-  // attribute a model call to and nobody to bill it against — every caller is
-  // anonymous and the URL is public. Refuse outright rather than fall through
-  // to a tier. This is the money half of what used to be defended by crashing
-  // the whole deployment at boot; the study app itself is unaffected.
-  if (!isSupabaseConfigured && isHostedProduction()) {
+  // A production runtime with no Supabase has no accounts, so there is nobody
+  // to attribute a model call to and nobody to bill it against — every caller
+  // is anonymous and the URL is public. Refuse outright rather than fall
+  // through to a tier. This is the money half of what used to be defended by
+  // crashing the whole deployment at boot; the study app itself is unaffected.
+  // Keyed on isProductionRuntime (any host), not Vercel alone — a production
+  // build on another platform is just as anonymous and just as public.
+  if (!isSupabaseConfigured && isProductionRuntime()) {
     return Response.json({ error: "AI is unavailable on this deployment." }, { status: 503 });
   }
   const resolved = await resolveTier();
@@ -101,13 +103,14 @@ export async function resolveTier(): Promise<ResolvedTier | Response> {
     // Demo mode's open `premium_plus` is a *local* convenience: no accounts
     // exist, so there is nothing to protect and everything should be visible.
     //
-    // On a hosted runtime the same answer is an open product on a public URL,
-    // which is what the boot guard in env.ts used to prevent by refusing to
+    // On any production runtime the same answer is an open product on a public
+    // URL, which is what the boot guard in env.ts used to prevent by refusing to
     // start — and what it cost was every preview deployment, since previews
     // legitimately run without Supabase. Failing closed to `free` here gives
     // both: the preview boots and the app renders, but nothing paid is served
-    // to callers who cannot be identified.
-    return { userId: null, tier: isHostedProduction() ? "free" : "premium_plus" };
+    // to callers who cannot be identified. Keyed on isProductionRuntime (any
+    // host), not Vercel alone — see env.ts.
+    return { userId: null, tier: isProductionRuntime() ? "free" : "premium_plus" };
   }
 
   const supabase = await createClient();

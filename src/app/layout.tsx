@@ -52,7 +52,10 @@ export const metadata: Metadata = {
   // Omitted, Next derives them from each page's own title.
   openGraph: {
     description: APP_DESCRIPTION,
-    url: SITE_URL,
+    // "./" like the canonical above: pinned to SITE_URL, every page's og:url
+    // claimed to be the homepage, so a shared guide told scrapers its own URL
+    // was a copy of / — and WhatsApp previews linked back to the wrong page.
+    url: "./",
     siteName: APP_NAME,
     locale: "en_ZA",
     type: "website",
@@ -106,6 +109,7 @@ export default function RootLayout({
             before reaching content on every page. Visible only once focused. */}
         <a
           href="#main-content"
+          data-lenis-skip
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-primary focus:px-4 focus:py-2.5 focus:text-sm focus:font-medium focus:text-primary-foreground focus:shadow-soft-lg focus:outline-none focus:ring-4 focus:ring-ring/25"
         >
           Skip to main content

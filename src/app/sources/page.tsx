@@ -11,7 +11,7 @@ export default function SourcesPage() {
   return (
     <LegalPage
       title="Content sources"
-      updated="2 July 2026"
+      updated="2026-07-02"
       intro={`Everything you study in ${APP_NAME} is aligned to official South African road-traffic material. This page lists what our content is based on and how we keep it honest.`}
     >
       <section>

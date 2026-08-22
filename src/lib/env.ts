@@ -27,6 +27,30 @@ export function isHostedProduction() {
 }
 
 /**
+ * Any production runtime, on any host — not just Vercel.
+ *
+ * `isHostedProduction()` answers "is this a Vercel deployment", which is what
+ * the boot guards need. But the demo-mode generosity branches (the anonymous
+ * premium_plus tier, the open AI surfaces, the unreleased-feature owner pass)
+ * must key on "am I running a production build somewhere public", not on
+ * "am I running on Vercel": a production image deployed to any other host
+ * (Docker, Railway, Fly) with no Supabase env is exactly as anonymous and as
+ * public as a misconfigured Vercel deploy, and used to fall through to the
+ * local-demo branch — serving paid content, AI spend and unreleased features
+ * to whoever found the URL.
+ *
+ * Excludes the build phase for the same reason `isHostedProduction()` does:
+ * `next build` prerenders pages with NODE_ENV=production and no runtime env,
+ * and those calls must see the demo branch, not a refusal.
+ */
+export function isProductionRuntime(): boolean {
+  return (
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PHASE !== "phase-production-build"
+  );
+}
+
+/**
  * The *production* deployment specifically — not a preview of it.
  *
  * `isHostedProduction()` is true on previews too: they run with

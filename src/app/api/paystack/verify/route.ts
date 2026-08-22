@@ -67,8 +67,16 @@ export async function POST(req: Request) {
 
   const meta = tx.metadata ?? {};
   // The metadata was set by us at initialize, so it's the trusted owner of the
-  // charge. A signed-in user may only apply their own payment.
-  if (meta.user_id && meta.user_id !== user.id) {
+  // charge. Require an EXACT match — not just "mismatch refuses". Every
+  // checkout this app creates requires a signed-in user and stamps their id
+  // into the metadata, so a successful transaction whose metadata carries no
+  // user_id is not one of ours (a legacy or foreign charge): letting it fall
+  // through would let whoever presented the reference first bind it to
+  // themselves. The buyer never hits this: they only ever poll the reference
+  // from their own checkout, which carries their own id. Renewal charges also
+  // lack our metadata, but they never arrive here — there is no redirect-back
+  // polling for a renewal; the webhook owns those.
+  if (meta.user_id !== user.id) {
     return Response.json({ error: "reference_mismatch" }, { status: 403 });
   }
 

@@ -52,7 +52,7 @@ export default function LicencePrepPage() {
               </p>
             </div>
           </div>
-          <Link href="/account/billing" className={cn(buttonVariants())}>
+          <Link href="/account/billing?buy=premium_plus" className={cn(buttonVariants())}>
             Upgrade to Premium Plus <ArrowRight />
           </Link>
         </Card>
@@ -64,7 +64,7 @@ export default function LicencePrepPage() {
         unlocked/locked treatment as the module cards below it: routes to the
         real thing when unlocked, to billing otherwise.
       */}
-      <Link href={unlocked ? "/eye-test" : "/account/billing"} className="group mb-4 block">
+      <Link href={unlocked ? "/eye-test" : "/account/billing?buy=premium_plus"} className="group mb-4 block">
         <Card
           className={cn(
             glass,
@@ -98,7 +98,7 @@ export default function LicencePrepPage() {
           return (
             <Link
               key={m.id}
-              href={unlocked ? `/licence-prep/${m.id}` : "/account/billing"}
+              href={unlocked ? `/licence-prep/${m.id}` : "/account/billing?buy=premium_plus"}
               className="group"
             >
               <Card className={cn(glass, "hover-elevate flex h-full flex-col p-5")}>

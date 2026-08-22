@@ -135,14 +135,21 @@ export function ReadinessPlot({ data, current }: { data: TrendPoint[]; current: 
         <circle cx={last.x} cy={last.y} r="5" fill="hsl(var(--primary))" />
       </svg>
 
-      {/* The floating annotation pill, positioned over the plot. */}
+      {/* The floating annotation pill, positioned over the plot. Clamped
+          horizontally and flipped below the point near the top edge — the
+          sheet clips overflow, so an unclamped pill lost its text at the
+          chart's left/right margins and its top line entirely on peak days. */}
       {annotate && (
         <div
           className={cn(
             glassSubtle,
-            "pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-xl border px-3 py-1.5 text-center shadow-soft",
+            "pointer-events-none absolute -translate-x-1/2 rounded-xl border px-3 py-1.5 text-center shadow-soft",
+            annotate.y / H < 0.3 ? "translate-y-[calc(100%+10px)]" : "-translate-y-full",
           )}
-          style={{ left: `${(annotate.x / W) * 100}%`, top: `${(annotate.y / H) * 100}%` }}
+          style={{
+            left: `${Math.min(86, Math.max(14, (annotate.x / W) * 100))}%`,
+            top: `${(annotate.y / H) * 100}%`,
+          }}
         >
           <p className="whitespace-nowrap text-xs font-semibold text-foreground">
             Best day · +{Math.round(bestGain)}

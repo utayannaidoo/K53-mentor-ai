@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
+import { buttonVariants } from "@/components/ui/button";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { signQuestionAlt } from "@/lib/content/sign-alt";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -50,8 +51,12 @@ const ADVANCE_MS = 650;
 
 function DiagnosticQuiz() {
   const router = useRouter();
-  const { state, recordQuestionAttempt, recordDiagnostic } = useStudyStore();
+  const { state, isAuthed, recordQuestionAttempt, recordDiagnostic, recordSession } =
+    useStudyStore();
   const { questions: bank } = useContentPool();
+  // Wall-clock length of the diagnostic — recorded as a study session so
+  // "Time studied" doesn't pretend the assessment took zero minutes.
+  const startRef = React.useRef(Date.now());
 
   const [questions] = React.useState(() =>
     sampleDiagnostic(
@@ -114,6 +119,7 @@ function DiagnosticQuiz() {
         window.setTimeout(() => {
           const result = scoreDiagnostic(nextResponses);
           recordDiagnostic(result);
+          recordSession("diagnostic", Math.round((Date.now() - startRef.current) / 1000));
           // Activation. Finishing the diagnostic is the moment the product
           // first shows a learner something they didn't know about themselves,
           // so it is the retention split worth measuring everything else against.
@@ -168,12 +174,40 @@ function DiagnosticQuiz() {
     );
   }
 
+  // A thin bank can sample zero questions for a licence code (the starter pack
+  // carries few motorcycle/heavy items). `current` would then be undefined and
+  // the very first render crashed at current.id — say so instead of white-
+  // screening. (Sits after every hook: the hook order must stay unconditional.)
+  if (total === 0) {
+    return (
+      <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
+        <Logo />
+        <h1 className="mt-6 font-display text-xl font-semibold tracking-tight">
+          The diagnostic isn&apos;t available for your licence code yet
+        </h1>
+        <p className="mt-2 max-w-sm text-sm text-muted-foreground">
+          We couldn&apos;t build a question set for this device. You can start practising right
+          away — your plan will fill in as you go.
+        </p>
+        <Link
+          href={isAuthed ? "/dashboard" : "/"}
+          className={cn(buttonVariants({ variant: "outline" }), "mt-6")}
+        >
+          {isAuthed ? "Go to dashboard" : "Back to home"}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-background bg-app">
       <header className="flex items-center justify-between px-6 py-5">
         {/* The only way off this screen used to be the browser's back button —
-            there was not a single link on the page. */}
-        <Link href="/" aria-label="K53 Mentor AI home">
+            there was not a single link on the page. Guests go back to
+            marketing; a signed-in learner who bails mid-quiz stays inside the
+            product (the dashboard re-prompts the diagnostic) instead of being
+            dumped onto the landing page with their answers gone. */}
+        <Link href={isAuthed ? "/dashboard" : "/"} aria-label="K53 Mentor AI home">
           <Logo />
         </Link>
         <span className="font-mono text-sm text-muted-foreground">
@@ -203,7 +237,7 @@ function DiagnosticQuiz() {
         Question {index + 1} of {total}. {current.prompt}
       </p>
 
-      <main id="main-content" className="flex flex-1 items-center justify-center px-6 py-8">
+      <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-6 py-8">
         <div key={current.id} className="w-full max-w-xl animate-fade-in">
           <p className="text-sm font-medium uppercase tracking-wide text-primary">
             Question {index + 1}

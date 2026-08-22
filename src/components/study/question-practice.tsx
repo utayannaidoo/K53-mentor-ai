@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SessionProgress, type SessionOutcome } from "@/components/ui/session-progress";
+import { SessionNavRow } from "@/components/ui/session-nav";
 import { Paywall } from "@/components/app/paywall";
 import { TrialEndCard } from "@/components/app/trial-end-card";
 import { sourceFor } from "@/lib/content/provenance";
@@ -16,6 +17,7 @@ import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { signQuestionAlt } from "@/lib/content/sign-alt";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
+import { NextStepCard } from "@/components/study/next-step-card";
 import { SecondOpinion } from "@/components/study/second-opinion";
 import { SpeakButton } from "@/components/study/speak-button";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -31,6 +33,8 @@ import {
   withShuffledOptions,
 } from "@/lib/diagnostic/select";
 import { dueMistakes } from "@/lib/learning/mistakes";
+import { nextStepAfterQuestions, type CategoryMisses } from "@/lib/learning/next-step";
+import { mockRetestStatus } from "@/lib/plan";
 import { abilityByCategory, interleave, withinReach } from "@/lib/learning/ability";
 import { cramQueue } from "@/lib/learning/cram";
 import { TrialMeter } from "@/components/app/trial-meter";
@@ -183,9 +187,10 @@ export function QuestionPractice() {
         ) : (
           <Paywall
             feature="questions"
+            plan="premium_plus"
             title="You've hit today's questions"
             description="Your plan's daily question sessions are done — they reset tomorrow. Premium Plus removes the limit entirely."
-            cta="See plans"
+            cta="See Premium Plus"
           />
         )}
       </div>
@@ -224,16 +229,16 @@ export function QuestionPractice() {
 
   if (i >= queue.length) {
     const seconds = Math.round((Date.now() - startRef.current) / 1000);
-    const wrongByCat = new Map<CategoryId, number>();
+    const wrongByCat: CategoryMisses = {};
     queue.forEach((q, idx) => {
       if (answers[idx] !== q.correctIndex) {
-        wrongByCat.set(q.categoryId, (wrongByCat.get(q.categoryId) ?? 0) + 1);
+        wrongByCat[q.categoryId] = (wrongByCat[q.categoryId] ?? 0) + 1;
       }
     });
-    const weakCategories = [...wrongByCat.entries()]
+    const weakCategories = [...Object.entries(wrongByCat)]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 2)
-      .map(([c]) => categoryName(c));
+      .map(([c]) => categoryName(c as CategoryId));
     return (
       <Summary
         correct={correctCount}
@@ -242,6 +247,8 @@ export function QuestionPractice() {
         cpEarned={state.cp - cpStartRef.current}
         onPracticeMore={restart}
         trialNearEnd={state.tier === "free" && Number.isFinite(cap.cap) && cap.cap - cap.used <= 2}
+        wrongByCategory={wrongByCat}
+        mockRetestDue={mockRetestStatus(state).due}
         recap={{
           mode: "questions",
           correct: correctCount,
@@ -330,8 +337,8 @@ export function QuestionPractice() {
         </div>
       )}
 
-      <div className="mt-5 flex items-center gap-2 sm:gap-3">
-        <NavButton dir="prev" onClick={goPrev} disabled={i === 0} />
+      <div className="mt-5 flex items-center gap-3">
+        <NavButton dir="prev" onClick={goPrev} disabled={i === 0} className="hidden sm:flex" />
 
         <div key={q.id} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in">
           <Badge variant="secondary" className="gap-1">
@@ -423,8 +430,20 @@ export function QuestionPractice() {
           </div>
         </div>
 
-        <NavButton dir="next" onClick={goNext} disabled={!answered} finish={isLast} />
+        <NavButton dir="next" onClick={goNext} disabled={!answered} finish={isLast} className="hidden sm:flex" />
       </div>
+
+      {/* Phones: the advance action sits under the answers in thumb reach —
+          see SessionNavRow. */}
+      <SessionNavRow
+        onPrev={goPrev}
+        onNext={goNext}
+        prevDisabled={i === 0}
+        nextDisabled={!answered}
+        nextLabel="Next question"
+        finish={isLast}
+        finishLabel="Finish session"
+      />
     </div>
   );
 }
@@ -434,11 +453,13 @@ function NavButton({
   onClick,
   disabled,
   finish,
+  className,
 }: {
   dir: "prev" | "next";
   onClick: () => void;
   disabled?: boolean;
   finish?: boolean;
+  className?: string;
 }) {
   const Icon = dir === "prev" ? ChevronLeft : finish ? Check : ChevronRight;
   return (
@@ -448,7 +469,11 @@ function NavButton({
       disabled={disabled}
       aria-label={dir === "prev" ? "Previous question" : finish ? "Finish" : "Next question"}
       className={cn(
-        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        // 48px, not 44 — the lower bound of a comfortable thumb target.
+        // Callers pass `hidden sm:flex`; `hidden` sorts after `flex` in
+        // Tailwind's display group, so it wins below `sm`.
+        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        className,
         disabled
           ? "cursor-not-allowed border-border/40 text-muted-foreground/30"
           : dir === "next"
@@ -469,6 +494,8 @@ function Summary({
   recap,
   onPracticeMore,
   trialNearEnd,
+  wrongByCategory,
+  mockRetestDue,
 }: {
   correct: number;
   total: number;
@@ -477,8 +504,19 @@ function Summary({
   recap: SessionRecapData;
   onPracticeMore: () => void;
   trialNearEnd?: boolean;
+  /** Misses by category for this session — feeds the targeted next step. */
+  wrongByCategory: CategoryMisses;
+  /** Whether the pass predictor is due a recalibration. */
+  mockRetestDue: boolean;
 }) {
   const acc = total ? Math.round((correct / total) * 100) : 0;
+  // The loop's hinge: the session just produced fresh evidence of where the
+  // learner stands — aim the next move at it. Null when nothing dominates and
+  // no re-test is due; then the two buttons below are still the right advice.
+  const nextStep = nextStepAfterQuestions({
+    wrongByCategory,
+    mockRetestDue,
+  });
   return (
     <div className="mx-auto max-w-md py-10">
       <Card className="animate-scale-in p-8 text-center">
@@ -495,14 +533,26 @@ function Summary({
           </div>
         )}
         <div className="mt-6 flex justify-center gap-3">
-          <Button variant="outline" onClick={onPracticeMore}>
+          <Button variant={nextStep ? "outline" : undefined} onClick={onPracticeMore}>
             Practice more
           </Button>
-          <Link href="/dashboard" className={cn(buttonVariants())}>
+          <Link
+            href="/dashboard"
+            className={cn(buttonVariants({ variant: nextStep ? "outline" : "default" }))}
+          >
             Back to dashboard
           </Link>
         </div>
       </Card>
+      {nextStep && (
+        <NextStepCard
+          className="mt-5"
+          title={nextStep.title}
+          body={nextStep.body}
+          href={nextStep.href}
+          cta={nextStep.cta}
+        />
+      )}
       <SessionRecap data={recap} className="mt-5" />
       {/* Conversion moment lands right here, while the session result is fresh,
           instead of ambushing the learner on their next visit. */}

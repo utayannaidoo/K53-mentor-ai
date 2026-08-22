@@ -11,7 +11,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of service"
-      updated="8 August 2026"
+      updated="2026-08-08"
       intro={`These terms apply when you use ${APP_NAME}. They're written to be read — the short version: we help you study, we don't write the test for you, and we ask you to use the service honestly.`}
     >
       <section>

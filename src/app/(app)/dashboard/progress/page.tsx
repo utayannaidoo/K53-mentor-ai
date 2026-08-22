@@ -31,7 +31,7 @@ import {
 } from "@/lib/achievements";
 import { EXAM_FORMAT, SECTION_LABEL, type ExamSection } from "@/lib/constants";
 import { activityByDay, buildHeatmap } from "@/lib/dashboard/day-strip";
-import { blockingSection } from "@/lib/diagnostic/scoring";
+import { blockingSection, sectionCompetence } from "@/lib/diagnostic/scoring";
 import { LICENCE_RANK_INDEX, MASTERY_STAMP_AT } from "@/lib/engagement";
 import { bestStudyTime, mostImproved } from "@/lib/insights";
 import { categoryName } from "@/lib/content/categories";
@@ -137,7 +137,10 @@ export default function ProgressPage() {
 
   // Section competence, from the categories examined under each section. The
   // three-bar picture is the honest answer to "would I pass" — the exam is
-  // three separate minimums, not one average.
+  // three separate minimums, not one average. Values come from the same
+  // weighted sectionCompetence the pass-probability model uses: an unweighted
+  // category average here could read "71% — below the mark" beside a verdict
+  // computed from a weighted 74%, and one of them would be a lie.
   const sections = React.useMemo(() => {
     const out: { id: ExamSection; value: number; required: number }[] = [];
     for (const id of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {
@@ -146,12 +149,12 @@ export default function ProgressPage() {
       const { questions, pass } = EXAM_FORMAT.sections[id];
       out.push({
         id,
-        value: Math.round(rows.reduce((s, r) => s + r.value, 0) / rows.length),
+        value: Math.round(sectionCompetence(readiness.perCategory, id)),
         required: Math.round((pass / questions) * 100),
       });
     }
     return out;
-  }, [mastery]);
+  }, [mastery, readiness.perCategory]);
 
   /**
    * The verdict, in words.
@@ -357,7 +360,7 @@ export default function ProgressPage() {
                   actually sit down for.
                 </p>
                 <Link
-                  href="/account/billing"
+                  href="/account/billing?buy=premium_plus"
                   className={cn(buttonVariants({ variant: "outline", size: "sm" }))}
                 >
                   Upgrade
@@ -532,7 +535,7 @@ export default function ProgressPage() {
                 not shown on Free.
               </p>
               <Link
-                href="/account/billing"
+                href="/account/billing?buy=premium"
                 className={cn(buttonVariants({ size: "sm", variant: "outline" }), "shrink-0")}
               >
                 <Lock className="h-3 w-3" /> See it all

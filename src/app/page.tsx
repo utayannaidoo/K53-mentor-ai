@@ -13,13 +13,47 @@ import { CtaBand } from "@/components/landing/cta-band";
 import { Footer } from "@/components/landing/footer";
 import { Reveal } from "@/components/shared/reveal";
 import { SmoothScroll } from "@/components/shared/smooth-scroll";
+import { APP_NAME, SITE_URL } from "@/lib/constants";
+
+/**
+ * Site-level entities for the homepage only.
+ *
+ * The FAQ and guide Article schemas cover content-rich results; nothing told
+ * search engines what entity owns this domain — name, logo, canonical origin.
+ * Honest minimums only: no aggregateRating or SearchAction, because there is
+ * no on-site search to back it and invented ratings are a manual-action risk.
+ */
+const SITE_SCHEMA = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: APP_NAME,
+      url: SITE_URL,
+      logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png`, width: 512, height: 512 },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: APP_NAME,
+      inLanguage: "en-ZA",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
+};
 
 export default function HomePage() {
   return (
     <div className="relative flex min-h-dvh flex-col overflow-x-clip bg-aurora">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_SCHEMA) }}
+      />
       <SmoothScroll />
       <MarketingNav />
-      <main id="main-content" className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <Hero />
 
         <Reveal>

@@ -18,6 +18,7 @@ import type {
   TestKind,
 } from "@/types";
 import {
+  KEEP,
   STORAGE_KEY,
   defaultUserState,
   getTodayUsage,
@@ -212,7 +213,11 @@ function applyStudyEffects(state: UserState, now = new Date()): UserState {
   const history = s.readinessHistory.filter((h) => h.date !== date);
   history.push({ date, readiness: breakdown.readiness });
   history.sort((a, b) => a.date.localeCompare(b.date));
-  return { ...s, readinessHistory: history.slice(-90) };
+  // Cap at the same limit the persisted blob and the server merge use — an
+  // older 90-point trim sat here and silently threw away everything older
+  // than ~3 months the moment account hydration had restored full history,
+  // so Premium learners' plots lost their past on the first answer of the day.
+  return { ...s, readinessHistory: history.slice(-KEEP.readinessHistory) };
 }
 
 /** Gap after which returning gets a "while you were away" summary. */
@@ -595,7 +600,6 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         const next = {
           ...s,
           diagnostics: [...s.diagnostics, result],
-          attempts: s.attempts, // diagnostic responses are recorded separately as attempts
           cp: s.cp + DIAGNOSTIC_CP,
         };
         return applyStudyEffects(next);

@@ -99,7 +99,7 @@ export function StreakBanner() {
           type="button"
           onClick={dismiss}
           aria-label="Dismiss for today"
-          className="text-muted-foreground transition-colors hover:text-foreground"
+          className="-m-1.5 shrink-0 rounded-md p-1.5 text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
         >
           <X className="h-4 w-4" />
         </button>

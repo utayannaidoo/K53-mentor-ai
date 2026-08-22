@@ -99,7 +99,10 @@ export function TrialEndCard({
           onClick={() => track("paywall_cta_clicked", { feature: "trial_end" })}
           className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
         >
-          <Sparkles className="h-3.5 w-3.5" /> Keep studying
+          {/* Honest label: this goes to the plan picker, not back into a
+              session — "Keep studying" sent cap-hitters to pricing and felt
+              like a bait-and-switch. */}
+          <Sparkles className="h-3.5 w-3.5" /> See plans
         </Link>
       </Card>
     );

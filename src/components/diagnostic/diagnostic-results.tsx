@@ -50,7 +50,7 @@ export function DiagnosticResults() {
         <ThemeToggle />
       </header>
 
-      <main id="main-content" className="mx-auto max-w-2xl px-6 pb-20">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-2xl px-6 pb-20">
         {/* Reward moment */}
         <div className="flex flex-col items-center text-center">
           <Badge variant="default" className="mb-4 gap-1">

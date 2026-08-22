@@ -208,8 +208,12 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
           </p>
         )}
 
-        <div className="mt-6 flex justify-end gap-3">
-          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+        {/* Stacked full-width on phones (primary action on top), side by side
+            from `sm` — the pair needed ~230px but a 320px sheet offers ~208. */}
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onClose} disabled={saving} className="sm:w-auto">
+            Cancel
+          </Button>
           <Button
             onClick={save}
             disabled={saving || testExpired || driversExpired}

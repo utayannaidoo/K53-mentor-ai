@@ -407,44 +407,79 @@ export async function streamTutorReply(
         ...(args.grounding ? [{ type: "text" as const, text: args.grounding }] : []),
       ];
       const lastUserIdx = args.messages.length - 1;
-      const events = client.messages.stream({
-        model,
-        max_tokens: MAX_TOKENS,
-        temperature: TEMPERATURE,
-        system,
-        messages: args.messages.map((m, i) =>
-          args.image && i === lastUserIdx && m.role === "user"
-            ? {
-                role: "user" as const,
-                content: [
-                  {
-                    type: "image" as const,
-                    source: {
-                      type: "base64" as const,
-                      media_type: args.image.mediaType,
-                      data: args.image.data,
+      // Abandoned replies must stop billing: the controller is aborted when
+      // the consumer goes away (learner closed the tab / navigated mid-answer),
+      // which unwinds the upstream SDK request instead of letting the model
+      // generate to completion for nobody.
+      const upstreamAbort = new AbortController();
+      const events = client.messages.stream(
+        {
+          model,
+          max_tokens: MAX_TOKENS,
+          temperature: TEMPERATURE,
+          system,
+          messages: args.messages.map((m, i) =>
+            args.image && i === lastUserIdx && m.role === "user"
+              ? {
+                  role: "user" as const,
+                  content: [
+                    {
+                      type: "image" as const,
+                      source: {
+                        type: "base64" as const,
+                        media_type: args.image.mediaType,
+                        data: args.image.data,
+                      },
                     },
-                  },
-                  { type: "text" as const, text: m.content },
-                ],
-              }
-            : { role: m.role, content: m.content },
-        ),
-      });
+                    { type: "text" as const, text: m.content },
+                  ],
+                }
+              : { role: m.role, content: m.content },
+          ),
+        },
+        { signal: upstreamAbort.signal },
+      );
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
+          let emitted = false;
           try {
             for await (const ev of events) {
               if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
+                emitted = true;
                 controller.enqueue(encoder.encode(ev.delta.text));
               }
             }
           } catch (err) {
-            console.error("anthropic stream error", err);
-            controller.enqueue(encoder.encode(args.localReply));
+            if (!upstreamAbort.signal.aborted) console.error("anthropic stream error", err);
+            // Mid-stream failure with tokens already shown: appending the FULL
+            // rule-based reply glued a non-sequitur onto the half answer. An
+            // honest one-liner is the right degradation; if nothing was
+            // emitted yet, the full local reply is still better than nothing.
+            // (A deliberate client-cancel enqueues nothing — there's nobody
+            // left to read it.)
+            try {
+              if (!upstreamAbort.signal.aborted) {
+                controller.enqueue(
+                  encoder.encode(
+                    emitted
+                      ? "\n\n_My connection dropped mid-answer — please send that again._"
+                      : args.localReply,
+                  ),
+                );
+              }
+            } catch {
+              /* stream already closed */
+            }
           } finally {
-            controller.close();
+            try {
+              controller.close();
+            } catch {
+              /* already closed by cancel() */
+            }
           }
+        },
+        cancel() {
+          upstreamAbort.abort();
         },
       });
       return { stream, model, provider };
@@ -459,42 +494,73 @@ export async function streamTutorReply(
       // marker to set, only a prefix to keep stable.
       const system = args.grounding ? `${args.persona}\n\n${args.grounding}` : args.persona;
       const lastUserIdx = args.messages.length - 1;
-      const completion = await wire.chat.completions.create({
-        model,
-        temperature: TEMPERATURE,
-        max_tokens: MAX_TOKENS,
-        stream: true,
-        messages: [
-          { role: "system", content: system },
-          ...args.messages.map((m, i) =>
-            args.image && i === lastUserIdx && m.role === "user"
-              ? {
-                  role: "user" as const,
-                  content: [
-                    {
-                      type: "image_url" as const,
-                      image_url: { url: `data:${args.image.mediaType};base64,${args.image.data}` },
-                    },
-                    { type: "text" as const, text: m.content },
-                  ],
-                }
-              : { role: m.role, content: m.content },
-          ),
-        ],
-      });
+      // Same abandoned-reply guard as the Anthropic branch: cancel() aborts
+      // the upstream request so a closed tab stops generating.
+      const upstreamAbort = new AbortController();
+      const completion = await wire.chat.completions.create(
+        {
+          model,
+          temperature: TEMPERATURE,
+          max_tokens: MAX_TOKENS,
+          stream: true,
+          messages: [
+            { role: "system", content: system },
+            ...args.messages.map((m, i) =>
+              args.image && i === lastUserIdx && m.role === "user"
+                ? {
+                    role: "user" as const,
+                    content: [
+                      {
+                        type: "image_url" as const,
+                        image_url: { url: `data:${args.image.mediaType};base64,${args.image.data}` },
+                      },
+                      { type: "text" as const, text: m.content },
+                    ],
+                  }
+                : { role: m.role, content: m.content },
+            ),
+          ],
+        },
+        { signal: upstreamAbort.signal },
+      );
       const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
+          let emitted = false;
           try {
             for await (const chunk of completion) {
               const t = chunk.choices[0]?.delta?.content;
-              if (t) controller.enqueue(encoder.encode(t));
+              if (t) {
+                emitted = true;
+                controller.enqueue(encoder.encode(t));
+              }
             }
           } catch (err) {
-            console.error(`${provider} stream error`, err);
-            controller.enqueue(encoder.encode(args.localReply));
+            if (!upstreamAbort.signal.aborted) console.error(`${provider} stream error`, err);
+            // Same degradation as the Anthropic branch: never glue the full
+            // local reply onto a partial provider answer.
+            try {
+              if (!upstreamAbort.signal.aborted) {
+                controller.enqueue(
+                  encoder.encode(
+                    emitted
+                      ? "\n\n_My connection dropped mid-answer — please send that again._"
+                      : args.localReply,
+                  ),
+                );
+              }
+            } catch {
+              /* stream already closed */
+            }
           } finally {
-            controller.close();
+            try {
+              controller.close();
+            } catch {
+              /* already closed by cancel() */
+            }
           }
+        },
+        cancel() {
+          upstreamAbort.abort();
         },
       });
       return { stream, model, provider };

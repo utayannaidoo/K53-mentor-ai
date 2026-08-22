@@ -11,6 +11,7 @@ import {
 } from "@/lib/billing/entitlements.server";
 import { recordAiUsage } from "@/lib/billing/usage.server";
 import { hasFeature } from "@/lib/billing/plans";
+import { IMAGE_BODY_MAX_BYTES, requestBodyTooLarge } from "@/lib/http/request-size";
 
 export const runtime = "nodejs";
 // Streaming replies can legitimately take tens of seconds; declare it rather
@@ -55,6 +56,14 @@ const bodySchema = z.object({
 });
 
 export async function POST(req: Request) {
+  // ── Size backstop, before anything else ─────────────────────────────────────
+  // One header read is cheaper than the limiter below it. Without this the
+  // handler buffers and JSON-parses a body of arbitrary size before zod (or
+  // the 5.6MB image cap) ever sees it.
+  if (requestBodyTooLarge(req, IMAGE_BODY_MAX_BYTES)) {
+    return Response.json({ error: "Payload too large" }, { status: 413 });
+  }
+
   // ── Per-IP abuse guard FIRST ───────────────────────────────────────────────
   // Before auth (two network round-trips) and before parsing a body that the
   // schema allows to reach ~5.6MB. Ordered after them, a flood still cost a

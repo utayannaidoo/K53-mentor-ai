@@ -5,7 +5,8 @@ import Link from "next/link";
 import { Lock, Check, Sparkles } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { PLAN_MAP, monthlyPrice } from "@/lib/billing/plans";
+import { PLAN_MAP, monthlyPrice, tierForFeature, type FeatureKey } from "@/lib/billing/plans";
+import type { SubscriptionTier } from "@/types";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
@@ -24,10 +25,12 @@ const DEFAULT_BENEFITS = [
 export function Paywall({
   title,
   description,
-  cta = "Unlock with Premium",
-  href = "/account/billing",
+  cta,
+  href,
   icon,
   feature,
+  featureKey,
+  plan,
   benefits = DEFAULT_BENEFITS,
   className,
 }: {
@@ -38,6 +41,15 @@ export function Paywall({
   icon?: React.ReactNode;
   /** Which feature hit its limit — makes paywall funnels comparable in analytics. */
   feature?: string;
+  /**
+   * Which capability gate this is. When given (and no explicit plan/href),
+   * the CTA deep-links straight into that plan's checkout (`?buy=`), so a
+   * learner who just hit the wall never re-chooses between two cards they
+   * don't need to compare.
+   */
+  featureKey?: FeatureKey;
+  /** Explicit pitch tier — overrides featureKey. */
+  plan?: SubscriptionTier;
   benefits?: string[];
   className?: string;
 }) {
@@ -45,7 +57,11 @@ export function Paywall({
     track("paywall_viewed", { feature: feature ?? "unknown" });
   }, [feature]);
 
-  const fromPrice = monthlyPrice(PLAN_MAP.premium);
+  const pitchedPlan = plan ?? (featureKey ? tierForFeature(featureKey) : "premium");
+  const target =
+    href ?? (featureKey || plan ? `/account/billing?buy=${pitchedPlan}` : "/account/billing");
+  const defaultCta = `Unlock with ${PLAN_MAP[pitchedPlan].name}`;
+  const fromPrice = monthlyPrice(PLAN_MAP[pitchedPlan]);
 
   return (
     <Card className={cn("mx-auto max-w-md overflow-hidden p-0", className)}>
@@ -72,11 +88,11 @@ export function Paywall({
         </ul>
 
         <Link
-          href={href}
+          href={target}
           onClick={() => track("paywall_cta_clicked", { feature: feature ?? "unknown" })}
           className={cn(buttonVariants({ size: "lg" }), "mt-6 w-full gap-2")}
         >
-          <Sparkles className="h-4 w-4" /> {cta}
+          <Sparkles className="h-4 w-4" /> {cta ?? defaultCta}
         </Link>
         <p className="mt-2.5 text-center text-xs text-muted-foreground">
           From R{fromPrice}/month — less than one failed test booking.{" "}

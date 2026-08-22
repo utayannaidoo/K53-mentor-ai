@@ -12,6 +12,7 @@ export default function GuidePage() {
     <LegalPage
       articleSlug="k53-pass-mark-and-test-format"
       title="K53 pass marks & test format, explained"
+      updated="2026-08-01"
       intro="The single most misunderstood thing about the learner's test: there is no single pass mark. You must reach the pass mark in each of the three sections."
     >
       <section>

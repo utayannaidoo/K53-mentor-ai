@@ -62,6 +62,7 @@ export function SignScanner() {
     return (
       <Paywall
         feature="scanner"
+        featureKey="scanner"
         icon={<Camera className="h-6 w-6" />}
         title="Scanner is a Premium tool"
         description="Photograph any road sign and the AI identifies it, explains what it means, and tells you what K53 expects you to do. Included in Premium and Premium Plus."
@@ -94,10 +95,17 @@ export function SignScanner() {
       });
       if (res.status === 429) {
         const j = await res.json().catch(() => null);
-        const wait = Math.ceil(Number(j?.retryAfter ?? 60) / 60);
+        // retryAfter is seconds — up to ~86k near UTC midnight, which the old
+        // "in about 1439 minutes" copy turned into nonsense. Say it in the
+        // unit that fits: minutes under an hour, otherwise hours.
+        const secs = Math.max(0, Number(j?.retryAfter ?? 60));
+        const wait =
+          secs < 3600
+            ? `about ${Math.max(1, Math.ceil(secs / 60))} minute${secs >= 60 && Math.ceil(secs / 60) !== 1 ? "s" : ""}`
+            : `about ${Math.ceil(secs / 3600)} hour${Math.ceil(secs / 3600) !== 1 ? "s" : ""}`;
         setPhase({
           kind: "error",
-          message: `You've hit today's scan limit — it resets in about ${wait} minute${wait === 1 ? "" : "s"} to a few hours. The sign library is always open meanwhile.`,
+          message: `You've hit today's scan limit — it resets in ${wait}. The sign library is always open meanwhile.`,
         });
         return;
       }
@@ -284,7 +292,7 @@ export function SignScanner() {
       {phase.kind === "error" && (
         <Card className={cn(glass, "mt-4 p-6 text-center")}>
           <p className="text-sm leading-relaxed text-foreground">{phase.message}</p>
-          <div className="mt-4 flex justify-center gap-3">
+          <div className="mt-4 flex flex-wrap justify-center gap-3">
             <Button variant="outline" onClick={reset}>
               <RotateCcw className="h-4 w-4" /> Try again
             </Button>

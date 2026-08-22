@@ -108,6 +108,27 @@ describe("openMistakes", () => {
     // Sorted, this is wrong → correct → correct on separate days: retired.
     expect(openMistakes(s)).toEqual([]);
   });
+
+  it("a timed-out blank is silence, not a mistake", () => {
+    // A mock submitted with unanswered slots used to seed phantom mistakes:
+    // a question the learner never answered opened an entry with chosenIndex
+    // -1, got drilled first in practice and deep-linked into the tutor with a
+    // misconception that did not exist.
+    const s = withAttempts(attempt("q1", true, "2026-07-01"), attempt("q2", false, "2026-07-01", -1));
+    expect(openMistakes(s).map((m) => m.questionId)).toEqual([]);
+    expect(mistakeStats(s)).toEqual({ open: 0, retired: 0, everMissed: 0 });
+  });
+
+  it("blanks neither reopen nor extend a real mistake", () => {
+    const s = withAttempts(
+      attempt("q1", false, "2026-07-01", 2),
+      attempt("q1", false, "2026-07-02", -1), // timed out on the re-test
+      attempt("q1", true, "2026-07-03"),
+    );
+    const [m] = openMistakes(s);
+    expect(m.chosenIndex).toBe(2); // the real distractor, not the blank
+    expect(m.wrongCount).toBe(1);
+  });
 });
 
 describe("dueMistakes", () => {

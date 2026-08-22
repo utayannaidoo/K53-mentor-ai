@@ -20,6 +20,7 @@ import { useDataSaver } from "@/hooks/use-data-saver";
 import { OfflinePackRow } from "@/components/content/offline-pack-row";
 import { PLAN_MAP, CODE_LABEL, studyCodeOf } from "@/lib/billing/plans";
 import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
+import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 
@@ -38,6 +39,10 @@ function AccountInner() {
   // How this account signs in decides how deletion is confirmed: a password
   // account re-enters its password; an OAuth account enters an emailed code.
   const [authMethod, setAuthMethod] = React.useState<"password" | "oauth" | null>(null);
+  // The identity lookup can fail outright (expired session). Without this the
+  // panel rendered neither confirmation method, and submitting produced a
+  // nonsense "that password is incorrect" for an input that was never shown.
+  const [sessionMissing, setSessionMissing] = React.useState(false);
   const needsPassword = authMethod === "password";
   const needsCode = authMethod === "oauth";
   const [deleting, setDeleting] = React.useState(false);
@@ -55,7 +60,11 @@ function AccountInner() {
     if (!supabase) return;
     let cancelled = false;
     void supabase.auth.getUser().then(({ data }) => {
-      if (cancelled || !data.user) return;
+      if (cancelled) return;
+      if (!data.user) {
+        setSessionMissing(true);
+        return;
+      }
       const hasPassword = (data.user.identities ?? []).some((i) => i.provider === "email");
       setAuthMethod(hasPassword ? "password" : "oauth");
     });
@@ -87,15 +96,53 @@ function AccountInner() {
     }
   }
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    // Sign the server session out BEFORE leaving: fire-and-forget used to let
+    // the auth cookie outlive the cleared local profile on a flaky connection,
+    // and the next protected page then ping-ponged login ⇄ dashboard as the
+    // middleware and the client guard disagreed about who was signed in.
+    // (store.signOut also calls this; a second call is a harmless no-op.)
+    const supabase = createClient();
+    if (supabase) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        /* offline — the store still clears local state below */
+      }
+    }
     signOut();
     router.push("/");
   }
 
-  function handleReset() {
-    if (window.confirm("Reset all progress? This permanently clears your readiness, streak, reviews and history.")) {
+  const [resetting, setResetting] = React.useState(false);
+  const [resetError, setResetError] = React.useState<string | null>(null);
+  async function handleReset() {
+    if (!window.confirm("Reset all progress? This permanently clears your readiness, streak, reviews and history.")) return;
+    setResetting(true);
+    setResetError(null);
+    try {
+      if (isSupabaseConfigured) {
+        // Clear the SERVER copy too — localStorage alone is restored by
+        // account hydration on the next load, which silently undid the reset.
+        const res = await fetch("/api/account/reset", { method: "POST" });
+        if (!res.ok) {
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          setResetError(
+            res.status === 429
+              ? "Too many attempts — please try again later."
+              : data.error ?? "Couldn't reset your progress — please try again shortly.",
+          );
+          return;
+        }
+      }
       resetProgress();
-      router.push("/login");
+      // The account still exists, so /login would bounce straight back — go to
+      // a fresh dashboard instead.
+      router.push("/dashboard");
+    } catch {
+      setResetError("Network error — check your connection and try again.");
+    } finally {
+      setResetting(false);
     }
   }
 
@@ -151,7 +198,7 @@ function AccountInner() {
 
       {/* Subscription */}
       <Card className={cn(glass, "mt-5 p-6")}>
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">Subscription</h2>
             <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -159,7 +206,7 @@ function AccountInner() {
               <span className="text-sm text-muted-foreground">{plan.tagline}</span>
             </div>
           </div>
-          <Link href="/account/billing" className={cn(buttonVariants({ variant: "outline" }), "gap-2")}>
+          <Link href="/account/billing" className={cn(buttonVariants({ variant: "outline" }), "shrink-0 gap-2")}>
             <CreditCard className="h-4 w-4" /> Manage
           </Link>
         </div>
@@ -243,10 +290,16 @@ function AccountInner() {
       <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Account actions</h2>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button variant="outline" className="gap-2" onClick={handleSignOut}>
+          <Button variant="outline" className="gap-2" onClick={handleSignOut} disabled={resetting}>
             <LogOut className="h-4 w-4" /> Sign out
           </Button>
-          <Button variant="ghost" className="gap-2 text-danger hover:bg-danger/10" onClick={handleReset}>
+          <Button
+            variant="ghost"
+            className="gap-2 text-danger hover:bg-danger/10"
+            onClick={handleReset}
+            loading={resetting}
+            disabled={deleting}
+          >
             <Trash2 className="h-4 w-4" /> Reset all progress
           </Button>
           {!showDelete && (
@@ -254,11 +307,17 @@ function AccountInner() {
               variant="ghost"
               className="gap-2 text-danger hover:bg-danger/10"
               onClick={() => setShowDelete(true)}
+              disabled={resetting}
             >
               <Trash2 className="h-4 w-4" /> Delete account
             </Button>
           )}
         </div>
+        {resetError && (
+          <p role="alert" className="mt-3 text-xs text-danger">
+            {resetError}
+          </p>
+        )}
 
         {showDelete && (
           <div className="mt-4 rounded-lg border border-danger/30 bg-danger/[0.06] p-4">
@@ -279,7 +338,17 @@ function AccountInner() {
               placeholder="DELETE"
               autoComplete="off"
             />
-            {needsPassword && (
+            {sessionMissing ? (
+              <p role="alert" className="mt-3 rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-xs leading-relaxed text-foreground">
+                Your sign-in has expired, so we can&apos;t verify that this is you.{" "}
+                <button type="button" onClick={handleSignOut} className="font-medium text-primary hover:underline">
+                  Sign in again
+                </button>{" "}
+                and come back to finish — your data hasn&apos;t been touched.
+              </p>
+            ) : (
+              <>
+                {needsPassword && (
               <div className="mt-3">
                 <p className="text-xs font-medium text-foreground">Confirm your password:</p>
                 <Input
@@ -344,6 +413,7 @@ function AccountInner() {
                 onClick={handleDelete}
                 disabled={
                   confirmDelete !== "DELETE" ||
+                  sessionMissing ||
                   (needsPassword && !deletePassword) ||
                   (needsCode && (!codeSent || deleteCode.length !== 6)) ||
                   deleting
@@ -367,6 +437,8 @@ function AccountInner() {
                 Keep my account
               </Button>
             </div>
+              </>
+            )}
           </div>
         )}
       </Card>

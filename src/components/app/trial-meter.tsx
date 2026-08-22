@@ -40,7 +40,7 @@ export function TrialMeter({
       )}
     >
       {left} {LABEL[feature] ?? "left"} left ·{" "}
-      <Link href="/account/billing" className="font-medium text-primary hover:underline">
+      <Link href="/account/billing?buy=premium" className="font-medium text-primary hover:underline">
         Upgrade
       </Link>
     </p>

@@ -18,8 +18,10 @@ import { TrialMeter } from "@/components/app/trial-meter";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
+import { NextStepCard } from "@/components/study/next-step-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueTomorrow } from "@/lib/plan";
+import { nextStepAfterFlashcards, type CategoryMisses } from "@/lib/learning/next-step";
 import { selectFlashcardQueue } from "@/lib/plan.queue";
 import { useContentPool } from "@/components/content/content-provider";
 import type { SessionRecapData } from "@/lib/ai/coach";
@@ -60,7 +62,21 @@ export function FlashcardDeck() {
   const [i, setI] = React.useState(0);
   const [flipped, setFlipped] = React.useState(false);
   const [reviewed, setReviewed] = React.useState(0);
+  // Synchronous double-tap lock for the rating row. Flipping the row away
+  // stops a mouse double-click, but same-tick bursts (a stuck pointer,
+  // keyboard repeat, assistive-tech activation) land before any re-render —
+  // each would advance SM-2 twice, double the CP and burn two of the daily
+  // allowance for one review. Same pattern as question-practice.tsx and
+  // diagnostic-runner.tsx, which document the full failure mode.
+  const rating = React.useRef(false);
+  React.useEffect(() => {
+    // Release the lock once the next card has rendered.
+    rating.current = false;
+  }, [i]);
   const [againCount, setAgainCount] = React.useState(0);
+  // "Again" ratings by category — a cluster in one category is the follow-up
+  // recommendation on the completion screen.
+  const [againByCat, setAgainByCat] = React.useState<CategoryMisses>({});
 
   /**
    * The full deck arrives after mount, so a queue built while the pool is still
@@ -97,6 +113,7 @@ export function FlashcardDeck() {
     setFlipped(false);
     setReviewed(0);
     setAgainCount(0);
+    setAgainByCat({});
     setAttempt("");
   }
   // Active recall: the learner commits to an answer (typed or dictated) before
@@ -113,9 +130,10 @@ export function FlashcardDeck() {
         ) : (
           <Paywall
             feature="flashcards"
+            plan="premium_plus"
             title="You've hit today's flashcards"
             description="Your plan's daily flashcard sessions are done — they reset tomorrow. Premium Plus removes the limit entirely."
-            cta="See plans"
+            cta="See Premium Plus"
           />
         )}
       </div>
@@ -135,6 +153,7 @@ export function FlashcardDeck() {
         cpEarned={state.cp - cpStartRef.current}
         onReviewMore={restart}
         trialNearEnd={state.tier === "free" && Number.isFinite(cap.cap) && cap.cap - cap.used <= 2}
+        againByCategory={againByCat}
         recap={{
           mode: "flashcards",
           total: reviewed,
@@ -150,14 +169,22 @@ export function FlashcardDeck() {
   const cardState = state.cardStates[card.id] ?? initialCardState(card.id);
   const intervals = previewIntervals(cardState);
 
-  function rate(rating: SrsRating) {
+  function rate(ratingKind: SrsRating) {
+    if (rating.current) return;
+    rating.current = true;
     // "Again" is the one rating that means the recall failed — everything else
     // is a successful review, however hard it felt.
-    if (rating === "again") haptics.error();
+    if (ratingKind === "again") haptics.error();
     else haptics.success();
-    reviewCard(card.id, rating);
+    reviewCard(card.id, ratingKind);
     setReviewed((r) => r + 1);
-    if (rating === "again") setAgainCount((n) => n + 1);
+    if (ratingKind === "again") {
+      setAgainCount((n) => n + 1);
+      setAgainByCat((prev) => ({
+        ...prev,
+        [card.categoryId]: (prev[card.categoryId] ?? 0) + 1,
+      }));
+    }
     setFlipped(false);
     setAttempt("");
     const nextI = i + 1;
@@ -339,7 +366,7 @@ function CaughtUp({ categoryParam }: { categoryParam?: CategoryId }) {
             : "No flashcards are due right now. Come back later, or drill a specific weak area."
         }
         action={
-          <div className="flex gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             <Link href="/study/questions" className={cn(buttonVariants({ variant: "outline" }))}>
               Practice questions
             </Link>
@@ -360,6 +387,7 @@ function Completion({
   recap,
   onReviewMore,
   trialNearEnd,
+  againByCategory,
 }: {
   reviewed: number;
   seconds: number;
@@ -367,7 +395,12 @@ function Completion({
   recap: SessionRecapData;
   onReviewMore: () => void;
   trialNearEnd?: boolean;
+  /** "Again" ratings by category this session — feeds the follow-up. */
+  againByCategory: CategoryMisses;
 }) {
+  // A cluster of "Again" ratings in one category is a real signal; anything
+  // less and the session needs no prescription.
+  const nextStep = nextStepAfterFlashcards({ againByCategory });
   return (
     <div className="mx-auto max-w-md py-10">
       <EmptyState
@@ -375,11 +408,14 @@ function Completion({
         title="Session complete"
         description={`You reviewed ${reviewed} ${reviewed === 1 ? "card" : "cards"} in ${formatDuration(seconds)}. Your mastery and readiness just moved.`}
         action={
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={onReviewMore}>
+          <div className="flex flex-wrap justify-center gap-3">
+            <Button variant={nextStep ? "outline" : "default"} onClick={onReviewMore}>
               Review more
             </Button>
-            <Link href="/dashboard" className={cn(buttonVariants())}>
+            <Link
+              href="/dashboard"
+              className={cn(buttonVariants({ variant: nextStep ? "outline" : "default" }))}
+            >
               Dashboard
             </Link>
           </div>
@@ -392,6 +428,15 @@ function Completion({
             <Zap className="h-3.5 w-3.5" /> +{cpEarned} CP
           </Badge>
         </div>
+      )}
+      {nextStep && (
+        <NextStepCard
+          className="mt-5"
+          title={nextStep.title}
+          body={nextStep.body}
+          href={nextStep.href}
+          cta={nextStep.cta}
+        />
       )}
       <SessionRecap data={recap} className="mt-5" />
       {/* Conversion moment lands right here, while the session result is fresh. */}

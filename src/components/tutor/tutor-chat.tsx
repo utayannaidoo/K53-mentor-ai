@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog } from "@/components/ui/dialog";
 import { Paywall } from "@/components/app/paywall";
 import { TrialMeter } from "@/components/app/trial-meter";
+import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate, formatZar } from "@/lib/utils";
 import { hasFeature, TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
@@ -53,7 +54,8 @@ const OPEN_CHIPS = [
 ];
 
 export function TutorChat({ initial }: { initial: InitialContext | null }) {
-  const { ready, state, createTutorThread, appendTutorMessage, usageFor } = useStudyStore();
+  const { ready, state, createTutorThread, appendTutorMessage, bumpUsage, usageFor } =
+    useStudyStore();
   // The learner's own pool — the opener and the profile both need question
   // text, and looking it up here rather than importing the bank is what keeps
   // /tutor from shipping the whole thing again.
@@ -161,8 +163,16 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   // would ignore. The scanner feature is the same gate used across the app.
   const canAttachImage = hasFeature(state.tier, "scanner");
 
+  const lastMessageCount = React.useRef(messages.length);
   React.useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+    const el = scrollRef.current;
+    if (!el) return;
+    // Smooth-scroll for a discrete event (new message committed); instant
+    // while tokens stream in — a smooth scrollTo fired on every chunk visibly
+    // lagged behind its own target on low-end phones.
+    const smooth = messages.length !== lastMessageCount.current;
+    lastMessageCount.current = messages.length;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
   }, [messages.length, loading, streaming]);
 
   async function send(text: string) {
@@ -188,7 +198,12 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
     setLoading(true);
     setStreaming("");
 
-    const history = [...prior, { role: "user" as const, content }].map((m) => ({ role: m.role, content: m.content }));
+    // Photo turns are stored as "📷 question" for human-readable history; the
+    // model should never see that marker as literal prior-turn text.
+    const history = [...prior, { role: "user" as const, content }].map((m) => ({
+      role: m.role,
+      content: m.content.replace(/^📷\s*/, ""),
+    }));
     try {
       const res = await fetch("/api/tutor", {
         method: "POST",
@@ -236,6 +251,24 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         return;
       }
 
+      // Any other non-OK response — expired session, oversized photo, provider
+      // or deployment outage — carries a JSON error body. Streaming that body
+      // into the bubble would put raw API errors in the tutor's mouth, so
+      // branch here and answer with friendly copy instead.
+      if (!res.ok) {
+        const friendly =
+          res.status === 401
+            ? "Your sign-in seems to have expired, so I can't reach my notes right now. Please sign in again — this conversation will be waiting."
+            : res.status === 413
+              ? "That attachment is a little too large for me to read. Try a smaller photo."
+              : "Sorry — I'm having trouble reaching my study notes just now. Please try again in a moment.";
+        // 401/413 are refused BEFORE the server meters anything, so the
+        // optimistic local count is pure loss — give it back.
+        if (res.status === 401 || res.status === 413) bumpUsage("tutor", -1);
+        appendTutorMessage(id, { role: "assistant", content: friendly, model: "local" });
+        return;
+      }
+
       const model = res.headers.get("x-tutor-model") ?? "local";
       // Recorded once per answered message, before the body is read, so a
       // reply the learner abandons mid-stream still counts as served.
@@ -274,6 +307,13 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         model,
       });
     } catch {
+      // The optimistic send already counted against the client-side daily
+      // allowance (appendTutorMessage bumps on role "user"), but the server
+      // never received it — leaving the bump in place locked a learner out of
+      // the tutor behind a paywall for a message nobody answered. Give the
+      // count back; the typed message stays visible in the thread so nothing
+      // they wrote is lost.
+      bumpUsage("tutor", -1);
       appendTutorMessage(id, {
         role: "assistant",
         content: "Sorry — I had trouble responding just then. Please try again.",
@@ -335,7 +375,13 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
   );
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-7.5rem)] max-w-5xl gap-5">
+    // Height arithmetic: app header (4rem) + main's top padding (1.5rem) above,
+    // main's bottom nav clearance (7rem) below — 12.5rem of chrome in total.
+    // Sizing to that makes the page exactly viewport-height, so the composer
+    // always sits clear of the fixed tab bar and only the message list scrolls
+    // (the old 7.5rem left the sheet 5rem too tall, pushing the input under the
+    // nav until you scrolled). The floor keeps short landscape windows usable.
+    <div className="mx-auto flex h-[calc(100dvh-12.5rem)] min-h-[380px] max-w-5xl gap-5">
       {/* Thread list */}
       <aside className="hidden w-60 shrink-0 flex-col lg:flex">
         <Button variant="outline" className="w-full justify-start gap-2" onClick={newConversation}>
@@ -466,12 +512,21 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         <div className="border-t border-border p-3">
           {blocked ? (
             <div className="px-1 py-2">
-              <Paywall
-                feature="tutor"
-                title="You've used today's free tutor messages"
-                description={`The free plan includes ${cap.cap} tutor messages a day. Upgrade for more coaching whenever you're stuck.`}
-                cta="Upgrade for more"
-              />
+              {state.tier === "free" && trialExhausted(state) ? (
+                // The free week is over: the daily allowance is 0, so "the free
+                // plan includes 0 messages a day" is nonsense. These learners
+                // get the personalised trial-end card their sibling study
+                // surfaces show, with whatever is still free today named.
+                <TrialEndCard feature="tutor" />
+              ) : (
+                <Paywall
+                  feature="tutor"
+                  plan="premium"
+                  title="You've used today's free tutor messages"
+                  description={`The free plan includes ${cap.cap} tutor message${cap.cap === 1 ? "" : "s"} a day. Upgrade for more coaching whenever you're stuck.`}
+                  cta="Upgrade for more"
+                />
+              )}
             </div>
           ) : (
             <>

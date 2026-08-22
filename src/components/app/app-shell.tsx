@@ -126,7 +126,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
         {!isPlus && (
           <Link
-            href="/account/billing"
+            // Preselect the plan the copy is actually selling — free users are
+            // being pitched Premium; Premium users, Premium Plus.
+            href={
+              state.tier === "free"
+                ? "/account/billing?buy=premium"
+                : "/account/billing?buy=premium_plus"
+            }
             className="mt-4 block rounded-xl border border-primary/20 bg-primary/[0.06] p-4 backdrop-blur-md transition-colors hover:bg-primary/10"
           >
             <div className="flex items-center gap-2 text-sm font-semibold text-primary">
@@ -151,22 +157,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             Good to see you, <span className="font-medium text-foreground">{firstName}</span>
           </p>
           <div className="flex items-center gap-2">
-            <Badge variant="default" className="gap-1 font-mono">
+            {/* shrink-0 + nowrap: a 320px header leaves no slack, and a badge
+                that wrapped ("123 days" on two lines) grew the bar instead.
+                The unit labels drop below xs — at 320px a four-digit CP count
+                plus "123 days" otherwise pushed the avatar off-screen (the
+                icons keep both numbers identifiable). */}
+            <Badge variant="default" className="shrink-0 gap-1 whitespace-nowrap font-mono">
               <Zap className="h-3 w-3" />
-              {state.cp} CP
+              {state.cp}
+              <span className="hidden xs:inline">&nbsp;CP</span>
             </Badge>
-            <Badge variant="accent" className="gap-1">
+            <Badge variant="accent" className="shrink-0 gap-1 whitespace-nowrap">
               <Flame className="h-3 w-3" />
-              {state.streak.current} {state.streak.current === 1 ? "day" : "days"}
+              {state.streak.current}
+              <span className="hidden xs:inline">
+                &nbsp;{state.streak.current === 1 ? "day" : "days"}
+              </span>
             </Badge>
             <ThemeToggle />
-            <Link href="/account" aria-label="Account">
+            <Link href="/account" aria-label="Account" className="shrink-0">
               <Avatar name={state.profile?.name ?? "Learner"} className="h-8 w-8" />
             </Link>
           </div>
         </header>
 
-        <main id="main-content" className="flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-10">
+        <main id="main-content" tabIndex={-1} className="flex-1 px-4 pb-28 pt-6 sm:px-6 md:pb-10">
           <StreakBanner />
           {children}
         </main>

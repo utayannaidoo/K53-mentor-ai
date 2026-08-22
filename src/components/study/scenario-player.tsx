@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SessionProgress, type SessionOutcome } from "@/components/ui/session-progress";
+import { SessionNavRow } from "@/components/ui/session-nav";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -105,6 +106,7 @@ export function ScenarioPlayer() {
       <div className="mx-auto max-w-md py-10">
         <Paywall
           feature="scenarios"
+          featureKey="scenarios"
           title="Scenarios are a Premium feature"
           description="Branching, real-world situational practice — traffic circles, hazards, dead robots — is where the rules click. Unlock the full scenario library with Premium."
           cta="Unlock scenarios"
@@ -120,20 +122,42 @@ export function ScenarioPlayer() {
    * "New scenarios" button as the only way out.
    */
   if (queue.length === 0) {
-    return status === "error" ? (
-      <div className="mx-auto max-w-md py-10">
-        <EmptyState
-          icon={<AlertTriangle className="h-6 w-6" />}
-          title="Couldn't load the scenarios"
-          description="The scenario library lives on our servers and this device couldn't reach them. Your progress is safe — try again in a moment."
-          action={
-            <Button onClick={sync}>
-              <RotateCcw className="h-4 w-4" /> Try again
-            </Button>
-          }
-        />
-      </div>
-    ) : (
+    if (status === "error") {
+      return (
+        <div className="mx-auto max-w-md py-10">
+          <EmptyState
+            icon={<AlertTriangle className="h-6 w-6" />}
+            title="Couldn't load the scenarios"
+            description="The scenario library lives on our servers and this device couldn't reach them. Your progress is safe — try again in a moment."
+            action={
+              <Button onClick={sync}>
+                <RotateCcw className="h-4 w-4" /> Try again
+              </Button>
+            }
+          />
+        </div>
+      );
+    }
+    // Data-saver pauses the automatic download, so this state is not progress
+    // toward anything — it used to render an endless skeleton with no way
+    // forward. Offer the tap the provider deliberately waited for.
+    if (status === "paused") {
+      return (
+        <div className="mx-auto max-w-md py-10">
+          <EmptyState
+            icon={<Sparkles className="h-6 w-6" />}
+            title="Scenarios haven't been downloaded yet"
+            description="Data saver is on, so the scenario library (~a few MB) waits for you. Download it once and it stays available offline."
+            action={
+              <Button onClick={sync}>
+                <RotateCcw className="h-4 w-4" /> Download scenarios
+              </Button>
+            }
+          />
+        </div>
+      );
+    }
+    return (
       <div className="mx-auto max-w-2xl py-10" aria-busy="true">
         <p className="sr-only">Loading scenarios…</p>
         <Skeleton className="h-6 w-40" />
@@ -239,8 +263,8 @@ export function ScenarioPlayer() {
         </span>
       </div>
 
-      <div className="mt-5 flex items-center gap-2 sm:gap-3">
-        <NavButton dir="prev" onClick={goPrev} disabled={i === 0} />
+      <div className="mt-5 flex items-center gap-3">
+        <NavButton dir="prev" onClick={goPrev} disabled={i === 0} className="hidden sm:flex" />
 
         <div key={sc.id} className="mx-auto min-w-0 max-w-2xl flex-1 animate-fade-in">
           <div className="flex items-center gap-3">
@@ -318,8 +342,19 @@ export function ScenarioPlayer() {
           )}
         </div>
 
-        <NavButton dir="next" onClick={goNext} disabled={!revealed} finish={isLast} />
+        <NavButton dir="next" onClick={goNext} disabled={!revealed} finish={isLast} className="hidden sm:flex" />
       </div>
+
+      {/* Phones: advance under the choices in thumb reach — see SessionNavRow. */}
+      <SessionNavRow
+        onPrev={goPrev}
+        onNext={goNext}
+        prevDisabled={i === 0}
+        nextDisabled={!revealed}
+        nextLabel="Next scenario"
+        finish={isLast}
+        finishLabel="Finish session"
+      />
     </div>
   );
 }
@@ -329,11 +364,13 @@ function NavButton({
   onClick,
   disabled,
   finish,
+  className,
 }: {
   dir: "prev" | "next";
   onClick: () => void;
   disabled?: boolean;
   finish?: boolean;
+  className?: string;
 }) {
   const Icon = dir === "prev" ? ChevronLeft : finish ? Check : ChevronRight;
   return (
@@ -343,7 +380,10 @@ function NavButton({
       disabled={disabled}
       aria-label={dir === "prev" ? "Previous scenario" : finish ? "Finish" : "Next scenario"}
       className={cn(
-        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        // Callers pass `hidden sm:flex`; `hidden` sorts after `flex` in
+        // Tailwind's display group, so it wins below `sm`.
+        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        className,
         disabled
           ? "cursor-not-allowed border-border/40 text-muted-foreground/30"
           : dir === "next"
@@ -384,7 +424,7 @@ function Summary({
             </Badge>
           </div>
         )}
-        <div className="mt-6 flex justify-center gap-3">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button variant="outline" onClick={onPlayMore}>
             New scenarios
           </Button>

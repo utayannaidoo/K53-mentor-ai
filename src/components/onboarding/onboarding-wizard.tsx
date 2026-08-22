@@ -91,7 +91,7 @@ function weeksAway(dateStr: string): number | null {
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const { completeOnboarding, state } = useStudyStore();
+  const { completeOnboarding, state, isAuthed } = useStudyStore();
 
   const firstName = state.profile?.name?.split(" ")[0] ?? null;
 
@@ -247,9 +247,15 @@ export function OnboardingWizard() {
         <Link href="/">
           <Logo />
         </Link>
-        <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">
-          Log in
-        </Link>
+        {/* Only a signed-out visitor can meaningfully log in here. For a
+            signed-in user the link was a silent trap: /login bounces straight
+            back to the app router, so tapping it looked like the wizard ate
+            their progress. */}
+        {!isAuthed && (
+          <Link href="/login" className="text-sm font-medium text-muted-foreground hover:text-foreground">
+            Log in
+          </Link>
+        )}
       </header>
 
       {step > 0 && (
@@ -275,7 +281,7 @@ export function OnboardingWizard() {
         </div>
       )}
 
-      <main id="main-content" className="flex flex-1 items-center justify-center px-6 py-8">
+      <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-6 py-8">
         <div key={step} className="w-full max-w-lg animate-fade-in">
           {/* Step 0 — Welcome */}
           {step === 0 && (

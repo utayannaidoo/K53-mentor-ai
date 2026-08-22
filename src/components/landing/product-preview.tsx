@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Check, CornerDownRight, RotateCw, Sparkles } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { SignVisual } from "@/components/shared/sign-visual";
-import { signImg } from "@/lib/content/signs";
 import { bestQuestionFor } from "@/lib/ai/keyword-search";
 import { useDataSaver } from "@/hooks/use-data-saver";
 import { track } from "@/lib/analytics";
@@ -23,8 +22,15 @@ import { cn } from "@/lib/utils";
 const LETTERS = ["A", "B", "C", "D"];
 
 // Real bank content (q_sign_yield), copied so this stays dependency-free.
+// The path is written out rather than fetched through signImg() on purpose:
+// that helper lives in the signs catalogue module, and importing it here
+// shipped all 139KB of catalog JSON — names, meanings, dimensions for 439
+// signs — to every marketing-page visitor to learn one file path. Same for
+// <SignVisual>, whose dimension lookup sits in the same module.
 const DEMO_QUESTION = {
-  image: signImg("yield"),
+  image: "/signs/regulatory/regulatory-006-02.png",
+  imageWidth: 481,
+  imageHeight: 427,
   prompt: "This triangular sign with the point facing down means:",
   options: [
     "Stop completely before the line",
@@ -185,11 +191,19 @@ function DemoQuestion({ onInteract }: { onInteract: () => void }) {
           information in ~50px less height, which is what buys the explanation
           its place inside the frame. */}
       <div className="mt-3.5 flex items-start gap-3">
-        <SignVisual
-          image={DEMO_QUESTION.image}
-          alt="Yield sign"
-          className="h-12 w-12 shrink-0"
-        />
+        {/* Same visual wrapper as SignVisual's image card, minus the shimmer:
+            this is one fixed, known asset, so there is no decode state worth
+            tracking — and no import of the signs catalogue behind it. */}
+        <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-1 shadow-sm">
+          <Image
+            src={DEMO_QUESTION.image}
+            alt="Yield sign"
+            width={DEMO_QUESTION.imageWidth}
+            height={DEMO_QUESTION.imageHeight}
+            sizes="48px"
+            className="h-full w-full object-contain"
+          />
+        </span>
         <p className="font-display text-base font-semibold leading-snug tracking-tight">
           {DEMO_QUESTION.prompt}
         </p>

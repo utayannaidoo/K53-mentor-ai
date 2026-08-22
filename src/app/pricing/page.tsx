@@ -6,14 +6,15 @@ import { Faq } from "@/components/landing/faq";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Simple, honest pricing — cheaper than failing the test once.",
+  description:
+    "Start free with the K53 diagnostic, then one affordable plan covers every licence code — car, motorcycle and heavy vehicle. Cheaper than failing the test once.",
 };
 
 export default function PricingPage() {
   return (
     <div className="flex min-h-dvh flex-col">
       <MarketingNav />
-      <main id="main-content" className="flex-1">
+      <main id="main-content" tabIndex={-1} className="flex-1">
         <div className="container pt-16 text-center lg:pt-20">
           <h1 className="text-balance font-display text-4xl font-semibold tracking-tight">
             One plan to pass. One to keep driving well.

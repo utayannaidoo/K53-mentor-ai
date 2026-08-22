@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { completeVisionText, chooseProvider } from "@/lib/ai/provider";
-import { clientIp, limitVision, limitUserDaily } from "@/lib/ai/rate-limit";
+import { clientIp, limitVision, limitUserDaily, refundUserDaily } from "@/lib/ai/rate-limit";
 import { resolveEntitlement } from "@/lib/billing/entitlements.server";
 import { recordAiUsage } from "@/lib/billing/usage.server";
+import { IMAGE_BODY_MAX_BYTES, requestBodyTooLarge } from "@/lib/http/request-size";
 
 export const runtime = "nodejs";
 // Vision models are slower than text; declare the ceiling explicitly.
@@ -63,6 +64,13 @@ function parseScan(text: string): ScanResult | null {
 }
 
 export async function POST(req: Request) {
+  // ── Size backstop, before anything else ─────────────────────────────────────
+  // These carry the biggest bodies in the app (~4MB of base64); refuse an
+  // oversized declared body before the limiter round-trip or any buffering.
+  if (requestBodyTooLarge(req, IMAGE_BODY_MAX_BYTES)) {
+    return Response.json({ error: "Payload too large" }, { status: 413 });
+  }
+
   // Per-IP guard first. These are the priciest calls in the app AND carry the
   // biggest bodies (~4MB of base64), so every cheaper check belongs behind it:
   // ordered last, a flood forced an auth round-trip, a subscriptions lookup and
@@ -124,6 +132,10 @@ export async function POST(req: Request) {
     maxTokens: 350,
   });
   if (!res) {
+    // The scan was metered up-front (it must gate concurrency), so a dead
+    // provider call otherwise costs a paid scan without serving anything.
+    // Refund the allowance — an outage shouldn't tax the learner's quota.
+    if (ent.userId) await refundUserDaily("vision", ent.userId);
     return Response.json({ error: "Vision call failed" }, { status: 502 });
   }
 

@@ -59,7 +59,14 @@ export async function GET(request: Request) {
   // Same-site relative paths only — see safeNextPath for what that rejects and
   // why. Shared with the auth form and /continue so there is one rule, not
   // three copies of a regex to keep in step.
-  const safeNext = safeNextPath(searchParams.get("next")) ?? "/dashboard";
+  //
+  // The DEFAULT is /continue, not a destination: /continue is the post-auth
+  // router that sends an un-onboarded account through onboarding and the
+  // diagnostic before anything else. Every caller above passes an explicit
+  // `next`, so this only fires when one was stripped or never set (a template
+  // edit, or Supabase's Site-URL fallback) — exactly the arrivals most likely
+  // to be brand-new accounts, which /dashboard would drop past both gates.
+  const safeNext = safeNextPath(searchParams.get("next")) ?? "/continue";
 
   const fail = (reason: string) =>
     NextResponse.redirect(`${origin}/login?error=${reason}`);

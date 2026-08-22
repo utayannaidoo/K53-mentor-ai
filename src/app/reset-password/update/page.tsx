@@ -41,7 +41,15 @@ export default function UpdatePasswordPage() {
     if (supabase) {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) {
-        setError(updateError.message);
+        // A recovery session is short-lived and single-purpose: the most
+        // common failure here is an expired or cross-device link. Raw SDK
+        // copy ("Auth session missing!") says nothing actionable — translate
+        // it and put the fix one tap away.
+        setError(
+          /session|expired|not found/i.test(updateError.message)
+            ? "This reset link has expired or wasn't opened in the browser that requested it. Request a new one and open it on this device."
+            : "Couldn't update your password just now — please try again.",
+        );
         setLoading(false);
         return;
       }

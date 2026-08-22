@@ -13,13 +13,22 @@ export default function ResetPasswordPage() {
   const [email, setEmail] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [sent, setSent] = React.useState(false);
+  const [errorCopy, setErrorCopy] = React.useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
+    setErrorCopy(null);
     const supabase = createClient();
+    // The result was never checked, so rate-limited requests and SMTP outages
+    // both landed on "Check your email" — a promise nothing would keep.
+    // Enumeration-safety stays intact: an unknown address still shows the same
+    // success screen as a known one. Rate limiting and transport failures are
+    // different — they fail whatever the address, so naming them helps the
+    // real user and leaks nothing about accounts.
+    let failure: string | null = null;
     if (supabase) {
-      await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         // Land on the callback (which establishes the recovery session) then
         // forward to the page where the user actually sets a new password.
         // Built from the page's own origin — same reasoning as the checkout
@@ -27,11 +36,18 @@ export default function ResetPasswordPage() {
         // link to a different deployment than the one the user is on.
         redirectTo: `${window.location.origin}/auth/callback?next=/reset-password/update`,
       });
+      if (error) {
+        console.error("reset-password: request failed", error.message);
+        failure = /rate|too many/i.test(error.message)
+          ? "Too many reset emails have been requested just now. Please wait a few minutes and try again."
+          : "We couldn't send the email just now. Please check your connection and try again.";
+      }
     }
     // Brief delay so the action feels real in demo mode.
     setTimeout(() => {
       setLoading(false);
-      setSent(true);
+      if (failure) setErrorCopy(failure);
+      else setSent(true);
     }, 500);
   }
 
@@ -71,6 +87,14 @@ export default function ResetPasswordPage() {
             Enter your email and we&apos;ll send you a reset link.
           </p>
           <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+            {errorCopy && (
+              <p
+                role="alert"
+                className="rounded-xl border border-danger/30 bg-danger/[0.06] p-3 text-sm leading-relaxed text-danger"
+              >
+                {errorCopy}
+              </p>
+            )}
             <div className="space-y-1.5">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@email.com" autoComplete="email" />

@@ -125,7 +125,7 @@ export function CoachPlan({
           // walk around in two clicks isn't a gate, it's a lesson that the
           // paywall is bluffing. The upsell below still sells the full plan.
           const locked = task.premium && !scenariosUnlocked;
-          const href = locked ? "/account/billing" : task.href;
+          const href = locked ? "/account/billing?buy=premium" : task.href;
           return (
             <li key={task.id}>
               <Link
@@ -166,7 +166,7 @@ export function CoachPlan({
       {planLocked && (
         <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
           <Lock className="h-3 w-3" /> The full multi-step daily plan is a Premium feature —{" "}
-          <Link href="/account/billing" className="font-medium text-primary hover:underline">
+          <Link href="/account/billing?buy=premium" className="font-medium text-primary hover:underline">
             unlock it
           </Link>
         </p>

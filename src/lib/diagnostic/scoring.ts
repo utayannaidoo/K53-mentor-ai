@@ -106,8 +106,12 @@ function binomialAtLeast(n: number, k: number, p: number): number {
   return clamp(1 - cumulativeBelow, 0, 1);
 }
 
-/** Estimated 0–100 competence for an exam section, from its study categories. */
-function sectionCompetence(
+/** Estimated 0–100 competence for an exam section, from its study categories.
+ *  Weighted by each category's share of the real paper — exported so every
+ *  surface that shows a per-section figure uses the SAME definition the
+ *  pass-probability model uses, rather than a second average that disagrees
+ *  with it on screen. */
+export function sectionCompetence(
   perCategory: Record<CategoryId, number>,
   section: ExamSection,
 ): number {

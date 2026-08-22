@@ -22,15 +22,21 @@ export function RotatingWord() {
     const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
 
+    // The swap timeout lives outside the interval callback: its cleanup used
+    // to be returned from INSIDE the interval body, which setInterval discards
+    // — so a swap in flight at unmount still fired setState afterwards.
+    let swap = 0;
     const id = setInterval(() => {
       setShown(false);
-      const swap = setTimeout(() => {
+      swap = window.setTimeout(() => {
         setIndex((i) => (i + 1) % WORDS.length);
         setShown(true);
       }, 270);
-      return () => clearTimeout(swap);
     }, 2600);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      clearTimeout(swap);
+    };
   }, []);
 
   return (

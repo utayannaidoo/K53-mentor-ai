@@ -5,8 +5,26 @@ import { computeReadiness } from "@/lib/diagnostic/scoring";
 export const STORAGE_KEY = "k53mentor.state.v1";
 export const STATE_VERSION = 4;
 
+/**
+ * The learner's LOCAL yyyy-mm-dd.
+ *
+ * This used to be `toISOString().slice(0, 10)` — a UTC key. South Africa is
+ * UTC+2 year-round, so that key flipped at 02:00 in the morning: daily
+ * allowances reset two hours late, and a session at 00:30 was recorded on
+ * *yesterday's* key, so studying on a new calendar day left gap === 0 and the
+ * streak did not advance — while the streak banner promised "ends at midnight".
+ * Every other surface in the app (lib/utils.ts, dashboard/day-strip.ts,
+ * isoWeekKey below) already builds keys from the local calendar; this was the
+ * odd one out. `daysBetween` parses both keys as UTC midnight, so gaps are
+ * unaffected by which calendar wrote them — old saves keep working, and a
+ * late-night session logged before this change reads as "yesterday", which
+ * touchStreak/resolveStreak handle as a normal continuation.
+ */
 export function todayKey(now = new Date()): string {
-  return now.toISOString().slice(0, 10);
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
 }
 
 /** ISO week key like "2026-W25" — used to refresh the weekly streak freeze. */
@@ -81,6 +99,12 @@ export function loadState(): UserState {
     // licence code now. Strip the stale key so a value left by an older
     // build can't linger in the saved blob.
     delete (merged as Partial<UserState> & { vehicleClass?: unknown }).vehicleClass;
+    // A saved blob's `streak` object replaces the default wholesale, so a save
+    // from before migration 0025 carries no `regainsUsed` at all. Left as
+    // undefined, `canRegain` evaluates `undefined < 1` → false and the
+    // once-per-run freeze is silently unavailable until some cross-day action
+    // happens to write a number. Default it like any other new field.
+    merged.streak = { ...defaultUserState().streak, ...merged.streak, regainsUsed: merged.streak.regainsUsed ?? 0 };
     // v3 -> v4 (achievements) needs no migration step here. The banked map is
     // back-filled on first open by `withArrivalEffects` in use-study-store,
     // which already holds a readiness breakdown — and evaluating it here would
@@ -99,7 +123,7 @@ export function loadState(): UserState {
  * longer someone studies. Caps are generous — months of heavy use — and all
  * analytics (readiness, insights, endowment) work on recent windows anyway.
  */
-const KEEP = {
+export const KEEP = {
   attempts: 4000,
   scenarioAttempts: 1000,
   sessions: 1000,

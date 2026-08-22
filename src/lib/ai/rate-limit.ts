@@ -75,6 +75,7 @@ let coachDaily: Ratelimit | null = null;
 let visionBurst: Ratelimit | null = null;
 let visionDaily: Ratelimit | null = null;
 let content: Ratelimit | null = null;
+let logLimiter: Ratelimit | null = null;
 
 if (hasUpstash) {
   redis = Redis.fromEnv();
@@ -124,6 +125,12 @@ if (hasUpstash) {
     redis,
     limiter: Ratelimit.slidingWindow(CONTENT_HOURLY_LIMIT, "1 h"),
     prefix: "k53:content",
+    analytics: false,
+  });
+  logLimiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(10, "60 s"),
+    prefix: "k53:log",
     analytics: false,
   });
 }
@@ -216,6 +223,31 @@ export async function limitUserDaily(
 }
 
 /**
+ * Give back ONE unit of a per-user daily allowance after the fact.
+ *
+ * Vision meters the scan before the provider call (the cap must gate
+ * concurrency, not trail it), so a call whose provider died still burned a
+ * paid scan without serving anything. This refunds it. The counter is floored
+ * at zero — a refund can never mint allowance that wasn't spent.
+ */
+export async function refundUserDaily(surface: string, userId: string): Promise<void> {
+  const day = new Date().toISOString().slice(0, 10);
+  const key = `k53:u:${surface}:${userId}:${day}`;
+  try {
+    if (redis) {
+      const n = await redis.decr(key);
+      if (n < 0) await redis.incr(key); // restore to zero, never below
+      return;
+    }
+    const b = memBuckets.get(key);
+    if (b && b.count > 0) b.count -= 1;
+  } catch (err) {
+    // Best-effort by definition — a failed refund just leaves the burn.
+    console.error("rate-limit refund error", err);
+  }
+}
+
+/**
  * Per-user daily caps for the account-management actions.
  *
  * These routes shared exactly one bucket — `limitCheckout`, keyed on IP — and
@@ -235,6 +267,8 @@ export const ACCOUNT_DAILY_LIMIT = {
   cancel: 5,
   /** Irreversible account deletion. */
   delete: 5,
+  /** Server-side progress reset — destructive, but not deletion-level. */
+  reset: 3,
   /** Deletion-code emails. Doubles as the anti-email-bombing cap. */
   deletion_code: 5,
   /** Referral claims. The GET stays IP-limited only — it is a cheap read the
@@ -242,8 +276,26 @@ export const ACCOUNT_DAILY_LIMIT = {
   referral_claim: 20,
 } as const;
 
-/** Client error reports: tight per-IP cap so the log can't be flooded. */
+/**
+ * Client error reports: tight per-IP cap so the log can't be flooded.
+ *
+ * Shared (Redis-backed) like every other limiter when Upstash is configured:
+ * a per-instance counter on serverless multiplies by instance count, so the
+ * effective cap was "10/min × N cold starts" — enough to flood platform logs
+ * (which are billed per GB ingested) from one IP. The memory fallback stays
+ * for local dev and single-instance hosts, where it genuinely is shared state.
+ */
 export async function limitLog(ip: string): Promise<LimitResult> {
+  try {
+    if (logLimiter) {
+      const r = await logLimiter.limit(ip);
+      return r.success
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
+    }
+  } catch (err) {
+    console.error("rate-limit error", err);
+  }
   return memLimit(`log:${ip}`, 10, 60_000);
 }
 

@@ -58,7 +58,7 @@ export function PricingSection({
             role="radio"
             aria-checked={!annual}
             onClick={() => setAnnual(false)}
-            className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
+            className="relative z-10 w-full whitespace-nowrap rounded-full px-4 py-[9px] text-center text-sm font-semibold text-foreground sm:px-[22px]"
           >
             Monthly
           </button>
@@ -67,7 +67,7 @@ export function PricingSection({
             role="radio"
             aria-checked={annual}
             onClick={() => setAnnual(true)}
-            className="relative z-10 w-full whitespace-nowrap rounded-full px-[22px] py-[9px] text-center text-sm font-semibold text-foreground"
+            className="relative z-10 w-full whitespace-nowrap rounded-full px-4 py-[9px] text-center text-sm font-semibold text-foreground sm:px-[22px]"
           >
             Annual <span className="text-[11px] text-success">save R20/mo</span>
           </button>

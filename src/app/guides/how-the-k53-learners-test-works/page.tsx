@@ -12,6 +12,7 @@ export default function GuidePage() {
     <LegalPage
       articleSlug="how-the-k53-learners-test-works"
       title="How the K53 learner's licence test works"
+      updated="2026-08-01"
       intro="If you've never sat the learner's test, here is the whole process — booking, test day, and what the test actually contains — without the folklore."
     >
       <section>

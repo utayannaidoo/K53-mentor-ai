@@ -44,6 +44,17 @@ describe("middleware redirects", () => {
     });
   });
 
+  it("remembers the query string too, not just the path", () => {
+    // A bounce from /study/questions?category=signs that dropped "?category=
+    // signs" returned the learner after login to the unfiltered top of the
+    // page — whatever they had actually selected was gone.
+    getUser.mockResolvedValue(signedOut);
+    return expect(go("/study/questions?category=signs")).resolves.toEqual({
+      status: 307,
+      location: "https://k53.test/login?next=%2Fstudy%2Fquestions%3Fcategory%3Dsigns",
+    });
+  });
+
   it("routes a signed-in visitor's ?next= through /continue", async () => {
     // The consistency fix: this used to drop ?next= and send everyone to
     // /dashboard, so the server path silently disagreed with the client one.

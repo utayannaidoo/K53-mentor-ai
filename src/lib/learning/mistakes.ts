@@ -39,6 +39,11 @@ export interface Mistake {
 function attemptsByQuestion(attempts: readonly QuestionAttempt[]): Map<string, QuestionAttempt[]> {
   const byId = new Map<string, QuestionAttempt[]>();
   for (const a of attempts) {
+    // Blanks (a timed-out mock records selectedIndex -1) are silence, not
+    // evidence: counting them as wrong seeded phantom "mistakes" the learner
+    // never answered into practice sessions and tutor deep-links with
+    // chosenIndex -1 — a misconception that does not exist.
+    if (a.selectedIndex < 0) continue;
     const list = byId.get(a.questionId);
     if (list) list.push(a);
     else byId.set(a.questionId, [a]);

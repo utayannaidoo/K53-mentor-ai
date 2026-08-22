@@ -31,15 +31,20 @@ export function RankUpToast() {
   const body = rank ? rank.tagline : achievement!.description;
 
   return (
-    <div className="fixed inset-x-0 bottom-20 z-50 flex justify-center px-4 md:bottom-8">
-      <Card className={cn(glassFloat, "w-full max-w-md animate-scale-in border-primary/30 p-5")}>
+    <div
+      className="fixed inset-x-0 bottom-20 z-50 flex justify-center px-4 md:bottom-8"
+      // Unprompted overlay that covers content: screen readers must hear it.
+      role="status"
+      aria-live="polite"
+    >
+      <Card className={cn(glassFloat, "w-full max-w-md animate-scale-in border-primary/30 p-5")} aria-labelledby="rank-up-title">
         <div className="flex items-start gap-4">
           <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-primary/15 text-primary">
             {rank ? <Trophy className="h-6 w-6" /> : <Medal className="h-6 w-6" />}
           </span>
           <div className="min-w-0 flex-1">
             <p className="text-xs font-semibold uppercase tracking-wider text-primary">{kicker}</p>
-            <p className="mt-0.5 font-display text-xl font-semibold tracking-tight">{title}</p>
+            <p id="rank-up-title" className="mt-0.5 font-display text-xl font-semibold tracking-tight">{title}</p>
             <p className="mt-1 text-sm text-muted-foreground">{body}</p>
           </div>
         </div>

@@ -111,7 +111,7 @@ export default function StudyHubPage() {
           {missions.map((task) => {
             const done = doneMap[task.id];
             const locked = task.premium && !scenariosUnlocked;
-            const href = locked ? "/account/billing" : task.href;
+            const href = locked ? "/account/billing?buy=premium" : task.href;
             return (
               <li key={task.id}>
                 <Link

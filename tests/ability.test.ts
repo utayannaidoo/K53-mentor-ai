@@ -8,17 +8,22 @@ import {
 import type { CategoryId, Difficulty, Question, QuestionAttempt } from "@/types";
 
 let seq = 0;
-function att(categoryId: CategoryId, correct: boolean): QuestionAttempt {
+function att(categoryId: CategoryId, correct: boolean, selectedIndex = 0): QuestionAttempt {
   seq += 1;
   return {
     id: `a${seq}`,
     questionId: `q${seq}`,
     categoryId,
     correct,
-    selectedIndex: 0,
+    selectedIndex,
     at: new Date(Date.UTC(2026, 6, 1, 0, 0, seq)).toISOString(),
     context: "practice",
   };
+}
+
+/** A timed-out mock records its unanswered slots as selectedIndex -1. */
+function blank(categoryId: CategoryId): QuestionAttempt {
+  return att(categoryId, false, -1);
 }
 
 function run(categoryId: CategoryId, correct: boolean, n: number): QuestionAttempt[] {
@@ -66,6 +71,17 @@ describe("ability", () => {
     // 20 wrong a fortnight ago then 20 right today must read as "good now".
     const a = abilityByCategory([...run("signs", false, 20), ...run("signs", true, 20)]);
     expect(a.signs?.accuracy).toBe(1);
+    expect(a.signs?.ceiling).toBe(3);
+  });
+
+  it("ignores timed-out blanks — running out of time is not evidence of ability", () => {
+    // One rushed paper's worth of unanswered slots used to drag accuracy to
+    // zero and demote the ceiling, serving easier questions to exactly the
+    // learners who don't need them. computeReadiness excludes blanks; so does
+    // the ladder.
+    const a = abilityByCategory([...run("signs", true, 10), ...Array.from({ length: 28 }, () => blank("signs"))]);
+    expect(a.signs?.accuracy).toBe(1);
+    expect(a.signs?.attempts).toBe(10);
     expect(a.signs?.ceiling).toBe(3);
   });
 });

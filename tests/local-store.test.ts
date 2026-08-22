@@ -4,6 +4,7 @@ import {
   daysBetween,
   defaultUserState,
   isoWeekKey,
+  loadState,
   resolveStreak,
   todayKey,
   totalUsage,
@@ -131,5 +132,69 @@ describe("totalUsage", () => {
     expect(sum.questions).toBe(15);
     expect(sum.tutor).toBe(3);
     expect(sum.scenarios).toBe(1);
+  });
+});
+
+describe("todayKey", () => {
+  it("keys the LOCAL calendar day, not the UTC one", () => {
+    // Built from local components, so the contract holds on every machine:
+    // whatever the timezone, the key must round-trip those exact components.
+    // The old toISOString() key shifted the day for everyone east of UTC —
+    // in South Africa (UTC+2) it rolled over at 02:00 local, so caps reset
+    // late and a just-after-midnight session never advanced the streak.
+    const d = new Date(2026, 6, 13, 23, 30);
+    expect(todayKey(d)).toBe("2026-07-13");
+    const justAfterMidnight = new Date(2026, 6, 14, 0, 30);
+    expect(todayKey(justAfterMidnight)).toBe("2026-07-14");
+  });
+});
+
+describe("loadState migrations", () => {
+  function withStoredBlob(blob: unknown, fn: () => void) {
+    const store: Record<string, string> = { "k53mentor.state.v1": JSON.stringify(blob) };
+    const prevWindow = (globalThis as { window?: unknown }).window;
+    (globalThis as { window?: unknown }).window = {
+      localStorage: {
+        getItem: (k: string) => store[k] ?? null,
+        setItem: () => {},
+      },
+    };
+    try {
+      fn();
+    } finally {
+      (globalThis as { window?: unknown }).window = prevWindow;
+    }
+  }
+
+  it("defaults a pre-v4 streak's missing regainsUsed so the freeze bridge works", () => {
+    // A blob saved before migration 0025 carries a streak object with no
+    // `regainsUsed` field at all. The shallow merge keeps that old object
+    // wholesale; `undefined < 1` then silently disabled the once-per-run
+    // regain for every migrated learner.
+    const legacy = {
+      ...defaultUserState(),
+      version: 3,
+      streak: {
+        current: 5,
+        longest: 9,
+        lastStudyDate: todayKey(),
+        freezesRemaining: 1,
+        freezeRefreshedWeek: isoWeekKey(),
+      },
+    };
+    withStoredBlob(legacy, () => {
+      const loaded = loadState();
+      expect(loaded.streak.regainsUsed).toBe(0);
+      expect(canRegain(loaded.streak)).toBe(true);
+    });
+  });
+
+  it("never resurrects an explicit regainsUsed from storage", () => {
+    const spent = { ...defaultUserState(), version: 4, streak: { ...defaultUserState().streak, current: 2, lastStudyDate: todayKey(), regainsUsed: 1 } };
+    withStoredBlob(spent, () => {
+      const loaded = loadState();
+      expect(loaded.streak.regainsUsed).toBe(1);
+      expect(canRegain(loaded.streak)).toBe(false);
+    });
   });
 });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { completeCoachText } from "@/lib/ai/provider";
 import { clientIp, limitCoach, limitUserDaily } from "@/lib/ai/rate-limit";
-import { resolveEntitlement } from "@/lib/billing/entitlements.server";
+import { isWithinFreeTrial, resolveEntitlement } from "@/lib/billing/entitlements.server";
 import { recordAiUsage } from "@/lib/billing/usage.server";
 import {
   localPlanRationale,
@@ -11,6 +11,7 @@ import {
   type SecondOpinionData,
   type SessionRecapData,
 } from "@/lib/ai/coach";
+import { requestBodyTooLarge, SMALL_BODY_MAX_BYTES } from "@/lib/http/request-size";
 
 export const runtime = "nodejs";
 // One-shot calls, but the same provider ceiling applies — declare it explicitly.
@@ -91,6 +92,12 @@ function secondOpinionPrompt(d: SecondOpinionData): string {
 }
 
 export async function POST(req: Request) {
+  // Size backstop before anything else — coach bodies are tiny, so anything
+  // declaring more than this is noise aimed at the parser.
+  if (requestBodyTooLarge(req, SMALL_BODY_MAX_BYTES)) {
+    return Response.json({ error: "Payload too large" }, { status: 413 });
+  }
+
   // Per-IP guard first — before auth's two round-trips and before the body is
   // parsed, so a flood is refused at the cheapest possible point.
   const rl = await limitCoach(clientIp(req));
@@ -124,6 +131,15 @@ export async function POST(req: Request) {
     await recordAiUsage({ surface: "coach", userId: ent.userId, tier: ent.tier, capped: false });
   }
 
+  // ── Cost doctrine, same rule as /api/tutor ─────────────────────────────────
+  // A free account inside its trial week gets the real model — coach copy is
+  // part of the product being evaluated. Once the week lapses the local
+  // template answers instead: a lapsed signup could otherwise cost up to 12
+  // provider calls a day forever, which buys nothing (the tutor route carries
+  // the long-form rationale for this; only free pays for the extra lookup).
+  const forceLocal =
+    ent.tier === "free" && !(ent.userId !== null && (await isWithinFreeTrial(ent.userId)));
+
   const local =
     parsed.kind === "plan_rationale"
       ? localPlanRationale(parsed.data)
@@ -138,11 +154,13 @@ export async function POST(req: Request) {
         ? recapPrompt(parsed.data)
         : secondOpinionPrompt(parsed.data);
 
-  const result = await completeCoachText({
-    system: COACH_PERSONA,
-    user,
-    maxTokens: parsed.kind === "plan_rationale" ? 90 : parsed.kind === "session_recap" ? 180 : 220,
-  });
+  const result = forceLocal
+    ? null
+    : await completeCoachText({
+        system: COACH_PERSONA,
+        user,
+        maxTokens: parsed.kind === "plan_rationale" ? 90 : parsed.kind === "session_recap" ? 180 : 220,
+      });
 
   return Response.json(
     { text: result?.text ?? local, model: result?.model ?? "local" },

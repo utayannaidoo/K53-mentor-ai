@@ -266,7 +266,7 @@ export function TodaySheet({
               return (
                 <li key={task.id}>
                   <Link
-                    href={locked ? "/account/billing" : task.href}
+                    href={locked ? "/account/billing?buy=premium" : task.href}
                     className="group flex items-center gap-3 py-2.5 transition-colors duration-200 ease-soft hover:text-primary"
                   >
                     <span
@@ -314,7 +314,7 @@ export function TodaySheet({
           {planLocked && (
             <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
               <Lock className="h-3 w-3" /> The full daily plan is a Premium feature —{" "}
-              <Link href="/account/billing" className="font-medium text-primary hover:underline">
+              <Link href="/account/billing?buy=premium" className="font-medium text-primary hover:underline">
                 unlock it
               </Link>
             </p>
@@ -366,32 +366,43 @@ export function TodaySheet({
           <ul className="mt-4 space-y-3">
             {mastery.map((row) => (
               <li key={row.id}>
-                <div className="flex items-baseline justify-between gap-2 text-xs">
-                  <span className="min-w-0 truncate font-medium text-foreground">{row.name}</span>
-                  <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
-                    {hasAttempts ? `${row.value}%` : "—"}
-                    <span className="text-muted-foreground/60"> / {row.required}%</span>
-                  </span>
-                </div>
-                <div className="relative mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={cn(
-                      "h-full rounded-full transition-[width] duration-500 ease-glass",
-                      row.clearing && hasAttempts ? "bg-success" : "bg-primary",
-                    )}
-                    style={{ width: `${hasAttempts ? row.value : 0}%` }}
-                  />
-                  <span
-                    aria-hidden
-                    className="absolute top-0 h-full w-px bg-foreground/40"
-                    style={{ left: `${row.required}%` }}
-                  />
-                </div>
+                {/* Weakness named here is weakness the learner can act on —
+                    each row drills its category directly rather than dead-ending
+                    as display-only numbers. */}
+                <Link
+                  href={`/study/questions?category=${row.id}`}
+                  className="group block rounded-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"
+                  aria-label={`Practise ${row.name} — currently ${hasAttempts ? row.value : "no data"}% against a ${row.required}% pass mark`}
+                >
+                  <div className="flex items-baseline justify-between gap-2 text-xs">
+                    <span className="min-w-0 truncate font-medium text-foreground transition-colors duration-200 ease-soft group-hover:text-primary">
+                      {row.name}
+                    </span>
+                    <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
+                      {hasAttempts ? `${row.value}%` : "—"}
+                      <span className="text-muted-foreground/60"> / {row.required}%</span>
+                    </span>
+                  </div>
+                  <div className="relative mt-1.5 h-1 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={cn(
+                        "h-full rounded-full transition-[width] duration-500 ease-glass",
+                        row.clearing && hasAttempts ? "bg-success" : "bg-primary",
+                      )}
+                      style={{ width: `${hasAttempts ? row.value : 0}%` }}
+                    />
+                    <span
+                      aria-hidden
+                      className="absolute top-0 h-full w-px bg-foreground/40"
+                      style={{ left: `${row.required}%` }}
+                    />
+                  </div>
+                </Link>
               </li>
             ))}
           </ul>
           <p className="mt-3 text-2xs leading-relaxed text-muted-foreground">
-            The tick is the mark that section needs to pass.
+            The tick is the mark that section needs to pass. Tap any to practise it.
           </p>
         </section>
       </div>

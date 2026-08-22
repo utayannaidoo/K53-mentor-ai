@@ -33,6 +33,10 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
   // link instead of leaving the user stuck on a password they typed correctly.
   const [unconfirmed, setUnconfirmed] = React.useState(false);
   const [resent, setResent] = React.useState(false);
+  // Signup bounced off an existing account — the single most common signup
+  // failure, and the raw Supabase message ("User already registered") reads
+  // like an error rather than the good news that they're already in.
+  const [duplicate, setDuplicate] = React.useState(false);
   // Why the auth callback sent them back here (expired link, wrong browser…).
   const [linkError, setLinkError] = React.useState<string | null>(null);
 
@@ -130,17 +134,26 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     return `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthDest())}`;
   }
 
+  // One resend at a time: the link stays tappable until the request resolves,
+  // and rapid taps each fired a fresh GoTrue email until the provider's own
+  // limiter kicked in.
+  const resending = React.useRef(false);
   async function resendConfirmation() {
     const supabase = createClient();
-    if (!supabase) return;
+    if (!supabase || resending.current) return;
+    resending.current = true;
     setError(null);
-    const { error: resendError } = await supabase.auth.resend({
-      type: "signup",
-      email,
-      options: { emailRedirectTo: confirmRedirect() },
-    });
-    if (resendError) setError(resendError.message);
-    else setResent(true);
+    try {
+      const { error: resendError } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: confirmRedirect() },
+      });
+      if (resendError) setError(resendError.message);
+      else setResent(true);
+    } finally {
+      resending.current = false;
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -149,6 +162,7 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
     setLinkError(null);
     setUnconfirmed(false);
     setResent(false);
+    setDuplicate(false);
 
     // Catch a weak password here so the user gets inline guidance instead of a
     // server-side rejection after the round-trip.
@@ -180,6 +194,9 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
         // in plain language and put a fresh link one tap away.
         if (/email not confirmed|not confirmed/i.test(authError.message)) {
           setUnconfirmed(true);
+          setError(null);
+        } else if (/already registered|already exists/i.test(authError.message)) {
+          setDuplicate(true);
           setError(null);
         } else {
           setError(authError.message);
@@ -309,6 +326,18 @@ export function AuthForm({ mode }: { mode: "login" | "signup" }) {
                 </button>
               </>
             )}
+          </div>
+        )}
+
+        {/* An existing account is a routing problem, not a dead end: the fix
+            is one tap away, carrying whatever plan choice brought them here. */}
+        {duplicate && (
+          <div className="rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">
+            You already have an account with this email —{" "}
+            <Link href={`/login${linkQuery}`} className="font-medium text-primary hover:underline">
+              log in instead
+            </Link>{" "}
+            (there&apos;s a “Forgot?” link there if the password has slipped your mind).
           </div>
         )}
 

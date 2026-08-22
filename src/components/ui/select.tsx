@@ -28,8 +28,22 @@ export function Select({
   className?: string;
 }) {
   const [open, setOpen] = React.useState(false);
+  // Opens downward by default; flips above the trigger when there is no room
+  // below (a select near the foot of a bottom-sheet dialog or the viewport).
+  // Without the flip, the option list ran off the sheet's clip edge — visible
+  // only as options that could not be reached.
+  const [dropUp, setDropUp] = React.useState(false);
   const rootRef = React.useRef<HTMLDivElement>(null);
   const current = options.find((o) => o.value === value);
+
+  function toggle() {
+    if (!open && rootRef.current) {
+      const rect = rootRef.current.getBoundingClientRect();
+      const below = window.innerHeight - rect.bottom;
+      setDropUp(below < 248 && rect.top > below);
+    }
+    setOpen((v) => !v);
+  }
 
   React.useEffect(() => {
     if (!open) return;
@@ -55,7 +69,7 @@ export function Select({
         aria-label={ariaLabel}
         aria-haspopup="listbox"
         aria-expanded={open}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className={cn(
           "flex h-11 w-full items-center justify-between gap-2 rounded-lg border border-input bg-card/70 px-3.5 text-left text-sm text-foreground shadow-sm backdrop-blur-sm transition-[border-color,box-shadow,background-color] duration-200 ease-soft hover:border-border focus-visible:border-primary focus-visible:bg-card focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/20 disabled:cursor-not-allowed disabled:opacity-50",
           className,
@@ -73,7 +87,10 @@ export function Select({
       {open && (
         <div
           role="listbox"
-          className="glass-2 absolute z-50 mt-1.5 max-h-60 w-full overflow-y-auto rounded-lg border border-border p-1 shadow-[0_16px_40px_-12px_hsl(var(--shadow)/0.5)]"
+          className={cn(
+            "glass-2 absolute z-50 max-h-60 w-full overflow-y-auto rounded-lg border border-border p-1 shadow-[0_16px_40px_-12px_hsl(var(--shadow)/0.5)]",
+            dropUp ? "bottom-full mb-1.5" : "mt-1.5",
+          )}
         >
           {options.map((o) => {
             const selected = o.value === value;

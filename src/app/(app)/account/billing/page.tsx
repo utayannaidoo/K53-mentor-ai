@@ -24,13 +24,32 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { track as trackEvent } from "@/lib/analytics";
 import type { SubscriptionTier } from "@/types";
 
+/**
+ * Marks that this tab arrived with a purchase intent (`?buy=` auto-checkout).
+ * Cleared the moment a payment confirms — after that, a later visit to this
+ * page is a fresh decision, not an abandoned checkout to resume.
+ */
+const AUTOBUY_SESSION_KEY = "k53.autobuy";
+
 function BillingInner() {
   const sp = useSearchParams();
   const router = useRouter();
   const { state, hasOnboarded, setTier, refreshAccount } = useStudyStore();
+  type BannerTone = "success" | "info" | "warning";
   const [banner, setBanner] = React.useState<string | null>(
-    sp.get("status") === "success" ? "Payment received — activating your plan…" : null,
+    // Returning from Paystack is NOT proof of payment — the hosted page sends
+    // everyone back here, paid or not. Say what's actually happening until
+    // verification answers.
+    sp.get("status") === "success" ? "Checking your payment…" : null,
   );
+  const [bannerTone, setBannerTone] = React.useState<BannerTone>(
+    sp.get("status") === "success" ? "info" : "success",
+  );
+  /** Every banner write goes through here so the tone can never go stale. */
+  function showBanner(text: string, tone: BannerTone = "success") {
+    setBanner(text);
+    setBannerTone(tone);
+  }
   const [error, setError] = React.useState<string | null>(null);
   const [busy, setBusy] = React.useState<SubscriptionTier | null>(null);
 
@@ -47,7 +66,15 @@ function BillingInner() {
     const settle = (tier: SubscriptionTier | null): boolean => {
       if (cancelled) return true;
       if (tier && tier !== "free") {
-        setBanner("Payment complete — taking you to your study plan…");
+        showBanner("Payment complete — taking you to your study plan…");
+        // Payment succeeded, so a future purchase intent in this tab should
+        // auto-checkout again rather than being treated as a possible
+        // abandoned-checkout revisit.
+        try {
+          window.sessionStorage.removeItem(AUTOBUY_SESSION_KEY);
+        } catch {
+          /* private mode */
+        }
         trackEvent("plan_activated", { tier });
         // A returning user who just changed plans is already signed in and
         // onboarded — send them straight back into the app. Only a brand-new
@@ -68,7 +95,13 @@ function BillingInner() {
       const tier = await refreshAccount().catch(() => null);
       if (settle(tier)) return;
       if (tries < 8) timer = setTimeout(poll, 2500);
-      else setBanner("Payment received. Your plan can take a minute to activate — refresh shortly.");
+      else
+        showBanner(
+          reference
+            ? "We couldn't confirm your payment yet. If you were charged, your plan activates automatically within a few minutes — check back shortly."
+            : "Your checkout didn't complete, so you haven't been charged. Pick a plan below whenever you're ready.",
+          "warning",
+        );
     };
 
     const run = async () => {
@@ -82,6 +115,19 @@ function BillingInner() {
             body: JSON.stringify({ reference }),
           });
           if (res.ok && !cancelled) {
+            // A definitive "not paid" from Paystack won't change with polling:
+            // abandoned and failed transactions stay abandoned. Say so instead
+            // of promising an activation that is never coming.
+            const verdict = (await res.json().catch(() => null)) as
+              | { verified?: boolean }
+              | null;
+            if (verdict && verdict.verified === false) {
+              showBanner(
+                "That payment didn't go through, so you haven't been charged. If it was a mistake, pick a plan below to try again.",
+                "warning",
+              );
+              return;
+            }
             const tier = await refreshAccount().catch(() => null);
             if (settle(tier)) return;
           }
@@ -215,13 +261,13 @@ function BillingInner() {
         // of content they have paid for until the next page load corrected it.
         if (data.endsNow) {
           setTier("free");
-          setBanner(
+          showBanner(
             "Your plan is cancelled and your payment refunded in full — it clears to your card within 5–10 business days.",
           );
           return;
         }
         const until = formatDate(data.accessUntil);
-        setBanner(
+        showBanner(
           (until
             ? `Your plan won't renew. You keep full access until ${until}.`
             : "Your plan won't renew. You keep full access until the end of the period you've paid for.") +
@@ -254,10 +300,17 @@ function BillingInner() {
         return;
       }
       setTier("free");
-      setBanner("You're now on the Free plan.");
+      showBanner("You're now on the Free plan.", "info");
       return;
     }
     setBusy(plan.id);
+    // A deliberate click means future intents in this tab may auto-checkout
+    // again — clear the abandoned-checkout guard.
+    try {
+      window.sessionStorage.removeItem(AUTOBUY_SESSION_KEY);
+    } catch {
+      /* private mode */
+    }
     trackEvent("checkout_started", { plan: plan.id, cycle });
     try {
       const res = await fetch("/api/checkout", {
@@ -275,7 +328,7 @@ function BillingInner() {
       // tier is granted exclusively by the Paystack webhook.
       if (data.demo && !isSupabaseConfigured) {
         setTier(plan.id);
-        setBanner(`You're now on ${plan.name}. (Demo — no charge was made.)`);
+        showBanner(`You're now on ${plan.name}. (Demo — no charge was made.)`);
         return;
       }
       setError(
@@ -290,14 +343,29 @@ function BillingInner() {
     }
   }
 
-  // Arrived from a landing pricing button (…?buy=premium): kick off that plan's
-  // checkout automatically. If the account already has a paid plan, don't charge
-  // again — carry straight on into the app.
+  // Arrived from a landing pricing button or a paywall CTA (…?buy=premium):
+  // kick off that plan's checkout automatically. If the account already has a
+  // paid plan, don't charge again — carry straight on into the app.
   const buy = sp.get("buy");
   const autoBuyStarted = React.useRef(false);
   React.useEffect(() => {
     if (!buy || !isSupabaseConfigured || autoBuyStarted.current) return;
     autoBuyStarted.current = true;
+    // Once per tab session: a remount after backing out of Paystack (history
+    // navigation recreates this page) would otherwise re-fire the checkout
+    // before the buyer can even read the plans.
+    try {
+      if (window.sessionStorage.getItem(AUTOBUY_SESSION_KEY) === "1") {
+        showBanner(
+          "Your last checkout didn't finish — nothing was charged. Pick a plan below when you're ready.",
+          "info",
+        );
+        return;
+      }
+      window.sessionStorage.setItem(AUTOBUY_SESSION_KEY, "1");
+    } catch {
+      /* private mode — no guard available, proceed */
+    }
     void (async () => {
       const tier = await refreshAccount().catch(() => null);
       if (tier && tier !== "free") {
@@ -317,8 +385,26 @@ function BillingInner() {
       <PageHeader title="Billing & plan" description="Manage your subscription." />
 
       {banner && (
-        <div className="mb-5 flex items-center gap-2 rounded-lg border border-success/30 bg-success/[0.08] px-4 py-3 text-sm text-success">
-          <CheckCircle2 className="h-4 w-4" /> {banner}
+        <div
+          className={cn(
+            "mb-5 flex items-center gap-2 rounded-lg border px-4 py-3 text-sm",
+            bannerTone === "success" && "border-success/30 bg-success/[0.08] text-success",
+            bannerTone === "info" &&
+              "border-primary/30 bg-primary/[0.08] text-foreground",
+            bannerTone === "warning" &&
+              "border-warning/40 bg-warning/[0.09] text-foreground",
+          )}
+          role="status"
+        >
+          <CheckCircle2
+            className={cn(
+              "h-4 w-4 shrink-0",
+              bannerTone === "success" && "text-success",
+              bannerTone === "info" && "text-primary",
+              bannerTone === "warning" && "text-warning",
+            )}
+          />{" "}
+          {banner}
         </div>
       )}
       {error && (
@@ -336,10 +422,11 @@ function BillingInner() {
             className="text-xs font-medium text-primary hover:underline"
             onClick={async () => {
               const tier = await refreshAccount().catch(() => null);
-              setBanner(
+              showBanner(
                 tier && tier !== "free"
                   ? `Plan status refreshed — you're on ${PLAN_MAP[tier].name}.`
                   : "Plan status refreshed — no active paid plan found yet.",
+                "info",
               );
             }}
           >

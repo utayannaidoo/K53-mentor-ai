@@ -48,6 +48,12 @@ export function abilityByCategory(
   // Walk backwards so we keep the newest WINDOW per category without sorting.
   for (let i = attempts.length - 1; i >= 0; i--) {
     const a = attempts[i];
+    // A timed-out mock records its blanks with selectedIndex -1. computeReadiness
+    // deliberately excludes them ("running out of time is not evidence about
+    // what the learner knows") and so does this ladder: letting them count as
+    // wrong demoted the difficulty ceiling after a single rushed paper, which
+    // then served easier questions to exactly the learners who don't need it.
+    if (a.selectedIndex < 0) continue;
     const list = (recent[a.categoryId] ??= []);
     if (list.length < WINDOW) list.push(a);
   }

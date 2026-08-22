@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { isHostedProduction, isSupabaseConfigured } from "@/lib/env";
+import { isProductionRuntime, isSupabaseConfigured } from "@/lib/env";
 import { hasFeature } from "@/lib/billing/plans";
 import { resolveTier } from "@/lib/billing/entitlements.server";
 
@@ -47,8 +47,9 @@ export async function resolveEyeTestAccess(): Promise<PreviewAccess> {
   // Supabase" is a real state and has to be handled here rather than assumed
   // away: a public preview URL must not hand out an unreleased feature to
   // anyone who guesses the path. Denied is the same answer it gives every
-  // other anonymous caller.
-  if (!isSupabaseConfigured) return isHostedProduction() ? "denied" : "owner";
+  // other anonymous caller. Keyed on isProductionRuntime (any host), not Vercel
+  // alone — a production build on another platform is equally public.
+  if (!isSupabaseConfigured) return isProductionRuntime() ? "denied" : "owner";
 
   const supabase = await createClient();
   const {

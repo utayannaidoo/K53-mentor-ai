@@ -20,10 +20,22 @@ const ROWS: { feature: string; values: [CellValue, CellValue, CellValue] }[] = [
 ];
 
 function Cell({ value }: { value: CellValue }) {
+  // aria-label on a bare lucide <svg> is ignored by most screen readers; the
+  // sr-only text node is what actually reads out.
   if (value === true)
-    return <Check className="mx-auto h-[18px] w-[18px] text-success" strokeWidth={3} aria-label="Yes" />;
+    return (
+      <>
+        <Check className="mx-auto h-[18px] w-[18px] text-success" strokeWidth={3} aria-hidden />
+        <span className="sr-only">Yes</span>
+      </>
+    );
   if (value === false)
-    return <X className="mx-auto h-[18px] w-[18px] text-danger" strokeWidth={2.6} aria-label="No" />;
+    return (
+      <>
+        <X className="mx-auto h-[18px] w-[18px] text-danger" strokeWidth={2.6} aria-hidden />
+        <span className="sr-only">No</span>
+      </>
+    );
   return <span className="text-sm text-muted-foreground">{value}</span>;
 }
 

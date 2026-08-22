@@ -251,7 +251,12 @@ export function ControlsGuide() {
           <img
             src="/diagrams/car-controls.png"
             alt="Labelled diagram of a car's controls: mirrors, wiper, indicator, steering wheel, hooter, accelerator, foot brake, clutch, gear lever and parking brake"
-            className="mx-auto w-full max-w-2xl"
+            width={1761}
+            height={996}
+            // Intrinsic size reserved: this is the tallest element of a long
+            // reference page, and its late load used to shove everything
+            // below it down mid-read.
+            className="mx-auto h-auto w-full max-w-2xl"
           />
         </div>
       </Card>

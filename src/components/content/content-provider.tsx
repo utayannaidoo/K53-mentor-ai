@@ -45,7 +45,7 @@ import { CONTENT_VERSION } from "@/lib/content/meta";
  * gains it.
  */
 
-export type ContentStatus = "starter" | "syncing" | "full" | "error";
+export type ContentStatus = "starter" | "syncing" | "full" | "error" | "paused";
 
 export interface ContentPool {
   questions: Question[];
@@ -229,14 +229,19 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
     }
     // Auto-sync, unless the learner has asked us not to spend their data. This
     // app targets prepaid connections; on data-saver the sync waits for an
-    // explicit tap instead.
+    // explicit tap instead. Report that pause as its own status — leaving
+    // "starter" made surfaces like the scenario player render an endless
+    // loading skeleton for a download nobody had been given a button for.
     let dataSaver = false;
     try {
       dataSaver = window.localStorage.getItem("k53.dataSaver") === "1";
     } catch {
       dataSaver = false;
     }
-    if (dataSaver) return;
+    if (dataSaver) {
+      setStatus((s) => (s === "full" ? s : "paused"));
+      return;
+    }
     void runLoad();
   }, [paid, ownerId, settled, runLoad]);
 

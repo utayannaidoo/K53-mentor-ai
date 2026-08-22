@@ -9,11 +9,13 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { MasteryBar } from "@/components/ui/mastery-bar";
 import { SessionProgress } from "@/components/ui/session-progress";
+import { SessionNavRow } from "@/components/ui/session-nav";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { signQuestionAlt } from "@/lib/content/sign-alt";
 import { ScoreRing } from "@/components/ui/score-ring";
 import { SessionRecap } from "@/components/study/session-recap";
+import { NextStepCard } from "@/components/study/next-step-card";
 import { SecondOpinion } from "@/components/study/second-opinion";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, miniMockConfig, MINI_MOCK, MINI_MOCK_LENGTHS, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
@@ -22,6 +24,7 @@ import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT, SECTION_LABEL } from "@/lib/constants";
 import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
+import { nextStepAfterMock } from "@/lib/learning/next-step";
 import { CATEGORIES, categoryName } from "@/lib/content/categories";
 import { sourceFor } from "@/lib/content/provenance";
 import { haptics } from "@/lib/haptics";
@@ -162,16 +165,30 @@ export function MockExam() {
     setPhase("results");
   }, [answers, questions, mini, drill, miniCfg, recordMockExam, recordSession]);
 
-  // Countdown timer.
+  // Countdown timer. The remainder is derived from the absolute deadline
+  // (start + allotted seconds), not decremented once per tick: background
+  // tabs throttle timers to roughly one firing a minute, so a tick chain
+  // silently pauses the moment the tab is hidden — while wall-clock time,
+  // which is what durationSeconds records, keeps running. An absolute
+  // deadline keeps the countdown honest and makes switching apps mid-paper
+  // a way to buy time.
   React.useEffect(() => {
     if (phase !== "exam") return;
-    if (secondsLeft <= 0) {
-      submit();
-      return;
-    }
-    const id = window.setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
-    return () => window.clearTimeout(id);
-  }, [phase, secondsLeft, submit]);
+    const seconds = drill ? SECTION_DRILL[drill].seconds : mini ? miniCfg.seconds : EXAM_SECONDS;
+    const deadline = startRef.current + seconds * 1000;
+    let timeoutId = 0;
+    const tick = () => {
+      const left = Math.ceil((deadline - Date.now()) / 1000);
+      setSecondsLeft(Math.max(0, left));
+      if (left <= 0) {
+        submit();
+        return;
+      }
+      timeoutId = window.setTimeout(tick, 500);
+    };
+    tick();
+    return () => window.clearTimeout(timeoutId);
+  }, [phase, drill, mini, miniCfg, submit]);
 
   function start() {
     const qs = drill
@@ -185,6 +202,10 @@ export function MockExam() {
     setI(0);
     setSecondsLeft(drill ? SECTION_DRILL[drill].seconds : mini ? miniCfg.seconds : EXAM_SECONDS);
     startRef.current = Date.now();
+    // Reset the fire-once guard: "Take another" starts a fresh paper, and a
+    // guard left over from the previous submission made every submit path —
+    // button, arrow, nav row AND timer expiry — silently no-op until reload.
+    submittedRef.current = false;
     preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
     setPhase("exam");
@@ -197,17 +218,19 @@ export function MockExam() {
         {drill ? (
           <Paywall
             feature="section_drill"
+            plan={free ? "premium" : "premium_plus"}
             title={free ? "That's today's free section drill" : "You've done today's 5 section drills"}
             description={
               free
                 ? "One timed drill a day is included in your free week. Premium gives you 5 section drills a day — signs, rules or controls, each at its real pass mark."
                 : "Your daily allowance resets tomorrow. Premium Plus removes drill limits entirely."
             }
-            cta={free ? "Keep drilling sections" : "See Premium Plus"}
+            cta={free ? "Unlock 5 drills a day" : "See Premium Plus"}
           />
         ) : free && !mini ? (
           <Paywall
             feature="mock_exam"
+            plan="premium"
             title="Full mock exams are a Premium feature"
             description="The real 64-question exam experience — timed, scored and mapped to your weak areas. Your free week includes a 15-question mini mock every day instead."
             cta="Unlock full mocks"
@@ -215,13 +238,15 @@ export function MockExam() {
         ) : free ? (
           <Paywall
             feature="mini_mock"
+            plan="premium"
             title="That's today's free mini mock"
             description="You get one a day through your free week. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
-            cta="Keep testing yourself"
+            cta="Unlock daily mocks"
           />
         ) : (
           <Paywall
             feature={mini ? "mini_mock" : "mock_exam"}
+            plan="premium_plus"
             title={mini ? "You've done today's 5 mini mocks" : "You've done today's 3 full mocks"}
             description="Your daily allowance resets tomorrow. Premium Plus removes mock limits entirely."
             cta="See Premium Plus"
@@ -305,7 +330,7 @@ export function MockExam() {
             Start {drill ? "drill" : mini ? "mini mock" : "mock exam"} <ArrowRight />
           </Button>
           {drill && (
-            <div className="mt-4 flex items-center justify-center gap-3 text-sm">
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm">
               {EXAM_SECTIONS.filter((s) => s !== drill).map((s) => (
                 <Link
                   key={s}
@@ -317,7 +342,7 @@ export function MockExam() {
               ))}
             </div>
           )}
-          <div className="mt-3 flex items-center justify-center gap-4 text-sm">
+          <div className="mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm">
             <Link
               href={mini || drill ? "/study/mock-exam" : "/study/mock-exam?mode=mini"}
               className="font-medium text-primary hover:underline"
@@ -358,6 +383,23 @@ export function MockExam() {
       .sort((a, b) => last.perCategory[a]!.score - last.perCategory[b]!.score)
       .slice(0, 2)
       .map(categoryName);
+    // The paper just named exactly where the learner stands — route the next
+    // move at it. A failed section gets its own drill while the miss is fresh;
+    // with the drill allowance spent, untimed practice on the weakest category
+    // carries the same intent. A passed full paper recommends nothing.
+    const mockNextStep =
+      !mini && !drill
+        ? nextStepAfterMock({
+            failedSections: sectionScores
+              .filter((s) => s.correct < s.pass)
+              .map(({ section, correct, total }) => ({ section, correct, total })),
+            drillsLeft: drillsRemaining(state),
+            weakestCategoryId:
+              (Object.keys(last.perCategory) as CategoryId[]).sort(
+                (a, b) => last.perCategory[a]!.score - last.perCategory[b]!.score,
+              )[0] ?? null,
+          })
+        : null;
     return (
       <div className="mx-auto max-w-2xl">
         {/* Results phase renders only h2 sections below, so the page's h1 is
@@ -426,6 +468,16 @@ export function MockExam() {
           )}
         </Card>
 
+        {mockNextStep && (
+          <NextStepCard
+            className="mt-5"
+            title={mockNextStep.title}
+            body={mockNextStep.body}
+            href={mockNextStep.href}
+            cta={mockNextStep.cta}
+          />
+        )}
+
         <SessionRecap
           className="mt-5"
           data={{
@@ -474,14 +526,16 @@ export function MockExam() {
 
         <Card className="mt-5 p-6">
           <h2 className="font-display text-lg font-semibold">By category</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Tap any category to practise it.</p>
           <div className="mt-5 grid gap-4 sm:grid-cols-2">
             {(Object.keys(last.perCategory) as CategoryId[]).map((cat) => (
-              <MasteryBar
-                key={cat}
-                label={categoryName(cat)}
-                value={last.perCategory[cat]!.score}
-                count={`${last.perCategory[cat]!.correct}/${last.perCategory[cat]!.total}`}
-              />
+              <Link key={cat} href={`/study/questions?category=${cat}`} className="group block">
+                <MasteryBar
+                  label={<span className="group-hover:text-primary">{categoryName(cat)}</span>}
+                  value={last.perCategory[cat]!.score}
+                  count={`${last.perCategory[cat]!.correct}/${last.perCategory[cat]!.total}`}
+                />
+              </Link>
             ))}
           </div>
         </Card>
@@ -510,7 +564,7 @@ export function MockExam() {
           </Card>
         )}
 
-        <div className="mt-6 flex justify-center gap-3">
+        <div className="mt-6 flex flex-wrap justify-center gap-3">
           <Button variant="outline" onClick={() => setPhase("intro")}>Take another</Button>
           <Link href="/dashboard" className={cn(buttonVariants())}>Back to dashboard</Link>
         </div>
@@ -563,8 +617,8 @@ export function MockExam() {
         <button onClick={submit} className="text-xs font-medium text-primary hover:underline">Submit now</button>
       </div>
 
-      <div className="mt-5 flex items-center gap-2 sm:gap-3">
-        <ExamNavButton dir="prev" onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0} />
+      <div className="mt-5 flex items-center gap-3">
+        <ExamNavButton dir="prev" onClick={() => setI((x) => Math.max(0, x - 1))} disabled={i === 0} className="hidden sm:flex" />
 
         <div key={i} className="mx-auto min-w-0 max-w-xl flex-1 animate-fade-in">
           {(q.image || q.sign) && (
@@ -598,23 +652,38 @@ export function MockExam() {
           onClick={() => (i + 1 >= questions.length ? submit() : setI((x) => x + 1))}
           disabled={!answered}
           finish={i + 1 >= questions.length}
+          className="hidden sm:flex"
         />
       </div>
+
+      {/* Phones: advance/submit under the answers, in thumb reach — see
+          SessionNavRow. Submit keeps the exam's neutral tone until the end. */}
+      <SessionNavRow
+        onPrev={() => setI((x) => Math.max(0, x - 1))}
+        onNext={() => (i + 1 >= questions.length ? submit() : setI((x) => x + 1))}
+        prevDisabled={i === 0}
+        nextDisabled={!answered}
+        nextLabel="Next question"
+        finish={i + 1 >= questions.length}
+        finishLabel="Submit exam"
+      />
     </div>
   );
 }
 
-/** Round side-arrow controls — same interaction pattern as question practice. */
+/** Round side-arrow controls (desktop) — same interaction pattern as question practice. */
 function ExamNavButton({
   dir,
   onClick,
   disabled,
   finish,
+  className,
 }: {
   dir: "prev" | "next";
   onClick: () => void;
   disabled?: boolean;
   finish?: boolean;
+  className?: string;
 }) {
   const Icon = dir === "prev" ? ChevronLeft : finish ? Check : ChevronRight;
   return (
@@ -624,7 +693,10 @@ function ExamNavButton({
       disabled={disabled}
       aria-label={dir === "prev" ? "Previous question" : finish ? "Submit exam" : "Next question"}
       className={cn(
-        "flex h-11 w-11 shrink-0 items-center justify-center rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        // Callers pass `hidden sm:flex`; `hidden` sorts after `flex` in
+        // Tailwind's display group, so it wins below `sm`.
+        "flex h-12 w-12 shrink-0 items-center justify-center rounded-full border-2 transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
+        className,
         disabled
           ? "cursor-not-allowed border-border/40 text-muted-foreground/30"
           : dir === "next"

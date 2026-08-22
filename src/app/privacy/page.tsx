@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="11 August 2026"
+      updated="2026-08-11"
       intro={`This policy explains what ${APP_NAME} collects, why we collect it, and the choices you have. We collect as little as we can get away with — your study data exists to teach you, not to sell you.`}
     >
       <section>

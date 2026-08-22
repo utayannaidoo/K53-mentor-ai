@@ -124,6 +124,7 @@ export function GuidedSession() {
             <div>
               <Paywall
                 feature="guided_session"
+                plan="premium"
                 title="That's the loop. Ready to run it daily?"
                 description={`You're at ${readiness.readiness}% readiness. Your free week runs this loop at a small daily size — Premium runs it at full volume, every day you show up.`}
                 cta="Unlock my full plan"

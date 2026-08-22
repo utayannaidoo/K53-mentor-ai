@@ -12,7 +12,7 @@ export default function RefundsPage() {
   return (
     <LegalPage
       title="Refund & cancellation policy"
-      updated="8 August 2026"
+      updated="2026-08-08"
       intro={`This policy explains how to cancel your ${APP_NAME} subscription, when you can get a refund, and how we handle billing disputes. The short version: you can cancel yourself at any time in a couple of taps, we never bill you again after that, and if something went wrong with a charge we'll make it right.`}
     >
       <section>
@@ -46,8 +46,8 @@ export default function RefundsPage() {
             deletes your data.
           </li>
           <li>
-            Cancel <strong>within 7 days</strong> of your first payment and your refund is issued{" "}
-            <strong>automatically</strong> as you cancel — see section 2.
+            Cancel <strong>within 7 days</strong> of your most recent subscription payment and that
+            payment is refunded <strong>automatically</strong> as you cancel — see section 2.
           </li>
         </ul>
       </section>
@@ -57,9 +57,10 @@ export default function RefundsPage() {
         <ul>
           <li>
             <strong>7-day money-back, automatically.</strong> If you cancel within{" "}
-            <strong>7 days</strong> of your first subscription payment, we refund it{" "}
-            <strong>in full, automatically</strong> — right from{" "}
-            <strong>Account → Billing</strong>, with no need to email us.
+            <strong>7 days</strong> of your most recent subscription payment, we refund that
+            payment <strong>in full, automatically</strong> — right from{" "}
+            <strong>Account → Billing</strong>, with no need to email us. The guarantee can be used{" "}
+            <strong>once per subscription</strong>.
           </li>
           <li>
             <strong>Incorrect, duplicate or unrecognised charges are refunded in full.</strong> If

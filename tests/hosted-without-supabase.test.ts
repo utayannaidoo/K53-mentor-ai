@@ -49,6 +49,21 @@ const LOCAL_NO_SUPABASE = {
   NEXT_PUBLIC_SUPABASE_ANON_KEY: undefined,
 };
 
+/**
+ * A production build on a host OTHER than Vercel (Docker, Railway, Fly…).
+ * The fail-closed branches used to key on the VERCEL env var alone, so this
+ * runtime fell through to the local-demo branch and served premium content,
+ * AI spend and unreleased features to anonymous callers.
+ */
+const NON_VERCEL_PROD_NO_SUPABASE = {
+  NODE_ENV: "production",
+  VERCEL: undefined,
+  VERCEL_ENV: undefined,
+  NEXT_PHASE: undefined,
+  NEXT_PUBLIC_SUPABASE_URL: undefined,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: undefined,
+};
+
 beforeEach(() => vi.resetModules());
 afterEach(() => {
   for (const k of Object.keys(process.env)) if (!(k in ENV)) delete process.env[k];
@@ -120,6 +135,30 @@ describe("nothing paid is served to callers who cannot be identified", () => {
     // resolveEyeTestAccess used to return "owner" here, on the stated grounds
     // that the branch was unreachable on a hosted deploy. It no longer is.
     const { previewAccess } = await load(HOSTED_NO_SUPABASE);
+    await expect(previewAccess.resolveEyeTestAccess()).resolves.toBe("denied");
+  });
+});
+
+describe("a production runtime on any host fails closed without Supabase", () => {
+  it("resolves the tier to free, not the demo premium_plus", async () => {
+    const { entitlements } = await load(NON_VERCEL_PROD_NO_SUPABASE);
+    await expect(entitlements.resolveTier()).resolves.toEqual({
+      userId: null,
+      tier: "free",
+    });
+  });
+
+  it("refuses AI spend entirely", async () => {
+    const { entitlements } = await load(NON_VERCEL_PROD_NO_SUPABASE);
+    for (const surface of ["tutor", "coach", "vision"] as const) {
+      const res = await entitlements.resolveEntitlement(surface);
+      expect(res, surface).toBeInstanceOf(Response);
+      expect((res as Response).status, surface).toBe(503);
+    }
+  });
+
+  it("keeps unreleased features hidden", async () => {
+    const { previewAccess } = await load(NON_VERCEL_PROD_NO_SUPABASE);
     await expect(previewAccess.resolveEyeTestAccess()).resolves.toBe("denied");
   });
 });
