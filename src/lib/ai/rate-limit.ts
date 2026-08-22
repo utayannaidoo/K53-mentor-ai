@@ -65,6 +65,10 @@ const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests 
 const COACH_DAILY_LIMIT = Number(process.env.COACH_DAILY_IP_LIMIT ?? 80); // requests / day
 const VISION_DAILY_LIMIT = Number(process.env.VISION_DAILY_IP_LIMIT ?? 20); // scans / day (priciest calls)
 const CONTENT_HOURLY_LIMIT = Number(process.env.CONTENT_HOURLY_IP_LIMIT ?? 6); // pack syncs / hour
+// Email triggers: each request makes GoTrue send a real email, so the caps are
+// tight — this is an anti-email-bombing bound, not a UX allowance.
+const AUTH_RESET_DAILY_LIMIT = Number(process.env.AUTH_RESET_DAILY_IP_LIMIT ?? 10); // reset emails / IP / day
+const AUTH_RESEND_DAILY_LIMIT = Number(process.env.AUTH_RESEND_DAILY_IP_LIMIT ?? 6); // confirmation emails / IP / day
 
 let redis: Redis | null = null;
 let burst: Ratelimit | null = null;
@@ -76,6 +80,8 @@ let visionBurst: Ratelimit | null = null;
 let visionDaily: Ratelimit | null = null;
 let content: Ratelimit | null = null;
 let logLimiter: Ratelimit | null = null;
+let authReset: Ratelimit | null = null;
+let authResend: Ratelimit | null = null;
 
 if (hasUpstash) {
   redis = Redis.fromEnv();
@@ -131,6 +137,18 @@ if (hasUpstash) {
     redis,
     limiter: Ratelimit.fixedWindow(10, "60 s"),
     prefix: "k53:log",
+    analytics: false,
+  });
+  authReset = new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(AUTH_RESET_DAILY_LIMIT, "1 d"),
+    prefix: "k53:auth:reset",
+    analytics: false,
+  });
+  authResend = new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(AUTH_RESEND_DAILY_LIMIT, "1 d"),
+    prefix: "k53:auth:resend",
     analytics: false,
   });
 }
@@ -341,6 +359,52 @@ export async function limitCheckout(ip: string): Promise<LimitResult> {
   } catch (err) {
     console.error("rate-limit error", err);
     return memLimit(`checkout:${ip}`, 10, 60_000);
+  }
+}
+
+/**
+ * Password-reset emails (/api/auth/request-reset): tight per-IP daily cap.
+ *
+ * The reset page used to call GoTrue directly from the browser, where the only
+ * bound on how many reset emails one IP could trigger was GoTrue's own limiter
+ * — so a script could email-bomb any inbox all day. Proxying through the API
+ * with this cap makes the bound ours. Deliberately fail-open to the in-memory
+ * fallback on a Redis outage (like checkout, unlike vision): nobody spends
+ * money here, and locking people out of resetting their own password because
+ * a limiter hiccupped is worse than the abuse it invites for a few minutes.
+ */
+export async function limitAuthReset(ip: string): Promise<LimitResult> {
+  try {
+    if (authReset) {
+      const r = await authReset.limit(ip);
+      return r.success
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
+    }
+    return memLimit(`auth:reset:${ip}`, AUTH_RESET_DAILY_LIMIT, 86_400_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return memLimit(`auth:reset:${ip}`, AUTH_RESET_DAILY_LIMIT, 86_400_000);
+  }
+}
+
+/**
+ * Confirmation-resend emails (/api/auth/resend-confirmation): same posture as
+ * `limitAuthReset`, slightly tighter — resends are rarer legitimate traffic
+ * (one lost email, maybe two) and an equally attractive bombing vector.
+ */
+export async function limitAuthResend(ip: string): Promise<LimitResult> {
+  try {
+    if (authResend) {
+      const r = await authResend.limit(ip);
+      return r.success
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
+    }
+    return memLimit(`auth:resend:${ip}`, AUTH_RESEND_DAILY_LIMIT, 86_400_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return memLimit(`auth:resend:${ip}`, AUTH_RESEND_DAILY_LIMIT, 86_400_000);
   }
 }
 

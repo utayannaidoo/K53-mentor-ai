@@ -4,7 +4,11 @@ import * as React from "react";
 import Image from "next/image";
 import type { SignKey } from "@/types";
 import { SignGlyph } from "./sign-glyph";
-import { signImageDimensions } from "@/lib/content/signs";
+// The dimensions projection, NOT signs.ts: this component renders inside
+// every study surface (practice, mocks, flashcards, scenarios, diagnostics),
+// and importing the catalogue here shipped its full ~140KB of names and
+// meanings with each of those routes for the sake of one lookup.
+import { signImageDimensions } from "@/lib/content/signs-dimensions";
 import { cn } from "@/lib/utils";
 
 /**

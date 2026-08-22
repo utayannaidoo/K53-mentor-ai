@@ -28,6 +28,7 @@ import {
   touchStreak,
   resolveStreak,
 } from "@/lib/store/local-store";
+import { mergeAdoptedTabState } from "@/lib/store/cross-tab-merge";
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
@@ -294,7 +295,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     return () => clearTimeout(t);
   }, [state, ready]);
 
-  // Another tab wrote the store — adopt its state so tabs converge instead
+  // Another tab wrote the store — MERGE its state in so tabs converge instead
   // of silently overwriting each other (the event never fires in the writer).
   React.useEffect(() => {
     const onStorage = (e: StorageEvent) => {
@@ -310,7 +311,12 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
           const mine = s.ownerEmail?.toLowerCase() ?? null;
           const theirs = incoming.ownerEmail?.toLowerCase() ?? null;
           if (mine !== null && theirs !== null && mine !== theirs) return s;
-          return { ...defaultUserState(), ...incoming };
+          // Merge, don't replace: a wholesale adopt silently discarded any
+          // mutation this tab had made but not yet flushed (saves are
+          // debounced), losing answers/CP/streak days in a window two active
+          // tabs can genuinely hit. Every field merges under its own rule —
+          // see mergeAdoptedTabState.
+          return mergeAdoptedTabState(s, { ...defaultUserState(), ...incoming });
         });
       } catch {
         /* unreadable write — ignore */

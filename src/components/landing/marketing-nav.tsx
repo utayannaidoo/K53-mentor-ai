@@ -101,16 +101,20 @@ export function MarketingNav() {
 
         {/* Mobile: the header carried no CTA at all, so across the whole
             landing page there was nothing to tap without scrolling back up. */}
-        <div className="flex items-center gap-1 lg:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
+          {/* h-11 override over size "sm": this is the top-of-funnel CTA and a
+              36px pill fails touch-target minimums. Padding stays px-3.5 — the
+              360px width budget that drops the wordmark has no slack (see
+              tailwind.config.ts screens.xs). */}
           <Link
             href="/onboarding"
-            className={cn(buttonVariants({ size: "sm" }), "rounded-full px-3.5")}
+            className={cn(buttonVariants({ size: "sm" }), "h-11 rounded-full px-3.5")}
           >
             Start free
           </Link>
           <button
             type="button"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
             onClick={() => setOpen((o) => !o)}
             aria-label="Toggle menu"
             aria-expanded={open}

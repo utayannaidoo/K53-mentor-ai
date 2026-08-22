@@ -31,6 +31,25 @@ import type { SubscriptionTier } from "@/types";
  */
 const AUTOBUY_SESSION_KEY = "k53.autobuy";
 
+/**
+ * PostHog is the funnel's main instrument, but ad blockers drop it for a
+ * meaningful share of SA mobile traffic — exactly the devices Paystack
+ * checkout happens on. Unverified payment returns are also support-relevant
+ * (the buyer may not know whether they were charged), so mirror them to the
+ * server log sink, which nothing in the browser can block. Fire-and-forget.
+ */
+function reportUnverifiedReturn(reason: "not_paid" | "timeout" | "no_reference") {
+  trackEvent("payment_return_unverified", { reason });
+  void fetch("/api/log", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      message: `payment_return_unverified reason=${reason}`,
+      url: "/account/billing",
+    }),
+  }).catch(() => {});
+}
+
 function BillingInner() {
   const sp = useSearchParams();
   const router = useRouter();
@@ -96,9 +115,7 @@ function BillingInner() {
       if (settle(tier)) return;
       if (tries < 8) timer = setTimeout(poll, 2500);
       else {
-        trackEvent("payment_return_unverified", {
-          reason: reference ? "timeout" : "no_reference",
-        });
+        reportUnverifiedReturn(reference ? "timeout" : "no_reference");
         showBanner(
           reference
             ? "We couldn't confirm your payment yet. If you were charged, your plan activates automatically within a few minutes — check back shortly."
@@ -126,7 +143,7 @@ function BillingInner() {
               | { verified?: boolean }
               | null;
             if (verdict && verdict.verified === false) {
-              trackEvent("payment_return_unverified", { reason: "not_paid" });
+              reportUnverifiedReturn("not_paid");
               showBanner(
                 "That payment didn't go through, so you haven't been charged. If it was a mistake, pick a plan below to try again.",
                 "warning",
@@ -294,7 +311,13 @@ function BillingInner() {
     }
   }
 
-  async function choose(plan: (typeof PLANS)[number]) {
+  /** `source` separates one-click entries (?buy= from paywalls/pricing) from
+      a deliberate pick on this page — the split that answers whether
+      skipping the plan comparison helps or hurts conversion. */
+  async function choose(
+    plan: (typeof PLANS)[number],
+    source: "billing_page" | "autobuy" = "billing_page",
+  ) {
     if (plan.id === state.tier) return;
     setError(null);
     if (plan.id === "free") {
@@ -316,7 +339,7 @@ function BillingInner() {
     } catch {
       /* private mode */
     }
-    trackEvent("checkout_started", { plan: plan.id, cycle });
+    trackEvent("checkout_started", { plan: plan.id, cycle, source });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -383,7 +406,7 @@ function BillingInner() {
       }
       if (buy === "premium" || buy === "premium_plus") {
         setBusy(buy);
-        void choose(PLAN_MAP[buy]);
+        void choose(PLAN_MAP[buy], "autobuy");
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -428,7 +451,7 @@ function BillingInner() {
         <div className="-mt-2 mb-5">
           <button
             type="button"
-            className="text-xs font-medium text-primary hover:underline"
+            className="-my-2 inline-flex items-center rounded-md px-3 py-2 text-xs font-medium text-primary hover:underline"
             onClick={async () => {
               const tier = await refreshAccount().catch(() => null);
               showBanner(
@@ -455,7 +478,7 @@ function BillingInner() {
                 type="button"
                 onClick={() => setCycle(c)}
                 className={cn(
-                  "rounded-full px-4 py-1.5 text-sm font-semibold transition-colors",
+                  "rounded-full px-4 py-1.5 text-sm font-semibold transition-colors max-sm:min-h-[44px]",
                   cycle === c
                     ? "bg-card text-foreground shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)]"
                     : "text-muted-foreground",
@@ -502,7 +525,6 @@ function BillingInner() {
                   </p>
                   <div className="mt-3">
                     <Button
-                      size="sm"
                       onClick={() => choose(PLAN_MAP[state.tier])}
                       disabled={busy !== null}
                       aria-busy={busy !== null}
@@ -523,18 +545,14 @@ function BillingInner() {
               ))}
 
             <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={doUpdateCard}
-                disabled={cardBusy}
-                aria-busy={cardBusy}
-              >
+              {/* default size, not sm: these are the two taps a subscriber in
+                  trouble needs most (failed card → update), on a phone. */}
+              <Button variant="outline" onClick={doUpdateCard} disabled={cardBusy} aria-busy={cardBusy}>
                 {cardBusy ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
                 Update card
               </Button>
               {!billing?.cancelAtPeriodEnd && (
-                <Button variant="outline" size="sm" onClick={() => setConfirmingCancel(true)}>
+                <Button variant="outline" onClick={() => setConfirmingCancel(true)}>
                   Cancel plan
                 </Button>
               )}

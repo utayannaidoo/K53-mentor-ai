@@ -97,7 +97,9 @@ export function TrialEndCard({
         <Link
           href="/account/billing"
           onClick={() => track("paywall_cta_clicked", { feature: "trial_end" })}
-          className={cn(buttonVariants({ size: "sm" }), "gap-1.5")}
+          // default over sm: this is THE conversion tap on a phone and 36px
+          // failed touch-target minimums.
+          className={cn(buttonVariants(), "gap-1.5")}
         >
           {/* Honest label: this goes to the plan picker, not back into a
               session — "Keep studying" sent cap-hitters to pricing and felt

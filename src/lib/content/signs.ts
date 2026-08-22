@@ -335,16 +335,12 @@ export function hasCompositeImage(sign: { id: string }): boolean {
   return COMPOSITE_IMAGE_IDS.has(sign.id);
 }
 
-/** Intrinsic dimensions of every extracted crop, keyed by its public path. */
-const IMAGE_DIMENSIONS: Record<string, { w: number; h: number }> = Object.fromEntries(
-  (rawCatalog as RawSign[])
-    .filter((r) => r.image && r.w && r.h)
-    .map((r) => [r.image, { w: r.w as number, h: r.h as number }]),
-);
-
-export function signImageDimensions(image: string): { w: number; h: number } | undefined {
-  return IMAGE_DIMENSIONS[image];
-}
+/** Intrinsic dimensions of every extracted crop, keyed by its public path.
+ *  GENERATED in ./signs-dimensions — deriving them here kept the whole
+ *  catalogue JSON glued to every importer of this function, which is how
+ *  ~140KB of sign names and meanings rode along into routes that only wanted
+ *  "how wide is this image". */
+export { signImageDimensions } from "./signs-dimensions";
 
 function deriveName(raw: RawSign): string {
   const c = CURATED[raw.id];

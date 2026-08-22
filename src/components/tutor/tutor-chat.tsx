@@ -153,7 +153,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
     setTopUpBusy(true);
     // The top-up is a real charge and was the one purchase path with no
     // funnel at all — the billing page tracked its checkout, this did not.
-    track("checkout_started", { plan: "tutor_topup", cycle: "one_off" });
+    track("checkout_started", { plan: "tutor_topup", cycle: "one_off", source: "tutor" });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",

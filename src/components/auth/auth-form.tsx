@@ -59,6 +59,16 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   // Why the auth callback sent them back here (expired link, wrong browser…).
   const [linkError, setLinkError] = React.useState<string | null>(null);
 
+  // Failure feedback renders BELOW the submit button, which on a phone sits
+  // under the open keyboard — without this scroll a bad login looks like
+  // nothing happened. One ref serves both panels: they never render together.
+  const alertRef = React.useRef<HTMLParagraphElement>(null);
+  const noticeRef = React.useRef<HTMLDivElement>(null);
+  React.useEffect(() => {
+    const el = unconfirmed || duplicate ? noticeRef.current : alertRef.current;
+    el?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [error, duplicate, unconfirmed]);
+
   // Enforce the password policy on real signups only. Login must never apply it
   // (existing accounts predate the rules), and demo mode's "any password works"
   // promise stays intact when Supabase isn't configured.
@@ -169,24 +179,29 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     resending.current = true;
     setError(null);
     try {
-      // Dynamic import: supabase-js is ~240KB of raw JS and only ever needed
-      // once the user actually acts, so it must not sit on this crawlable
-      // page's critical path. Same reasoning at every call site below.
-      const { createClient } = await import("@/lib/supabase/client");
-      const supabase = createClient();
-      if (!supabase) return;
-      const { error: resendError } = await supabase.auth.resend({
-        type: "signup",
-        email,
-        options: { emailRedirectTo: confirmRedirect() },
+      // Proxied through /api/auth/resend-confirmation so the server can apply
+      // a real per-IP daily cap — GoTrue's own limiter was the only bound on
+      // how many emails one IP could trigger.
+      const res = await fetch("/api/auth/resend-confirmation", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, redirectTo: confirmRedirect() }),
       });
-      if (resendError) {
-        recordAuthResult("resend", false);
-        setError(resendError.message);
-      } else {
+      if (res.ok) {
         recordAuthResult("resend", true);
         setResent(true);
+      } else if (res.status === 429) {
+        recordAuthResult("resend", false);
+        setError(
+          "Too many confirmation emails have been requested just now. Please wait a few minutes and try again.",
+        );
+      } else {
+        recordAuthResult("resend", false);
+        setError("We couldn't send the email just now. Please try again.");
       }
+    } catch {
+      recordAuthResult("resend", false);
+      setError("We couldn't send the email just now. Please check your connection and try again.");
     } finally {
       resending.current = false;
     }
@@ -356,7 +371,13 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           <div className="flex items-center justify-between">
             <Label htmlFor="password">Password</Label>
             {mode === "login" && (
-              <Link href="/reset-password" className="text-xs text-primary hover:underline">
+              // Negative-margin padding: the label row's height stays put, but
+              // a bare text-xs link was a ~16px tap target in the one place
+              // locked-out users tap most.
+              <Link
+                href="/reset-password"
+                className="-my-2 inline-flex items-center rounded-md px-2 py-2 text-xs text-primary hover:underline"
+              >
                 Forgot?
               </Link>
             )}
@@ -368,13 +389,13 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
         {/* role="alert" so screen readers actually announce the failure — this
             was silent text before, and it's the only feedback on a bad login. */}
         {error && (
-          <p role="alert" className="text-sm text-danger">
+          <p ref={alertRef} role="alert" className="text-sm text-danger">
             {error}
           </p>
         )}
 
         {unconfirmed && (
-          <div className="rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">
+          <div ref={noticeRef} className="rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">
             {resent ? (
               <>
                 New confirmation link sent to{" "}
@@ -386,7 +407,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
                 <button
                   type="button"
                   onClick={resendConfirmation}
-                  className="mt-1.5 font-medium text-primary hover:underline"
+                  className="-mx-2 -my-1 mt-1.5 inline-flex items-center rounded-md px-2 py-2 font-medium text-primary hover:underline"
                 >
                   Send it again
                 </button>
@@ -398,7 +419,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
         {/* An existing account is a routing problem, not a dead end: the fix
             is one tap away, carrying whatever plan choice brought them here. */}
         {duplicate && (
-          <div className="rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">
+          <div ref={noticeRef} className="rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">
             You already have an account with this email —{" "}
             <Link href={`/login${linkQuery}`} className="font-medium text-primary hover:underline">
               log in instead

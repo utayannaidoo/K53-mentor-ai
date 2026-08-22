@@ -7,7 +7,6 @@ import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { createClient } from "@/lib/supabase/client";
 import { checkAuthAttempt, recordAuthResult } from "@/lib/auth/client-throttle";
 
 export default function ResetPasswordPage() {
@@ -31,7 +30,6 @@ export default function ResetPasswordPage() {
       return;
     }
     setLoading(true);
-    const supabase = createClient();
     // The result was never checked, so rate-limited requests and SMTP outages
     // both landed on "Check your email" — a promise nothing would keep.
     // Enumeration-safety stays intact: an unknown address still shows the same
@@ -39,24 +37,33 @@ export default function ResetPasswordPage() {
     // different — they fail whatever the address, so naming them helps the
     // real user and leaks nothing about accounts.
     let failure: string | null = null;
-    if (supabase) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        // Land on the callback (which establishes the recovery session) then
-        // forward to the page where the user actually sets a new password.
-        // Built from the page's own origin — same reasoning as the checkout
-        // callback: a stale NEXT_PUBLIC_SITE_URL must never send the reset
-        // link to a different deployment than the one the user is on.
-        redirectTo: `${window.location.origin}/auth/callback?next=/reset-password/update`,
+    // Land on the callback (which establishes the recovery session) then
+    // forward to the page where the user actually sets a new password.
+    // Built from the page's own origin — same reasoning as the checkout
+    // callback: a stale NEXT_PUBLIC_SITE_URL must never send the reset
+    // link to a different deployment than the one the user is on.
+    const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password/update`;
+    try {
+      // Proxied through /api/auth/request-reset so the server can apply a real
+      // per-IP daily cap; the route replays this through the SSR client, which
+      // keeps the PKCE code_verifier in cookies exactly as before.
+      const res = await fetch("/api/auth/request-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, redirectTo }),
       });
-      if (error) {
-        recordAuthResult("reset", false);
-        console.error("reset-password: request failed", error.message);
-        failure = /rate|too many/i.test(error.message)
-          ? "Too many reset emails have been requested just now. Please wait a few minutes and try again."
-          : "We couldn't send the email just now. Please check your connection and try again.";
-      } else {
+      if (res.ok) {
         recordAuthResult("reset", true);
+      } else if (res.status === 429) {
+        recordAuthResult("reset", false);
+        failure = "Too many reset emails have been requested just now. Please wait a few minutes and try again.";
+      } else {
+        recordAuthResult("reset", false);
+        failure = "We couldn't send the email just now. Please check your connection and try again.";
       }
+    } catch {
+      recordAuthResult("reset", false);
+      failure = "We couldn't send the email just now. Please check your connection and try again.";
     }
     // Brief delay so the action feels real in demo mode.
     setTimeout(() => {

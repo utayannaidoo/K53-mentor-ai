@@ -1,5 +1,4 @@
-import { SIGNS } from "@/lib/content/signs";
-import { describeAppearance } from "@/lib/content/sign-traits";
+import { SIGN_IMAGE_APPEARANCE } from "@/lib/content/signs-dimensions";
 
 /**
  * Alt text for a road sign the learner is being asked to identify.
@@ -32,10 +31,16 @@ function familyOf(image?: string): string | null {
   return match ? match[1] : null;
 }
 
-/** Image path → catalogue entry, so alt text can describe the actual sign. */
-const BY_IMAGE: Map<string, (typeof SIGNS)[number]> = new Map(
-  SIGNS.filter((s) => s.image).map((s) => [s.image, s]),
-);
+/**
+ * Image path → precomputed appearance (GENERATED in signs-dimensions).
+ *
+ * This used to build a Map over the full SIGNS array, which silently made
+ * every importer of signQuestionAlt — question practice, mock exams,
+ * diagnostics — ship the whole ~140KB catalogue for one lookup.
+ */
+function appearanceOf(image?: string): string | null {
+  return (image && SIGN_IMAGE_APPEARANCE[image]) || null;
+}
 
 /**
  * @param image Sign image path, when the question renders an extracted PNG.
@@ -45,8 +50,7 @@ export function signQuestionAlt(image?: string, categoryId?: string): string {
   // Best case: the catalogue knows this exact sign's shape and colour, which is
   // what a sighted learner gets from a glance — and still leaves hundreds of
   // candidates open, so it describes without answering.
-  const sign = image ? BY_IMAGE.get(image) : undefined;
-  const appearance = sign ? describeAppearance(sign) : null;
+  const appearance = appearanceOf(image);
   if (appearance) return `The road sign to identify: ${appearance}.`;
 
   const description = FAMILY_DESCRIPTION[familyOf(image) ?? ""];
