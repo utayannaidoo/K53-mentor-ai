@@ -109,19 +109,35 @@ function mergeDailyUsage(
 }
 
 /**
- * The longer run wins; ties break toward more total history. A run RESTARTING
- * in one tab (current drops to 1) while the other still shows the old run is
- * the one case where max is wrong — but resolveStreak() re-runs at open and
- * touchStreak() on the next action, so a stale longer value self-corrects
- * against the real attempt log, while picking the shorter could erase a run
- * that is actually alive.
+ * The longer current run wins; ties break toward fresher study date. A run
+ * RESTARTING in one tab (current drops to 1) while the other still shows the
+ * old run is the one case where max is wrong — but resolveStreak() re-runs at
+ * open and touchStreak() on the next action, so a stale longer value
+ * self-corrects against the real attempt log, while picking the shorter could
+ * erase a run that is actually alive.
+ *
+ * `longest` is an all-time high-water mark regardless of which run is alive,
+ * so it takes the max of both sides explicitly — picking one object's whole
+ * streak let the record regress when the shorter-current side held it.
  */
 function healthierStreak(a: Streak, b: Streak): Streak {
-  if ((b.current ?? 0) !== (a.current ?? 0)) return (b.current ?? 0) > (a.current ?? 0) ? b : a;
-  if ((b.longest ?? 0) !== (a.longest ?? 0)) return (b.longest ?? 0) > (a.longest ?? 0) ? b : a;
-  if (!a.lastStudyDate) return b;
-  if (!b.lastStudyDate) return a;
-  return b.lastStudyDate > a.lastStudyDate ? b : a;
+  const chosen =
+    (b.current ?? 0) !== (a.current ?? 0)
+      ? (b.current ?? 0) > (a.current ?? 0)
+        ? b
+        : a
+      : (b.longest ?? 0) !== (a.longest ?? 0)
+        ? (b.longest ?? 0) > (a.longest ?? 0)
+          ? b
+          : a
+        : !a.lastStudyDate
+          ? b
+          : !b.lastStudyDate
+            ? a
+            : b.lastStudyDate > a.lastStudyDate
+              ? b
+              : a;
+  return { ...chosen, longest: Math.max(a.longest ?? 0, b.longest ?? 0) };
 }
 
 function mergeDriverProgress(
