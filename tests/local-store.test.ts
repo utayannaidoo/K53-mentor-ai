@@ -6,6 +6,8 @@ import {
   isoWeekKey,
   loadState,
   resolveStreak,
+  STORAGE_KEY,
+  saveState,
   todayKey,
   totalUsage,
   touchStreak,
@@ -195,6 +197,82 @@ describe("loadState migrations", () => {
       const loaded = loadState();
       expect(loaded.streak.regainsUsed).toBe(1);
       expect(canRegain(loaded.streak)).toBe(false);
+    });
+  });
+});
+
+describe("celebration queue is ephemeral", () => {
+  // The queue marks "toast not yet seen this session"; every entry is banked
+  // into `achievements` the moment it is queued. Persisting it is how an
+  // already-earned achievement kept greeting the learner on every open.
+  function withStoredBlob(blob: unknown, fn: () => void) {
+    const store: Record<string, string> = { [STORAGE_KEY]: JSON.stringify(blob) };
+    const prevWindow = (globalThis as { window?: unknown }).window;
+    (globalThis as { window?: unknown }).window = {
+      localStorage: {
+        getItem: (k: string) => store[k] ?? null,
+        setItem: () => {},
+      },
+    };
+    try {
+      fn();
+    } finally {
+      (globalThis as { window?: unknown }).window = prevWindow;
+    }
+  }
+
+  function withWritableStorage(fn: (store: Record<string, string>) => void) {
+    const store: Record<string, string> = {};
+    const prevWindow = (globalThis as { window?: unknown }).window;
+    (globalThis as { window?: unknown }).window = {
+      localStorage: {
+        getItem: (k: string) => store[k] ?? null,
+        setItem: (k: string, v: string) => {
+          store[k] = v;
+        },
+      },
+    };
+    try {
+      fn(store);
+    } finally {
+      (globalThis as { window?: unknown }).window = prevWindow;
+    }
+  }
+
+  it("loadState drops queues persisted by an older build", () => {
+    const legacy = {
+      ...defaultUserState(),
+      version: 4,
+      achievements: { first_mock: 0 },
+      pendingAchievements: [{ id: "mock_pass", tier: 0 }],
+      pendingRankUp: 2,
+    };
+    withStoredBlob(legacy, () => {
+      const loaded = loadState();
+      expect(loaded.pendingAchievements).toEqual([]);
+      expect(loaded.pendingRankUp).toBeNull();
+      expect(loaded.achievements).toEqual({ first_mock: 0 });
+    });
+  });
+
+  it("saveState strips unseen celebrations but keeps what was banked", () => {
+    withWritableStorage((store) => {
+      const state = defaultUserState();
+      state.achievements = { volume: 1 };
+      state.rankAchieved = 3;
+      state.pendingAchievements = [{ id: "volume", tier: 2 }];
+      state.pendingRankUp = 4;
+      saveState(state);
+      const saved = JSON.parse(store[STORAGE_KEY] ?? "{}") as {
+        pendingAchievements: unknown;
+        pendingRankUp: number | null;
+        achievements: Record<string, number>;
+        rankAchieved: number;
+      };
+      expect(saved.pendingAchievements).toEqual([]);
+      expect(saved.pendingRankUp).toBeNull();
+      expect(saved.achievements).toEqual({ volume: 1 });
+      expect(saved.rankAchieved).toBe(3);
     });
   });
 });
