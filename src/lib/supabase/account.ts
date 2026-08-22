@@ -4,9 +4,9 @@ import type {
   OnboardingData,
   Profile,
   Streak,
-  SubscriptionTier,
   UserState,
 } from "@/types";
+import { tierFromSubscriptionRow, type SubscriptionRowLike } from "@/lib/billing/tier-rule";
 
 /**
  * Account-tier sync between the study store and Supabase: the durable identity
@@ -113,7 +113,14 @@ export async function loadAccount(
         }
       : null;
 
-  const tier = ((subRes.data as { tier: SubscriptionTier } | null)?.tier ?? "free") as SubscriptionTier;
+  // Resolve through the SAME rule the server gates use (tier-rule.ts) instead
+  // of trusting the raw column: the column records what was last PAID for,
+  // not whether access has since run out. A cancelled-and-expired row, or one
+  // whose `subscription.disable` never landed, must read as free on every
+  // screen — paywalls, allowances and badges — not only on the billing page.
+  // The store's copy stays display-only either way; server entitlement is
+  // resolved per request and never trusts this value.
+  const tier = tierFromSubscriptionRow(subRes.data as SubscriptionRowLike | null);
 
   const learners = licenceFrom(p?.licence_result, p?.licence_result_at, p?.licence_result_test_date);
   const drivers = licenceFrom(p?.drivers_result, p?.drivers_result_at, p?.drivers_result_test_date);

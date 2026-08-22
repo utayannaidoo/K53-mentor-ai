@@ -3,7 +3,7 @@ import {
   EXPIRY_GRACE_MS,
   tierFromSubscriptionRow,
   type SubscriptionRowLike,
-} from "@/lib/billing/entitlements.server";
+} from "@/lib/billing/tier-rule";
 
 /**
  * The expiry backstop. Before `tierFromSubscriptionRow` existed as a pure

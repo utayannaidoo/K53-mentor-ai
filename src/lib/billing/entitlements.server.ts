@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertSupabaseConfiguredInProduction, isProductionRuntime, isSupabaseConfigured } from "@/lib/env";
 import { FREE_TRIAL_DAYS, PLAN_MAP } from "@/lib/billing/plans";
+import { tierFromSubscriptionRow, type SubscriptionRowLike } from "@/lib/billing/tier-rule";
 import type { SubscriptionTier } from "@/types";
 
 // Production must never ship without Supabase. Previews may — they are inert
@@ -142,53 +143,12 @@ export async function resolveTier(): Promise<ResolvedTier | Response> {
 const DAY_MS = 86_400_000;
 
 /**
- * How far past `current_period_end` a still-"active" row is treated as expired.
- *
- * Paystack charges ON the renewal date, and a card retry can leave the stored
- * end date stale by a day or two while the customer is still current — so the
- * cutoff needs slack. Three days covers that retry window; anything longer is
- * a subscription Paystack has stopped renewing but whose `subscription.disable`
- * event we never received (dropped webhook, ledger gap). Without this check
- * such a row resolves paid forever.
+ * The row → tier rule lives in `src/lib/billing/tier-rule.ts`, dependency-free
+ * so the CLIENT copy of the tier (src/lib/supabase/account.ts) can resolve
+ * through the exact same code. Re-exported here because every server consumer
+ * already imports it from this module.
  */
-export const EXPIRY_GRACE_MS = 3 * DAY_MS;
-
-export interface SubscriptionRowLike {
-  tier: SubscriptionTier;
-  status: string;
-  cancel_at_period_end: boolean | null;
-  current_period_end: string | null;
-}
-
-/**
- * Resolve a `subscriptions` row to the tier it entitles, right now.
- *
- * Rules, in order:
- *  - only active / trialing / past_due statuses carry a paid tier at all;
- *  - a row flagged `cancel_at_period_end` expires the moment its period ends —
- *    no grace, because the learner was told access stops on that date;
- *  - ANY paid row whose period ended more than EXPIRY_GRACE_MS ago expires too,
- *    flag or no flag. This is the backstop for a missed
- *    `subscription.disable`: before it existed, an `active` row with a stale
- *    date resolved paid forever.
- */
-export function tierFromSubscriptionRow(
-  row: SubscriptionRowLike | null,
-  now = Date.now(),
-): SubscriptionTier {
-  let tier: SubscriptionTier = "free";
-  if (row && (row.status === "active" || row.status === "trialing" || row.status === "past_due")) {
-    tier = row.tier;
-  }
-  if (tier === "free" || !row?.current_period_end) return tier;
-
-  const endsAt = Date.parse(row.current_period_end);
-  if (!Number.isFinite(endsAt)) return tier;
-
-  if (row.cancel_at_period_end && now >= endsAt) return "free";
-  if (now >= endsAt + EXPIRY_GRACE_MS) return "free";
-  return tier;
-}
+export { EXPIRY_GRACE_MS, tierFromSubscriptionRow, type SubscriptionRowLike } from "@/lib/billing/tier-rule";
 
 /**
  * Is this free account still inside its free week?

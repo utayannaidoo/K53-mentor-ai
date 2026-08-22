@@ -149,6 +149,10 @@ export function loadState(): UserState {
     // which already holds a readiness breakdown — and evaluating it here would
     // close a cycle, since the mistake notebook reads `todayKey` from this file.
     merged.version = STATE_VERSION;
+    // Celebration queues are ephemeral — see saveState. Queues written by an
+    // older build must not resurrect toasts the learner was already shown.
+    merged.pendingAchievements = [];
+    merged.pendingRankUp = null;
     return merged;
   } catch {
     return defaultUserState();
@@ -214,7 +218,17 @@ let lastWritten: string | null = null;
 export function saveState(state: UserState) {
   if (typeof window === "undefined") return;
   try {
-    const json = JSON.stringify(pruneState(state));
+    // Celebration queues are deliberately NOT persisted. They mark "toast not
+    // yet seen this session", and every entry is banked the same instant it is
+    // queued — unlocks into `achievements`, rank-ups into `rankAchieved` — so
+    // a queue that survives a reload (or gets re-adopted from another tab's
+    // stale memory by the cross-tab merge) can only ever resurrect a toast for
+    // something the learner has already been shown, which is exactly the
+    // repeat-popup bug. The grid records what was earned; only the fanfare is
+    // once per session.
+    const json = JSON.stringify(
+      pruneState({ ...state, pendingAchievements: [], pendingRankUp: null }),
+    );
     if (json === lastWritten) return;
     window.localStorage.setItem(STORAGE_KEY, json);
     lastWritten = json;

@@ -210,6 +210,41 @@ function BillingInner() {
     void loadBilling();
   }, [loadBilling]);
 
+  /**
+   * The tier this account can actually use right now.
+   *
+   * `state.tier` is a raw read of the subscriptions column — it knows which
+   * plan was last PAID for, not whether that plan has since run out. Once a
+   * cancelled subscription passes its period end, every server gate resolves
+   * to free while the cached copy keeps saying premium: the page showed
+   * lapsed learners a disabled "Current plan" card and a renewal banner with
+   * no way back in. Server truth wins once it has answered; before that (and
+   * in demo mode) the cached tier is all we have.
+   */
+  const effectiveTier: SubscriptionTier =
+    billing?.tier === "free" || billing?.tier === "premium" || billing?.tier === "premium_plus"
+      ? billing.tier
+      : state.tier;
+
+  /**
+   * True when the server finds a subscription row for this account but
+   * resolves its access to free — a plan that WAS paid for and has lapsed.
+   * This, not the moment of cancellation (while access is still running and
+   * "Resume" is the right offer), is when the page should invite them back.
+   */
+  const lapsed = billing !== null && billing.hasBillingAccount === true && effectiveTier === "free";
+
+  // Propagate a resolved "free" into the store so paywalls, allowances and
+  // badges elsewhere stop honouring a lapsed plan. Only ever downward, and
+  // only when the server actually found a subscription row: a missing row is
+  // also what a just-paid checkout looks like while the webhook is still in
+  // flight, and flipping to free then would fight the activation poll above.
+  React.useEffect(() => {
+    if (billing?.hasBillingAccount && billing.tier === "free" && state.tier !== "free") {
+      setTier("free");
+    }
+  }, [billing, state.tier, setTier]);
+
   /** "3 September 2026" — the date someone is actually owed access until. */
   const formatDate = (iso: string | null | undefined) => {
     if (!iso) return null;
@@ -273,8 +308,9 @@ function BillingInner() {
     setError(null);
     setCancelBusy(true);
     // Read the tier before anything below can flip it to "free" — otherwise
-    // every cancellation reports churning off the Free plan.
-    const cancelledFrom = state.tier;
+    // every cancellation reports churning off the Free plan. The resolved
+    // copy, so a lapsed-but-uncorrected cache can't misname the report.
+    const cancelledFrom = effectiveTier;
     try {
       const res = await fetch("/api/billing/cancel", { method: "POST" });
       const data = (await res.json().catch(() => ({}))) as {
@@ -362,10 +398,10 @@ function BillingInner() {
     plan: (typeof PLANS)[number],
     source: "billing_page" | "autobuy" = "billing_page",
   ) {
-    if (plan.id === state.tier) return;
+    if (plan.id === effectiveTier) return;
     setError(null);
     if (plan.id === "free") {
-      if (isSupabaseConfigured && state.tier !== "free") {
+      if (isSupabaseConfigured && effectiveTier !== "free") {
         // A real subscription can't be ended by flipping local state — the
         // Paystack subscription would keep billing. Confirm, then cancel.
         setConfirmingCancel(true);
@@ -445,8 +481,18 @@ function BillingInner() {
       // an upgrade (Premium → Premium Plus) and must reach checkout — bouncing
       // them to /continue made every upgrade CTA a silent dead end.
       if (tier && tier === buy) {
-        router.replace("/continue");
-        return;
+        // The store's tier is a raw column read: a cancelled subscription
+        // whose period has since ended still answers with its old plan here,
+        // and treating that as "already owned" bounced lapsed learners past
+        // the checkout they needed. Confirm against the resolved rule before
+        // skipping; if the check itself fails, stay on the safe side.
+        const st = await fetch("/api/billing/status")
+          .then(async (res) => (res.ok ? ((await res.json()) as BillingStatus) : null))
+          .catch(() => null);
+        if (!st || st.tier === buy) {
+          router.replace("/continue");
+          return;
+        }
       }
       if (buy === "premium" || buy === "premium_plus") {
         setBusy(buy);
@@ -490,17 +536,25 @@ function BillingInner() {
       )}
 
       {/* The tier is written by the payment webhook — if a payment just went
-          through, this pulls the fresh status without a full reload. */}
+          through, this pulls the fresh status without a full reload. Reads the
+          RESOLVED status, not the raw column, so a lapsed subscription
+          refreshes into "no active paid plan" rather than its old name. */}
       {isSupabaseConfigured && (
         <div className="-mt-2 mb-5">
           <button
             type="button"
             className="-my-2 inline-flex items-center rounded-md px-3 py-2 text-xs font-medium text-primary hover:underline"
             onClick={async () => {
-              const tier = await refreshAccount().catch(() => null);
+              await refreshAccount().catch(() => null);
+              const data = await fetch("/api/billing/status")
+                .then(async (res) => (res.ok ? ((await res.json()) as BillingStatus) : null))
+                .catch(() => null);
+              setBilling(data);
               showBanner(
-                tier && tier !== "free"
-                  ? `Plan status refreshed — you're on ${PLAN_MAP[tier].name}.`
+                data?.tier && data.tier !== "free"
+                  ? `Plan status refreshed — you're on ${
+                      PLAN_MAP[data.tier as SubscriptionTier]?.name ?? data.tier
+                    }.`
                   : "Plan status refreshed — no active paid plan found yet.",
                 "info",
               );
@@ -539,7 +593,7 @@ function BillingInner() {
 
         {/* Said before the card is entered, not first disclosed on the receipt.
             Shown to everyone who could start a subscription here. */}
-        {state.tier === "free" && (
+        {effectiveTier === "free" && (
           <p className="mt-3 text-xs text-muted-foreground">
             Paid plans renew automatically {cycle === "annual" ? "every year" : "every month"} until
             you cancel. Cancel any time from this page — you keep access to the end of the period
@@ -548,7 +602,7 @@ function BillingInner() {
           </p>
         )}
 
-        {isSupabaseConfigured && state.tier !== "free" && !confirmingCancel && (
+        {isSupabaseConfigured && effectiveTier !== "free" && !confirmingCancel && (
           <div className="mt-4">
             {/* Durable "your money is coming back" state. The cancel-time
                 banner scrolls away; a queued refund lasts days, so this chip
@@ -584,12 +638,12 @@ function BillingInner() {
                   </p>
                   <div className="mt-3">
                     <Button
-                      onClick={() => choose(PLAN_MAP[state.tier])}
+                      onClick={() => choose(PLAN_MAP[effectiveTier])}
                       disabled={busy !== null}
                       aria-busy={busy !== null}
                     >
                       {busy ? <Spinner className="mr-2 h-3.5 w-3.5" /> : null}
-                      Resume {PLAN_MAP[state.tier].name}
+                      Resume {PLAN_MAP[effectiveTier].name}
                     </Button>
                   </div>
                 </div>
@@ -672,7 +726,7 @@ function BillingInner() {
 
       <div className="grid gap-5 lg:grid-cols-3">
         {PLANS.map((plan) => {
-          const current = plan.id === state.tier;
+          const current = plan.id === effectiveTier;
           return (
             <Card
               key={plan.id}
@@ -709,6 +763,10 @@ function BillingInner() {
                   "Current plan"
                 ) : plan.id === "free" ? (
                   "Downgrade"
+                ) : lapsed ? (
+                  <>
+                    <Sparkles className="h-4 w-4" /> Resubscribe
+                  </>
                 ) : (
                   <>
                     <Sparkles className="h-4 w-4" /> Choose {plan.name}
