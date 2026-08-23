@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { passProbabilityFromSections, blockingSection } from "@/lib/diagnostic/scoring";
+import {
+  passProbabilityFromSections,
+  blockingSection,
+  formatPassProbability,
+} from "@/lib/diagnostic/scoring";
 import { CATEGORIES } from "@/lib/content/categories";
 import { EXAM_FORMAT, SECTION_LABEL, SECTION_OF, type ExamSection } from "@/lib/constants";
 import type { CategoryId } from "@/types";
@@ -101,5 +105,22 @@ describe("blockingSection feeds a sentence the learner reads", () => {
     // by 12 points and controls by 5 — so signs is the one to name, even though
     // the two scores are identical.
     expect(blockingSection(scores(100, { controls: 70, signs: 70 }))).toBe("signs");
+  });
+});
+
+/**
+ * A product of three binomials rounds an early learner's real chance — often
+ * one in millions — to a bare "0%", which reads as broken data beside a live
+ * readiness score. The display layer prints "<1%" instead; these pin the rule.
+ */
+describe("formatPassProbability never prints a bare zero", () => {
+  it("renders sub-half-percent values as <1%, not 0%", () => {
+    expect(formatPassProbability(0)).toBe("<1%");
+  });
+
+  it("leaves honest whole percentages alone", () => {
+    expect(formatPassProbability(1)).toBe("1%");
+    expect(formatPassProbability(27)).toBe("27%");
+    expect(formatPassProbability(100)).toBe("100%");
   });
 });

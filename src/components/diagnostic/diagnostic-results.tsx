@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { categoryName, CATEGORIES } from "@/lib/content/categories";
+import { formatPassProbability } from "@/lib/diagnostic/scoring";
 import { generateTodayPlan } from "@/lib/plan";
 import { useStudyStore } from "@/hooks/use-study-store";
 
@@ -64,7 +65,7 @@ export function DiagnosticResults() {
           </Badge>
           <ScoreRing value={latest.readiness} size={208} label="Readiness" />
           <div className="mt-5 flex items-center gap-6">
-            <Stat icon={<TrendingUp className="h-4 w-4" />} label="Predicted pass" value={`${latest.passProbability}%`} />
+            <Stat icon={<TrendingUp className="h-4 w-4" />} label="Predicted pass" value={formatPassProbability(latest.passProbability)} />
             <div className="h-8 w-px bg-border" />
             <Stat icon={<Target className="h-4 w-4" />} label="Scored" value={`${latest.correct}/${latest.total}`} />
           </div>

@@ -12,6 +12,7 @@ import type { PlanTask } from "@/lib/plan";
 import type { TrendPoint } from "@/components/dashboard/readiness-plot";
 import { cn, glassFloat } from "@/lib/utils";
 import { SECTION_LABEL, type ExamSection } from "@/lib/constants";
+import { formatPassProbability } from "@/lib/diagnostic/scoring";
 import type { CategoryId, UserState } from "@/types";
 
 /**
@@ -197,7 +198,7 @@ export function TodaySheet({
       <div className="grid grid-cols-2 gap-px border-t border-border/50 bg-border/40 sm:grid-cols-4">
         <Figure
           label={measured ? "Predicted pass" : "Predicted pass (estimate)"}
-          value={`${passProbability}%`}
+          value={formatPassProbability(passProbability)}
         />
         <Figure label="Today's plan" value={`${planDonePct}%`} />
         <Figure label="Streak" value={streak} unit={streak === 1 ? "day" : "days"} />

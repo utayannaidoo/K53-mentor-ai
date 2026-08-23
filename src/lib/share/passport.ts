@@ -6,7 +6,7 @@ import { licenceHeld } from "@/lib/licence/test-day";
 import { RANKS, LICENCE_RANK_INDEX } from "@/lib/engagement";
 import { SITE_DOMAIN } from "@/lib/constants";
 import { clamp } from "@/lib/utils";
-import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
+import { formatPassProbability, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import type { CategoryId, UserState, VehicleCode } from "@/types";
 
 /**
@@ -246,7 +246,7 @@ export function buildPassport(
   const qualifier = [
     hero.label !== "TEST READINESS" ? `Readiness ${readiness.readiness}%` : null,
     !licensed && hero.label !== "PREDICTED PASS"
-      ? `Predicted pass ${readiness.passProbability}%`
+      ? `Predicted pass ${formatPassProbability(readiness.passProbability)}`
       : null,
     best ? `Best mock ${best.score}/${best.total}` : null,
   ]
@@ -342,7 +342,7 @@ export function passportMessage(p: Passport): string {
   const standing = [
     p.hero.label !== "TEST READINESS" ? `Readiness ${p.readiness}%` : null,
     !p.licensed && p.hero.label !== "PREDICTED PASS"
-      ? `Predicted pass ${p.passProbability}%`
+      ? `Predicted pass ${formatPassProbability(p.passProbability)}`
       : null,
     p.hero.label !== "DAY STREAK" && p.streak >= 2 ? `${p.streak}-day streak 🔥` : null,
   ].filter(Boolean);

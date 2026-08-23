@@ -124,11 +124,15 @@ export function localSessionRecap(d: SessionRecapData): string {
       return `${score}${focus}${tomorrow}`;
     }
     case "mock": {
+      // Mirror of formatPassProbability (lib/diagnostic/scoring) — this file
+      // must stay dependency-free, so the "<1%" rule is repeated rather than
+      // imported. Keep the two in step.
+      const fmt = (p: number) => (p <= 0 ? "<1%" : `${p}%`);
       const moved =
         d.passProbabilityBefore != null &&
         d.passProbabilityAfter != null &&
         d.passProbabilityAfter !== d.passProbabilityBefore
-          ? ` Your predicted pass moved from ${d.passProbabilityBefore}% to ${d.passProbabilityAfter}%.`
+          ? ` Your predicted pass moved from ${fmt(d.passProbabilityBefore)} to ${fmt(d.passProbabilityAfter)}.`
           : "";
       if (d.passed) {
         return `You passed with ${d.correct}/${d.total} — that's real-test standard.${moved} One more clean mock and you can book with confidence.`;

@@ -152,6 +152,20 @@ export function passProbabilityFromSections(perCategory: Record<CategoryId, numb
 }
 
 /**
+ * How a pass probability is *printed*, everywhere.
+ *
+ * The model above multiplies three binomials, so an early learner's true
+ * chance really can be one in millions — which rounds to a bare "0%". A flat
+ * zero next to a live readiness score reads as broken data rather than as
+ * "vanishingly unlikely", so anything under half a percent prints as "<1%".
+ * That is still the honest figure: it claims only "nonzero, under one" —
+ * manufacturing a 1–2% would overstate the odds by orders of magnitude.
+ */
+export function formatPassProbability(pct: number): string {
+  return pct <= 0 ? "<1%" : `${pct}%`;
+}
+
+/**
  * The section standing between this learner and a pass, if there is one.
  *
  * Readiness and predicted pass can look contradictory — 80% readiness beside a
