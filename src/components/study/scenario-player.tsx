@@ -13,28 +13,38 @@ import {
   RotateCcw,
   Sparkles,
   Zap,
+  Clock,
+  XCircle,
 } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ScoreRing } from "@/components/ui/score-ring";
+import { MasteryBar } from "@/components/ui/mastery-bar";
 import { SessionProgress, type SessionOutcome } from "@/components/ui/session-progress";
 import { SessionNavRow } from "@/components/ui/session-nav";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
+import { NextStepCard } from "@/components/study/next-step-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature, STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
 import { orderScenariosByFreshness } from "@/lib/diagnostic/select";
-import { countDueTomorrow } from "@/lib/plan";
+import { countDueTomorrow, mockRetestStatus } from "@/lib/plan";
 import type { SessionRecapData } from "@/lib/ai/coach";
+import {
+  nextStepAfterScenarios,
+  type CategoryMisses,
+} from "@/lib/learning/next-step";
 import { forCode } from "@/lib/content/vehicle";
 import { useContentPool } from "@/components/content/content-provider";
 import { categoryName } from "@/lib/content/categories";
 import { haptics } from "@/lib/haptics";
 import { shuffle, cn } from "@/lib/utils";
+import type { CategoryId, Scenario, ScenarioChoice } from "@/types";
 
 export function ScenarioPlayer() {
   const { state, recordScenarioAttempt, recordSession } = useStudyStore();
@@ -178,23 +188,48 @@ export function ScenarioPlayer() {
   }, 0);
 
   if (i >= queue.length) {
-    const wrongCats = queue
-      .filter((sc, idx) => {
-        const c = sc.choices.find((ch) => ch.id === chosen[idx]);
-        return !c?.correct;
-      })
-      .map((sc) => categoryName(sc.categoryId));
+    const seconds = Math.round((Date.now() - startRef.current) / 1000);
+    const perCategory = new Map<CategoryId, { correct: number; total: number }>();
+    const wrongByCat: CategoryMisses = {};
+    const missed: {
+      scenario: Scenario;
+      chosen: ScenarioChoice | null;
+      correctChoice: ScenarioChoice | undefined;
+    }[] = [];
+    queue.forEach((sc, idx) => {
+      const choice = sc.choices.find((ch) => ch.id === chosen[idx]);
+      const tally = perCategory.get(sc.categoryId) ?? { correct: 0, total: 0 };
+      tally.total += 1;
+      if (choice?.correct) tally.correct += 1;
+      else {
+        wrongByCat[sc.categoryId] = (wrongByCat[sc.categoryId] ?? 0) + 1;
+        missed.push({
+          scenario: sc,
+          chosen: choice ?? null,
+          correctChoice: sc.choices.find((ch) => ch.correct),
+        });
+      }
+      perCategory.set(sc.categoryId, tally);
+    });
     return (
       <Summary
         correct={correctCount}
         total={queue.length}
+        seconds={seconds}
         cpEarned={state.cp - cpStartRef.current}
         onPlayMore={restart}
+        wrongByCategory={wrongByCat}
+        perCategory={[...perCategory.entries()]}
+        missed={missed}
+        mockRetestDue={mockRetestStatus(state).due}
         recap={{
           mode: "scenarios",
           correct: correctCount,
           total: queue.length,
-          weakCategories: [...new Set(wrongCats)].slice(0, 2),
+          seconds,
+          weakCategories: [
+            ...new Set(missed.map((m) => categoryName(m.scenario.categoryId))),
+          ].slice(0, 2),
           dueTomorrow: countDueTomorrow(state),
         }}
       />
@@ -236,6 +271,7 @@ export function ScenarioPlayer() {
   function goNext() {
     if (chosen[i] === null) return; // can't advance until answered
     if (isLast) {
+      haptics.celebrate();
       if (!sessionRecorded.current) {
         recordSession("scenarios", Math.round((Date.now() - startRef.current) / 1000));
         sessionRecorded.current = true;
@@ -396,43 +432,143 @@ function NavButton({
   );
 }
 
+function fmtDuration(seconds: number) {
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 function Summary({
   correct,
   total,
+  seconds,
   cpEarned,
   recap,
   onPlayMore,
+  wrongByCategory,
+  perCategory,
+  missed,
+  mockRetestDue,
 }: {
   correct: number;
   total: number;
+  seconds: number;
   cpEarned: number;
   recap: SessionRecapData;
   onPlayMore: () => void;
+  /** Misses by category for this session — feeds the targeted next step. */
+  wrongByCategory: CategoryMisses;
+  /** This session's score per category touched, weakest first below. */
+  perCategory: [CategoryId, { correct: number; total: number }][];
+  /** The situations misjudged this session, with both sides of each call. */
+  missed: {
+    scenario: Scenario;
+    chosen: ScenarioChoice | null;
+    correctChoice: ScenarioChoice | undefined;
+  }[];
+  /** Whether the pass predictor is due a recalibration. */
+  mockRetestDue: boolean;
 }) {
+  const acc = total ? Math.round((correct / total) * 100) : 0;
+  const nextStep = nextStepAfterScenarios({ wrongByCategory, mockRetestDue });
+  // Weakest category leads — the bars exist to aim the follow-up work.
+  const catRows = [...perCategory].sort(
+    ([, a], [, b]) => a.correct / a.total - b.correct / b.total,
+  );
   return (
-    <div className="mx-auto max-w-md py-10">
+    <div className="mx-auto max-w-2xl py-10">
+      <h1 className="sr-only">Scenario session results</h1>
       <Card className="animate-scale-in p-8 text-center">
-        <p className="font-display text-4xl font-semibold tabular">
-          {correct}
-          <span className="text-muted-foreground">/{total}</span>
-        </p>
-        <p className="mt-2 text-sm text-muted-foreground">scenarios judged correctly</p>
-        {cpEarned > 0 && (
-          <div className="mt-3 flex justify-center">
+        <div className="flex justify-center">
+          <ScoreRing value={acc} size={180} label={`${correct}/${total}`} />
+        </div>
+        <p className="mt-3 text-sm text-muted-foreground">scenarios judged correctly</p>
+        <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+          {cpEarned > 0 && (
             <Badge variant="default" className="gap-1 font-mono text-sm">
               <Zap className="h-3.5 w-3.5" /> +{cpEarned} CP
             </Badge>
-          </div>
-        )}
+          )}
+          {seconds > 0 && (
+            <Badge variant="outline" className="gap-1 font-mono text-sm">
+              <Clock className="h-3.5 w-3.5" /> {fmtDuration(seconds)}
+            </Badge>
+          )}
+        </div>
         <div className="mt-6 flex flex-wrap justify-center gap-3">
-          <Button variant="outline" onClick={onPlayMore}>
+          <Button variant={nextStep ? "outline" : undefined} onClick={onPlayMore}>
             New scenarios
           </Button>
-          <Link href="/dashboard" className={cn(buttonVariants())}>
+          <Link
+            href="/dashboard"
+            className={cn(buttonVariants({ variant: nextStep ? "outline" : "default" }))}
+          >
             Back to dashboard
           </Link>
         </div>
       </Card>
+
+      {nextStep && (
+        <NextStepCard
+          className="mt-5"
+          title={nextStep.title}
+          body={nextStep.body}
+          href={nextStep.href}
+          cta={nextStep.cta}
+          onRepeat={onPlayMore}
+        />
+      )}
+
+      {catRows.length > 0 && (
+        <Card className="mt-5 p-6">
+          <h2 className="font-display text-lg font-semibold">This session by category</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Tap any category to practise it.</p>
+          <div className="mt-5 grid gap-4 sm:grid-cols-2">
+            {catRows.map(([cat, s]) => (
+              <Link key={cat} href={`/study/questions?category=${cat}`} className="group block">
+                <MasteryBar
+                  label={<span className="group-hover:text-primary">{categoryName(cat)}</span>}
+                  value={(s.correct / s.total) * 100}
+                  count={`${s.correct}/${s.total}`}
+                />
+              </Link>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {missed.length > 0 && (
+        <Card className="mt-5 p-6">
+          <h2 className="font-display text-lg font-semibold">
+            Review your judgement calls ({missed.length})
+          </h2>
+          <ul className="mt-4 space-y-4">
+            {missed.map(({ scenario, chosen, correctChoice }) => (
+              <li key={scenario.id} className="rounded-lg border border-border p-4">
+                <p className="text-sm font-medium text-foreground">{scenario.title}</p>
+                {correctChoice && (
+                  <p className="mt-2 flex items-start gap-1.5 text-sm text-success">
+                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" /> {correctChoice.text}
+                  </p>
+                )}
+                {chosen && (
+                  <div className="mt-1 flex items-start gap-1.5 text-sm text-muted-foreground">
+                    <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+                    <span>You chose: {chosen.text}</span>
+                  </div>
+                )}
+                {chosen && chosen.consequence && (
+                  <p className="mt-2 rounded-lg border border-warning/30 bg-warning/[0.05] px-3 py-2 text-xs leading-relaxed text-foreground">
+                    {chosen.consequence}
+                  </p>
+                )}
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                  {scenario.debrief}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
       <SessionRecap data={recap} className="mt-5" />
     </div>
   );

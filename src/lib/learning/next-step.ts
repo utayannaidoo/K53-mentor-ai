@@ -118,6 +118,45 @@ export function nextStepAfterFlashcards({
   };
 }
 
+/**
+ * What to recommend after a scenario session.
+ *
+ * Scenarios train judgement — reading a situation, not recalling a rule — so a
+ * cluster of misjudged calls in one category points at the rule knowledge
+ * underneath it: a short round of questions there turns instinct into
+ * understanding. A clean session with a stale predictor gets the same re-test
+ * nudge as practice.
+ */
+export function nextStepAfterScenarios({
+  wrongByCategory,
+  mockRetestDue,
+}: {
+  wrongByCategory: CategoryMisses;
+  /** Whether the predictor is due a recalibration (`mockRetestStatus().due`). */
+  mockRetestDue: boolean;
+}): NextStep | null {
+  const dominant = dominantCategory(wrongByCategory);
+  if (dominant) {
+    const count = wrongByCategory[dominant] ?? 0;
+    return {
+      title: `Drill ${categoryName(dominant)} questions`,
+      body: `${count === 1 ? "One call" : `${count} calls`} in ${categoryName(dominant)} went against you — a few questions on the rules behind those situations will lock the judgement in.`,
+      href: `/study/questions?category=${dominant}`,
+      cta: `Drill ${categoryName(dominant)}`,
+    };
+  }
+  if (mockRetestDue) {
+    return {
+      title: "See where you stand",
+      body:
+        "It's been a week since your last mock — a short mini mock keeps your pass prediction honest.",
+      href: "/study/mock-exam?mode=mini",
+      cta: "Take a mini mock",
+    };
+  }
+  return null;
+}
+
 /** A full-mock section that fell under its own pass mark. */
 export interface FailedSection {
   section: ExamSection;

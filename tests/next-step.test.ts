@@ -5,6 +5,7 @@ import {
   nextStepAfterMini,
   nextStepAfterMock,
   nextStepAfterQuestions,
+  nextStepAfterScenarios,
 } from "@/lib/learning/next-step";
 
 /**
@@ -76,6 +77,45 @@ describe("nextStepAfterFlashcards", () => {
 
   it("stays quiet when recall mostly held", () => {
     expect(nextStepAfterFlashcards({ againByCategory: { rules: 1 } })).toBeNull();
+  });
+});
+
+describe("nextStepAfterScenarios", () => {
+  it("aims a cluster of misjudged calls at the underlying rules", () => {
+    const step = nextStepAfterScenarios({
+      wrongByCategory: { parking: 3, rules: 1 },
+      mockRetestDue: false,
+    });
+    expect(step?.href).toBe("/study/questions?category=parking");
+    expect(step?.body).toContain("3 calls");
+    expect(step?.body).toContain("Parking");
+  });
+
+  it("pluralises the miss count at the dominance floor", () => {
+    const step = nextStepAfterScenarios({
+      wrongByCategory: { signs: 2 },
+      mockRetestDue: false,
+    });
+    expect(step?.body).toContain("2 calls");
+  });
+
+  it("suggests a stale-predictor re-test when judgement held", () => {
+    const step = nextStepAfterScenarios({ wrongByCategory: {}, mockRetestDue: true });
+    expect(step?.href).toBe("/study/mock-exam?mode=mini");
+  });
+
+  it("prefers the dominant miss over the re-test nudge", () => {
+    const step = nextStepAfterScenarios({
+      wrongByCategory: { following_distance: 2 },
+      mockRetestDue: true,
+    });
+    expect(step?.href).toContain("category=following_distance");
+  });
+
+  it("recommends nothing when there is nothing to act on", () => {
+    expect(
+      nextStepAfterScenarios({ wrongByCategory: { rules: 1 }, mockRetestDue: false }),
+    ).toBeNull();
   });
 });
 
