@@ -6,6 +6,7 @@ import { DataSaverInit } from "@/components/shared/data-saver-init";
 import { ErrorReporter } from "@/components/shared/error-reporter";
 import { AnalyticsProvider } from "@/components/shared/analytics-provider";
 import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SwRegister } from "@/components/shared/sw-register";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/lib/constants";
 
@@ -146,6 +147,7 @@ export default function RootLayout({
           <SwRegister />
           {children}
           <Analytics />
+          <SpeedInsights />
         </ThemeProvider>
       </body>
     </html>
