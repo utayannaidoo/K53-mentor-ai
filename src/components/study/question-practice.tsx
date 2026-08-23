@@ -551,6 +551,10 @@ function Summary({
           body={nextStep.body}
           href={nextStep.href}
           cta={nextStep.cta}
+          // The suggestion often names the category just practised — the link
+          // then targets this very URL, which never navigates. Reset in place
+          // instead, exactly like "Practice more" below.
+          onRepeat={onPracticeMore}
         />
       )}
       <SessionRecap data={recap} className="mt-5" />

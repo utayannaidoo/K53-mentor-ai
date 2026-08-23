@@ -22,6 +22,7 @@ import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, min
 import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT, SECTION_LABEL } from "@/lib/constants";
+import { formatPassProbability } from "@/lib/diagnostic/scoring";
 import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
 import {
@@ -735,10 +736,10 @@ export function MockExam() {
           {preProb != null && (
             <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
               Predicted pass:{" "}
-              <span className="font-mono">{preProb}%</span>
+              <span className="font-mono">{formatPassProbability(preProb)}</span>
               <ArrowRight className="h-3.5 w-3.5" />
               <span className={cn("flex items-center gap-1 font-mono font-semibold", probDelta && probDelta < 0 ? "text-warning" : "text-success")}>
-                {postProb}%
+                {formatPassProbability(postProb)}
                 {probDelta !== null && probDelta !== 0 && (
                   probDelta > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />
                 )}
@@ -775,6 +776,10 @@ export function MockExam() {
             body={mockNextStep.body}
             href={mockNextStep.href}
             cta={mockNextStep.cta}
+            // A failed drill can name the section just drilled — an identical
+            // URL never navigates, so drop back to the intro screen (same as
+            // "Take another" below) instead of leaving results on screen.
+            onRepeat={() => setPhase("intro")}
           />
         )}
 

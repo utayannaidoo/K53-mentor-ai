@@ -31,7 +31,7 @@ import {
 } from "@/lib/achievements";
 import { EXAM_FORMAT, SECTION_LABEL, type ExamSection } from "@/lib/constants";
 import { activityByDay, buildHeatmap } from "@/lib/dashboard/day-strip";
-import { blockingSection, sectionCompetence } from "@/lib/diagnostic/scoring";
+import { blockingSection, formatPassProbability, sectionCompetence } from "@/lib/diagnostic/scoring";
 import { LICENCE_RANK_INDEX, MASTERY_STAMP_AT } from "@/lib/engagement";
 import { bestStudyTime, mostImproved } from "@/lib/insights";
 import { categoryName } from "@/lib/content/categories";
@@ -401,7 +401,7 @@ export default function ProgressPage() {
             <Figure label="Readiness" value={`${readiness.readiness}%`} />
             <Figure
               label={readiness.measured ? "Predicted pass" : "Predicted pass (estimate)"}
-              value={`${readiness.passProbability}%`}
+              value={formatPassProbability(readiness.passProbability)}
             />
             <Figure label="Accuracy" value={hasAttempts ? `${accuracy}%` : "—"} />
             <Figure label="Questions" value={answered.toLocaleString()} />

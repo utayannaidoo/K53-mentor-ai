@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ArrowRight, Target } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn, glassSubtle } from "@/lib/utils";
@@ -20,13 +21,43 @@ export function NextStepCard({
   href,
   cta,
   className,
+  onRepeat,
 }: {
   title: string;
   body: string;
   href: string;
   cta: string;
   className?: string;
+  /**
+   * Called instead of navigating when `href` points at the screen this card is
+   * already on — finishing a road-signs session suggests drilling road signs.
+   * An identical URL never navigates, so the owner of this screen's state must
+   * reset it in place (fresh queue / back to intro) or the tap looks dead.
+   */
+  onRepeat?: () => void;
 }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  // Query order is irrelevant to routing, so compare sorted entries rather
+  // than raw strings (?mode=drill&section=signs vs ?section=signs&mode=drill).
+  const repeatsHere = React.useMemo(() => {
+    let target: URL;
+    try {
+      target = new URL(href, "http://next-step.local");
+    } catch {
+      return false;
+    }
+    if (target.pathname !== pathname || !onRepeat) return false;
+    const byName = ([a]: [string, string], [b]: [string, string]) => a.localeCompare(b);
+    const mine = [...searchParams.entries()].sort(byName);
+    const theirs = [...target.searchParams.entries()].sort(byName);
+    return (
+      mine.length === theirs.length &&
+      mine.every(([key, value], idx) => key === theirs[idx][0] && value === theirs[idx][1])
+    );
+  }, [href, onRepeat, pathname, searchParams]);
+
   return (
     <section
       aria-label="Recommended next step"
@@ -50,6 +81,14 @@ export function NextStepCard({
       </div>
       <Link
         href={href}
+        onClick={
+          repeatsHere
+            ? (event) => {
+                event.preventDefault();
+                onRepeat?.();
+              }
+            : undefined
+        }
         className={cn(buttonVariants(), "mt-4 w-full sm:w-auto")}
       >
         {cta} <ArrowRight />
