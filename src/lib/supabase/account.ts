@@ -75,6 +75,7 @@ interface StreakRow {
 export async function loadAccount(
   supabase: SupabaseClient,
   user: User,
+  now = Date.now(),
 ): Promise<Partial<AccountData>> {
   const [profileRes, subRes, streakRes] = await Promise.all([
     supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
@@ -120,7 +121,7 @@ export async function loadAccount(
   // screen — paywalls, allowances and badges — not only on the billing page.
   // The store's copy stays display-only either way; server entitlement is
   // resolved per request and never trusts this value.
-  const tier = tierFromSubscriptionRow(subRes.data as SubscriptionRowLike | null);
+  const tier = tierFromSubscriptionRow(subRes.data as SubscriptionRowLike | null, now);
 
   const learners = licenceFrom(p?.licence_result, p?.licence_result_at, p?.licence_result_test_date);
   const drivers = licenceFrom(p?.drivers_result, p?.drivers_result_at, p?.drivers_result_test_date);

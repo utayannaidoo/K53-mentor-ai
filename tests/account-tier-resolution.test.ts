@@ -38,8 +38,10 @@ const activeRow = (over: Record<string, unknown> = {}) => ({
 });
 
 describe("loadAccount resolves the display tier through the shared rule", () => {
+  // `now` is pinned: the grace-window test below sits exactly 2 days inside
+  // the 3-day window, which the real clock walked out of on 2026-08-23.
   it("keeps an actively-renewing subscription at its paid tier", async () => {
-    const account = await loadAccount(supabaseWithRow(activeRow()), user);
+    const account = await loadAccount(supabaseWithRow(activeRow()), user, NOW);
     expect(account.tier).toBe("premium_plus");
   });
 
@@ -49,6 +51,7 @@ describe("loadAccount resolves the display tier through the shared rule", () => 
     const account = await loadAccount(
       supabaseWithRow(activeRow({ current_period_end: iso(NOW - 10 * 86_400_000) })),
       user,
+      NOW,
     );
     expect(account.tier).toBe("free");
   });
@@ -57,6 +60,7 @@ describe("loadAccount resolves the display tier through the shared rule", () => 
     const account = await loadAccount(
       supabaseWithRow(activeRow({ current_period_end: iso(NOW - 1 * 86_400_000) })),
       user,
+      NOW,
     );
     expect(account.tier).toBe("premium_plus");
   });
@@ -67,12 +71,13 @@ describe("loadAccount resolves the display tier through the shared rule", () => 
         activeRow({ cancel_at_period_end: true, current_period_end: iso(NOW - 60_000) }),
       ),
       user,
+      NOW,
     );
     expect(account.tier).toBe("free");
   });
 
   it("resolves a missing row to free", async () => {
-    const account = await loadAccount(supabaseWithRow(null), user);
+    const account = await loadAccount(supabaseWithRow(null), user, NOW);
     expect(account.tier).toBe("free");
   });
 });
