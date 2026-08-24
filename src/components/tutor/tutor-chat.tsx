@@ -20,7 +20,7 @@ import { buildLearnerProfile } from "@/lib/ai/learner-profile";
 import { buildTutorOpener } from "@/lib/ai/tutor-opener";
 import { useContentPool } from "@/components/content/content-provider";
 import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
-import { Markdown } from "@/components/tutor/markdown";
+import { MarkdownLazy } from "@/components/tutor/markdown-lazy";
 import { track } from "@/lib/analytics";
 
 export interface InitialContext {
@@ -523,7 +523,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
                     <Sparkles className="h-3 w-3" /> Tutor
                   </div>
-                  <Markdown>{m.content}</Markdown>
+                  <MarkdownLazy>{m.content}</MarkdownLazy>
                 </div>
               ) : (
                 <div className="max-w-[85%] animate-fade-in break-words rounded-2xl rounded-tr-sm bg-gradient-to-br from-primary to-primary-light px-4 py-3 text-sm text-primary-foreground shadow-[0_8px_22px_-10px_hsl(var(--primary)/0.6)]">
@@ -545,7 +545,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
                     <Sparkles className="h-3 w-3" /> Tutor
                   </div>
-                  <Markdown>{streaming}</Markdown>
+                  <MarkdownLazy>{streaming}</MarkdownLazy>
                 </div>
               </div>
             )}

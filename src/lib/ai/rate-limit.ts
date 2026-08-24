@@ -65,6 +65,13 @@ const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests 
 const COACH_DAILY_LIMIT = Number(process.env.COACH_DAILY_IP_LIMIT ?? 80); // requests / day
 const VISION_DAILY_LIMIT = Number(process.env.VISION_DAILY_IP_LIMIT ?? 20); // scans / day (priciest calls)
 const CONTENT_HOURLY_LIMIT = Number(process.env.CONTENT_HOURLY_IP_LIMIT ?? 6); // pack syncs / hour
+// Entitlement probes (`/api/content/pack?probe=1`) fire on every app-shell
+// mount and on every `online` event — ordinary browsing, not syncing. Sharing
+// the tight download bucket above meant a handful of mounts from one mobile
+// carrier-grade NAT address exhausted the cap in minutes, and the probe then
+// 429'd paying learners into the offline-grace path. Probes get their own
+// generous bucket; only full downloads pay the tight one.
+const CONTENT_PROBE_HOURLY_LIMIT = Number(process.env.CONTENT_PROBE_HOURLY_IP_LIMIT ?? 120);
 // Email triggers: each request makes GoTrue send a real email, so the caps are
 // tight — this is an anti-email-bombing bound, not a UX allowance.
 const AUTH_RESET_DAILY_LIMIT = Number(process.env.AUTH_RESET_DAILY_IP_LIMIT ?? 10); // reset emails / IP / day
@@ -79,6 +86,7 @@ let coachDaily: Ratelimit | null = null;
 let visionBurst: Ratelimit | null = null;
 let visionDaily: Ratelimit | null = null;
 let content: Ratelimit | null = null;
+let contentProbe: Ratelimit | null = null;
 let logLimiter: Ratelimit | null = null;
 let authReset: Ratelimit | null = null;
 let authResend: Ratelimit | null = null;
@@ -131,6 +139,12 @@ if (hasUpstash) {
     redis,
     limiter: Ratelimit.slidingWindow(CONTENT_HOURLY_LIMIT, "1 h"),
     prefix: "k53:content",
+    analytics: false,
+  });
+  contentProbe = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(CONTENT_PROBE_HOURLY_LIMIT, "1 h"),
+    prefix: "k53:content:probe",
     analytics: false,
   });
   logLimiter = new Ratelimit({
@@ -225,8 +239,14 @@ export async function limitUserDaily(
   const key = `k53:u:${surface}:${userId}:${day}`;
   try {
     if (redis) {
-      const n = await redis.incr(key);
-      if (n === 1) await redis.expire(key, 90_000); // a day + slack; key is date-scoped anyway
+      // One round-trip instead of two: incr and expire are pipelined into a
+      // single HTTP call. Re-running expire on every increment is harmless —
+      // the key is date-scoped, so extending its 25h TTL only delays garbage
+      // collection of a key that can never be reused.
+      const pipe = redis.pipeline();
+      pipe.incr(key);
+      pipe.expire(key, 90_000);
+      const [n] = await pipe.exec<number[]>();
       return n <= limit
         ? { success: true, retryAfter: 0 }
         : { success: false, retryAfter: secondsToUtcMidnight() };
@@ -346,6 +366,27 @@ export async function limitContent(ip: string): Promise<LimitResult> {
   }
 }
 
+/**
+ * Entitlement probes — see CONTENT_PROBE_HOURLY_LIMIT. Deliberately generous:
+ * this endpoint answers "is this account still paid?" on every mount, and its
+ * failure mode (429) silently degrades paying learners to the grace path, so
+ * the cap must never be reachable by ordinary browsing.
+ */
+export async function limitContentProbe(ip: string): Promise<LimitResult> {
+  try {
+    if (contentProbe) {
+      const r = await contentProbe.limit(ip);
+      return r.success
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
+    }
+    return memLimit(`content:probe:${ip}`, CONTENT_PROBE_HOURLY_LIMIT, 3_600_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return memLimit(`content:probe:${ip}`, CONTENT_PROBE_HOURLY_LIMIT, 3_600_000);
+  }
+}
+
 /** Modest per-IP limit for checkout-session creation (10/min). */
 export async function limitCheckout(ip: string): Promise<LimitResult> {
   try {
@@ -413,11 +454,10 @@ export async function limitCoach(ip: string): Promise<LimitResult> {
   if (capsUnenforceable) return UNCAPPED;
   try {
     if (coachBurst && coachDaily) {
-      const b = await coachBurst.limit(ip);
+      const [b, d] = await Promise.all([coachBurst.limit(ip), coachDaily.limit(ip)]);
       if (!b.success) {
         return { success: false, retryAfter: Math.max(1, Math.ceil((b.reset - Date.now()) / 1000)) };
       }
-      const d = await coachDaily.limit(ip);
       if (!d.success) {
         return { success: false, retryAfter: Math.max(1, Math.ceil((d.reset - Date.now()) / 1000)) };
       }
@@ -439,11 +479,10 @@ export async function limitVision(ip: string): Promise<LimitResult> {
   if (capsUnenforceable) return UNCAPPED;
   try {
     if (visionBurst && visionDaily) {
-      const b = await visionBurst.limit(ip);
+      const [b, d] = await Promise.all([visionBurst.limit(ip), visionDaily.limit(ip)]);
       if (!b.success) {
         return { success: false, retryAfter: Math.max(1, Math.ceil((b.reset - Date.now()) / 1000)) };
       }
-      const d = await visionDaily.limit(ip);
       if (!d.success) {
         return { success: false, retryAfter: Math.max(1, Math.ceil((d.reset - Date.now()) / 1000)) };
       }
@@ -465,11 +504,14 @@ export async function limitTutor(ip: string): Promise<LimitResult> {
   if (capsUnenforceable) return UNCAPPED;
   try {
     if (burst && daily) {
-      const b = await burst.limit(ip);
+      // Both windows fire in one round-trip instead of two serial ones — this
+      // runs before auth on every AI request, so the saved RTT is paid by
+      // every message. Trade-off: a burst-rejected request also ticks the
+      // daily counter, which only ever tightens the cap on an active flood.
+      const [b, d] = await Promise.all([burst.limit(ip), daily.limit(ip)]);
       if (!b.success) {
         return { success: false, retryAfter: Math.max(1, Math.ceil((b.reset - Date.now()) / 1000)) };
       }
-      const d = await daily.limit(ip);
       if (!d.success) {
         return { success: false, retryAfter: Math.max(1, Math.ceil((d.reset - Date.now()) / 1000)) };
       }

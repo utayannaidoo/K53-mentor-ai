@@ -112,6 +112,14 @@ export async function POST(req: Request) {
   const ent = await resolveEntitlement("coach");
   if (ent instanceof Response) return ent;
 
+  // Free-tier trial lookup started early so it overlaps the body read, the cap
+  // check and prompt building instead of sitting alone at the end (same
+  // reasoning as /api/tutor).
+  const trialPromise =
+    ent.tier === "free" && ent.userId !== null
+      ? isWithinFreeTrial(ent.userId)
+      : Promise.resolve(false);
+
   // Chunked requests skip the header check above, so the read itself is capped:
   // an undeclared flood dies mid-stream instead of buffering before zod.
   const body = await readJsonCapped(req, SMALL_BODY_MAX_BYTES);
@@ -129,6 +137,10 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
+  // The success-path usage write starts now and is awaited in the `finally`
+  // before the response returns — durability unchanged, but it overlaps the
+  // provider call below instead of preceding it.
+  let usageWrite: Promise<void> | null = null;
   if (ent.userId) {
     const cap = await limitUserDaily("coach", ent.userId, ent.allowance);
     if (!cap.success) {
@@ -138,7 +150,7 @@ export async function POST(req: Request) {
         { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
       );
     }
-    await recordAiUsage({ surface: "coach", userId: ent.userId, tier: ent.tier, capped: false });
+    usageWrite = recordAiUsage({ surface: "coach", userId: ent.userId, tier: ent.tier, capped: false });
   }
 
   // ── Cost doctrine, same rule as /api/tutor ─────────────────────────────────
@@ -147,8 +159,7 @@ export async function POST(req: Request) {
   // template answers instead: a lapsed signup could otherwise cost up to 12
   // provider calls a day forever, which buys nothing (the tutor route carries
   // the long-form rationale for this; only free pays for the extra lookup).
-  const forceLocal =
-    ent.tier === "free" && !(ent.userId !== null && (await isWithinFreeTrial(ent.userId)));
+  const forceLocal = ent.tier === "free" && !(await trialPromise);
 
   const local =
     parsed.kind === "plan_rationale"
@@ -164,16 +175,21 @@ export async function POST(req: Request) {
         ? recapPrompt(parsed.data)
         : secondOpinionPrompt(parsed.data);
 
-  const result = forceLocal
-    ? null
-    : await completeCoachText({
-        system: COACH_PERSONA,
-        user,
-        maxTokens: parsed.kind === "plan_rationale" ? 90 : parsed.kind === "session_recap" ? 180 : 220,
-      });
+  try {
+    const result = forceLocal
+      ? null
+      : await completeCoachText({
+          system: COACH_PERSONA,
+          user,
+          maxTokens: parsed.kind === "plan_rationale" ? 90 : parsed.kind === "session_recap" ? 180 : 220,
+        });
 
-  return Response.json(
-    { text: result?.text ?? local, model: result?.model ?? "local" },
-    { headers: { "cache-control": "no-store" } },
-  );
+    await usageWrite;
+    return Response.json(
+      { text: result?.text ?? local, model: result?.model ?? "local" },
+      { headers: { "cache-control": "no-store" } },
+    );
+  } finally {
+    await usageWrite;
+  }
 }

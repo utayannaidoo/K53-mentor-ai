@@ -119,6 +119,10 @@ export async function POST(req: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
+  // The success-path usage write starts now and is awaited before the
+  // response returns (finally), so it overlaps the multi-second provider call
+  // instead of delaying the scan's start. Durability unchanged.
+  let usageWrite: Promise<void> | null = null;
   if (ent.userId) {
     const cap = await limitUserDaily("vision", ent.userId, ent.allowance);
     if (!cap.success) {
@@ -128,29 +132,34 @@ export async function POST(req: Request) {
         { status: 429, headers: { "Retry-After": String(cap.retryAfter) } },
       );
     }
-    await recordAiUsage({ surface: "vision", userId: ent.userId, tier: ent.tier, capped: false });
+    usageWrite = recordAiUsage({ surface: "vision", userId: ent.userId, tier: ent.tier, capped: false });
   }
 
   const userText = parsed.hint
     ? `Identify this road sign. Hint from the learner: ${parsed.hint}`
     : "Identify this road sign.";
 
-  const res = await completeVisionText({
-    system: SCANNER_SYSTEM,
-    userText,
-    image: parsed.image,
-    maxTokens: 350,
-  });
-  if (!res) {
-    // The scan was metered up-front (it must gate concurrency), so a dead
-    // provider call otherwise costs a paid scan without serving anything.
-    // Refund the allowance — an outage shouldn't tax the learner's quota.
-    if (ent.userId) await refundUserDaily("vision", ent.userId);
-    return Response.json({ error: "Vision call failed" }, { status: 502 });
-  }
+  try {
+    const res = await completeVisionText({
+      system: SCANNER_SYSTEM,
+      userText,
+      image: parsed.image,
+      maxTokens: 350,
+    });
+    if (!res) {
+      // The scan was metered up-front (it must gate concurrency), so a dead
+      // provider call otherwise costs a paid scan without serving anything.
+      // Refund the allowance — an outage shouldn't tax the learner's quota.
+      if (ent.userId) await refundUserDaily("vision", ent.userId);
+      return Response.json({ error: "Vision call failed" }, { status: 502 });
+    }
 
-  return Response.json(
-    { result: parseScan(res.text), text: res.text, model: res.model },
-    { headers: { "cache-control": "no-store" } },
-  );
+    await usageWrite;
+    return Response.json(
+      { result: parseScan(res.text), text: res.text, model: res.model },
+      { headers: { "cache-control": "no-store" } },
+    );
+  } finally {
+    await usageWrite;
+  }
 }

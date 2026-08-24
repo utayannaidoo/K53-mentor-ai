@@ -9,12 +9,14 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 const limitContent = vi.fn();
+const limitContentProbe = vi.fn();
 const limitUserDaily = vi.fn();
 const resolveTier = vi.fn();
 
 vi.mock("@/lib/ai/rate-limit", () => ({
   clientIp: () => "203.0.113.7",
   limitContent: (...a: unknown[]) => limitContent(...a),
+  limitContentProbe: (...a: unknown[]) => limitContentProbe(...a),
   limitUserDaily: (...a: unknown[]) => limitUserDaily(...a),
 }));
 
@@ -27,6 +29,7 @@ const OK = { success: true, retryAfter: 0 };
 beforeEach(() => {
   vi.clearAllMocks();
   limitContent.mockResolvedValue(OK);
+  limitContentProbe.mockResolvedValue(OK);
   limitUserDaily.mockResolvedValue(OK);
 });
 
@@ -126,6 +129,13 @@ describe("/api/content/pack", () => {
     const res = await get(true);
     expect(res.status).toBe(403);
     expect(await res.json()).toMatchObject({ error: "upgrade_required" });
+  });
+
+  it("caps probes on their own bucket so browsing never starves the sync cap", async () => {
+    resolveTier.mockResolvedValue({ userId: "u1", tier: "premium" });
+    await get(true);
+    expect(limitContentProbe).toHaveBeenCalled();
+    expect(limitContent).not.toHaveBeenCalled();
   });
 
   it("never lets a shared cache store the response", async () => {

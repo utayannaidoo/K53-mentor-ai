@@ -62,8 +62,17 @@ export async function POST(req: Request) {
     );
   }
 
-  for (const table of PROGRESS_TABLES) {
-    const { error } = await supabase.from(table).delete().eq("user_id", user.id);
+  // The tables are mutually independent — each delete filters only by this
+  // user's id — so they run concurrently instead of nine serial round-trips.
+  // Failures are collected and reported the same way the sequential loop did
+  // (500, with each offending table logged).
+  const deletes = await Promise.all(
+    PROGRESS_TABLES.map(async (table) => {
+      const { error } = await supabase.from(table).delete().eq("user_id", user.id);
+      return { table, error };
+    }),
+  );
+  for (const { table, error } of deletes) {
     if (error) {
       console.error("account/reset: delete failed", table, error.message);
       return Response.json(

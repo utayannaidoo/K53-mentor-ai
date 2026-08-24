@@ -43,14 +43,24 @@ export async function updateSession(request: NextRequest) {
     },
   });
 
+  const path = request.nextUrl.pathname;
+  const isProtected = PROTECTED.some((p) => path === p || path.startsWith(`${p}/`));
+  const isAuthPage = AUTH_PAGES.includes(path);
+
+  // `getUser()` is a network round-trip to GoTrue — the single largest TTFB
+  // cost on every page it touches. It is only needed where the answer changes
+  // what happens next: protected routes (auth gate) and auth pages
+  // (signed-in redirect). Marketing, guides, pricing and legal pages render
+  // identically either way, so they now skip the call entirely — a static
+  // page serves from the CDN with no auth traffic in front of it. Sessions
+  // still refresh on the app pages signed-in users actually visit (and route
+  // handlers refresh their own).
+  if (!isProtected && !isAuthPage) return response;
+
   // Touch the session so tokens refresh into the response cookies.
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const path = request.nextUrl.pathname;
-  const isProtected = PROTECTED.some((p) => path === p || path.startsWith(`${p}/`));
-  const isAuthPage = AUTH_PAGES.includes(path);
 
   // Unauthenticated user hitting a protected page → bounce to login (remember where).
   if (!user && isProtected) {

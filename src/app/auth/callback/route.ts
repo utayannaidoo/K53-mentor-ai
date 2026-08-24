@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import type { EmailOtpType, User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/safe-next";
@@ -16,9 +16,15 @@ const NEW_ACCOUNT_WINDOW_MS = 24 * 60 * 60 * 1000;
  * `created_at` inside the last day. It is a heuristic, and it does not need to
  * be better than one — `sendWelcomeOnce` is idempotent through the
  * `notifications` ledger, so guessing "new" for a returning user costs a lookup
- * and nothing else. Awaited rather than fired and forgotten, because a
- * serverless function can be frozen the moment it returns the redirect; it
- * never throws, so a mail problem cannot block someone reaching their account.
+ * and nothing else.
+ *
+ * Scheduled through `after()`, which is why the old fire-and-forget worry no
+ * longer applies: the platform keeps the invocation alive until after() work
+ * settles, so the write cannot be frozen away mid-flight — but the new signup
+ * also no longer waits on five serial operations (two reads, a suppression
+ * check, the Resend POST, the ledger insert) before their redirect moves.
+ * It never throws, so a mail problem cannot block someone reaching their
+ * account.
  */
 async function welcomeIfNew(user: User): Promise<void> {
   const created = user.created_at ? Date.parse(user.created_at) : NaN;
@@ -88,7 +94,8 @@ export async function GET(request: Request) {
     if (!error) {
       // Confirming a signup is the one moment we know an account is new.
       // Recovery and email_change land here too and must not trigger it.
-      if (type === "signup" && data.user) await welcomeIfNew(data.user);
+      const user = data.user;
+      if (user) after(() => welcomeIfNew(user));
       return NextResponse.redirect(`${origin}${safeNext}`);
     }
     return fail(/expired|invalid/i.test(error.message) ? "expired" : "auth");
@@ -101,7 +108,8 @@ export async function GET(request: Request) {
       // OAuth signups never carry `type=signup`, so without this every Google
       // account would silently miss the welcome. `welcomeIfNew` decides from
       // the account's age, and the ledger makes a wrong guess harmless.
-      if (data.user) await welcomeIfNew(data.user);
+      const user = data.user;
+      if (user) after(() => welcomeIfNew(user));
       return NextResponse.redirect(`${origin}${safeNext}`);
     }
     // The verifier cookie is missing — the link was opened somewhere other than

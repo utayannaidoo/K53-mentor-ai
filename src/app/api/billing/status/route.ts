@@ -35,6 +35,23 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  // The queued-refund read depends only on user.id, not on the subscription
+  // row, so it starts here — in parallel with the subscriptions read — instead
+  // of after it. Its result is only *used* for paid tiers below, so a free
+  // account's extra read is one indexed row on a page they rarely load; a paid
+  // account saves a full serial round-trip on every billing-page visit.
+  const admin = createAdminClient();
+  const queuedPromise = admin
+    ? admin
+        .from("pending_refunds")
+        .select("created_at")
+        .eq("user_id", user.id)
+        .eq("status", "queued")
+        .order("created_at", { ascending: true })
+        .limit(1)
+        .maybeSingle()
+    : null;
+
   const { data } = await supabase
     .from("subscriptions")
     .select(
@@ -71,18 +88,11 @@ export async function GET() {
   // empty settlement balance) is service-role data under RLS, so this needs
   // the admin client. Read-only, and it only surfaces a timestamp: enough for
   // the billing page to say "your refund is processing" durably, long after
-  // the cancel-time banner has scrolled away.
+  // the cancel-time banner has scrolled away. (Started above, in parallel
+  // with the subscriptions read.)
   let refundProcessingSince: string | null = null;
-  const admin = createAdminClient();
-  if (admin) {
-    const { data: queued } = await admin
-      .from("pending_refunds")
-      .select("created_at")
-      .eq("user_id", user.id)
-      .eq("status", "queued")
-      .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+  if (queuedPromise) {
+    const { data: queued } = await queuedPromise;
     if (queued) {
       refundProcessingSince = (queued as { created_at: string }).created_at;
     }

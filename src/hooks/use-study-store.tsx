@@ -432,6 +432,14 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       // network blip leaves the app on a permanent skeleton.
       .catch(() => setAccountHydrated(true));
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // Only identity-changing events re-hydrate. INITIAL_SESSION is handled
+      // by the explicit getUser() above (which alone can distinguish "no
+      // session" from "the lookup failed"), and TOKEN_REFRESHED fires roughly
+      // hourly per open tab with the SAME user — re-running the full account +
+      // progress pull (three account reads plus seven tables, thousands of
+      // rows) for identical data multiplied Supabase traffic for every
+      // long-lived tab without changing a single value.
+      if (event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") return;
       hydrate(session?.user ?? null, event);
     });
 
@@ -451,9 +459,16 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     // server reappeared as the old value minutes later, with no user action.
     if (!supabase || !ready || !accountHydrated || !state.profile) return;
     const t = setTimeout(() => {
+      // getSession() reads the locally cached session instead of hitting
+      // GoTrue like getUser() did — the flush fired on every debounced save,
+      // so every burst of answers paid a network round-trip before a single
+      // row was written. The token is kept fresh by the client's own
+      // auto-refresh; and these writes are RLS-scoped server-side anyway, so
+      // a stale token fails the write and the unchanged watermark retries it.
       supabase.auth
-        .getUser()
-        .then(({ data: { user } }) => {
+        .getSession()
+        .then(({ data: { session } }) => {
+          const user = session?.user ?? null;
           // Only write when the local state actually belongs to the signed-in
           // user — never write one account's profile or progress into
           // another's rows during the brief switch window before hydrate

@@ -248,6 +248,10 @@ export async function pullProgress(supabase: SupabaseClient, userId: string): Pr
       .from("flashcard_review_log")
       .select("flashcard_id,ease,interval_days,reps,lapses,mastery,due_at,reviewed_at")
       .eq("user_id", userId)
+      // Without an explicit order the 2000-row cap cut an arbitrary window —
+      // which card states survived a sync was nondeterministic once a learner
+      // crossed the cap. Most recent reviews are the ones still in play.
+      .order("reviewed_at", { ascending: false })
       .limit(2000),
     supabase
       .from("readiness_history")

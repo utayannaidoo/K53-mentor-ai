@@ -3,7 +3,7 @@ import { FLASHCARDS } from "@/lib/content/flashcards";
 import { SCENARIOS } from "@/lib/content/scenarios";
 import { DRIVER_MODULES } from "@/lib/content/driver-modules";
 import { CONTENT_VERSION } from "@/lib/content/meta";
-import { clientIp, limitContent, limitUserDaily } from "@/lib/ai/rate-limit";
+import { clientIp, limitContent, limitContentProbe, limitUserDaily } from "@/lib/ai/rate-limit";
 import { resolveTier } from "@/lib/billing/entitlements.server";
 import { hasFeature, isPaidTier } from "@/lib/billing/plans";
 
@@ -58,9 +58,11 @@ export async function GET(req: Request) {
   const probe = new URL(req.url).searchParams.get("probe") === "1";
 
   // Per-IP guard first, before auth's round-trips — the ordering every other
-  // route in this app uses. Probes are cheap but authenticated, so they ride
-  // the same IP limiter as everything else here.
-  const rl = await limitContent(clientIp(req));
+  // route in this app uses. Probes and full downloads are capped separately:
+  // a probe is the cheap heartbeat ordinary browsing repeats all day, and
+  // sharing the tight sync bucket starved it (429 → grace path) on
+  // carrier-grade NAT addresses within minutes of normal use.
+  const rl = await (probe ? limitContentProbe(clientIp(req)) : limitContent(clientIp(req)));
   if (!rl.success) {
     return Response.json(
       { error: "rate_limited", retryAfter: rl.retryAfter },

@@ -82,6 +82,16 @@ export async function POST(req: Request) {
   const ent = await resolveEntitlement("tutor");
   if (ent instanceof Response) return ent;
 
+  // Free-tier trial lookup, started before the body is even read: it decides
+  // local-vs-AI at the very end of this handler, and nothing below depends on
+  // it — so instead of a lone awaited round-trip after metering, it overlaps
+  // the body parse, the cap check and grounding (one fewer serial RTT for
+  // exactly the users the trial exists to convince).
+  const trialPromise =
+    ent.tier === "free" && ent.userId !== null
+      ? isWithinFreeTrial(ent.userId)
+      : Promise.resolve(false);
+
   // Chunked requests skip the header check above, so the read itself is capped:
   // an undeclared flood dies mid-stream instead of buffering before zod.
   const body = await readJsonCapped(req, IMAGE_BODY_MAX_BYTES);
@@ -100,6 +110,13 @@ export async function POST(req: Request) {
   }
 
   // Per-user plan allowance (the money guard behind the per-IP one above).
+  // The success-path usage write starts here rather than being awaited in
+  // place: it overlaps grounding and provider setup below, and the `finally`
+  // still awaits it before this handler returns, so usage.server.ts's
+  // durability rule — the write always completes before the response leaves —
+  // is unchanged. It just no longer sits on the critical path to the first
+  // streamed token.
+  let usageWrite: Promise<void> | null = null;
   if (ent.userId) {
     const cap = await limitUserDaily("tutor", ent.userId, ent.allowance);
     if (!cap.success) {
@@ -117,7 +134,7 @@ export async function POST(req: Request) {
         );
       }
     }
-    await recordAiUsage({ surface: "tutor", userId: ent.userId, tier: ent.tier, capped: false });
+    usageWrite = recordAiUsage({ surface: "tutor", userId: ent.userId, tier: ent.tier, capped: false });
   }
 
   const { messages, context, profile } = parsed;
@@ -159,30 +176,37 @@ export async function POST(req: Request) {
   // the product from exactly the audience the week exists to convince, and the
   // 2/day cap already bounds it to roughly R0.59 per trialling signup. Once the
   // week lapses, the local explainer takes over, and the gap between the two is
-  // the upgrade pitch. Only the free tier pays for the extra lookup.
-  const forceLocal =
-    ent.tier === "free" && !(ent.userId !== null && (await isWithinFreeTrial(ent.userId)));
+  // the upgrade pitch. Only the free tier pays for the extra lookup (started
+  // early, right after entitlement — see trialPromise above).
+  const forceLocal = ent.tier === "free" && !(await trialPromise);
 
-  const { stream, model, provider } = await streamTutorReply({
-    persona: TUTOR_PERSONA,
-    grounding,
-    messages: trimmed,
-    userText: lastUser,
-    localReply,
-    image,
-    forceLocal,
-  });
+  try {
+    const { stream, model, provider } = await streamTutorReply({
+      persona: TUTOR_PERSONA,
+      grounding,
+      messages: trimmed,
+      userText: lastUser,
+      localReply,
+      image,
+      forceLocal,
+    });
 
-  return new Response(stream, {
-    headers: {
-      "content-type": "text/plain; charset=utf-8",
-      "cache-control": "no-store",
-      "x-tutor-model": model,
-      // Which tier of the cascade actually answered. The client reports this
-      // on tutor_message_sent so a silent fall-through to `local` — an outage,
-      // an empty balance, or an image sent while DeepSeek is the only provider
-      // — is visible as a shift in the mix rather than as nothing at all.
-      "x-tutor-provider": provider,
-    },
-  });
+    await usageWrite;
+    return new Response(stream, {
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        "cache-control": "no-store",
+        "x-tutor-model": model,
+        // Which tier of the cascade actually answered. The client reports this
+        // on tutor_message_sent so a silent fall-through to `local` — an outage,
+        // an empty balance, or an image sent while DeepSeek is the only provider
+        // — is visible as a shift in the mix rather than as nothing at all.
+        "x-tutor-provider": provider,
+      },
+    });
+  } finally {
+    // A provider throw must not swallow the usage record (it was awaited
+    // unconditionally before this write moved off the critical path).
+    await usageWrite;
+  }
 }

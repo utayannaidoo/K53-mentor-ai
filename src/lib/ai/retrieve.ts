@@ -10,6 +10,22 @@ import { keywords } from "@/lib/ai/fallback";
  * tutor cite *verified* K53 facts beyond the single item the learner clicked
  * from — without an embeddings index or any extra API cost.
  */
+
+/**
+ * Lowercased search text per item, built once per server instance. The bank is
+ * static for the life of a deployment, and rebuilding ~2,300 haystack strings
+ * on every tutor message was pure repeated CPU on the critical path to the
+ * first token. Keyed by item id (unique across both banks) so one Map serves
+ * the exclusion check too.
+ */
+const haystacks = new Map<string, string>();
+for (const q of QUESTIONS) {
+  haystacks.set(q.id, `${q.prompt} ${q.explanation} ${q.options.join(" ")}`.toLowerCase());
+}
+for (const f of FLASHCARDS) {
+  haystacks.set(f.id, `${f.front} ${f.back}`.toLowerCase());
+}
+
 export function retrieveRelated(userText: string, excludeId?: string, k = 3): string | null {
   const kw = keywords(userText);
   if (!kw.length) return null;
@@ -18,7 +34,7 @@ export function retrieveRelated(userText: string, excludeId?: string, k = 3): st
 
   for (const q of QUESTIONS) {
     if (q.id === excludeId) continue;
-    const hay = `${q.prompt} ${q.explanation} ${q.options.join(" ")}`.toLowerCase();
+    const hay = haystacks.get(q.id)!;
     const score = kw.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
     if (score > 0) {
       scored.push({
@@ -29,7 +45,7 @@ export function retrieveRelated(userText: string, excludeId?: string, k = 3): st
   }
 
   for (const f of FLASHCARDS) {
-    const hay = `${f.front} ${f.back}`.toLowerCase();
+    const hay = haystacks.get(f.id)!;
     const score = kw.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
     if (score > 0) {
       scored.push({ text: `${f.front} → ${f.back}`, score });
