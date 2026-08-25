@@ -5,7 +5,10 @@ import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/
 import { refundTransaction } from "@/lib/paystack/client";
 import { disableActiveSubscriptions, refundBlockedReason } from "@/lib/billing/subscription-cancel";
 import { queuePendingRefund } from "@/lib/billing/pending-refunds";
-import { REFUND_PROCESSING_DAYS } from "@/lib/billing/plans";
+import { REFUND_PROCESSING_DAYS, PLAN_MAP } from "@/lib/billing/plans";
+import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
+import { buildCancellationAlertEmail } from "@/lib/notify/templates";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
@@ -265,6 +268,29 @@ export async function POST(req: Request) {
   // their money, so they keep the access it bought until the period ends.
   const endsNow = refunded;
   const periodEnd = sub?.current_period_end ?? null;
+
+  // Churn signal to support, best-effort: every completed cancellation emails
+  // SUPPORT_EMAIL with who, what plan, and how the money went. It must never
+  // gate the response below — the learner's cancellation is already done.
+  if (isEmailConfigured) {
+    const outcome = refunded
+      ? "money-back refund issued — access ended immediately"
+      : refundQueued
+        ? "refund queued — cron retries daily and emails the learner when it lands"
+        : refundError
+          ? `refund FAILED and could not be queued — learner keeps access until period end (${refundMessage ?? "no detail"})`
+          : `no refund attempted (${refundBlocked ?? "outside money-back window"}) — access until period end`;
+    const alert = buildCancellationAlertEmail({
+      userEmail: user.email ?? "(no email on account)",
+      userId,
+      plan: PLAN_MAP[(sub?.tier ?? "free") as keyof typeof PLAN_MAP]?.name ?? sub?.tier ?? "unknown",
+      outcome,
+      daysActive,
+      reference: refundTarget,
+      accessUntil: endsNow ? null : periodEnd,
+    });
+    await sendEmail({ to: SUPPORT_EMAIL, ...alert }).catch(() => {});
+  }
 
   if (endsNow) {
     // Admin is guaranteed non-null here (fail-fast above), so these writes are

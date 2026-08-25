@@ -415,6 +415,81 @@ export function buildQueuedRefundAlertEmail(input: {
   return { subject, html, text: lines.join("\n") };
 }
 
+/**
+ * Operator alert: a learner cancelled their plan.
+ *
+ * Goes to SUPPORT_EMAIL on EVERY self-serve cancellation — this is the churn
+ * signal, not a task list. Billing and any money-back refund are already
+ * handled automatically by the cancel route and the retry cron; the one case
+ * that DOES need a human arrives as a separate "Queued refund gave up" alert.
+ */
+export function buildCancellationAlertEmail(input: {
+  userEmail: string;
+  userId: string;
+  plan: string;
+  outcome: string;
+  daysActive: number | null;
+  reference?: string | null;
+  accessUntil?: string | null;
+}): EmailContent {
+  const subject = `[K53 billing] Cancellation: ${input.plan} — ${input.userEmail}`;
+  const lines = [
+    `A learner cancelled their plan.`,
+    ``,
+    `Learner:     ${input.userEmail} (${input.userId})`,
+    `Plan:        ${input.plan}`,
+    `Outcome:     ${input.outcome}`,
+    ...(input.reference ? [`Reference:   ${input.reference}`] : []),
+    ...(input.accessUntil ? [`Access until: ${input.accessUntil}`] : []),
+    `Days active: ${input.daysActive ?? "unknown"}`,
+    ``,
+    `Billing is already stopped at Paystack and any money-back refund is handled`,
+    `automatically. No action needed unless a separate "Queued refund gave up"`,
+    `alert follows for the same reference.`,
+  ];
+  const html =
+    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
+    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
+  return { subject, html, text: lines.join("\n") };
+}
+
+/**
+ * Operator alert: a customer opened a payment dispute (chargeback).
+ *
+ * Goes to SUPPORT_EMAIL, never to a customer. A dispute is decided by Paystack's
+ * flow, not ours — the app deliberately does not downgrade on the event; if it
+ * resolves against us, refund.processed strips the tier automatically. What a
+ * human may be able to change is the OUTCOME: evidence submitted in time.
+ */
+export function buildDisputeAlertEmail(input: {
+  reference: string | null;
+  customerCode: string | null;
+  customerEmail: string | null;
+  amountCents: number | null;
+  status: string | null;
+}): EmailContent {
+  const amount =
+    input.amountCents === null ? "unknown" : `R ${(input.amountCents / 100).toFixed(2)}`;
+  const subject = `[K53 billing] Chargeback opened${input.reference ? `: ${input.reference}` : ""}`;
+  const lines = [
+    `A customer opened a payment dispute (chargeback).`,
+    ``,
+    `Reference:  ${input.reference ?? "(not in payload)"}`,
+    `Customer:   ${input.customerEmail ?? "(email unavailable)"} (${input.customerCode ?? "?"})`,
+    `Amount:     ${amount}`,
+    `Status:     ${input.status ?? "(not stated)"}`,
+    ``,
+    `Respond with evidence via the Paystack dashboard before its deadline —`,
+    `after that the bank decides unopposed. Access is NOT revoked while the`,
+    `dispute is open; if it resolves against us, the refund.processed webhook`,
+    `downgrades the tier automatically.`,
+  ];
+  const html =
+    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
+    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
+  return { subject, html, text: lines.join("\n") };
+}
+
 export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
   const { streak, longest, dueCards } = input;
   // The name is profile data the user typed — escape it so a crafted "name"

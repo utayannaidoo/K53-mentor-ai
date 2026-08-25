@@ -7,8 +7,9 @@ import {
 import { applyChargeSuccess, type ChargeSuccessData } from "@/lib/paystack/apply";
 import { webhookLedgerId } from "@/lib/paystack/ledger";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
-import { buildPaymentFailedEmail } from "@/lib/notify/templates";
+import { buildPaymentFailedEmail, buildDisputeAlertEmail } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 export const runtime = "nodejs";
 
@@ -316,7 +317,7 @@ export async function POST(req: Request) {
         // entitlements.
         const data = payload.data as {
           transaction?: { reference?: string };
-          customer?: { customer_code?: string };
+          customer?: { customer_code?: string; email?: string };
           amount?: number;
           status?: string;
         };
@@ -330,6 +331,19 @@ export async function POST(req: Request) {
             status: data.status,
           }),
         );
+        // Support alert — a dispute has a response deadline, and a log line is
+        // exactly where deadlines go to die. Best-effort: the DB write below is
+        // the part that must succeed.
+        if (isEmailConfigured) {
+          const alert = buildDisputeAlertEmail({
+            reference: data.transaction?.reference ?? null,
+            customerCode: customerCode ?? null,
+            customerEmail: data.customer?.email ?? null,
+            amountCents: typeof data.amount === "number" ? data.amount : null,
+            status: data.status ?? null,
+          });
+          await sendEmail({ to: SUPPORT_EMAIL, ...alert }).catch(() => {});
+        }
         if (!customerCode) break;
         const { error } = await admin
           .from("subscriptions")
@@ -405,7 +419,11 @@ export async function POST(req: Request) {
               status: "canceled",
               refunded_at: new Date().toISOString(),
             })
-            .eq("last_charge_reference", reference);
+            .eq("last_charge_reference", reference)
+            // Mirror the verified branch above: a row already free has
+            // nothing to lose, and touching it would overwrite a newer
+            // status (e.g. a re-subscription) with a stale cancellation.
+            .neq("tier", "free");
           if (error) throw new Error(`refund downgrade failed: ${error.message}`);
         }
         break;
