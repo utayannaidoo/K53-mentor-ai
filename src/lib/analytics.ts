@@ -22,11 +22,15 @@
  */
 
 const KEY = process.env.NEXT_PUBLIC_POSTHOG_KEY;
-// Must match the region the PostHog project was created in — a project on
-// eu.i.posthog.com receiving events at the US host drops them silently, with
-// no error anywhere. Set NEXT_PUBLIC_POSTHOG_HOST explicitly in production
-// rather than relying on this fallback.
-const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://us.i.posthog.com";
+// Must match the region the PostHog project was created in (this one is EU) —
+// a mismatch drops events silently, with no error anywhere. If a managed
+// reverse proxy is ever added to dodge ad blockers, point it at a DEDICATED
+// SUBDOMAIN, never the apex: the proxy setup replaces the domain's DNS record,
+// and on the apex that takes the whole site down (happened 2026-08-25).
+const HOST = process.env.NEXT_PUBLIC_POSTHOG_HOST ?? "https://eu.i.posthog.com";
+// With a proxy api_host, PostHog-generated links (session replay, toolbar)
+// would otherwise point at our domain instead of the dashboard.
+const UI_HOST = "https://eu.posthog.com";
 
 type PostHog = typeof import("posthog-js").default;
 
@@ -44,6 +48,11 @@ function load(): Promise<void> {
         const ph = m.default;
         ph.init(KEY!, {
           api_host: HOST,
+          ui_host: UI_HOST,
+          defaults: "2026-05-30",
+          // Only signed-in (identified) learners get person profiles —
+          // anonymous pageviews stay profile-less.
+          person_profiles: "identified_only",
           capture_pageview: false, // manual — see trackPageview
           capture_pageleave: true,
           autocapture: false, // explicit events only; keeps payloads and noise down
@@ -95,7 +104,21 @@ export function trackPageview(path: string): void {
 
 export type AnalyticsEvent =
   | "signup_completed"
+  /**
+   * Top-of-funnel CTA. Every marketing CTA fires this with a `location`
+   * prop ("hero" | "nav" | "cta_band" | "pricing_premium" | …) so the
+   * landing → signup funnel can be attributed per section — before this,
+   * the first measured step sat deep inside onboarding and no landing
+   * section's contribution could be compared.
+   */
+  | "cta_clicked"
+  | "signup_started"
+  | "login_completed"
+  /** Started the placement diagnostic (completes are `diagnostic_completed`). */
+  | "diagnostic_started"
   | "diagnostic_completed"
+  /** A mock/drill paper was opened (completions are `mock_completed`). */
+  | "mock_started"
   | "trial_end_shown"
   | "checkout_started"
   | "plan_activated"
