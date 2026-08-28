@@ -32,12 +32,15 @@ export default function ContinuePage() {
       // instead of dropping it at the door.
       const here = safeNextPath(window.location.pathname + window.location.search);
       router.replace(here ? `/login?next=${encodeURIComponent(here)}` : "/login");
-    } else if (!hasOnboarded && !hasDiagnostic) {
+    } else if (!hasOnboarded) {
       router.replace("/onboarding");
-    } else if (!hasDiagnostic) {
+    } else if (!hasDiagnostic && !state.diagnosticSkippedAt) {
       router.replace("/diagnostic");
-    } else if (state.tier === "free" && !state.guidedDone && state.sessions.length === 0) {
-      // Brand-new account fresh off the diagnostic: guided first session.
+    } else if (!state.guidedDone) {
+      // Tutorial should run once per account, regardless of whether they did
+      // or skipped the diagnostic, and regardless of session count — the
+      // diagnostic session itself used to make this false (Andile never saw
+      // /welcome because sessions.length === 1).
       router.replace("/welcome");
     } else {
       // Only a fully set-up account gets sent on to `next` — every branch above

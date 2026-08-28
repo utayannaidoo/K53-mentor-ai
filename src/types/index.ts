@@ -426,4 +426,6 @@ export interface UserState {
   licence: Partial<Record<TestKind, LicenceResult>>;
   /** yyyy-mm-dd each test's question was last put off ("not written yet"). */
   licenceDeferredOn: Partial<Record<TestKind, string>>;
+  /** When the diagnostic was skipped (ISO instant) — lets the app prompt later without re-gating. */
+  diagnosticSkippedAt: string | null;
 }

@@ -29,6 +29,7 @@ import {
   resolveStreak,
 } from "@/lib/store/local-store";
 import { mergeAdoptedTabState } from "@/lib/store/cross-tab-merge";
+import { identify as analyticsIdentify } from "@/lib/analytics";
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
@@ -144,6 +145,7 @@ interface StudyStore {
   deferLicenceQuestion: (kind: TestKind) => void;
   dismissComeback: () => void;
   resetProgress: () => void;
+  skipDiagnostic: () => void;
 }
 
 /**
@@ -289,6 +291,16 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
   // one JSON.stringify instead of one per intermediate state.
   const latest = React.useRef<{ state: UserState; ready: boolean }>({ state, ready });
   latest.current = { state, ready };
+
+  // Deduped analytics identity: auth events can fire repeatedly per session
+  // (INITIAL_SESSION, token refresh, SIGNED_IN after login) — only the first
+  // identify per user id should reach PostHog.
+  const identifiedIdRef = React.useRef<string | null>(null);
+  const analyticsIdentifyRef = React.useRef((userId: string) => {
+    if (identifiedIdRef.current === userId) return;
+    identifiedIdRef.current = userId;
+    analyticsIdentify(userId);
+  });
   React.useEffect(() => {
     if (!ready) return;
     const t = setTimeout(() => saveState(state), 250);
@@ -375,6 +387,10 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       }
       // A (re)sign-in is in flight: hold routing until the account lands.
       setAccountHydrated(false);
+      // Tie this browser's analytics stream to the account — once per user
+      // per page load. Without it every billing/funnel event stays under an
+      // anonymous distinct id and signup→paying cannot be joined per learner.
+      analyticsIdentifyRef.current(user.id);
       // A parked referral code from /signup?ref=… — claim it exactly once,
       // now that a real account exists (covers password and OAuth signups).
       try {
@@ -790,6 +806,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
     dismissComeback: () =>
       setState((s) => (s.pendingComeback === null ? s : { ...s, pendingComeback: null })),
+
+    skipDiagnostic: () =>
+      setState((s) => (s.diagnosticSkippedAt ? s : { ...s, diagnosticSkippedAt: new Date().toISOString() })),
 
     resetProgress: () => setState(() => defaultUserState()),
   }), [supabase]);

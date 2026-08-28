@@ -91,6 +91,7 @@ export function defaultUserState(): UserState {
     pendingComeback: null,
     licence: {},
     licenceDeferredOn: {},
+    diagnosticSkippedAt: null,
   };
 }
 
@@ -165,6 +166,7 @@ export function loadState(): UserState {
     // back-filled on first open by `withArrivalEffects` in use-study-store,
     // which already holds a readiness breakdown — and evaluating it here would
     // close a cycle, since the mistake notebook reads `todayKey` from this file.
+    if (!("diagnosticSkippedAt" in merged)) (merged as UserState).diagnosticSkippedAt = null;
     merged.version = STATE_VERSION;
     // Celebration queues are ephemeral — see saveState. Queues written by an
     // older build must not resurrect toasts the learner was already shown.

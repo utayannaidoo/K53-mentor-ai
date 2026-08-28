@@ -9,20 +9,19 @@ import { safeNextPath } from "@/lib/auth/safe-next";
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { ready, accountHydrated, isAuthed, hasDiagnostic, state } = useStudyStore();
+  const { ready, accountHydrated, isAuthed, state } = useStudyStore();
 
-  // The guide only makes sense once: signed in, diagnosed, not yet toured.
+  // The tour runs once per account, even if they skipped the diagnostic.
+  // Previously it required hasDiagnostic, so skippers and Andile (diagnostic
+  // session made sessions.length===1) never saw it.
   React.useEffect(() => {
     if (!ready || !accountHydrated) return;
-    // Same rule as /continue: the login bounce carries where the learner was
-    // headed so signing in resumes the guided tour instead of dropping it.
     const next = safeNextPath("/welcome") ?? "/welcome";
     if (!isAuthed) router.replace(`/login?next=${encodeURIComponent(next)}`);
-    else if (!hasDiagnostic) router.replace("/diagnostic");
     else if (state.guidedDone) router.replace("/dashboard");
-  }, [ready, accountHydrated, isAuthed, hasDiagnostic, state.guidedDone, router]);
+  }, [ready, accountHydrated, isAuthed, state.guidedDone, router]);
 
-  if (!ready || !accountHydrated || !isAuthed || !hasDiagnostic || state.guidedDone) {
+  if (!ready || !accountHydrated || !isAuthed || state.guidedDone) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-6 w-6" />

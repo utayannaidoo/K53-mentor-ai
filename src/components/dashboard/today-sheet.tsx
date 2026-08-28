@@ -48,6 +48,7 @@ export function TodaySheet({
   perCategory,
   blocking,
   hasAttempts,
+  hasDiagnostic,
   activeDays,
   tasks,
   doneMap,
@@ -85,6 +86,7 @@ export function TodaySheet({
    */
   blocking: ExamSection | null;
   hasAttempts: boolean;
+  hasDiagnostic: boolean;
   activeDays: ReadonlySet<string>;
   tasks: PlanTask[];
   doneMap: Record<string, boolean>;
@@ -146,18 +148,31 @@ export function TodaySheet({
             <p className="text-2xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Readiness
             </p>
-            <p className="mt-1.5 font-mono text-6xl font-semibold leading-none tabular-nums">
-              {readiness}
-              <span className="align-top text-2xl text-muted-foreground">%</span>
-            </p>
-            <p className={cn("mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium", deltaTone)}>
-              <DeltaIcon className="h-4 w-4" />
-              {delta === null
-                ? "First week"
-                : delta === 0
-                  ? "Level with last week"
-                  : `${delta > 0 ? "+" : ""}${delta} this week`}
-            </p>
+            {!hasDiagnostic ? (
+              <>
+                <p className="mt-1.5 font-mono text-6xl font-semibold leading-none tabular-nums text-muted-foreground">
+                  —<span className="align-top text-2xl">%</span>
+                </p>
+                <Link href="/diagnostic" className="mt-2.5 inline-flex text-sm font-medium text-primary hover:underline">
+                  Take your diagnostic
+                </Link>
+              </>
+            ) : (
+              <>
+                <p className="mt-1.5 font-mono text-6xl font-semibold leading-none tabular-nums">
+                  {readiness}
+                  <span className="align-top text-2xl text-muted-foreground">%</span>
+                </p>
+                <p className={cn("mt-2.5 inline-flex items-center gap-1.5 text-sm font-medium", deltaTone)}>
+                  <DeltaIcon className="h-4 w-4" />
+                  {delta === null
+                    ? "First week"
+                    : delta === 0
+                      ? "Level with last week"
+                      : `${delta > 0 ? "+" : ""}${delta} this week`}
+                </p>
+              </>
+            )}
           </div>
 
           <div className="text-right lg:mt-6 lg:text-left">
@@ -198,7 +213,7 @@ export function TodaySheet({
       <div className="grid grid-cols-2 gap-px border-t border-border/50 bg-border/40 sm:grid-cols-4">
         <Figure
           label={measured ? "Predicted pass" : "Predicted pass (estimate)"}
-          value={formatPassProbability(passProbability)}
+          value={hasDiagnostic ? formatPassProbability(passProbability) : "—"}
         />
         <Figure label="Today's plan" value={`${planDonePct}%`} />
         <Figure label="Streak" value={streak} unit={streak === 1 ? "day" : "days"} />

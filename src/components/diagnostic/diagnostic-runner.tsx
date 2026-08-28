@@ -60,7 +60,7 @@ const ADVANCE_MS = 650;
 
 function DiagnosticQuiz() {
   const router = useRouter();
-  const { state, isAuthed, recordQuestionAttempt, recordDiagnostic, recordSession } =
+  const { state, isAuthed, recordQuestionAttempt, recordDiagnostic, recordSession, skipDiagnostic } =
     useStudyStore();
   const { questions: bank, full } = useContentPool();
   // Wall-clock length of the diagnostic — recorded as a study session so
@@ -180,9 +180,16 @@ function DiagnosticQuiz() {
    * draft is that a refresh before this moment resumes instead of silently
    * dropping the score row, the CP and the redirect.
    */
+  const finishTimerRef = React.useRef<number | null>(null);
+
   function finishQuiz(finalResponses: typeof responses) {
     setPhase("analyzing");
-    window.setTimeout(() => {
+    // Tracked so unmount can cancel it: leaving during the analysis window
+    // (e.g. browser Back) must not fire recordDiagnostic/analytics/redirect
+    // from a dead component — the draft survives, so returning resumes and
+    // re-runs this sequence exactly once.
+    finishTimerRef.current = window.setTimeout(() => {
+      finishTimerRef.current = null;
       const result = scoreDiagnostic(finalResponses);
       recordDiagnostic(result);
       recordSession("diagnostic", Math.round((Date.now() - startRef.current) / 1000));
@@ -201,10 +208,20 @@ function DiagnosticQuiz() {
     }, 3000);
   }
 
+  React.useEffect(() => {
+    return () => {
+      if (finishTimerRef.current !== null) window.clearTimeout(finishTimerRef.current);
+    };
+  }, []);
+
   function answer(optionIndex: number) {
     if (answering.current || selected !== null) return;
     answering.current = true;
     setSelected(optionIndex);
+    // Activation funnel start: measured at the FIRST answer rather than the
+    // page view, so "opened the page and left" never reads as a started
+    // diagnostic.
+    if (responses.length === 0) track("diagnostic_started");
     const correct = optionIndex === current.correctIndex;
     const response = {
       questionId: current.id,
@@ -379,6 +396,18 @@ function DiagnosticQuiz() {
     );
   }
 
+  function handleSkipDiagnostic() {
+    try {
+      clearDiagnosticDraft();
+    } catch {
+      /* ignore */
+    }
+    skipDiagnostic();
+    track("diagnostic_skipped", { at: index, total });
+    if (isAuthed) router.push("/continue");
+    else router.push("/signup");
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-background bg-app">
       <header className="flex items-center justify-between px-6 py-5">
@@ -390,9 +419,18 @@ function DiagnosticQuiz() {
         <Link href={isAuthed ? "/dashboard" : "/"} aria-label="K53 Mentor AI home">
           <Logo />
         </Link>
-        <span className="font-mono text-sm text-muted-foreground">
-          {index + 1}/{total}
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={handleSkipDiagnostic}
+            className="text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            Skip for now
+          </button>
+          <span className="font-mono text-sm text-muted-foreground">
+            {index + 1}/{total}
+          </span>
+        </div>
       </header>
 
       <div className="mx-auto w-full max-w-xl px-6">
@@ -469,6 +507,9 @@ function DiagnosticQuiz() {
           <p className="mt-6 text-center text-xs text-muted-foreground">
             No pressure — there&apos;s no fail here, just useful signal.
           </p>
+          <button type="button" onClick={handleSkipDiagnostic} className="mx-auto mt-4 block text-sm text-muted-foreground hover:text-foreground">
+            Skip diagnostic — I&apos;ll do it later
+          </button>
         </div>
       </main>
     </div>

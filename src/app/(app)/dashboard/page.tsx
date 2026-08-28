@@ -15,6 +15,7 @@ import { rankProgress } from "@/lib/engagement";
 import { topAlert, type DashboardAlert } from "@/lib/dashboard/alerts";
 import { activeDaysFrom } from "@/lib/dashboard/day-strip";
 import { daysUntil } from "@/lib/utils";
+import { todayKey } from "@/lib/store/local-store";
 
 /**
  * Today.
@@ -69,7 +70,7 @@ export default function DashboardPage() {
   return (
     <div className="mx-auto max-w-5xl">
       {/* TodaySheet's own headings start at h2 (its bands are sections), so the
-          page's h1 lives here — visually hidden to keep the sheet's design. */}
+           page's h1 lives here — visually hidden to keep the sheet's design. */}
       <h1 className="sr-only">Today&apos;s study plan</h1>
       <TodaySheet
         firstName={state.profile?.name?.split(" ")[0] ?? "there"}
@@ -84,8 +85,9 @@ export default function DashboardPage() {
         testDate={state.onboarding?.testDate ?? null}
         planDonePct={planDonePct}
         perCategory={readiness.perCategory}
-        blocking={blockingSection(readiness.perCategory)}
+        blocking={hasDiagnostic ? blockingSection(readiness.perCategory) : null}
         hasAttempts={state.attempts.length > 0}
+        hasDiagnostic={hasDiagnostic}
         activeDays={activeDays}
         tasks={tasks}
         doneMap={doneMap}
@@ -169,7 +171,9 @@ function weekDelta(
   if (history.length < 2) return null;
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - 7);
-  const cutoffKey = cutoff.toISOString().slice(0, 10);
+  // History dates are local keys — compare like with like (UTC slice drifts
+  // two hours in SA, silently shifting the week window across midnight).
+  const cutoffKey = todayKey(cutoff);
   const within = history.filter((h) => h.date >= cutoffKey);
   const base = (within[0] ?? history[0]).readiness;
   return current - base;

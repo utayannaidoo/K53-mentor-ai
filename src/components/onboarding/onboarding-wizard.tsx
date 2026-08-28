@@ -91,7 +91,7 @@ function weeksAway(dateStr: string): number | null {
 
 export function OnboardingWizard() {
   const router = useRouter();
-  const { completeOnboarding, state, isAuthed } = useStudyStore();
+  const { completeOnboarding, skipDiagnostic, state, isAuthed } = useStudyStore();
 
   const firstName = state.profile?.name?.split(" ")[0] ?? null;
 
@@ -239,6 +239,32 @@ export function OnboardingWizard() {
       // Nothing to clean up if storage is unavailable.
     }
     router.push("/diagnostic");
+  }
+
+  function handleSkipDiagnostic() {
+    const code: VehicleCode = vehicleCode ?? "8";
+    completeOnboarding({
+      goal: goal ?? "learners",
+      vehicleCode: code,
+      testDate: noDate || testDateInPast ? null : testDate || null,
+      driversTestDate:
+        goal === "both" ? (noDriversDate || driversDateInPast ? null : driversTestDate || null) : null,
+      confidence: confidence ?? 3,
+      worryCategories,
+      knowledgeLevel: knowledge ?? "some",
+      studyFrequency: frequency ?? "steady",
+      priorAttempts,
+    });
+    skipDiagnostic();
+    try {
+      window.localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* ignore */
+    }
+    // First-time visitor has no session yet — /continue would bounce them to /login.
+    // Send them straight to signup instead; returning visitors (isAuthed) go via /continue -> /welcome.
+    if (isAuthed) router.push("/continue");
+    else router.push("/signup");
   }
 
   return (
@@ -642,11 +668,18 @@ export function OnboardingWizard() {
 
               <p className="mx-auto mt-4 max-w-md text-sm text-muted-foreground">
                 First, a quick 15-question check across all 7 categories — no pressure, no fail —
-                so your plan targets your real gaps, not guesses.
+                so your plan targets your real gaps, not guesses. You can skip and do it later — your plan will still work, just less personal.
               </p>
               <Button size="xl" className="mt-6 w-full sm:w-auto" onClick={finish}>
                 Start my diagnostic <ArrowRight />
               </Button>
+              <button
+                type="button"
+                onClick={handleSkipDiagnostic}
+                className="mx-auto mt-3 block text-sm font-medium text-muted-foreground hover:text-foreground"
+              >
+                Skip for now — take me to my plan
+              </button>
             </div>
           )}
         </div>

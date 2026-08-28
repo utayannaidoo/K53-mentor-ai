@@ -117,6 +117,7 @@ export type AnalyticsEvent =
   /** Started the placement diagnostic (completes are `diagnostic_completed`). */
   | "diagnostic_started"
   | "diagnostic_completed"
+  | "diagnostic_skipped"
   /** A mock/drill paper was opened (completions are `mock_completed`). */
   | "mock_started"
   | "trial_end_shown"
