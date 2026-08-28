@@ -58,9 +58,23 @@ export async function updateSession(request: NextRequest) {
   if (!isProtected && !isAuthPage) return response;
 
   // Touch the session so tokens refresh into the response cookies.
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Edge middleware is killed at 25s (MIDDLEWARE_INVOCATION_TIMEOUT) — a
+  // hanging GoTrue fetch (iad1 -> eu-west-1) must not take the whole page
+  // down. Bound it and fail open; the client <AppShell> guard and route
+  // handlers remain as second layers.
+  let user: import("@supabase/supabase-js").User | null = null;
+  try {
+    const raced = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("auth timeout")), 2500),
+      ),
+    ]);
+    user = (raced as Awaited<ReturnType<typeof supabase.auth.getUser>>).data.user ?? null;
+  } catch (e) {
+    console.error("[middleware] getUser timeout/bail, serving without redirect", e);
+    return response;
+  }
 
   // Unauthenticated user hitting a protected page → bounce to login (remember where).
   if (!user && isProtected) {
