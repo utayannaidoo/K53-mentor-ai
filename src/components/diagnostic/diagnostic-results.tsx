@@ -14,7 +14,8 @@ import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { categoryName, CATEGORIES } from "@/lib/content/categories";
-import { formatPassProbability } from "@/lib/diagnostic/scoring";
+import { formatPassProbability, blockingSection } from "@/lib/diagnostic/scoring";
+import { SECTION_LABEL } from "@/lib/constants";
 import { generateTodayPlan } from "@/lib/plan";
 import { useStudyStore } from "@/hooks/use-study-store";
 
@@ -49,6 +50,14 @@ export function DiagnosticResults() {
 
   const strongest = latest.strongCategories[0];
   const focus = latest.weakCategories.slice(0, 2);
+  // Explain the 53 vs <1% pair that reads as contradictory without it. The
+  // per-section rule is why: one section under its own mark fails the whole
+  // paper even when the average looks passable.
+  const blocked = (() => {
+    const perCat: Record<string, number> = {};
+    for (const cat of CATEGORIES) perCat[cat.id] = latest.perCategory[cat.id]?.score ?? readiness.perCategory[cat.id] ?? 18;
+    return blockingSection(perCat as Parameters<typeof blockingSection>[0]);
+  })();
 
   return (
     <div className="min-h-dvh bg-background bg-app">
@@ -75,6 +84,13 @@ export function DiagnosticResults() {
           {retakerLine && (
             <p className="mt-2 max-w-md text-balance text-sm font-medium text-primary">
               {retakerLine}
+            </p>
+          )}
+          {blocked && latest.passProbability <= 5 && (
+            <p className="mt-3 max-w-md text-balance text-xs text-muted-foreground">
+              Why &lt;1% with {latest.readiness}% readiness? You must pass every section —{" "}
+              <span className="font-medium text-foreground">{SECTION_LABEL[blocked]}</span> is under its own mark
+              and fails the paper even when the average looks okay. Your plan drills it first.
             </p>
           )}
         </div>
