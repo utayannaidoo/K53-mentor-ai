@@ -36,11 +36,12 @@ export default function ContinuePage() {
       router.replace("/onboarding");
     } else if (!hasDiagnostic && !state.diagnosticSkippedAt) {
       router.replace("/diagnostic");
-    } else if (!state.guidedDone) {
-      // Tutorial should run once per account, regardless of whether they did
-      // or skipped the diagnostic, and regardless of session count — the
-      // diagnostic session itself used to make this false (Andile never saw
-      // /welcome because sessions.length === 1).
+    } else if (!state.guidedDone && state.sessions.filter((s) => s.type !== "diagnostic").length === 0) {
+      // Tour once, for brand-new accounts only — filtered to non-diagnostic
+      // sessions so Andile (1 diagnostic session) still qualifies, but veterans
+      // with real study sessions don't get re-toured every login. Without the
+      // filter every old account with guidedDone===false was sent to /welcome
+      // on every sign-in after the last deploy.
       router.replace("/welcome");
     } else {
       // Only a fully set-up account gets sent on to `next` — every branch above
