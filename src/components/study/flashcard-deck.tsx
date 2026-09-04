@@ -30,6 +30,7 @@ import { initialCardState, isLeech, previewIntervals, RATING_LABEL } from "@/lib
 import { categoryName } from "@/lib/content/categories";
 import { haptics } from "@/lib/haptics";
 import { formatDuration, cn } from "@/lib/utils";
+import { clearFlashcardDraft, loadFlashcardDraft, saveFlashcardDraft } from "@/lib/study/session-draft";
 import type { CategoryId, SrsRating } from "@/types";
 
 const RATING_ORDER: SrsRating[] = ["again", "hard", "good", "easy"];
@@ -62,6 +63,8 @@ export function FlashcardDeck() {
   const [i, setI] = React.useState(0);
   const [flipped, setFlipped] = React.useState(false);
   const [reviewed, setReviewed] = React.useState(0);
+  const draftSignature = `category=${categoryParam ?? "all"}`;
+  const restoredDraft = React.useRef(false);
   // Synchronous double-tap lock for the rating row. Flipping the row away
   // stops a mouse double-click, but same-tick bursts (a stuck pointer,
   // keyboard repeat, assistive-tech activation) land before any re-render —
@@ -90,6 +93,26 @@ export function FlashcardDeck() {
    */
   const builtFromFullDeck = React.useRef(full);
   React.useEffect(() => {
+    if (restoredDraft.current) return;
+    const draft = loadFlashcardDraft(
+      state.profile?.id ?? null,
+      draftSignature,
+      new Set(flashcards.map((card) => card.id)),
+    );
+    if (!draft) return;
+    const byId = new Map(flashcards.map((card) => [card.id, card] as const));
+    const restored = draft.cardIds.map((id) => byId.get(id)).filter((card): card is NonNullable<typeof card> => Boolean(card));
+    if (restored.length !== draft.cardIds.length) return;
+    restoredDraft.current = true;
+    builtFromFullDeck.current = true;
+    setQueue(restored);
+    setI(draft.index);
+    setReviewed(draft.index);
+    startRef.current = Date.now();
+    cpStartRef.current = state.cp;
+  }, [draftSignature, flashcards, state.cp, state.profile?.id]);
+
+  React.useEffect(() => {
     if (!full || builtFromFullDeck.current || reviewed > 0) return;
     builtFromFullDeck.current = true;
     setQueue(selectFlashcardQueue(flashcards, state, { categoryId: categoryParam, limit: sessionLimit }));
@@ -114,6 +137,7 @@ export function FlashcardDeck() {
     setReviewed(0);
     setAgainCount(0);
     setAgainByCat({});
+    clearFlashcardDraft();
     setAttempt("");
   }
   // Active recall: the learner commits to an answer (typed or dictated) before
@@ -191,6 +215,16 @@ export function FlashcardDeck() {
     if (nextI >= queue.length) {
       haptics.celebrate();
       recordSession("flashcards", Math.round((Date.now() - startRef.current) / 1000));
+      clearFlashcardDraft();
+    } else {
+      saveFlashcardDraft({
+        kind: "flashcards",
+        savedAt: new Date().toISOString(),
+        ownerProfileId: state.profile?.id ?? null,
+        signature: draftSignature,
+        cardIds: queue.map((queuedCard) => queuedCard.id),
+        index: nextI,
+      });
     }
     setI(nextI);
   }
