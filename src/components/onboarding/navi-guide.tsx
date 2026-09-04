@@ -4,7 +4,6 @@ import * as React from "react";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NaviAvatar } from "@/components/shared/navi-avatar";
-import { track } from "@/lib/analytics";
 import { glassFloat } from "@/lib/utils";
 
 export interface NaviGuideStep {
@@ -38,14 +37,6 @@ export function NaviGuide({
   const panelRef = React.useRef<HTMLElement>(null);
   const step = steps[stepIndex];
   const lastStep = stepIndex === steps.length - 1;
-
-  React.useEffect(() => {
-    track("navi_tour_step_viewed", {
-      tour: tourId,
-      step: stepIndex + 1,
-      step_count: steps.length,
-    });
-  }, [stepIndex, steps.length, tourId]);
 
   React.useEffect(() => {
     const findTarget = () =>
@@ -91,7 +82,6 @@ export function NaviGuide({
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        track("navi_tour_skipped", { tour: tourId, step: stepIndex + 1 });
         onDismiss();
       }
     };
@@ -100,13 +90,11 @@ export function NaviGuide({
   }, [onDismiss, stepIndex, tourId]);
 
   function dismiss() {
-    track("navi_tour_skipped", { tour: tourId, step: stepIndex + 1 });
     onDismiss();
   }
 
   function advance() {
     if (lastStep) {
-      track("navi_tour_completed", { tour: tourId, step_count: steps.length });
       onFinish();
       return;
     }
