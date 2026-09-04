@@ -86,10 +86,10 @@ describe("Select dropdowns stay reachable inside dialogs", () => {
 });
 
 describe("onboarding choice tiles stack on phones", () => {
-  it("step 6 knowledge/frequency grids wait for sm before three across", () => {
+  it("keeps the three required decisions full-width on phones", () => {
     const src = read("components/onboarding/onboarding-wizard.tsx");
-    // The two step-6 selectors must not regress to bare grid-cols-3, which
-    // left each tile ~72px of content at 320px.
-    expect(src).toContain('"grid grid-cols-1 gap-2 sm:grid-cols-3"');
+    expect(src).toContain("const TOTAL_STEPS = 4");
+    expect(src).toContain('className="space-y-3"');
+    expect(src).not.toContain("Right now, how ready do you feel?");
   });
 });

@@ -17,7 +17,7 @@ import { tierFromSubscriptionRow, type SubscriptionRowLike } from "@/lib/billing
 
 type AccountData = Pick<
   UserState,
-  "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence"
+  "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence" | "diagnosticSkippedAt"
 >;
 
 interface ProfileRow {
@@ -33,6 +33,7 @@ interface ProfileRow {
   study_frequency: OnboardingData["studyFrequency"] | null;
   prior_attempts: number | null;
   onboarded_at: string | null;
+  diagnostic_skipped_at: string | null;
   created_at: string | null;
   // Added in 0024. Absent on a database that has not run it yet, which is
   // exactly why the read below is a `select("*")`.
@@ -131,7 +132,13 @@ export async function loadAccount(
   };
 
   const st = streakRes.data as StreakRow | null;
-  const result: Partial<AccountData> = { profile, onboarding, tier, licence };
+  const result: Partial<AccountData> = {
+    profile,
+    onboarding,
+    tier,
+    licence,
+    diagnosticSkippedAt: p?.diagnostic_skipped_at ?? null,
+  };
   if (st) {
     result.streak = {
       current: st.current ?? 0,
@@ -205,6 +212,13 @@ export async function saveAccount(supabase: SupabaseClient, state: UserState): P
             prior_attempts: o.priorAttempts,
             onboarded_at: o.completedAt,
           }
+        : {}),
+      // A skipped diagnostic is a real onboarding choice, not a device
+      // preference. Persist it so a later sign-in does not force the learner
+      // back through a step they explicitly deferred. Completing the
+      // diagnostic clears this value in the store and therefore on the row.
+      ...(state.diagnosticSkippedAt || state.diagnostics.length > 0
+        ? { diagnostic_skipped_at: state.diagnosticSkippedAt }
         : {}),
       // Each pair is only sent once that test has a result. These columns
       // arrived in 0024, and PostgREST fails the whole statement on an unknown

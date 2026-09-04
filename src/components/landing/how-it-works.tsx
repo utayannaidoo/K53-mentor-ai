@@ -193,13 +193,13 @@ export function HowItWorks() {
                 A flashing red robot at an intersection means you must…
               </p>
               <div className="mt-4 flex flex-col gap-2 board:gap-2.5">
-                <div className="cursor-pointer rounded-xl bg-muted/60 px-[15px] py-2.5 text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] transition-transform duration-200 ease-soft hover:scale-[1.03] board:py-[13px]">
+                <div className="rounded-xl bg-muted/60 px-[15px] py-2.5 text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] board:py-[13px]">
                   Slow down and proceed with caution
                 </div>
-                <div className="cursor-pointer rounded-xl bg-primary/15 px-[15px] py-2.5 text-[0.92rem] text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.5)] transition-transform duration-200 ease-soft hover:scale-[1.03] board:py-[13px]">
+                <div className="rounded-xl bg-primary/15 px-[15px] py-2.5 text-[0.92rem] text-primary shadow-[inset_0_0_0_1.5px_hsl(var(--primary)/0.5)] board:py-[13px]">
                   Stop, then proceed when safe
                 </div>
-                <div className="cursor-pointer rounded-xl bg-muted/60 px-[15px] py-2.5 text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] transition-transform duration-200 ease-soft hover:scale-[1.03] board:py-[13px]">
+                <div className="rounded-xl bg-muted/60 px-[15px] py-2.5 text-[0.92rem] shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.06)] board:py-[13px]">
                   Maintain your speed
                 </div>
               </div>
@@ -218,7 +218,7 @@ export function HowItWorks() {
                 <span className="font-mono text-xs font-medium text-muted-foreground">10 min</span>
               </div>
               <div className="mt-4 flex flex-col gap-2.5">
-                <div className="flex cursor-pointer items-center gap-3 rounded-xl bg-success/12 p-[13px] transition-transform duration-200 ease-soft hover:scale-[1.03]">
+                <div className="flex items-center gap-3 rounded-xl bg-success/12 p-[13px]">
                   <span className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-success text-white">
                     <Check className="h-3 w-3" strokeWidth={3} />
                   </span>
@@ -226,11 +226,11 @@ export function HowItWorks() {
                     Review 8 due flashcards
                   </span>
                 </div>
-                <div className="flex cursor-pointer items-center gap-3 rounded-xl bg-muted/55 p-[13px] transition-transform duration-200 ease-soft hover:scale-[1.03]">
+                <div className="flex items-center gap-3 rounded-xl bg-muted/55 p-[13px]">
                   <span className="h-[22px] w-[22px] shrink-0 rounded-full shadow-[inset_0_0_0_2px_hsl(var(--primary)/0.5)]" />
                   <span className="text-[0.92rem]">Practise: Road signs (your weakest)</span>
                 </div>
-                <div className="flex cursor-pointer items-center gap-3 rounded-xl bg-muted/55 p-[13px] transition-transform duration-200 ease-soft hover:scale-[1.03]">
+                <div className="flex items-center gap-3 rounded-xl bg-muted/55 p-[13px]">
                   <span className="h-[22px] w-[22px] shrink-0 rounded-full shadow-[inset_0_0_0_2px_hsl(var(--border))]" />
                   <span className="text-[0.92rem]">1 hazard scenario</span>
                 </div>
@@ -260,7 +260,7 @@ export function HowItWorks() {
                 ].map((b) => (
                   <span
                     key={b.label}
-                    className={`flex-1 cursor-pointer rounded-[10px] py-2.5 text-xs font-semibold transition-transform duration-200 ease-soft hover:scale-110 ${b.cls}`}
+                    className={`flex-1 rounded-[10px] py-2.5 text-xs font-semibold ${b.cls}`}
                   >
                     {b.label}
                   </span>

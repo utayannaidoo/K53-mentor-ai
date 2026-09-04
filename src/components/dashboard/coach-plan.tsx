@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { buttonVariants } from "@/components/ui/button";
 import { localPlanRationale, type PlanRationaleData } from "@/lib/ai/coach";
 import type { PlanTask } from "@/lib/plan";
+import { todayKey } from "@/lib/store/local-store";
 import { cn, glassFloat } from "@/lib/utils";
 
 const CACHE_KEY = "k53mentor.coach.plan.v1";
@@ -27,12 +28,21 @@ const CACHE_KEY = "k53mentor.coach.plan.v1";
  */
 export function usePlanRationale(input: PlanRationaleData): string | null {
   const [text, setText] = React.useState<string | null>(null);
-  const sig = [input.weakestCategory ?? "", input.dueCards ?? 0, input.daysToTest ?? ""].join("|");
+  // Include the facts that change the wording. Otherwise a cached measured
+  // percentage can survive after a learner skips or clears their starting
+  // check and be shown as if it were still current evidence.
+  const sig = [
+    input.weakestCategory ?? "",
+    input.weakestPct ?? "",
+    input.fromWorry ? "worry" : "evidence",
+    input.dueCards ?? 0,
+    input.daysToTest ?? "",
+  ].join("|");
   const inputRef = React.useRef(input);
   inputRef.current = input;
 
   React.useEffect(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayKey();
     try {
       const cached = JSON.parse(window.localStorage.getItem(CACHE_KEY) ?? "null") as {
         date?: string;

@@ -108,6 +108,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
+                data-tutorial={
+                  item.href === "/study" ? "study-nav" : item.href === "/tutor" ? "tutor-nav" : undefined
+                }
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "press flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
@@ -205,6 +208,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
+              data-tutorial={
+                item.href === "/study" ? "study-nav" : item.href === "/tutor" ? "tutor-nav" : undefined
+              }
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-2xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40",

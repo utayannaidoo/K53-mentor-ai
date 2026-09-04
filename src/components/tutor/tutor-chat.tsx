@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Send, Plus, Sparkles, MessageSquareText, Lightbulb, ImagePlus, X } from "lucide-react";
+import { Send, Plus, MessageSquareText, Lightbulb, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Chip } from "@/components/ui/chip";
@@ -22,6 +22,7 @@ import { useContentPool } from "@/components/content/content-provider";
 import { fileToScaledBase64, type EncodedImage } from "@/lib/image";
 import { MarkdownLazy } from "@/components/tutor/markdown-lazy";
 import { track } from "@/lib/analytics";
+import { NaviAvatar } from "@/components/shared/navi-avatar";
 
 export interface InitialContext {
   type: TutorContextType;
@@ -181,7 +182,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
     initRef.current = true;
     if (initial) {
       const id = createTutorThread({
-        title: initial.label ?? "Tutor",
+        title: initial.label ?? "Navi",
         contextLabel: initial.label,
         contextQuestionId: initial.type === "question" ? (initial.id ?? null) : null,
       });
@@ -447,17 +448,15 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
       <div className="glass flex min-w-0 flex-1 flex-col rounded-xl">
         <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Sparkles className="h-4 w-4" />
-            </span>
+            <NaviAvatar priority className="h-10 w-10" />
             <div>
               {/* h1: this page renders no other heading, and the chat title
                   was a <p>, leaving the view without one for assistive tech. */}
-              <h1 className="text-sm font-semibold">K53 Mentor</h1>
+              <h1 className="text-sm font-semibold">Navi</h1>
               {thread?.contextLabel ? (
                 <Badge variant="secondary" className="mt-0.5">{thread.contextLabel}</Badge>
               ) : (
-                <p className="text-2xs text-muted-foreground">Your AI driving tutor</p>
+                <p className="text-2xs text-muted-foreground">Your K53 driving tutor</p>
               )}
             </div>
           </div>
@@ -498,7 +497,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
               <div className="flex h-full flex-col items-center justify-center gap-4 p-6">
                 <div className="glass-subtle max-w-[85%] animate-fade-in rounded-2xl rounded-tl-sm px-4 py-3">
                   <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
-                    <Sparkles className="h-3 w-3" /> Tutor
+                    <NaviAvatar decorative className="h-4 w-4" /> Navi
                   </div>
                   <p className="text-sm leading-relaxed text-foreground">{opener.line}</p>
                 </div>
@@ -509,8 +508,8 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
             ) : (
               <div className="flex h-full items-center justify-center p-6">
                 <EmptyState
-                  icon={<MessageSquareText className="h-6 w-6" />}
-                  title="Ask me anything about the K53"
+                  icon={<NaviAvatar decorative className="h-10 w-10" />}
+                  title="Ask Navi anything about the K53"
                   description="I explain the why behind each rule, give real examples, and never just dump the answer. Try a prompt below."
                 />
               </div>
@@ -521,7 +520,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
               {m.role === "assistant" ? (
                 <div className="glass-subtle max-w-[85%] animate-fade-in rounded-2xl rounded-tl-sm px-4 py-3">
                   <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
-                    <Sparkles className="h-3 w-3" /> Tutor
+                    <NaviAvatar decorative className="h-4 w-4" /> Navi
                   </div>
                   <MarkdownLazy>{m.content}</MarkdownLazy>
                 </div>
@@ -543,7 +542,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
               <div className="flex justify-start">
                 <div className="glass-subtle max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3">
                   <div className="mb-1.5 flex items-center gap-1.5 text-2xs font-semibold uppercase tracking-wide text-primary">
-                    <Sparkles className="h-3 w-3" /> Tutor
+                    <NaviAvatar decorative className="h-4 w-4" /> Navi
                   </div>
                   <MarkdownLazy>{streaming}</MarkdownLazy>
                 </div>
@@ -712,7 +711,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   name="message"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={pendingImage ? "Ask about the photo..." : "Ask the tutor..."}
+                  placeholder={pendingImage ? "Ask Navi about the photo..." : "Ask Navi..."}
                   className="flex-1"
                 />
                 <Button
@@ -720,7 +719,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   size="icon"
                   disabled={!input.trim() && !pendingImage}
                   loading={loading}
-                  aria-label="Send"
+                  aria-label="Send a message to Navi"
                 >
                   <Send className="h-4 w-4" />
                 </Button>

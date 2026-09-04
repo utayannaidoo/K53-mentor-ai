@@ -7,7 +7,10 @@ import { computeReadiness } from "@/lib/diagnostic/scoring";
 import { achievementInputs, evaluateAchievements } from "@/lib/achievements";
 
 export type AccountFields = Partial<
-  Pick<UserState, "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence">
+  Pick<
+    UserState,
+    "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence" | "diagnosticSkippedAt"
+  >
 >;
 
 /**
@@ -45,6 +48,13 @@ export function hydrateAccountState(
   // have and let the next sync push it up.
   next.onboarding = account.onboarding ?? base.onboarding;
 
+  // A brand-new learner can finish onboarding and defer the diagnostic before
+  // creating their account. The freshly-created server row still contains
+  // null during that first hydrate, so keep the in-flight local choice long
+  // enough for the normal account sync to persist it.
+  next.diagnosticSkippedAt =
+    account.diagnosticSkippedAt ?? base.diagnosticSkippedAt;
+
   // Same rule, same reason: a server that has not heard about a test yet must
   // not erase an answer this browser is still holding on its way up. Merged per
   // test rather than replaced wholesale — someone who passed their learner's
@@ -63,6 +73,11 @@ export function hydrateAccountState(
   }
 
   if (progress) next = mergeProgress(next, progress);
+
+  // Completion outranks an older skip marker from this browser. This also
+  // cleans up a stale cache when another device completed the diagnostic and
+  // already synced the attempt.
+  if (next.diagnostics.length > 0) next.diagnosticSkippedAt = null;
 
   // Bank whatever the restored log already earned, silently — keep `.next`,
   // drop `.newly`, the same move as `withArrivalEffects` at app open.

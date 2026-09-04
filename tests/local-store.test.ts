@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  atDayKey,
   canRegain,
   daysBetween,
   defaultUserState,
@@ -274,5 +275,24 @@ describe("celebration queue is ephemeral", () => {
       expect(saved.achievements).toEqual({ volume: 1 });
       expect(saved.rankAchieved).toBe(3);
     });
+  });
+});
+
+describe("atDayKey", () => {
+  it("round-trips a local wall-clock time to its own calendar day", () => {
+    // Built from LOCAL components: 01:30 on 7 July, wherever this runs. The
+    // UTC slice of this instant differs from the local day in every timezone
+    // east of UTC — exactly the midnight-to-02:00 SAST bug the helper closes.
+    const d = new Date(2026, 6, 7, 1, 30);
+    expect(atDayKey(d.toISOString())).toBe("2026-07-07");
+  });
+
+  it("agrees with todayKey for the current moment", () => {
+    const now = new Date();
+    expect(atDayKey(now.toISOString())).toBe(todayKey(now));
+  });
+
+  it("falls back to the raw prefix for a non-parseable string", () => {
+    expect(atDayKey("garbage-timestamp-value")).toBe("garbage-ti");
   });
 });

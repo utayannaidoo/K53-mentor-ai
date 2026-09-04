@@ -20,6 +20,7 @@ import {
   Timer,
 } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
+import { StudyNavigator } from "@/components/onboarding/study-navigator";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MasteryBar } from "@/components/ui/mastery-bar";
@@ -71,7 +72,7 @@ export default function StudyHubPage() {
       href: "/study/flashcards",
       icon: Layers,
       title: "Flashcards",
-      desc: due > 0 ? "Your review deck is ready" : "Spaced-repetition review",
+      desc: due > 0 ? "Your review deck is ready" : "Start your review deck",
       tone: "text-primary",
       locked: flashcardsLocked,
     },
@@ -85,16 +86,19 @@ export default function StudyHubPage() {
     { href: "/study/controls", icon: controls.icon, title: controls.title, desc: controls.desc, tone: "text-primary" },
   ];
 
-  const ranked = (Object.keys(readiness.perCategory) as CategoryId[]).sort(
-    (a, b) => readiness.perCategory[a] - readiness.perCategory[b],
-  );
+  const ranked = (Object.keys(readiness.perCategory) as CategoryId[]).sort((a, b) => {
+    const aAssessed = readiness.perCategoryEvidence[a] > 0;
+    const bAssessed = readiness.perCategoryEvidence[b] > 0;
+    if (aAssessed !== bAssessed) return aAssessed ? -1 : 1;
+    return readiness.perCategory[a] - readiness.perCategory[b];
+  });
 
   return (
     <div className="mx-auto max-w-5xl">
       <PageHeader title="Study" description="Your missions come first — free practice is always open." />
 
       {/* Today's missions — the directed path */}
-      <Card className={cn(glass, "mb-6 p-6")}>
+      <Card data-tutorial="study-missions" className={cn(glass, "mb-6 p-6")}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="font-display text-lg font-semibold">Today&apos;s missions</h2>
           <span className="flex items-center gap-2">
@@ -153,7 +157,20 @@ export default function StudyHubPage() {
       <h2 className="mb-4 font-display text-lg font-semibold">Free practice</h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {modes.map((m) => (
-          <Link key={m.href} href={m.href} className="group">
+          <Link
+            key={m.href}
+            href={m.href}
+            className="group"
+            data-tutorial={
+              m.href === "/study/flashcards"
+                ? "study-flashcards"
+                : m.href === "/study/scan"
+                  ? "study-scanner"
+                  : m.href === "/study/mock-exam"
+                    ? "study-mock"
+                    : undefined
+            }
+          >
             <Card className={cn(glass, "hover-elevate flex h-full items-start gap-4 p-5")}>
               <span className={cn("flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-muted", m.tone)}>
                 <m.icon className="h-5 w-5" />
@@ -171,21 +188,29 @@ export default function StudyHubPage() {
         ))}
       </div>
 
-      <Card className={cn(glass, "mt-6 p-6")}>
+      <Card data-tutorial="study-categories" className={cn(glass, "mt-6 p-6")}>
         <h2 className="font-display text-lg font-semibold">Study by category</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Weakest first — tap any to drill it.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Measured needs first; untouched categories stay unscored until you try them.
+        </p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           {ranked.map((cat) => (
             <Link key={cat} href={`/study/questions?category=${cat}`} className="group block">
               <MasteryBar
                 label={<span className="group-hover:text-primary">{categoryName(cat)}</span>}
-                value={readiness.perCategory[cat]}
+                value={readiness.perCategoryEvidence[cat] > 0 ? readiness.perCategory[cat] : 0}
+                count={
+                  readiness.perCategoryEvidence[cat] > 0
+                    ? `${readiness.perCategory[cat]}%`
+                    : "Not assessed"
+                }
                 icon={<CategoryIcon id={cat} className="h-4 w-4 text-muted-foreground" />}
               />
             </Link>
           ))}
         </div>
       </Card>
+      <StudyNavigator />
     </div>
   );
 }

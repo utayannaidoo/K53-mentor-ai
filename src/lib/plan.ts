@@ -14,7 +14,7 @@ import type { CategoryId, StudyFrequency, UserState } from "@/types";
 import { FLASHCARD_META, SCENARIO_META } from "@/lib/content/meta";
 import { forCode } from "@/lib/content/vehicle";
 import { isDue } from "@/lib/srs/sm2";
-import { getTodayUsage, todayKey } from "@/lib/store/local-store";
+import { atDayKey, getTodayUsage, todayKey } from "@/lib/store/local-store";
 import { PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
 import { trialExhausted } from "@/lib/billing/trial";
 import { categoryName } from "@/lib/content/categories";
@@ -33,14 +33,19 @@ export interface PlanTask {
   targetCount: number;
   estMinutes: number;
   href: string;
+  /** Concrete primary-button copy for this task, including its real count. */
+  actionLabel: string;
   categoryId?: CategoryId;
   premium?: boolean;
 }
 
 export function countDueFlashcards(state: UserState, now = new Date()): number {
-  return forCode(FLASHCARD_META, studyCodeOf(state)).filter((f) =>
-    isDue(state.cardStates[f.id], now),
-  ).length;
+  return forCode(FLASHCARD_META, studyCodeOf(state)).filter((f) => {
+    const card = state.cardStates[f.id];
+    // Unseen cards are available to learn, not overdue review work. Keeping
+    // the two separate stops a new account opening on "900 cards due".
+    return card && (card.reps > 0 || card.lapses > 0) && isDue(card, now);
+  }).length;
 }
 
 /**
@@ -76,7 +81,7 @@ export function mocksRemaining(
   const pool = state.mockExams.filter(
     (m) => !m.drill && Boolean(m.mini) === (kind === "mini"),
   );
-  const used = pool.filter((m) => m.at.slice(0, 10) === todayKey(now)).length;
+  const used = pool.filter((m) => atDayKey(m.at) === todayKey(now)).length;
   return Math.max(0, cap - used);
 }
 
@@ -86,7 +91,7 @@ export function drillsRemaining(state: UserState, now = new Date()): number {
   if (cap === "unlimited") return Infinity;
   if (trialExhausted(state, now.getTime())) return 0;
   const used = state.mockExams.filter(
-    (m) => Boolean(m.drill) && m.at.slice(0, 10) === todayKey(now),
+    (m) => Boolean(m.drill) && atDayKey(m.at) === todayKey(now),
   ).length;
   return Math.max(0, cap - used);
 }
@@ -124,9 +129,16 @@ export function planFocus(
   state: UserState,
   readiness: ReadinessBreakdown,
 ): { categoryId: CategoryId | null; fromWorry: boolean } {
-  const hasSignal =
-    state.attempts.length > 0 || Object.values(state.cardStates).some((c) => c.reps > 0);
-  if (hasSignal) return { categoryId: readiness.weakCategories[0] ?? null, fromWorry: false };
+  // `weakCategories` includes the internal prior for untouched categories. A
+  // single real answer must never make an unassessed 18% prior look like a
+  // measured weakness, so choose only among categories with direct evidence.
+  const attemptedCategories = new Set(
+    state.attempts.filter((attempt) => attempt.selectedIndex >= 0).map((attempt) => attempt.categoryId),
+  );
+  const assessed = (Object.keys(readiness.perCategoryEvidence) as CategoryId[])
+    .filter((id) => attemptedCategories.has(id) && readiness.perCategoryEvidence[id] > 0)
+    .sort((a, b) => readiness.perCategory[a] - readiness.perCategory[b]);
+  if (assessed[0]) return { categoryId: assessed[0], fromWorry: false };
   const worried = state.onboarding?.worryCategories?.[0] ?? null;
   return { categoryId: worried, fromWorry: Boolean(worried) };
 }
@@ -168,16 +180,32 @@ export function generateTodayPlan(
   tasks.push({
     id: "task-flashcards",
     type: "flashcards",
-    title: `${flashTarget} flashcards due`,
-    subtitle: due > 0 ? "Spaced repetition keeps these fresh" : "Build your first review deck",
+    title:
+      due === 0
+        ? `${flashTarget} starter flashcards`
+        : due >= flashTarget
+          ? `${flashTarget} flashcards due`
+          : `${due} ${due === 1 ? "review" : "reviews"} + ${flashTarget - due} new`,
+    subtitle: due > 0 ? "Review what is due, then learn something new" : "Build your first review deck",
     targetCount: flashTarget,
     estMinutes: 4,
     href: "/study/flashcards",
+    actionLabel:
+      due === 0
+        ? `Start ${flashTarget} starter flashcards`
+        : due >= flashTarget
+          ? `Review ${flashTarget} due flashcards`
+          : `Review ${due} and learn ${flashTarget - due} new`,
   });
 
   const focus = planFocus(state, readiness);
   const weakest = focus.categoryId;
   const hasSignal = !focus.fromWorry && weakest !== null;
+  // Practice can choose a sensible next category from a real answer, but a
+  // posterior percentage is not a starting-check score. Until that check is
+  // complete, name the evidence without turning one or two taps into a fake
+  // measurement.
+  const hasMeasuredStartingPoint = state.diagnostics.length > 0;
   if (weakest) {
     tasks.push({
       id: "task-questions",
@@ -185,11 +213,14 @@ export function generateTodayPlan(
       title: `Practice: ${categoryName(weakest)}`,
       subtitle:
         (hasSignal
-          ? `Your weakest area at ${readiness.perCategory[weakest]}% — let's close the gap`
+          ? hasMeasuredStartingPoint
+            ? `Your weakest area at ${readiness.perCategory[weakest]}% — let's close the gap`
+            : "Your practice has pointed us here — keep going to build a measured picture"
           : "You told us this one worries you most — let's start here") + mistakeLine,
       targetCount: size.questions,
       estMinutes: 5,
       href: `/study/questions?category=${weakest}`,
+      actionLabel: `Start ${size.questions} ${categoryName(weakest).toLowerCase()} questions`,
       categoryId: weakest,
     });
   } else {
@@ -201,6 +232,7 @@ export function generateTodayPlan(
       targetCount: size.questions,
       estMinutes: 5,
       href: "/study/questions",
+      actionLabel: `Start ${size.questions} mixed questions`,
     });
   }
 
@@ -214,6 +246,7 @@ export function generateTodayPlan(
     targetCount: 1,
     estMinutes: 3,
     href: "/study/scenarios",
+    actionLabel: "Start the scenario challenge",
     categoryId: scenario?.categoryId,
     premium: true,
   });
@@ -231,6 +264,7 @@ export function generateTodayPlan(
       targetCount: 1,
       estMinutes: 15,
       href: "/study/mock-exam",
+      actionLabel: retest.daysSince === null ? "Start my first mock exam" : "Start the mock retest",
     });
   }
 
@@ -252,8 +286,8 @@ export function isTaskDone(task: PlanTask, state: UserState, now = new Date()): 
       // mock-context attempts — either counts as re-testing today.
       const today = todayKey(now);
       return (
-        state.mockExams.some((m) => m.at.slice(0, 10) === today) ||
-        state.attempts.some((a) => a.context === "mock" && a.at.slice(0, 10) === today)
+        state.mockExams.some((m) => atDayKey(m.at) === today) ||
+        state.attempts.some((a) => a.context === "mock" && atDayKey(a.at) === today)
       );
     }
     default:

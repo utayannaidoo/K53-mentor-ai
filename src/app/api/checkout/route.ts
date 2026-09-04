@@ -92,6 +92,17 @@ export async function POST(req: Request) {
     );
   }
 
+  // Never take real money we cannot bind to an account: with Paystack live but
+  // Supabase down/misconfigured, a guest charge below would have no user_id in
+  // its metadata — verify refuses it and the webhook has no row to grant.
+  // Fail loudly instead of collecting an ungrantable payment.
+  if (!isSupabaseConfigured) {
+    return Response.json(
+      { error: "Billing is temporarily unavailable. Please try again shortly." },
+      { status: 503 },
+    );
+  }
+
   // Require a signed-in user and bind the checkout to them (prod only).
   let userId: string | undefined;
   let userEmail: string | undefined;

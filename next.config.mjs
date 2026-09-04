@@ -48,6 +48,9 @@ const securityHeaders = [
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Don't advertise the framework version ("X-Powered-By: Next.js <x.y.z>"),
+  // which only helps fingerprint a known CVE against the deployed release.
+  poweredByHeader: false,
   // No remotePatterns on purpose. Nothing in the app loads a remote image —
   // the sign catalogue is 439 local /signs/* files — so allowing any remote
   // host only left the image optimiser fetching and decoding attacker-chosen

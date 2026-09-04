@@ -55,6 +55,9 @@ export function localPlanRationale(d: PlanRationaleData): string {
   if (d.weakestCategory && d.weakestPct != null) {
     return `${d.weakestCategory} is sitting at ${d.weakestPct}%, so today starts there${dueBit}${urgency}.`;
   }
+  if (d.weakestCategory) {
+    return `Your practice has pointed us to ${d.weakestCategory}, so today starts there${dueBit}${urgency}.`;
+  }
   if (due > 0) {
     return `${due} review${due === 1 ? "" : "s"} came due — clearing them first keeps everything you've learned from fading${urgency}.`;
   }

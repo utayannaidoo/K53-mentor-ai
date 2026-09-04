@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { TodaySheet } from "@/components/dashboard/today-sheet";
+import { TutorNavigator } from "@/components/onboarding/tutor-navigator";
 import { trialExhausted } from "@/components/app/trial-end-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { usePlanRationale } from "@/components/dashboard/coach-plan";
@@ -27,7 +28,7 @@ import { todayKey } from "@/lib/store/local-store";
  * it takes for this to become a grid again.
  */
 export default function DashboardPage() {
-  const { state, readiness, hasDiagnostic, dismissComeback } = useStudyStore();
+  const { state, readiness, hasDiagnostic, dismissComeback, completeFirstRunTour } = useStudyStore();
 
   const tasks = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(tasks.map((t) => [t.id, isTaskDone(t, state)]));
@@ -39,7 +40,9 @@ export default function DashboardPage() {
     firstName: state.profile?.name?.split(" ")[0],
     weakestCategory: focus.categoryId ? categoryName(focus.categoryId) : undefined,
     weakestPct:
-      focus.categoryId && !focus.fromWorry ? readiness.perCategory[focus.categoryId] : undefined,
+      hasDiagnostic && focus.categoryId && !focus.fromWorry
+        ? readiness.perCategory[focus.categoryId]
+        : undefined,
     fromWorry: focus.fromWorry,
     dueCards: countDueFlashcards(state),
     daysToTest: daysUntil(state.onboarding?.testDate ?? null),
@@ -85,6 +88,7 @@ export default function DashboardPage() {
         testDate={state.onboarding?.testDate ?? null}
         planDonePct={planDonePct}
         perCategory={readiness.perCategory}
+        perCategoryEvidence={readiness.perCategoryEvidence}
         blocking={hasDiagnostic ? blockingSection(readiness.perCategory) : null}
         hasAttempts={state.attempts.length > 0}
         hasDiagnostic={hasDiagnostic}
@@ -104,10 +108,22 @@ export default function DashboardPage() {
         daySource={state}
         rankLine={
           rank.next
-            ? `${rank.current.name} · ${rank.unmet[0] ?? `next: ${rank.next.name}`}`
+            ? `${rank.current.name} · ${
+                !hasDiagnostic && rank.unmet[0]?.startsWith("readiness ")
+                  ? "take the starting check to measure readiness"
+                  : rank.unmet[0] ?? `next: ${rank.next.name}`
+              }`
             : `${rank.current.name} — the road is done`
         }
+        firstPlanExperience={
+          Object.values(state.cardStates).every((card) => card.reps === 0 && card.lapses === 0) &&
+          state.scenarioAttempts.length === 0 &&
+          state.mockExams.length === 0 &&
+          state.attempts.filter((attempt) => attempt.context === "practice").length <= 1 &&
+          state.sessions.filter((session) => session.type !== "diagnostic").length <= 1
+        }
       />
+      {!state.firstRunTourDone && <TutorNavigator onComplete={completeFirstRunTour} />}
     </div>
   );
 }
@@ -142,10 +158,10 @@ function alertBand(
     case "diagnostic":
       return {
         tone: "primary" as const,
-        title: "Take your diagnostic",
-        body: "It personalises your whole plan and readiness score.",
+        title: "Measure your starting point",
+        body: "A 15-question check measures all 7 categories. It cannot be failed.",
         href: "/diagnostic",
-        cta: "Start",
+        cta: "Start 5-minute check",
       };
     case "comeback":
       return {

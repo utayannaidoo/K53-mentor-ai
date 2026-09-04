@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
+import { TrackedLink } from "@/components/landing/tracked-link";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -94,9 +95,13 @@ export function MarketingNav() {
           <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full")}>
             Log in
           </Link>
-          <Link href="/onboarding" className={cn(buttonVariants({ size: "sm" }), "rounded-full")}>
+          <TrackedLink
+            location="nav"
+            href="/onboarding"
+            className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
+          >
             Start free assessment
-          </Link>
+          </TrackedLink>
         </div>
 
         {/* Mobile: the header carried no CTA at all, so across the whole
@@ -106,12 +111,13 @@ export function MarketingNav() {
               36px pill fails touch-target minimums. Padding stays px-3.5 — the
               360px width budget that drops the wordmark has no slack (see
               tailwind.config.ts screens.xs). */}
-          <Link
+          <TrackedLink
+            location="nav_mobile"
             href="/onboarding"
             className={cn(buttonVariants({ size: "sm" }), "h-11 rounded-full px-3.5")}
           >
             Start free
-          </Link>
+          </TrackedLink>
           <button
             type="button"
             className="inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"

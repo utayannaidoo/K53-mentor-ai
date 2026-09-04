@@ -151,9 +151,11 @@ describe("generateTodayPlan — open mistakes surfaced on the questions task", (
     expect(questionsSubtitle(attempts)).toContain("3 past mistakes waiting at the front");
   });
 
-  it("leaves subtitles unchanged with no wrong answers", () => {
+  it("uses mixed practice before evidence, then names the answered area without inventing a score", () => {
     expect(questionsSubtitle([])).toBe("Mixed practice across all categories");
-    expect(questionsSubtitle([attempt("q1", true)])).toBe("Mixed practice across all categories");
+    expect(questionsSubtitle([attempt("q1", true)])).toBe(
+      "Your practice has pointed us here — keep going to build a measured picture",
+    );
   });
 });
 

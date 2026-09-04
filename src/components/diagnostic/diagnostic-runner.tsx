@@ -352,7 +352,7 @@ function DiagnosticQuiz() {
       <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
         <Logo />
         <h1 className="mt-6 font-display text-xl font-semibold tracking-tight">
-          The diagnostic isn&apos;t available for your licence code yet
+          The starting check isn&apos;t available for your licence code yet
         </h1>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
           We couldn&apos;t build a question set for this device. You can start practising right
@@ -378,7 +378,7 @@ function DiagnosticQuiz() {
       <div className="flex min-h-dvh flex-col items-center justify-center px-6 text-center">
         <Logo />
         <h1 className="mt-6 font-display text-xl font-semibold tracking-tight">
-          You have an unfinished diagnostic
+          You have an unfinished starting check
         </h1>
         <p className="mt-2 max-w-sm text-sm text-muted-foreground">
           {resumeOffer.responses.length} of {resumeOffer.questionIds.length} answered. Pick up
@@ -508,7 +508,7 @@ function DiagnosticQuiz() {
             No pressure — there&apos;s no fail here, just useful signal.
           </p>
           <button type="button" onClick={handleSkipDiagnostic} className="mx-auto mt-4 block text-sm text-muted-foreground hover:text-foreground">
-            Skip diagnostic — I&apos;ll do it later
+            Study first — finish the check later
           </button>
         </div>
       </main>

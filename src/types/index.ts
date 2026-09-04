@@ -404,6 +404,13 @@ export interface UserState {
   planBonusDate: string | null;
   /** Whether the post-signup guided first session has been completed/skipped. */
   guidedDone: boolean;
+  /**
+   * Whether the opt-in first-run navigator has been completed or dismissed.
+   * Existing learners start at true so a new release never interrupts a study
+   * session they have already learned to navigate; onboarding explicitly arms
+   * it for newly completed accounts.
+   */
+  firstRunTourDone: boolean;
   /** Snapshot from the previous app open — powers the "while you were away" diff. */
   lastSeen: { at: string; readiness: number } | null;
   /** Unacknowledged comeback summary after a 3+ day gap, cleared on dismiss. */

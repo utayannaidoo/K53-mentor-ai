@@ -9,19 +9,37 @@ import { safeNextPath } from "@/lib/auth/safe-next";
 
 export default function WelcomePage() {
   const router = useRouter();
-  const { ready, accountHydrated, isAuthed, state } = useStudyStore();
+  const { ready, accountHydrated, isAuthed, hasOnboarded, hasDiagnostic, state } = useStudyStore();
 
-  // The tour runs once per account, even if they skipped the diagnostic.
-  // Previously it required hasDiagnostic, so skippers and Andile (diagnostic
-  // session made sessions.length===1) never saw it.
+  // This route is only for the learner who deliberately chose "study first".
+  // A completed starting check already taught them enough to use Today.
   React.useEffect(() => {
     if (!ready || !accountHydrated) return;
     const next = safeNextPath("/welcome") ?? "/welcome";
     if (!isAuthed) router.replace(`/login?next=${encodeURIComponent(next)}`);
-    else if (state.guidedDone) router.replace("/dashboard");
-  }, [ready, accountHydrated, isAuthed, state.guidedDone, router]);
+    else if (!hasOnboarded) router.replace("/onboarding");
+    else if (hasDiagnostic || state.guidedDone) router.replace("/dashboard");
+    else if (!state.diagnosticSkippedAt) router.replace("/diagnostic");
+  }, [
+    ready,
+    accountHydrated,
+    isAuthed,
+    hasOnboarded,
+    hasDiagnostic,
+    state.guidedDone,
+    state.diagnosticSkippedAt,
+    router,
+  ]);
 
-  if (!ready || !accountHydrated || !isAuthed || state.guidedDone) {
+  if (
+    !ready ||
+    !accountHydrated ||
+    !isAuthed ||
+    !hasOnboarded ||
+    hasDiagnostic ||
+    state.guidedDone ||
+    !state.diagnosticSkippedAt
+  ) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
         <Spinner className="h-6 w-6" />

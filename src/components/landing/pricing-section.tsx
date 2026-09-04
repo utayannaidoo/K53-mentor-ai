@@ -12,6 +12,7 @@ import {
 } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
+import { track } from "@/lib/analytics";
 
 export function PricingSection({
   withHeading = true,
@@ -136,6 +137,11 @@ export function PricingSection({
                   isFree
                     ? "/onboarding"
                     : `/signup?plan=${plan.id}&cycle=${annual ? "annual" : "monthly"}`
+                }
+                onClick={() =>
+                  track("cta_clicked", {
+                    location: isFree ? "pricing_free" : `pricing_${plan.id}`,
+                  })
                 }
                 className={cn(
                   "mt-5 flex w-full items-center justify-center rounded-xl py-[13px] text-[15px] font-semibold transition-[transform,filter] duration-[400ms] ease-spring hover:brightness-[1.06] active:scale-[0.97]",

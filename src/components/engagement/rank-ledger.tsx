@@ -26,13 +26,20 @@ import { cn } from "@/lib/utils";
 export function RankLedger({
   rankAchieved,
   inputs,
+  readinessMeasured = true,
   className,
 }: {
   rankAchieved: number;
   inputs: RankInputs;
+  readinessMeasured?: boolean;
   className?: string;
 }) {
   const prog = rankProgress(rankAchieved, inputs);
+  const visibleUnmet = readinessMeasured
+    ? prog.unmet
+    : prog.unmet.map((item) =>
+        item.startsWith("readiness ") ? "take the starting check to measure readiness" : item,
+      );
   const currentIndex = Math.min(rankAchieved, LICENCE_RANK_INDEX);
 
   return (
@@ -95,9 +102,10 @@ export function RankLedger({
               </div>
 
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                {isNext && prog.unmet.length > 0 ? (
+                {isNext && visibleUnmet.length > 0 ? (
                   <>
-                    <span className="text-foreground">To reach it:</span> {prog.unmet.join(" · ")}
+                    <span className="text-foreground">To reach it:</span>{" "}
+                    {visibleUnmet.join(" · ")}
                   </>
                 ) : (
                   rank.tagline

@@ -86,6 +86,7 @@ export function defaultUserState(): UserState {
     achievements: {},
     pendingAchievements: [],
     guidedDone: false,
+    firstRunTourDone: true,
     planBonusDate: null,
     lastSeen: null,
     pendingComeback: null,

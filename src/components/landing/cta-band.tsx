@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { TrackedLink } from "@/components/landing/tracked-link";
 
 export function CtaBand() {
   return (
@@ -16,13 +17,14 @@ export function CtaBand() {
           Free, no card, 5 minutes. You&apos;ll get a readiness score and a plan before you finish
           your coffee.
         </p>
-        <Link
+        <TrackedLink
+          location="cta_band"
           href="/onboarding"
           className="relative mt-[30px] inline-flex items-center gap-2.5 rounded-full bg-gradient-to-b from-primary-light to-primary px-[30px] py-4 text-base font-semibold text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45),0_16px_34px_-12px_hsl(var(--primary)/0.7)] transition-[transform,filter] duration-[400ms] ease-spring hover:brightness-[1.07] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
         >
           Start free assessment
           <ArrowRight className="h-[17px] w-[17px]" />
-        </Link>
+        </TrackedLink>
       </div>
     </section>
   );

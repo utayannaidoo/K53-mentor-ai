@@ -33,11 +33,15 @@ export function TrialEndCard({
    * about it ("you still have flashcards left") instead of "trial is done". */
   feature?: TrialPool;
 }) {
-  const { state, readiness } = useStudyStore();
+  const { state, readiness, hasDiagnostic } = useStudyStore();
   const r = readiness.readiness;
 
   React.useEffect(() => {
-    track("trial_end_shown", { compact, readiness: r, feature: feature ?? "all" });
+    track("trial_end_shown", {
+      compact,
+      readiness: hasDiagnostic ? r : "unmeasured",
+      feature: feature ?? "all",
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -73,12 +77,15 @@ export function TrialEndCard({
         .filter(Boolean)
         .join(" ") || null;
 
-  const situation =
-    daysToTest !== null
+  const situation = !hasDiagnostic
+    ? "Your readiness has not been measured yet."
+    : daysToTest !== null
       ? `You're at ${r}% readiness with your test in ${daysToTest} ${daysToTest === 1 ? "day" : "days"}.`
       : `You're at ${r}% readiness.`;
   const promise =
-    r >= 80
+    !hasDiagnostic
+      ? "Take the starting check when you're ready; Premium keeps the full practice loop open every day."
+      : r >= 80
       ? "Premium's daily mock exams and full scenario practice keep you sharp until test day."
       : "Learners who practise daily typically pass 80% readiness within two weeks — Premium gives you 3 full sessions a day and the AI plan that gets you there.";
 

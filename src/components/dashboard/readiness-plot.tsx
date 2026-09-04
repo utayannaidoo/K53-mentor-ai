@@ -52,7 +52,28 @@ function smoothPath(pts: { x: number; y: number }[]): string {
   return d;
 }
 
-export function ReadinessPlot({ data, current }: { data: TrendPoint[]; current: number }) {
+export function ReadinessPlot({
+  data,
+  current,
+  unmeasured = false,
+}: {
+  data: TrendPoint[];
+  current: number;
+  /** No assessment-quality evidence exists yet; never draw the model prior. */
+  unmeasured?: boolean;
+}) {
+  if (unmeasured) {
+    return (
+      <div className="m-5 flex h-[200px] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border text-center">
+        <p className="text-sm font-medium text-foreground">No readiness score yet</p>
+        <p className="max-w-[34ch] text-xs text-muted-foreground">
+          Complete the starting check to establish your baseline. Until then, no estimate is
+          shown as if it were measured progress.
+        </p>
+      </div>
+    );
+  }
+
   if (data.length < 2) {
     return (
       <div className="m-5 flex h-[200px] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border text-center">

@@ -143,6 +143,9 @@ export function MockExam() {
   // kept verbatim (sampleMockExam returns 64 or nothing). Keyed by paper
   // configuration so a value left by one mode can't leak onto another's intro.
   const [paperMark, setPaperMark] = React.useState<{ key: string; mark: number } | null>(null);
+  // A full paper couldn't be built from the current bank. Transient while the
+  // pack syncs; surfaced inline rather than as a dead Start button.
+  const [startBlocked, setStartBlocked] = React.useState(false);
 
   const remainingMocks = drill ? drillsRemaining(state) : mocksRemaining(state, mini ? "mini" : "full");
 
@@ -416,7 +419,17 @@ export function MockExam() {
       : mini
         ? sampleMiniMock(bank, state.attempts, studyCodeOf(state), readiness.weakCategories, miniCfg.total)
         : sampleMockExam(bank, state.attempts, studyCodeOf(state));
+    // A full paper comes back empty when the bank can't fill every section to
+    // its official count — starting it would grade an impossible paper against
+    // the real pass marks. Say so instead of serving a broken exam.
+    if (!drill && !mini && qs.length === 0) {
+      setStartBlocked(true);
+      return;
+    }
     if (drill) track("drill_started", { section: drill });
+    // Funnel counterpart to mock_completed: a full or mini paper actually
+    // started (not just the intro screen viewed).
+    if (!drill) track("mock_started", { kind: mini ? "mini" : "full" });
     setQuestions(qs);
     setAnswers(new Array(qs.length).fill(-1));
     setI(0);
@@ -453,6 +466,7 @@ export function MockExam() {
     if (mini || drill) {
       setPaperMark({ key: paperKey, mark: scaledPassMark(requested.total, requested.mark, qs.length) });
     }
+    setStartBlocked(false);
     setPhase("exam");
   }
 
@@ -623,6 +637,12 @@ export function MockExam() {
             </div>
           )}
 
+          {startBlocked && !mini && !drill && (
+            <p role="alert" className="mt-4 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning">
+              There aren&apos;t enough questions loaded yet to build a full 64-question paper.
+              Please wait a few seconds and try again — or start with a mini mock.
+            </p>
+          )}
           <Button size="xl" className="mt-7 w-full" onClick={start}>
             Start {drill ? "drill" : mini ? "mini mock" : "mock exam"} <ArrowRight />
           </Button>

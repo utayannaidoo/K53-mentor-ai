@@ -6,6 +6,7 @@ import { Logo } from "@/components/shared/logo";
 import { DrivingLoader } from "@/components/ui/driving-loader";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { safeNextPath } from "@/lib/auth/safe-next";
+import { postAuthFirstRunDestination } from "@/lib/onboarding/first-run";
 
 /**
  * Post-auth router. Every sign-in (password, Google, demo) lands here, waits
@@ -32,21 +33,17 @@ export default function ContinuePage() {
       // instead of dropping it at the door.
       const here = safeNextPath(window.location.pathname + window.location.search);
       router.replace(here ? `/login?next=${encodeURIComponent(here)}` : "/login");
-    } else if (!hasOnboarded) {
-      router.replace("/onboarding");
-    } else if (!hasDiagnostic && !state.diagnosticSkippedAt) {
-      router.replace("/diagnostic");
-    } else if (!state.guidedDone && state.sessions.filter((s) => s.type !== "diagnostic").length === 0) {
-      // Tour once, for brand-new accounts only — filtered to non-diagnostic
-      // sessions so Andile (1 diagnostic session) still qualifies, but veterans
-      // with real study sessions don't get re-toured every login. Without the
-      // filter every old account with guidedDone===false was sent to /welcome
-      // on every sign-in after the last deploy.
-      router.replace("/welcome");
     } else {
-      // Only a fully set-up account gets sent on to `next` — every branch above
-      // is a step they still owe, and the deep link would skip it.
-      router.replace(next ?? "/dashboard");
+      router.replace(
+        postAuthFirstRunDestination({
+          hasOnboarded,
+          hasDiagnostic,
+          diagnosticSkippedAt: state.diagnosticSkippedAt,
+          guidedDone: state.guidedDone,
+          nonDiagnosticSessions: state.sessions.filter((session) => session.type !== "diagnostic").length,
+          next,
+        }),
+      );
     }
   }, [ready, accountHydrated, isAuthed, hasOnboarded, hasDiagnostic, state, router]);
 

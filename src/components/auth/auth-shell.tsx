@@ -4,7 +4,7 @@ import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 const POINTS = [
-  "Free AI diagnostic + readiness score",
+  "Free starting check + readiness score",
   "A tutor that explains, not just answers",
   "Spaced-repetition that adapts to you",
 ];
@@ -34,7 +34,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </ul>
         </div>
         <p className="relative text-sm text-primary-foreground/70">
-          “Passed with 61/64 after failing twice.” — Lerato M., Johannesburg
+          Built for the South African K53 — every question follows the official test format.
         </p>
       </div>
 

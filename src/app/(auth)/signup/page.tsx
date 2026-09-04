@@ -5,7 +5,7 @@ import { AuthForm } from "@/components/auth/auth-form";
 export const metadata: Metadata = {
   title: "Sign up",
   description:
-    "Create a free K53 Mentor AI account — take the diagnostic, get your personalised study plan and start practising today.",
+    "Create a free K53 Mentor AI account — take the 15-question starting check, get your personalised study plan and start practising today.",
 };
 
 export default function SignupPage() {

@@ -13,6 +13,7 @@ import type { TrendPoint } from "@/components/dashboard/readiness-plot";
 import { cn, glassFloat } from "@/lib/utils";
 import { SECTION_LABEL, type ExamSection } from "@/lib/constants";
 import { formatPassProbability } from "@/lib/diagnostic/scoring";
+import { track } from "@/lib/analytics";
 import type { CategoryId, UserState } from "@/types";
 
 /**
@@ -46,6 +47,7 @@ export function TodaySheet({
   testDate,
   planDonePct,
   perCategory,
+  perCategoryEvidence,
   blocking,
   hasAttempts,
   hasDiagnostic,
@@ -60,6 +62,7 @@ export function TodaySheet({
   trend,
   daySource,
   rankLine,
+  firstPlanExperience,
 }: {
   firstName: string;
   vehicleLabel: string;
@@ -78,6 +81,8 @@ export function TodaySheet({
   testDate: string | null;
   planDonePct: number;
   perCategory: Record<CategoryId, number>;
+  /** Answered questions behind each category; zero means "not assessed". */
+  perCategoryEvidence: Record<CategoryId, number>;
   /**
    * The section sitting furthest under its own pass mark, if one is. This is
    * what reconciles the two figures above it — readiness can read 80% beside a
@@ -119,12 +124,27 @@ export function TodaySheet({
   >;
   /** Driver-rank line, e.g. "Learner Driver · 150 CP to Road Ready". */
   rankLine: string;
+  /** Keep the one-line orientation until the learner starts independent work. */
+  firstPlanExperience: boolean;
 }) {
   const strip = React.useMemo(
     () => buildDayStrip({ activeDays, testDate }),
     [activeDays, testDate],
   );
-  const mastery = React.useMemo(() => categoryMastery(perCategory).slice(0, 5), [perCategory]);
+  const mastery = React.useMemo(
+    () =>
+      categoryMastery(perCategory)
+        // Measured needs come first. An untouched category carries the model's
+        // internal prior, not a real 18% score, and must not outrank evidence.
+        .sort((a, b) => {
+          const aMeasured = perCategoryEvidence[a.id] > 0;
+          const bMeasured = perCategoryEvidence[b.id] > 0;
+          if (aMeasured !== bMeasured) return aMeasured ? -1 : 1;
+          return a.value - b.value;
+        })
+        .slice(0, 5),
+    [perCategory, perCategoryEvidence],
+  );
   // Which day the learner has opened, if any. Closing returns the strip to a
   // plain summary rather than leaving a panel pinned open.
   const [openDay, setOpenDay] = React.useState<string | null>(null);
@@ -154,7 +174,7 @@ export function TodaySheet({
                   —<span className="align-top text-2xl">%</span>
                 </p>
                 <Link href="/diagnostic" className="mt-2.5 inline-flex text-sm font-medium text-primary hover:underline">
-                  Take your diagnostic
+                  Take your starting check
                 </Link>
               </>
             ) : (
@@ -205,14 +225,14 @@ export function TodaySheet({
 
         {/* The chart is the top of the sheet now, not a footnote at the bottom. */}
         <div className="min-w-0 bg-card/[0.01] pb-2 pr-2 pt-4">
-          <ReadinessPlot data={trend} current={readiness} />
+          <ReadinessPlot data={hasDiagnostic ? trend : []} current={readiness} unmeasured={!hasDiagnostic} />
         </div>
       </div>
 
       {/* ── The figures that qualify it ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-px border-t border-border/50 bg-border/40 sm:grid-cols-4">
         <Figure
-          label={measured ? "Predicted pass" : "Predicted pass (estimate)"}
+          label={hasDiagnostic && !measured ? "Predicted pass (estimate)" : "Predicted pass"}
           value={hasDiagnostic ? formatPassProbability(passProbability) : "—"}
         />
         <Figure label="Today's plan" value={`${planDonePct}%`} />
@@ -268,13 +288,19 @@ export function TodaySheet({
 
       {/* ── The entries ──────────────────────────────────────────────────── */}
       <div className="grid border-t border-border/50 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <section className="min-w-0 border-b border-border/50 px-6 py-5 lg:border-b-0 lg:border-r">
+        <section data-tutorial="today-plan" className="min-w-0 border-b border-border/50 px-6 py-5 lg:border-b-0 lg:border-r">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-display text-sm font-semibold uppercase tracking-[0.14em]">
               Today
             </h2>
             <span className="text-xs tabular-nums text-muted-foreground">~{totalMin} min</span>
           </div>
+
+          {firstPlanExperience && (
+            <p className="mt-2 text-sm font-medium leading-relaxed text-primary text-balance">
+              This is your daily route. Start with the first task; the plan adapts as you answer.
+            </p>
+          )}
 
           {rationale ? (
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground text-balance">
@@ -346,9 +372,16 @@ export function TodaySheet({
           {firstIncomplete ? (
             <Link
               href={firstIncomplete.href}
+              onClick={() =>
+                track("today_plan_started", {
+                  task: firstIncomplete.type,
+                  target_count: firstIncomplete.targetCount,
+                  first_plan: firstPlanExperience,
+                })
+              }
               className={cn(buttonVariants(), "mt-4 w-full sm:w-auto")}
             >
-              Start today&apos;s plan <ArrowRight />
+              {firstIncomplete.actionLabel} <ArrowRight />
             </Link>
           ) : mockDue ? (
             // The sentence stays success-coloured; the action follows the
@@ -370,10 +403,10 @@ export function TodaySheet({
           )}
         </section>
 
-        <section className="min-w-0 px-6 py-5">
+        <section data-tutorial="study-areas" className="min-w-0 px-6 py-5">
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="font-display text-sm font-semibold uppercase tracking-[0.14em]">
-              Weakest
+              Study areas
             </h2>
             <Link
               href="/dashboard/progress"
@@ -383,7 +416,7 @@ export function TodaySheet({
             </Link>
           </div>
 
-          {hasAttempts && (
+          {hasDiagnostic && hasAttempts && (
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               {blocking ? (
                 <>
@@ -400,22 +433,34 @@ export function TodaySheet({
           )}
 
           <ul className="mt-4 space-y-3">
-            {mastery.map((row) => (
-              <li key={row.id}>
+            {mastery.map((row) => {
+              const answerCount = perCategoryEvidence[row.id];
+              // A practice answer is useful direction, but it is not a
+              // starting-check score. Until that check is completed, show the
+              // evidence count rather than printing a model percentage as a
+              // measurement.
+              const assessed = hasDiagnostic && answerCount > 0;
+              const status = assessed
+                ? `${row.value}%`
+                : answerCount > 0
+                  ? `${answerCount} ${answerCount === 1 ? "answer" : "answers"} recorded`
+                  : "Not assessed";
+              return (
+                <li key={row.id}>
                 {/* Weakness named here is weakness the learner can act on —
                     each row drills its category directly rather than dead-ending
                     as display-only numbers. */}
                 <Link
                   href={`/study/questions?category=${row.id}`}
                   className="group block rounded-md focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-primary/25"
-                  aria-label={`Practise ${row.name} — currently ${hasAttempts ? row.value : "no data"}% against a ${row.required}% pass mark`}
+                  aria-label={`Practise ${row.name} — ${status}, against a ${row.required}% pass mark`}
                 >
                   <div className="flex items-baseline justify-between gap-2 text-xs">
                     <span className="min-w-0 truncate font-medium text-foreground transition-colors duration-200 ease-soft group-hover:text-primary">
                       {row.name}
                     </span>
                     <span className="shrink-0 font-mono tabular-nums text-muted-foreground">
-                      {hasAttempts ? `${row.value}%` : "—"}
+                      {status}
                       <span className="text-muted-foreground/60"> / {row.required}%</span>
                     </span>
                   </div>
@@ -423,9 +468,9 @@ export function TodaySheet({
                     <div
                       className={cn(
                         "h-full rounded-full transition-[width] duration-500 ease-glass",
-                        row.clearing && hasAttempts ? "bg-success" : "bg-primary",
+                        row.clearing && assessed ? "bg-success" : "bg-primary",
                       )}
-                      style={{ width: `${hasAttempts ? row.value : 0}%` }}
+                      style={{ width: `${assessed ? row.value : 0}%` }}
                     />
                     <span
                       aria-hidden
@@ -434,8 +479,9 @@ export function TodaySheet({
                     />
                   </div>
                 </Link>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
           <p className="mt-3 text-2xs leading-relaxed text-muted-foreground">
             The tick is the mark that section needs to pass. Tap any to practise it.
@@ -448,6 +494,7 @@ export function TodaySheet({
         <span className="text-xs text-muted-foreground">{rankLine}</span>
         <Link
           href="/dashboard/progress"
+          data-tutorial="detailed-progress"
           className="text-xs font-medium text-primary hover:underline"
         >
           Detailed progress

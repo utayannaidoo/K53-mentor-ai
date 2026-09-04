@@ -15,6 +15,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { categoryName, CATEGORIES } from "@/lib/content/categories";
 import { formatPassProbability, blockingSection } from "@/lib/diagnostic/scoring";
+import { diagnosticFocusCategories } from "@/lib/diagnostic/focus";
 import { SECTION_LABEL } from "@/lib/constants";
 import { generateTodayPlan } from "@/lib/plan";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -49,7 +50,9 @@ export function DiagnosticResults() {
   const plan = generateTodayPlan(state, readiness);
 
   const strongest = latest.strongCategories[0];
-  const focus = latest.weakCategories.slice(0, 2);
+  const focus = diagnosticFocusCategories(latest);
+  const focusTitle =
+    focus.length > 1 ? `Focus on these ${focus.length} areas first` : "Here’s what to focus on";
   // Explain the 53 vs <1% pair that reads as contradictory without it. The
   // per-section rule is why: one section under its own mark fails the whole
   // paper even when the average looks passable.
@@ -70,7 +73,7 @@ export function DiagnosticResults() {
         {/* Reward moment */}
         <div className="flex flex-col items-center text-center">
           <Badge variant="default" className="mb-4 gap-1">
-            <Sparkles className="h-3 w-3" /> Your diagnostic is ready
+            <Sparkles className="h-3 w-3" /> Starting check complete
           </Badge>
           <ScoreRing value={latest.readiness} size={208} label="Readiness" />
           <div className="mt-5 flex items-center gap-6">
@@ -97,7 +100,7 @@ export function DiagnosticResults() {
 
         {/* Focus areas (always visible) */}
         <Card className="mt-10 p-6">
-          <h2 className="font-display text-lg font-semibold">Here&apos;s what to focus on</h2>
+          <h2 className="font-display text-lg font-semibold">{focusTitle}</h2>
           {strongest && (
             <p className="mt-1 text-sm text-muted-foreground">
               You&apos;re strongest in{" "}
@@ -108,7 +111,11 @@ export function DiagnosticResults() {
           {/* Only promised when there is something to tap — a learner who
               cleared every category sees no focus list at all. */}
           {focus.length > 0 && (
-            <p className="mt-2 text-sm text-muted-foreground">Tap any to start practising it.</p>
+            <p className="mt-2 text-sm text-muted-foreground">
+              {focus.length > 1
+                ? "These were tied among your lowest scores, so each is an equal first priority."
+                : "Tap it to start practising."}
+            </p>
           )}
           <div className="mt-5 space-y-4">
             {focus.map((cat) => (
@@ -190,16 +197,11 @@ export function DiagnosticResults() {
           )}
         </div>
 
-        {isAuthed &&
-          (state.tier === "free" && !state.guidedDone && state.sessions.length === 0 ? (
-            <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/welcome")}>
-              Start my guided first session <ArrowRight />
-            </Button>
-          ) : (
-            <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/dashboard")}>
-              Start my plan <ArrowRight />
-            </Button>
-          ))}
+        {isAuthed && (
+          <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/dashboard")}>
+            See today&apos;s plan <ArrowRight />
+          </Button>
+        )}
       </main>
     </div>
   );

@@ -2,65 +2,80 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Check, CornerDownRight, RotateCw, Sparkles } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, CornerDownRight, RotateCw } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
+import { NaviAvatar } from "@/components/shared/navi-avatar";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { selectFlashcardQueue } from "@/lib/plan.queue";
 import { forCode } from "@/lib/content/vehicle";
 import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { orderByFreshness, withShuffledOptions } from "@/lib/diagnostic/select";
 import { categoryName } from "@/lib/content/categories";
-import { RATING_LABEL } from "@/lib/srs/sm2";
 import { track } from "@/lib/analytics";
 import { haptics } from "@/lib/haptics";
-import { cn } from "@/lib/utils";
-import type { Question, SrsRating } from "@/types";
+import { cn, glassFloat, glassSubtle } from "@/lib/utils";
+import type { Flashcard, Question } from "@/types";
 
 const LETTERS = ["A", "B", "C", "D"];
-const RATINGS: SrsRating[] = ["again", "good", "easy"];
 
 /**
- * The guided first session: right after signup, instead of dropping a new
- * learner onto the raw dashboard, walk them through the product's core loop —
- * 3 real flashcards (with the spaced-repetition promise explained), 2 real
- * practice questions (with the tutor stepping in on a wrong answer), then the
- * upgrade moment. Everything here is real study: reviews and answers count.
+ * Learners who defer the starting check get a tiny, real study loop: one
+ * question and one flashcard, then Navi opens the Study menu. The first answer
+ * therefore has a purpose — it demonstrates how the app adapts — without
+ * pretending one answer is a readiness score.
  */
 export function GuidedSession() {
   const router = useRouter();
-  const { state, readiness, reviewCard, recordQuestionAttempt, recordSession, completeGuided } =
-    useStudyStore();
+  const {
+    state,
+    recordQuestionAttempt,
+    reviewCard,
+    recordSession,
+    completeGuided,
+    completeFirstRunTour,
+  } = useStudyStore();
+  const { questions: questionBank, flashcards: flashcardBank } = useContentPool();
   const startRef = React.useRef(Date.now());
-  const [step, setStep] = React.useState(0); // 0 intro · 1 cards · 2 questions · 3 paywall
+  const completedRef = React.useRef(false);
+  const [step, setStep] = React.useState(0); // intro · question · flashcard · study tour
 
-  const { questions: questionBank, flashcards: cardBank } = useContentPool();
-
-  const [cards] = React.useState(() => selectFlashcardQueue(cardBank, state, { limit: 3 }));
-  const [questions] = React.useState<Question[]>(() => {
-    const focus = state.onboarding?.worryCategories?.[0] ?? readiness.weakCategories[0] ?? null;
+  const [question] = React.useState<Question | null>(() => {
     const bank = forCode(questionBank, studyCodeOf(state));
-    const pool = focus ? bank.filter((q) => q.categoryId === focus) : bank;
-    return orderByFreshness(pool.length >= 2 ? pool : bank, state.attempts)
-      .slice(0, 2)
-      .map(withShuffledOptions);
+    const fresh = orderByFreshness(bank, state.attempts)[0];
+    return fresh ? withShuffledOptions(fresh) : null;
   });
 
-  function finish(to: string) {
+  const [flashcard] = React.useState<Flashcard | null>(() => {
+    const bank = forCode(flashcardBank, studyCodeOf(state));
+    return bank[0] ?? null;
+  });
+
+  function goToToday() {
     completeGuided();
-    recordSession("questions", Math.round((Date.now() - startRef.current) / 1000));
-    router.push(to);
+    router.push("/dashboard");
   }
 
-  function advance(from: number) {
-    track("guided_step_completed", { step: from });
-    if (from + 1 === 3) track("guided_paywall_shown", { readiness: readiness.readiness });
-    setStep(from + 1);
+  function completeQuestion() {
+    recordSession("questions", Math.max(1, Math.round((Date.now() - startRef.current) / 1000)));
+    setStep(2);
+  }
+
+  function completePractice() {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    recordSession("flashcards", Math.max(1, Math.round((Date.now() - startRef.current) / 1000)));
+    track("guided_practice_completed", { questions: 1, flashcards: 1 });
+    setStep(3);
+  }
+
+  function goToStudyTour() {
+    completeGuided();
+    completeFirstRunTour();
+    router.push("/study?tour=1");
   }
 
   const firstName = state.profile?.name?.split(" ")[0];
@@ -70,271 +85,184 @@ export function GuidedSession() {
       <header className="flex items-center justify-between px-6 py-5">
         <Logo />
         {step < 3 && (
-          <button
-            type="button"
-            onClick={() => finish("/dashboard")}
-            className="text-sm font-medium text-muted-foreground hover:text-foreground"
-          >
-            Skip tour
-          </button>
+          <Button variant="ghost" size="sm" onClick={goToToday} className="text-muted-foreground">
+            Go to Today
+          </Button>
         )}
       </header>
 
-      {/* Progress */}
       <div className="mx-auto w-full max-w-lg px-6">
-        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+        <div
+          role="progressbar"
+          aria-label="First practice progress"
+          aria-valuemin={1}
+          aria-valuemax={4}
+          aria-valuenow={step + 1}
+          className="h-1.5 overflow-hidden rounded-full bg-muted"
+        >
           <div
-            className="h-full rounded-full bg-primary transition-[width] duration-500"
+            className="h-full rounded-full bg-primary transition-[width] duration-500 ease-glass"
             style={{ width: `${((step + 1) / 4) * 100}%` }}
           />
         </div>
       </div>
 
-      <div className="flex flex-1 items-start justify-center px-6 py-8">
+      <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-6 py-8">
         <div key={step} className="w-full max-w-lg animate-fade-in">
           {step === 0 && (
             <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Sparkles className="h-8 w-8" />
-              </div>
-              <h1 className="mt-6 font-display text-3xl font-semibold tracking-tight">
-                {firstName ? `Nice one, ${firstName}.` : "Nice one."} Your plan is live.
+              <NaviAvatar priority className="mx-auto h-20 w-20" />
+              <h1 className="mt-6 text-balance font-display text-3xl font-semibold tracking-tight">
+                {firstName ? `Your plan is live, ${firstName}` : "Your plan is live"}
               </h1>
-              <p className="mx-auto mt-3 max-w-md text-muted-foreground">
-                You&apos;re at <span className="font-semibold text-primary">{readiness.readiness}% readiness</span>.
-                Before you explore on your own, here&apos;s a 2-minute guided first session — the
-                exact loop you&apos;ll use to build toward your test.
+              <p className="mx-auto mt-3 max-w-md text-balance text-muted-foreground">
+                Navi will take you through one real question and one flashcard. You&apos;ll see how
+                practice works, while your readiness stays unmeasured until the starting check.
               </p>
-              <Button size="xl" className="mt-8 w-full sm:w-auto" onClick={() => advance(0)}>
-                Show me <ArrowRight />
+              <Button size="xl" className="mt-8 w-full sm:w-auto" onClick={() => setStep(1)}>
+                Start a quick practice preview <ArrowRight />
               </Button>
+              <p className="mt-3 text-xs text-muted-foreground">About 2 minutes</p>
             </div>
           )}
 
-          {step === 1 && <GuidedCards cards={cards} reviewCard={reviewCard} onDone={() => advance(1)} />}
+          {step === 1 && (
+            question ? (
+              <GuidedQuestion
+                question={question}
+                recordQuestionAttempt={recordQuestionAttempt}
+                onDone={completeQuestion}
+              />
+            ) : (
+              <div className={cn(glassFloat, "rounded-2xl border p-6 text-center")}>
+                <h1 className="font-display text-2xl font-semibold tracking-tight">
+                  Your plan is ready
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  We couldn&apos;t load a starter question on this device, but your full study plan is
+                  available now.
+                </p>
+                <Button size="lg" className="mt-6 w-full" onClick={goToStudyTour}>
+                  Explore Study <ArrowRight />
+                </Button>
+              </div>
+            )
+          )}
+
           {step === 2 && (
-            <GuidedQuestions
-              questions={questions}
-              recordQuestionAttempt={recordQuestionAttempt}
-              onDone={() => advance(2)}
-            />
+            flashcard ? (
+              <GuidedFlashcard flashcard={flashcard} reviewCard={reviewCard} onDone={completePractice} />
+            ) : (
+              <div className={cn(glassFloat, "rounded-2xl border p-6 text-center")}>
+                <h1 className="font-display text-2xl font-semibold tracking-tight">Your Study menu is ready</h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  We couldn&apos;t load a starter flashcard on this device, but Navi can still show you every study mode.
+                </p>
+                <Button size="lg" className="mt-6 w-full" onClick={goToStudyTour}>
+                  Explore Study with Navi <ArrowRight />
+                </Button>
+              </div>
+            )
           )}
 
           {step === 3 && (
-            <div>
-              <Paywall
-                feature="guided_session"
-                plan="premium"
-                title="That's the loop. Ready to run it daily?"
-                description={`You're at ${readiness.readiness}% readiness. Your free week runs this loop at a small daily size — Premium runs it at full volume, every day you show up.`}
-                cta="Unlock my full plan"
-              />
-              <button
-                type="button"
-                onClick={() => finish("/dashboard")}
-                className="mx-auto mt-5 block text-sm font-medium text-muted-foreground hover:text-foreground"
-              >
-                Continue with my free week
-              </button>
+            <div className="text-center">
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-success/12 text-success">
+                <CheckCircle2 className="h-8 w-8" />
+              </div>
+              <h1 className="mt-6 text-balance font-display text-3xl font-semibold tracking-tight">
+                That&apos;s your study loop
+              </h1>
+              <p className="mx-auto mt-3 max-w-md text-balance text-muted-foreground">
+                Answer, understand why, recall it, then rate it. Your first practice data is saved;
+                now Navi will show you exactly where each study tool lives.
+              </p>
+              <div className={cn(glassSubtle, "mx-auto mt-6 max-w-sm rounded-xl border px-4 py-3 text-sm")}>
+                Your first question and flashcard have been saved to your progress.
+              </div>
+              <Button size="xl" className="mt-6 w-full sm:w-auto" onClick={goToStudyTour}>
+                Explore Study with Navi <ArrowRight />
+              </Button>
             </div>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }
 
-function GuidedCards({
-  cards,
-  reviewCard,
-  onDone,
-}: {
-  cards: ReturnType<typeof selectFlashcardQueue>;
-  reviewCard: (id: string, rating: SrsRating) => void;
-  onDone: () => void;
-}) {
-  const [i, setI] = React.useState(0);
-  const [flipped, setFlipped] = React.useState(false);
-  const card = cards[i];
-
-  React.useEffect(() => {
-    if (!card) onDone();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [card]);
-  if (!card) return null;
-
-  function rate(r: SrsRating) {
-    if (r === "again") haptics.error();
-    else haptics.success();
-    reviewCard(card.id, r);
-    setFlipped(false);
-    if (i + 1 >= cards.length) onDone();
-    else setI(i + 1);
-  }
-
-  return (
-    <div>
-      <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-        Step 1 · Flashcards
-      </p>
-      <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">
-        Your memory, on a schedule
-      </h1>
-      <p className="mt-2 text-muted-foreground">
-        Rate each card honestly — the app decides exactly when to show it again so it sticks.
-        Try these {cards.length}:
-      </p>
-
-      <button
-        type="button"
-        onClick={() => setFlipped((f) => !f)}
-        className="press mt-5 flex min-h-[200px] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-border bg-card p-6 text-center shadow-soft hover:border-primary/40"
-      >
-        <Badge variant="secondary" className="gap-1">
-          <CategoryIcon id={card.categoryId} className="h-3 w-3" />
-          {flipped ? "Answer" : categoryName(card.categoryId)}
-        </Badge>
-        {!flipped && (card.image || card.sign) && (
-          <SignVisual image={card.image} sign={card.sign} alt={categoryName(card.categoryId)} className="h-16 w-16" priority />
-        )}
-        <p className={cn("text-balance leading-snug", flipped ? "text-sm" : "font-display text-lg font-semibold tracking-tight")}>
-          {flipped ? card.back : card.front}
-        </p>
-        {!flipped && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <RotateCw className="h-3.5 w-3.5" /> Tap to reveal
-          </span>
-        )}
-      </button>
-
-      <div className="mt-4 min-h-[56px]">
-        {flipped && (
-          <div className="grid grid-cols-3 gap-2 animate-fade-in">
-            {RATINGS.map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => rate(r)}
-                className={cn(
-                  "press rounded-xl border-2 bg-card py-2.5 text-sm font-semibold",
-                  r === "again" && "border-danger/40 text-danger hover:bg-danger/10",
-                  r === "good" && "border-primary/40 text-primary hover:bg-primary/10",
-                  r === "easy" && "border-success/40 text-success hover:bg-success/10",
-                )}
-              >
-                {RATING_LABEL[r]}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <p className="text-center font-mono text-xs text-muted-foreground">
-        {i + 1}/{cards.length}
-      </p>
-    </div>
-  );
-}
-
-function GuidedQuestions({
-  questions,
+function GuidedQuestion({
+  question,
   recordQuestionAttempt,
   onDone,
 }: {
-  questions: Question[];
-  recordQuestionAttempt: (a: {
+  question: Question;
+  recordQuestionAttempt: (attempt: {
     questionId: string;
     categoryId: Question["categoryId"];
     correct: boolean;
     selectedIndex: number;
     context: "practice";
+    ms?: number;
   }) => void;
   onDone: () => void;
 }) {
-  const [i, setI] = React.useState(0);
   const [selected, setSelected] = React.useState<number | null>(null);
-  const [tutorShown, setTutorShown] = React.useState(0); // typewriter progress
-  const q = questions[i];
-
-  React.useEffect(() => {
-    if (!q) onDone();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
-
+  const startedAt = React.useRef(Date.now());
   const answered = selected !== null;
-  const isCorrect = answered && selected === q?.correctIndex;
-  const tutorLine = q
-    ? `Don't stress — this one catches a lot of learners. ${q.explanation} Whenever an answer surprises you, I'm one tap away to explain it differently.`
-    : "";
+  const isCorrect = answered && selected === question.correctIndex;
 
-  // The tutor "types" its explanation after a wrong answer — the aha moment.
-  React.useEffect(() => {
-    if (!answered || isCorrect) return;
-    const id = window.setInterval(() => {
-      setTutorShown((n) => (n >= tutorLine.length ? n : n + 3));
-    }, 18);
-    return () => window.clearInterval(id);
-  }, [answered, isCorrect, tutorLine.length]);
-
-  if (!q) return null;
-
-  function choose(idx: number) {
+  function choose(index: number) {
     if (answered) return;
-    if (idx === q.correctIndex) haptics.success();
+    if (index === question.correctIndex) haptics.success();
     else haptics.error();
-    setSelected(idx);
+    setSelected(index);
     recordQuestionAttempt({
-      questionId: q.id,
-      categoryId: q.categoryId,
-      correct: idx === q.correctIndex,
-      selectedIndex: idx,
+      questionId: question.id,
+      categoryId: question.categoryId,
+      correct: index === question.correctIndex,
+      selectedIndex: index,
       context: "practice",
+      ms: Math.max(0, Date.now() - startedAt.current),
     });
-  }
-
-  function next() {
-    setSelected(null);
-    setTutorShown(0);
-    if (i + 1 >= questions.length) onDone();
-    else setI(i + 1);
   }
 
   return (
     <div>
-      <p className="text-sm font-semibold uppercase tracking-wider text-primary">
-        Step 2 · Practice
-      </p>
-      <h1 className="mt-2 font-display text-2xl font-semibold tracking-tight">
-        Questions that explain themselves
+      <p className="text-sm font-semibold uppercase tracking-wider text-primary">Your first question</p>
+      <h1 className="mt-2 text-balance font-display text-2xl font-semibold tracking-tight">
+        Learn from every answer
       </h1>
       <p className="mt-2 text-muted-foreground">
-        Every answer comes with the why — and the AI tutor steps in when something doesn&apos;t click.
+        Pick the answer you think is right. You&apos;ll always see the explanation.
       </p>
 
-      <div key={q.id} className="mt-5 animate-fade-in">
+      <div className="mt-5">
         <Badge variant="secondary" className="gap-1">
-          <CategoryIcon id={q.categoryId} className="h-3 w-3" /> {categoryName(q.categoryId)}
+          <CategoryIcon id={question.categoryId} className="h-3 w-3" />
+          {categoryName(question.categoryId)}
         </Badge>
-        {(q.image || q.sign) && (
+        {(question.image || question.sign) && (
           <div className="mt-3">
-            <SignVisual image={q.image} sign={q.sign} alt={categoryName(q.categoryId)} className="h-16 w-16" detail={q.imageDetail} priority />
+            <SignVisual image={question.image} sign={question.sign} alt={categoryName(question.categoryId)} className="h-24 w-24" detail={question.imageDetail} priority />
           </div>
         )}
         <h2 className="mt-3 text-balance font-display text-lg font-semibold leading-snug tracking-tight">
-          {q.prompt}
+          {question.prompt}
         </h2>
 
         <div className="mt-4 space-y-2.5">
-          {q.options.map((opt, idx) => {
-            const showCorrect = answered && idx === q.correctIndex;
-            const showWrong = answered && selected === idx && !isCorrect;
+          {question.options.map((option, index) => {
+            const showCorrect = answered && index === question.correctIndex;
+            const showWrong = answered && selected === index && !isCorrect;
             return (
               <button
-                key={idx}
+                key={index}
                 type="button"
                 disabled={answered}
-                onClick={() => choose(idx)}
+                onClick={() => choose(index)}
                 className={cn(
-                  "flex w-full items-center gap-2.5 rounded-xl border-2 bg-card p-3.5 text-left text-sm transition-all",
+                  "flex min-h-12 w-full items-center gap-2.5 rounded-xl border-2 bg-card p-3.5 text-left text-sm transition-colors duration-200 ease-soft",
                   !answered && "press hover:border-primary/40",
                   showCorrect && "border-success bg-success/[0.06]",
                   showWrong && "border-warning bg-warning/[0.06]",
@@ -350,48 +278,111 @@ function GuidedQuestions({
                     !showCorrect && !showWrong && "border-border text-muted-foreground",
                   )}
                 >
-                  {showCorrect ? <Check className="h-3.5 w-3.5" /> : LETTERS[idx]}
+                  {showCorrect ? <Check className="h-3.5 w-3.5" /> : LETTERS[index]}
                 </span>
-                {opt}
+                {option}
               </button>
             );
           })}
         </div>
 
-        {answered && isCorrect && (
-          <div className="mt-3 flex gap-2 animate-fade-in">
-            <CornerDownRight className="mt-1.5 h-4 w-4 shrink-0 text-muted-foreground" />
-            <div className="flex-1 rounded-lg border border-success/30 bg-success/[0.05] p-3 text-sm leading-relaxed">
-              <span className="font-semibold text-success">Correct. </span>
-              {q.explanation}
-            </div>
-          </div>
-        )}
-
-        {/* Wrong answer → the tutor introduces itself */}
-        {answered && !isCorrect && (
+        {answered && (
           <div className="mt-3 animate-fade-in">
-            <div className="flex items-center gap-2">
-              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
-                <Sparkles className="h-3.5 w-3.5" />
-              </span>
-              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                Your AI tutor
+            <div className={cn(glassSubtle, "flex gap-2 rounded-xl border p-3 text-sm leading-relaxed")}>
+              <CornerDownRight className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+              <p>
+                <span className={cn("font-semibold", isCorrect ? "text-success" : "text-warning")}>
+                  {isCorrect ? "Correct. " : "Not quite. "}
+                </span>
+                {question.explanation}
               </p>
             </div>
-            <p className="mt-2 rounded-2xl rounded-tl-sm border border-border bg-card px-4 py-3 text-sm leading-relaxed">
-              {tutorLine.slice(0, tutorShown)}
-              {tutorShown < tutorLine.length && (
-                <span className="ml-0.5 inline-block h-3.5 w-1.5 animate-pulse bg-primary/60 align-middle" />
-              )}
-            </p>
+            <Button size="lg" className="mt-5 w-full" onClick={onDone}>
+              Finish first practice <ArrowRight />
+            </Button>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
 
-        {answered && (
-          <Button size="lg" className="mt-5 w-full" onClick={next}>
-            {i + 1 >= questions.length ? "Finish the tour" : "Next question"} <ArrowRight />
-          </Button>
+function GuidedFlashcard({
+  flashcard,
+  reviewCard,
+  onDone,
+}: {
+  flashcard: Flashcard;
+  reviewCard: (cardId: string, rating: "again" | "good") => void;
+  onDone: () => void;
+}) {
+  const [revealed, setRevealed] = React.useState(false);
+  const ratedRef = React.useRef(false);
+
+  function rate(rating: "again" | "good") {
+    if (ratedRef.current) return;
+    ratedRef.current = true;
+    if (rating === "good") haptics.success();
+    else haptics.error();
+    reviewCard(flashcard.id, rating);
+    onDone();
+  }
+
+  return (
+    <div>
+      <p className="text-sm font-semibold uppercase tracking-wider text-primary">Your first flashcard</p>
+      <h1 className="mt-2 text-balance font-display text-2xl font-semibold tracking-tight">
+        Recall first, then rate it
+      </h1>
+      <p className="mt-2 text-muted-foreground">
+        Flashcards use your own judgement to decide when an idea should return. Try to answer before you reveal it.
+      </p>
+
+      <div className="mt-5">
+        <button
+          type="button"
+          onClick={() => setRevealed(true)}
+          disabled={revealed}
+          className={cn(
+            glassFloat,
+            "press flex min-h-60 w-full flex-col items-center justify-center rounded-2xl border p-6 text-center",
+            !revealed && "hover:border-primary/40",
+          )}
+        >
+          <Badge variant="secondary" className="gap-1">
+            <CategoryIcon id={flashcard.categoryId} className="h-3 w-3" /> {categoryName(flashcard.categoryId)}
+          </Badge>
+          {(flashcard.image || flashcard.sign) && (
+            <SignVisual
+              image={flashcard.image}
+              sign={flashcard.sign}
+              alt={categoryName(flashcard.categoryId)}
+              className="mt-4 h-24 w-24"
+              priority
+            />
+          )}
+          <p className="mt-4 font-display text-xl font-semibold leading-snug tracking-tight">
+            {revealed ? flashcard.back : flashcard.front}
+          </p>
+          {!revealed && (
+            <span className="mt-5 inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+              <RotateCw className="h-3.5 w-3.5" /> Tap to reveal
+            </span>
+          )}
+        </button>
+
+        {revealed && (
+          <div className="mt-4 animate-fade-in">
+            <p className="text-center text-sm text-muted-foreground">How did that feel to recall?</p>
+            <div className="mt-3 grid grid-cols-2 gap-2.5">
+              <Button type="button" variant="outline" onClick={() => rate("again")}>
+                Needs another look
+              </Button>
+              <Button type="button" onClick={() => rate("good")}>
+                Got it <Check />
+              </Button>
+            </div>
+          </div>
         )}
       </div>
     </div>

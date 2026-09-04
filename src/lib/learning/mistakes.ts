@@ -1,5 +1,5 @@
 import type { CategoryId, QuestionAttempt, UserState } from "@/types";
-import { todayKey } from "@/lib/store/local-store";
+import { atDayKey, todayKey } from "@/lib/store/local-store";
 
 /**
  * The Mistake Notebook.
@@ -74,7 +74,7 @@ export function openMistakes(state: UserState): Mistake[] {
         list
           .slice(lastWrongIdx + 1)
           .filter((a) => a.correct)
-          .map((a) => a.at.slice(0, 10)),
+          .map((a) => atDayKey(a.at)),
       ),
     ];
     if (correctDays.length >= CORRECTIONS_TO_RETIRE) continue; // retired
@@ -106,7 +106,7 @@ export function openMistakes(state: UserState): Mistake[] {
 export function dueMistakes(state: UserState, now = new Date()): Mistake[] {
   const today = todayKey(now);
   const answeredToday = new Set(
-    state.attempts.filter((a) => a.at.slice(0, 10) === today).map((a) => a.questionId),
+    state.attempts.filter((a) => atDayKey(a.at) === today).map((a) => a.questionId),
   );
   return openMistakes(state).filter((m) => !answeredToday.has(m.questionId));
 }

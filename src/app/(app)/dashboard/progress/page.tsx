@@ -39,6 +39,7 @@ import { categoryMastery } from "@/lib/dashboard/mastery";
 import { mistakeStats } from "@/lib/learning/mistakes";
 import { hasFeature, PLAN_MAP } from "@/lib/billing/plans";
 import { formatDuration, formatDate, cn } from "@/lib/utils";
+import { todayKey } from "@/lib/store/local-store";
 
 /**
  * Progress — five sheets, each one bordered object with hairline bands inside
@@ -64,7 +65,7 @@ const STREAK_MILESTONES = [
 ] as const;
 
 export default function ProgressPage() {
-  const { state, readiness } = useStudyStore();
+  const { state, readiness, hasDiagnostic } = useStudyStore();
 
   const totalSeconds = state.sessions.reduce((s, x) => s + x.durationSeconds, 0);
   // Questions actually attempted. A timed mock records every slot at submit,
@@ -80,6 +81,10 @@ export default function ProgressPage() {
   const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
   const advanced = hasFeature(state.tier, "advancedAnalytics");
   const hasAttempts = answered > 0;
+  // Readiness and pass probability rely on a full, cross-category starting
+  // assessment. The scoring model still carries an internal prior before the
+  // diagnostic, but that prior is not user progress and must never be printed.
+  const hasAssessment = hasDiagnostic;
 
   // Free plan sees the last week; the rest stays visible as a blurred teaser
   // rather than silently vanishing. One paywall treatment on the page, not three.
@@ -89,7 +94,9 @@ export default function ProgressPage() {
   const cutoffKey = React.useMemo(() => {
     const d = new Date();
     d.setDate(d.getDate() - 7);
-    return d.toISOString().slice(0, 10);
+    // History dates are local keys; a UTC slice here shifts the free-tier
+    // window two hours across midnight in SA.
+    return todayKey(d);
   }, []);
   const visibleHistory = fullHistory
     ? state.readinessHistory
@@ -102,7 +109,7 @@ export default function ProgressPage() {
     if (h.length < 2) return null;
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
-    const key = weekAgo.toISOString().slice(0, 10);
+    const key = todayKey(weekAgo);
     const before = [...h].reverse().find((p) => p.date <= key) ?? h[0];
     return readiness.readiness - before.readiness;
   }, [state.readinessHistory, readiness.readiness]);
@@ -121,7 +128,7 @@ export default function ProgressPage() {
     [readiness.perCategory],
   );
   const stamped = mastery.filter((m) => m.value >= MASTERY_STAMP_AT).length;
-  const blocking = blockingSection(readiness.perCategory);
+  const blocking = hasAssessment ? blockingSection(readiness.perCategory) : null;
   const mistakes = React.useMemo(() => mistakeStats(state), [state]);
 
   const views = React.useMemo(
@@ -166,14 +173,14 @@ export default function ProgressPage() {
    * the sentence is the headline and the figures qualify it underneath.
    */
   const verdict = React.useMemo(() => {
-    if (!hasAttempts) {
+    if (!hasAssessment) {
       return {
         tone: "text-foreground",
         lead: "No verdict yet.",
         rest: "",
         support:
-          "Answer a few questions and this page will tell you whether you would pass tomorrow — and what is stopping you if not.",
-        cta: { href: "/study/questions", label: "Start practising" },
+          "Complete the 15-question starting check and this page will show your real baseline — never a placeholder score.",
+        cta: { href: "/diagnostic", label: "Take the starting check" },
       };
     }
     if (blocking) {
@@ -208,7 +215,7 @@ export default function ProgressPage() {
         "You are over each pass mark and not far over it, which is a thin margin to sit a real test on.",
       cta: { href: "/study/mock-exam", label: "Take a full mock" },
     };
-  }, [hasAttempts, blocking, sections, readiness.passProbability]);
+  }, [hasAssessment, blocking, sections, readiness.passProbability]);
 
   const streakMilestone = STREAK_MILESTONES.find((m) => state.streak.current >= m.at) ?? null;
   const DeltaIcon = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
@@ -248,6 +255,7 @@ export default function ProgressPage() {
             <RankLedger
               className="mt-4"
               rankAchieved={state.rankAchieved}
+              readinessMeasured={hasAssessment}
               inputs={{
                 cp: state.cp,
                 readiness: readiness.readiness,
@@ -398,10 +406,10 @@ export default function ProgressPage() {
               than the headline: it already leads the dashboard and rides in the
               app-shell header, and on this page the sentence outranks it. */}
           <FigureRow>
-            <Figure label="Readiness" value={`${readiness.readiness}%`} />
+            <Figure label="Readiness" value={hasAssessment ? `${readiness.readiness}%` : "—"} />
             <Figure
-              label={readiness.measured ? "Predicted pass" : "Predicted pass (estimate)"}
-              value={formatPassProbability(readiness.passProbability)}
+              label="Predicted pass"
+              value={hasAssessment ? formatPassProbability(readiness.passProbability) : "—"}
             />
             <Figure label="Accuracy" value={hasAttempts ? `${accuracy}%` : "—"} />
             <Figure label="Questions" value={answered.toLocaleString()} />
@@ -410,21 +418,29 @@ export default function ProgressPage() {
           <Band className="pb-0">
             <BandTitle
               aside={
-                <span className={cn("flex items-center gap-1.5 text-xs font-medium", deltaTone)}>
-                  <DeltaIcon className="h-3.5 w-3.5" />
-                  {delta === null
-                    ? "First week"
-                    : delta === 0
-                      ? "Level with last week"
-                      : `${delta > 0 ? "+" : ""}${delta} in 7 days`}
-                </span>
+                hasAssessment ? (
+                  <span className={cn("flex items-center gap-1.5 text-xs font-medium", deltaTone)}>
+                    <DeltaIcon className="h-3.5 w-3.5" />
+                    {delta === null
+                      ? "First week"
+                      : delta === 0
+                        ? "Level with last week"
+                        : `${delta > 0 ? "+" : ""}${delta} in 7 days`}
+                  </span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Awaiting starting check</span>
+                )
               }
             >
               How it has moved
             </BandTitle>
           </Band>
           <div className="min-w-0 pb-1 pr-2">
-            <ReadinessPlot data={visibleHistory} current={readiness.readiness} />
+            <ReadinessPlot
+              data={hasAssessment ? visibleHistory : []}
+              current={readiness.readiness}
+              unmeasured={!hasAssessment}
+            />
           </div>
 
           <Band>
@@ -438,10 +454,10 @@ export default function ProgressPage() {
                 <li key={s.id}>
                   <MasteryBar
                     label={SECTION_LABEL[s.id]}
-                    value={hasAttempts ? s.value : 0}
+                    value={hasAssessment ? s.value : 0}
                     threshold={s.required}
                     thresholdLabel={`Pass mark ${EXAM_FORMAT.sections[s.id].pass} of ${EXAM_FORMAT.sections[s.id].questions}`}
-                    count={hasAttempts ? `${s.value}% / ${s.required}%` : `— / ${s.required}%`}
+                    count={hasAssessment ? `${s.value}% / ${s.required}%` : `— / ${s.required}%`}
                   />
                 </li>
               ))}
@@ -462,10 +478,16 @@ export default function ProgressPage() {
         <>
           <Band divided={false}>
             <p className="mb-4 text-sm text-muted-foreground">
-              Weakest first, so the map is also the list. The tick on each ring is the pass mark
-              that category is judged against — {MASTERY_STAMP_AT}% stamps it for good.
+              {hasAssessment
+                ? "Weakest first, so the map is also the list. "
+                : "Each category stays unscored until it has real evidence. "}
+              The tick on each ring is the pass mark that category is judged against —{" "}
+              {MASTERY_STAMP_AT}% stamps it for good.
             </p>
-            <MasteryMap perCategory={readiness.perCategory} />
+            <MasteryMap
+              perCategory={readiness.perCategory}
+              evidence={readiness.perCategoryEvidence}
+            />
           </Band>
 
           {mistakes.everMissed > 0 && (
@@ -549,9 +571,16 @@ export default function ProgressPage() {
               Your Driving Passport — the verdict, the work behind it, and where you stand in every
               category. Send it to the group chat; a study buddy makes the streak easier to keep.
             </p>
-            <div className="mt-4 max-w-xl">
-              <ShareCard />
-            </div>
+            {hasAssessment ? (
+              <div className="mt-4 max-w-xl">
+                <ShareCard />
+              </div>
+            ) : (
+              <p className="mt-3 text-sm text-muted-foreground">
+                Your shareable Driving Passport appears after the starting check, once it has real
+                readiness and category scores to show.
+              </p>
+            )}
           </Band>
         </>
       ),

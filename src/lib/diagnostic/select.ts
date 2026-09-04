@@ -301,6 +301,12 @@ export function sampleSectionDrill(
  * 28 rules questions (64 total). Each section is filled with unique questions,
  * preferring ones the learner has seen least recently; the order is shuffled
  * and every question's options are shuffled.
+ *
+ * Returns [] when the pool cannot fill ANY section to its official count.
+ * Grading keeps the official per-section pass marks, so a short section (say
+ * 20/28 signs against a required 23) would make the paper mathematically
+ * impossible to pass — no paper at all beats an unfair one. Minis and drills
+ * don't need this guard; they scale their mark to whatever was sampled.
  */
 export function sampleMockExam(
   pool: Question[],
@@ -318,7 +324,9 @@ export function sampleMockExam(
   const seen = new Set<string>(); // shared across sections — one paper, one subject list
   for (const section of Object.keys(EXAM_FORMAT.sections) as ExamSection[]) {
     const need = EXAM_FORMAT.sections[section].questions;
-    out.push(...takeDistinctSubjects(orderByFreshness(bySection[section], attempts), need, seen));
+    const picked = takeDistinctSubjects(orderByFreshness(bySection[section], attempts), need, seen);
+    if (picked.length < need) return [];
+    out.push(...picked);
   }
   return shuffle(out).map(withShuffledOptions);
 }

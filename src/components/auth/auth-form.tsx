@@ -475,7 +475,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
       </h1>
       <p className="mt-1.5 text-sm text-muted-foreground">
         {mode === "signup"
-          ? "Save your readiness score and study plan."
+          ? "Save your study plan and progress."
           : "Log in to pick up where you left off."}
       </p>
 

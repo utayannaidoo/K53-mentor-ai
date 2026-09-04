@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 import { RotatingWord } from "@/components/landing/rotating-word";
 import { CountUp } from "@/components/landing/count-up";
+import { TrackedLink } from "@/components/landing/tracked-link";
 
 /** Gradient "pill" CTA shared across the redesigned landing sections. */
 const PILL =
@@ -13,8 +14,11 @@ const PILL =
 
 export function Hero() {
   return (
-    <header
+    // A section, not a <header>: the page landmark is owned by the sticky
+    // nav, and a second header element made screen readers announce two.
+    <section
       id="top"
+      aria-label="Introduction"
       className="mx-auto grid max-w-[1120px] items-center gap-14 px-6 pb-16 pt-8 lg:grid-cols-[1.05fr_0.95fr] lg:pt-10"
     >
       {/* ── Copy column ─────────────────────────────────────────── */}
@@ -39,10 +43,10 @@ export function Hero() {
         </p>
 
         <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
-          <Link href="/onboarding" className={`${PILL} px-6 py-[15px] text-base`}>
+          <TrackedLink location="hero" href="/onboarding" className={`${PILL} px-6 py-[15px] text-base`}>
             Start free assessment
             <ArrowRight className="h-[17px] w-[17px]" />
-          </Link>
+          </TrackedLink>
           <Link
             href="#how"
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-6 py-[15px] text-base font-semibold text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.3)] backdrop-blur-md transition-[transform,background] duration-[400ms] ease-spring hover:bg-muted/60 active:scale-[0.96]"
@@ -161,6 +165,6 @@ export function Hero() {
           </div>
         </div>
       </div>
-    </header>
+    </section>
   );
 }

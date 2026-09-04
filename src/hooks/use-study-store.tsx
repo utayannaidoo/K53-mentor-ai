@@ -131,6 +131,8 @@ interface StudyStore {
 
   /** Mark the post-signup guided first session as completed/skipped. */
   completeGuided: () => void;
+  /** Complete or dismiss the optional feature navigator shown after first signup. */
+  completeFirstRunTour: () => void;
   bumpUsage: (kind: UsageKind, by?: number) => void;
   usageFor: (kind: UsageKind) => { used: number; cap: number; allowed: boolean };
   acknowledgeRankUp: () => void;
@@ -508,6 +510,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
     accountHydrated,
     state.profile,
     state.onboarding,
+    state.diagnosticSkippedAt,
     state.tier,
     state.streak,
     // Without this the licence result waits for some other slice to change
@@ -589,6 +592,12 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         // Same rule as hydrateAccountState: a server with no onboarding yet
         // must not blank the answers this browser already holds.
         next.onboarding = account.onboarding ?? s.onboarding;
+        // The same first-sync window exists for a diagnostic deferral made
+        // before signup. A blank new profile must not undo that choice before
+        // the debounced writer has had a chance to persist it.
+        next.diagnosticSkippedAt =
+          account.diagnosticSkippedAt ?? s.diagnosticSkippedAt;
+        if (next.diagnostics.length > 0) next.diagnosticSkippedAt = null;
         return next;
       });
       return account.tier ?? null;
@@ -598,6 +607,10 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       setState((s) => ({
         ...s,
         onboarding: { ...data, completedAt: new Date().toISOString() },
+        // This is only armed by a newly completed onboarding flow. Existing
+        // learners load the backwards-compatible `true` default instead of
+        // being interrupted by a tour in the middle of their study routine.
+        firstRunTourDone: false,
       })),
 
     saveOnboarding: async (data) => {
@@ -618,6 +631,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         const next = {
           ...s,
           diagnostics: [...s.diagnostics, result],
+          // The learner came back and completed the deferred assessment. The
+          // skip marker must no longer follow them across devices.
+          diagnosticSkippedAt: null,
           cp: s.cp + DIAGNOSTIC_CP,
         };
         return applyStudyEffects(next);
@@ -745,6 +761,9 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       }),
 
     completeGuided: () => setState((s) => (s.guidedDone ? s : { ...s, guidedDone: true })),
+
+    completeFirstRunTour: () =>
+      setState((s) => (s.firstRunTourDone ? s : { ...s, firstRunTourDone: true })),
 
     bumpUsage: (kind, by = 1) => setState((s) => bumpUsageState(s, kind, by)),
 

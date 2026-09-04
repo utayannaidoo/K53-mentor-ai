@@ -64,7 +64,7 @@ const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests 
 
 const COACH_DAILY_LIMIT = Number(process.env.COACH_DAILY_IP_LIMIT ?? 80); // requests / day
 const VISION_DAILY_LIMIT = Number(process.env.VISION_DAILY_IP_LIMIT ?? 20); // scans / day (priciest calls)
-const CONTENT_HOURLY_LIMIT = Number(process.env.CONTENT_HOURLY_IP_LIMIT ?? 6); // pack syncs / hour
+const CONTENT_HOURLY_LIMIT = Number(process.env.CONTENT_HOURLY_IP_LIMIT ?? 20); // pack syncs / hour
 // Entitlement probes (`/api/content/pack?probe=1`) fire on every app-shell
 // mount and on every `online` event — ordinary browsing, not syncing. Sharing
 // the tight download bucket above meant a handful of mounts from one mobile

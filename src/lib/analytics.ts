@@ -114,6 +114,7 @@ export type AnalyticsEvent =
   | "cta_clicked"
   | "signup_started"
   | "login_completed"
+  | "onboarding_completed"
   /** Started the placement diagnostic (completes are `diagnostic_completed`). */
   | "diagnostic_started"
   | "diagnostic_completed"
@@ -154,6 +155,8 @@ export type AnalyticsEvent =
   | "share_text_copied"
   | "guided_step_completed"
   | "guided_paywall_shown"
+  | "guided_practice_completed"
+  | "today_plan_started"
   | "paywall_viewed"
   | "paywall_cta_clicked"
   | "landing_preview_interacted";

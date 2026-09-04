@@ -105,33 +105,51 @@ function MasteryRing({
  * to-do list. The last cell is the licence itself: unreachable inside the app
  * on purpose, because it belongs to test day.
  */
-export function MasteryMap({ perCategory }: { perCategory: Record<CategoryId, number> }) {
-  const rows = categoryMastery(perCategory);
+export function MasteryMap({
+  perCategory,
+  evidence,
+}: {
+  perCategory: Record<CategoryId, number>;
+  evidence: Record<CategoryId, number>;
+}) {
+  const rows = categoryMastery(perCategory).sort((a, b) => {
+    const aAssessed = evidence[a.id] > 0;
+    const bAssessed = evidence[b.id] > 0;
+    if (aAssessed !== bAssessed) return aAssessed ? -1 : 1;
+    return a.value - b.value;
+  });
 
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-      {rows.map((row) => (
-        <li key={row.id}>
+      {rows.map((row) => {
+        const assessed = evidence[row.id] > 0;
+        return (
+          <li key={row.id}>
           <Link
             href={`/study/questions?category=${row.id}`}
             className={cn(
               "press group flex h-full flex-col items-center gap-2 rounded-xl border p-4 text-center transition-colors hover:bg-background/70",
-              row.value >= MASTERY_STAMP_AT
+              assessed && row.value >= MASTERY_STAMP_AT
                 ? "border-success/40 bg-background/40"
                 : "border-border/50 bg-background/40 hover:border-primary/30",
             )}
           >
-            <MasteryRing value={row.value} required={row.required} categoryId={row.id} />
+            <MasteryRing
+              value={assessed ? row.value : 0}
+              required={row.required}
+              categoryId={row.id}
+            />
             <span className="text-sm font-medium leading-tight text-foreground group-hover:text-primary">
               {row.name}
             </span>
             <span className="font-mono text-2xs tabular-nums text-muted-foreground">
-              {row.value}%
+              {assessed ? `${row.value}%` : "Not assessed"}
               <span className="text-muted-foreground/60"> / {row.required}%</span>
             </span>
           </Link>
-        </li>
-      ))}
+          </li>
+        );
+      })}
 
       {/* The final page of the passport. */}
       <li>

@@ -82,6 +82,19 @@ describe("saveAccount — refuses to write another account's data", () => {
     expect(profile?.row.vehicle_code).toBe("8");
   });
 
+  it("persists the diagnostic deferral with the learner's profile", async () => {
+    const { client, writes } = fakeSupabase("user-B");
+    await saveAccount(
+      client,
+      stateFor("user-B", "8", {
+        diagnosticSkippedAt: "2026-09-04T08:00:00.000Z",
+      }),
+    );
+    expect(writes.find((w) => w.table === "profiles")?.row.diagnostic_skipped_at).toBe(
+      "2026-09-04T08:00:00.000Z",
+    );
+  });
+
   it("writes the learner's own code unchanged, on every tier", async () => {
     // The plan must never rewrite what someone is studying.
     for (const tier of ["free", "premium", "premium_plus"] as const) {
