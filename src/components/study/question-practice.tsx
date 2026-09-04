@@ -42,6 +42,7 @@ import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
 import { haptics } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { clearPracticeDraft, loadPracticeDraft, savePracticeDraft } from "@/lib/study/session-draft";
 import type { CategoryId, Question } from "@/types";
 
 const LETTERS = ["A", "B", "C", "D"];
@@ -123,6 +124,8 @@ export function QuestionPractice() {
   const [answers, setAnswers] = React.useState<(number | null)[]>(() =>
     new Array(queue.length).fill(null),
   );
+  const draftSignature = `category=${categoryParam ?? "all"};cram=${cramMode}`;
+  const restoredDraft = React.useRef(false);
   const sessionRecorded = React.useRef(false);
   // Synchronous double-tap lock. `answers[i] !== null` alone cannot stop two
   // taps in the same tick — both read the same stale closure before either
@@ -139,6 +142,25 @@ export function QuestionPractice() {
     // Release the double-tap lock once the next question has rendered.
     answering.current = false;
   }, [i]);
+
+  // The queue is personalised and shuffled, so restoring only an index would
+  // quietly put a different question under the learner's finger. Keep the
+  // compact session paper alongside its answers and resume it automatically.
+  React.useEffect(() => {
+    if (restoredDraft.current) return;
+    const draft = loadPracticeDraft(
+      state.profile?.id ?? null,
+      draftSignature,
+      new Set(bank.map((question) => question.id)),
+    );
+    if (!draft) return;
+    restoredDraft.current = true;
+    setQueue(draft.questions);
+    setAnswers(draft.answers);
+    setI(draft.index);
+    // A resumed surface must never be replaced by the late full-pool upgrade.
+    builtFromFullPool.current = true;
+  }, [bank, draftSignature, state.profile?.id]);
 
   /**
    * The full bank arrives after mount, so a queue built while the pool is still
@@ -176,6 +198,7 @@ export function QuestionPractice() {
     startRef.current = Date.now();
     cpStartRef.current = state.cp;
     sessionRecorded.current = false;
+    clearPracticeDraft();
     setI(0);
   }
 
@@ -280,10 +303,17 @@ export function QuestionPractice() {
     // Acknowledge the tap physically before the visual result lands.
     if (optionIndex === q.correctIndex) haptics.success();
     else haptics.error();
-    setAnswers((prev) => {
-      const copy = [...prev];
-      copy[i] = optionIndex;
-      return copy;
+    const nextAnswers = [...answers];
+    nextAnswers[i] = optionIndex;
+    setAnswers(nextAnswers);
+    savePracticeDraft({
+      kind: "practice",
+      savedAt: new Date().toISOString(),
+      ownerProfileId: state.profile?.id ?? null,
+      signature: draftSignature,
+      questions: queue,
+      answers: nextAnswers,
+      index: i,
     });
     recordQuestionAttempt({
       questionId: q.id,
@@ -296,7 +326,17 @@ export function QuestionPractice() {
   }
 
   function goPrev() {
-    setI((x) => Math.max(0, x - 1));
+    const previousIndex = Math.max(0, i - 1);
+    savePracticeDraft({
+      kind: "practice",
+      savedAt: new Date().toISOString(),
+      ownerProfileId: state.profile?.id ?? null,
+      signature: draftSignature,
+      questions: queue,
+      answers,
+      index: previousIndex,
+    });
+    setI(previousIndex);
   }
   function goNext() {
     if (answers[i] === null) return; // can't advance until answered
@@ -306,9 +346,20 @@ export function QuestionPractice() {
         recordSession("questions", Math.round((Date.now() - startRef.current) / 1000));
         sessionRecorded.current = true;
       }
+      clearPracticeDraft();
       setI(queue.length);
     } else {
-      setI((x) => x + 1);
+      const nextIndex = i + 1;
+      savePracticeDraft({
+        kind: "practice",
+        savedAt: new Date().toISOString(),
+        ownerProfileId: state.profile?.id ?? null,
+        signature: draftSignature,
+        questions: queue,
+        answers,
+        index: nextIndex,
+      });
+      setI(nextIndex);
     }
   }
 
