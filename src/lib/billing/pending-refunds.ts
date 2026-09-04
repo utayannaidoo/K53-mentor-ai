@@ -46,6 +46,69 @@ export interface PendingRefundRow {
 type Admin = SupabaseClient;
 
 /**
+ * Rescue the one legacy state that predates the retry queue.
+ *
+ * Before `pending_refunds` existed, a cancellation could successfully claim
+ * `money_back_used`, have Paystack refuse the refund, and then fail to release
+ * that claim. The subscription was correctly made non-renewing, but no retry
+ * record existed — so neither the learner nor the daily cron could ever get
+ * the money moving again.
+ *
+ * This combination is otherwise impossible in the current flow:
+ *
+ *  - a successful refund immediately makes the subscription free; and
+ *  - a refused refund always creates a pending-refund row before returning.
+ *
+ * It is therefore safe to turn a paid, non-renewing, claimed subscription
+ * with no queue row into the same durable queue the modern path uses. The
+ * unique transaction reference remains the final race guard.
+ */
+async function recoverOrphanedRefundClaims(admin: Admin): Promise<number> {
+  const { data, error } = await admin
+    .from("subscriptions")
+    .select("user_id, last_charge_reference")
+    .eq("money_back_used", true)
+    .eq("cancel_at_period_end", true)
+    .neq("tier", "free")
+    .limit(MAX_ROWS_PER_PASS);
+  if (error) {
+    console.error("[refunds] could not inspect legacy refund claims:", error.message);
+    return 0;
+  }
+
+  let recovered = 0;
+  for (const candidate of (data ?? []) as Array<{
+    user_id: string;
+    last_charge_reference: string | null;
+  }>) {
+    if (!candidate.last_charge_reference) continue;
+
+    // A present row is already owned by the normal queue. Avoid overwriting
+    // its last Paystack refusal merely because the recovery sweep saw it.
+    const { data: existing, error: existingError } = await admin
+      .from("pending_refunds")
+      .select("id")
+      .eq("transaction_reference", candidate.last_charge_reference)
+      .maybeSingle();
+    if (existingError) {
+      console.error(
+        `[refunds] could not check legacy claim ${candidate.last_charge_reference}: ${existingError.message}`,
+      );
+      continue;
+    }
+    if (existing) continue;
+
+    const queued = await queuePendingRefund(admin, {
+      userId: candidate.user_id,
+      reference: candidate.last_charge_reference,
+      lastError: "Recovered a legacy refund claim that had no retry record.",
+    });
+    if (queued.ok && queued.rowStatus === "queued") recovered += 1;
+  }
+  return recovered;
+}
+
+/**
  * Queue one charge for automatic reversal.
  *
  * INSERT-ignore, deliberately NOT an upsert: a retried cancel must never
@@ -118,8 +181,14 @@ export async function processPendingRefunds(admin: Admin): Promise<{
   refunded: number;
   failed: number;
   waiting: number;
+  recovered: number;
 }> {
-  const summary = { attempted: 0, refunded: 0, failed: 0, waiting: 0 };
+  const summary = { attempted: 0, refunded: 0, failed: 0, waiting: 0, recovered: 0 };
+
+  // Run this before reading queued rows so a pre-queue cancellation is not
+  // stranded for another day. It does not call Paystack itself; every payment
+  // attempt still travels through the single, audited loop below.
+  summary.recovered = await recoverOrphanedRefundClaims(admin);
 
   const { data, error } = await admin
     .from("pending_refunds")
@@ -227,16 +296,21 @@ async function notifyLearner(row: PendingRefundRow) {
   }
   const admin = createAdminClient();
   if (!admin) return;
+  // `profiles` carries `full_name` — there is no `first_name` column, and
+  // selecting it makes PostgREST error the whole read, so the learner
+  // confirmation silently never sent.
   const { data: profile } = await admin
     .from("profiles")
-    .select("email, first_name")
+    .select("email, full_name")
     .eq("id", row.user_id)
     .maybeSingle();
   const email = (profile as { email?: string } | null)?.email;
   if (!isEmailConfigured || !email) return;
 
   const mail = buildRefundProcessedEmail({
-    firstName: (profile as { first_name?: string | null } | null)?.first_name ?? "",
+    firstName: ((profile as { full_name?: string | null } | null)?.full_name ?? "")
+      .trim()
+      .split(/\s+/)[0] ?? "",
     amountZar: amountCents !== null ? amountCents / 100 : null,
   });
   await sendEmail({ to: email, ...mail });

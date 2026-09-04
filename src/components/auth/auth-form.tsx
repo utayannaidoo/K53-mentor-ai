@@ -13,6 +13,7 @@ import { track } from "@/lib/analytics";
 import { isPasswordValid } from "@/lib/auth/password";
 import { checkAuthAttempt, recordAuthResult, type ThrottleSurface } from "@/lib/auth/client-throttle";
 import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
+import { shouldShowSessionDisagreement } from "@/lib/auth/session-disagreement";
 import { safeNextPath } from "@/lib/auth/safe-next";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { TurnstileChallenge, useTurnstile } from "@/components/auth/turnstile";
@@ -60,12 +61,20 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
   const [duplicate, setDuplicate] = React.useState(false);
   // Why the auth callback sent them back here (expired link, wrong browser…).
   const [linkError, setLinkError] = React.useState<string | null>(null);
+  // Signed in on this device, but the server can't see it — the bounce in
+  // session-disagreement.ts. Shown instead of a bare form that reads as
+  // "the sign-in didn't work, try the same password again".
+  const [disagreement, setDisagreement] = React.useState(false);
 
   // Failure feedback renders BELOW the submit button, which on a phone sits
   // under the open keyboard — without this scroll a bad login looks like
   // nothing happened. One ref serves both panels: they never render together.
   const alertRef = React.useRef<HTMLParagraphElement>(null);
   const noticeRef = React.useRef<HTMLDivElement>(null);
+  // Funnel-start dedup: a visitor who mistypes their password three times
+  // started signup ONCE. Firing per submit would inflate the top of the
+  // signup → activation funnel and understate conversion.
+  const startedTrackedRef = React.useRef(false);
   React.useEffect(() => {
     const el = unconfirmed || duplicate ? noticeRef.current : alertRef.current;
     el?.scrollIntoView({ block: "center", behavior: "smooth" });
@@ -153,6 +162,44 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, isAuthed, router]);
 
+  // Detect the silent bounce: a `?next=` means the middleware sent this
+  // visitor here from a protected page, and a local session means this
+  // browser just signed in — so the session isn't reaching the server
+  // (blocked cookies) or the server couldn't verify it in time (middleware
+  // timeout, fail-open). `getSession()` is a local storage read, not a
+  // network call, so this costs nothing on the happy path and never blocks
+  // the form. Login only: the middleware never bounces to /signup.
+  React.useEffect(() => {
+    if (mode !== "login" || !isSupabaseConfigured) return;
+    if (!new URLSearchParams(window.location.search).get("next")) return;
+    let cancelled = false;
+    import("@/lib/supabase/client")
+      .then(({ createClient }) => {
+        if (cancelled) return;
+        const supabase = createClient();
+        if (!supabase) return;
+        supabase.auth
+          .getSession()
+          .then(({ data }) => {
+            if (
+              !cancelled &&
+              shouldShowSessionDisagreement({
+                supabaseConfigured: true,
+                hasNext: true,
+                hasLocalSession: Boolean(data.session),
+              })
+            )
+              setDisagreement(true);
+          })
+          .catch(() => {});
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
   // A referral link (/signup?ref=CODE) parks the code until the account
   // exists; the study store claims it right after the first sign-in.
   React.useEffect(() => {
@@ -219,6 +266,8 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     e.preventDefault();
     setError(null);
     setLinkError(null);
+    // A fresh attempt supersedes the bounce notice below.
+    setDisagreement(false);
     setUnconfirmed(false);
     setResent(false);
     setDuplicate(false);
@@ -258,6 +307,11 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     if (gate && !gate.allowed) {
       setError(tooManyAttemptsCopy(gate.retryAfterS));
       return;
+    }
+    if (mode === "signup" && !startedTrackedRef.current) {
+      startedTrackedRef.current = true;
+      const plan = new URLSearchParams(window.location.search).get("plan");
+      track("signup_started", { has_plan: plan === "premium" || plan === "premium_plus" });
     }
     setLoading(true);
 
@@ -316,6 +370,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
       // Credentials accepted (full session, or account created and awaiting
       // confirmation) — clear this surface's failure history entirely.
       recordAuthResult(surface, true);
+      if (mode === "login" && data.session) track("login_completed", { method: "password" });
       // Email confirmation is on: the account exists but there's no session
       // yet, so entering the app now would just bounce off the middleware.
       if (mode === "signup" && !data.session) {
@@ -333,6 +388,17 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     // auth-local-provider for the full race).
     if (mode === "signup") track("signup_completed", { method: "password" });
     await signInLocal(name || email.split("@")[0] || "Learner", email || `demo@${SITE_DOMAIN}`);
+    // A client-side App Router transition can begin with the request that was
+    // prefetched while this page was still anonymous. On a brand-new Supabase
+    // session that stale request reaches the app shell without the fresh auth
+    // cookie, which immediately sends the learner back to /login. A full
+    // browser navigation happens only after signUp/signIn has resolved and
+    // makes the newly written cookie visible to middleware and the app store.
+    // Demo mode has no auth cookie, so retain its fast client-side handoff.
+    if (isSupabaseConfigured) {
+      window.location.assign(postAuthDest());
+      return;
+    }
     router.push(postAuthDest());
   }
 
@@ -379,6 +445,26 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
 
   return (
     <div>
+      {disagreement && (
+        <div className="mb-5 rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed">
+          <p className="font-medium">
+            You signed in on this device, but we couldn&apos;t confirm it.
+          </p>
+          <p className="mt-1 text-muted-foreground">
+            This usually means your browser is blocking sign-in cookies — tracking
+            protection, &ldquo;block all cookies&rdquo;, or an in-app browser can do
+            this. Allow cookies for this site and try again, or open it in your main
+            browser.
+          </p>
+          <button
+            type="button"
+            onClick={() => router.replace(postAuthDest())}
+            className="-mx-2 -my-1 mt-1.5 inline-flex items-center rounded-md px-2 py-2 font-medium text-primary hover:underline"
+          >
+            Try again
+          </button>
+        </div>
+      )}
       {linkError && (
         <p className="mb-5 rounded-xl border border-warning/30 bg-warning/[0.06] p-3 text-sm leading-relaxed text-foreground">
           {linkError}

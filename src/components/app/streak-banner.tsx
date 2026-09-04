@@ -30,14 +30,39 @@ type BannerState =
 export function StreakBanner() {
   const { ready, state } = useStudyStore();
   const pathname = usePathname();
+  const [dismissedDay, setDismissedDay] = React.useState<string | null>(null);
   const [dismissed, setDismissed] = React.useState<boolean>(() => {
     if (typeof window === "undefined") return true;
     try {
-      return window.localStorage.getItem(DISMISS_KEY) === todayKey();
+      const day = todayKey();
+      if (window.localStorage.getItem(DISMISS_KEY) === day) {
+        setDismissedDay(day);
+        return true;
+      }
+      return false;
     } catch {
       return false;
     }
   });
+
+  // A long-lived tab crossing midnight keeps yesterday's dismiss alive —
+  // the banner then stays silent on a day it should speak. Re-read the key
+  // whenever the tab is revisited and the calendar has turned.
+  React.useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState !== "visible") return;
+      const day = todayKey();
+      if (day === dismissedDay) return;
+      setDismissedDay(day);
+      try {
+        setDismissed(window.localStorage.getItem(DISMISS_KEY) === day);
+      } catch {
+        setDismissed(false);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [dismissedDay]);
 
   // Don't interrupt an active study session — the session itself clears the
   // risk. The tutor counts too: its pane is sized to the exact viewport (see
@@ -61,6 +86,7 @@ export function StreakBanner() {
 
   function dismiss() {
     setDismissed(true);
+    setDismissedDay(todayKey());
     try {
       window.localStorage.setItem(DISMISS_KEY, todayKey());
     } catch {

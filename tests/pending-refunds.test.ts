@@ -227,7 +227,7 @@ describe("processPendingRefunds", () => {
     );
 
     const summary = await processPendingRefunds(fake.client);
-    expect(summary).toEqual({ attempted: 1, refunded: 0, failed: 0, waiting: 1 });
+    expect(summary).toEqual({ attempted: 1, refunded: 0, failed: 0, waiting: 1, recovered: 0 });
     expect(fake.tables.pending_refunds[0].status).toBe("queued");
     expect(fake.tables.pending_refunds[0].attempts).toBe(1);
     expect(String(fake.tables.pending_refunds[0].last_error)).toContain("Insufficient balance");
@@ -291,7 +291,28 @@ describe("processPendingRefunds", () => {
   it("an empty queue is a no-op", async () => {
     const fake = makeFakeAdmin({ pending_refunds: [] });
     const summary = await processPendingRefunds(fake.client);
-    expect(summary).toEqual({ attempted: 0, refunded: 0, failed: 0, waiting: 0 });
+    expect(summary).toEqual({ attempted: 0, refunded: 0, failed: 0, waiting: 0, recovered: 0 });
     expect(refundTransaction).not.toHaveBeenCalled();
+  });
+
+  it("recovers an old claimed cancellation with no queue row", async () => {
+    const fake = makeFakeAdmin({
+      pending_refunds: [],
+      subscriptions: [
+        subscriptionRow({ money_back_used: true, cancel_at_period_end: true }),
+      ],
+    });
+    vi.mocked(createAdminClient).mockReturnValue(fake.client as never);
+    vi.mocked(refundTransaction).mockRejectedValue(new Error("Insufficient balance"));
+
+    const summary = await processPendingRefunds(fake.client);
+
+    expect(summary).toEqual({ attempted: 1, refunded: 0, failed: 0, waiting: 1, recovered: 1 });
+    expect(fake.tables.pending_refunds).toHaveLength(1);
+    expect(fake.tables.pending_refunds[0]).toMatchObject({
+      transaction_reference: "ref_owed",
+      status: "queued",
+      attempts: 1,
+    });
   });
 });
