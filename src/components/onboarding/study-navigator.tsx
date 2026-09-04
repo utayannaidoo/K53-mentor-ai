@@ -38,7 +38,7 @@ const STUDY_STEPS: readonly NaviGuideStep[] = [
   },
 ];
 
-/** Opens only from Navi's first-run route and hands the learner to the AI tutor next. */
+/** Opens only from Navi's first-run route and ends in a real practice session. */
 export function StudyNavigator() {
   const router = useRouter();
   const { completeFirstRunTour } = useStudyStore();
@@ -58,7 +58,7 @@ export function StudyNavigator() {
 
   const finish = () => {
     setActive(false);
-    router.push("/tutor?tour=1");
+    router.push("/study/questions");
   };
 
   return (
@@ -66,7 +66,7 @@ export function StudyNavigator() {
       steps={STUDY_STEPS}
       onDismiss={dismiss}
       onFinish={finish}
-      finishLabel="Meet Navi"
+      finishLabel="Try practice questions"
       label="Navi's Study tour"
       tourId="study"
     />
