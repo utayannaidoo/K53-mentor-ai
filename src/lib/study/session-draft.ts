@@ -6,7 +6,15 @@
  * companion draft, a refresh creates a different queue at question/card one
  * even though the learner's completed work is safely recorded.
  */
-import type { Question } from "@/types";
+import type { CategoryId, Question, SignKey, VehicleCode } from "@/types";
+
+const CATEGORY_IDS = ["signs", "rules", "controls", "intersections", "parking", "following_distance", "hazard_awareness"] as const satisfies readonly CategoryId[];
+const SIGN_KEYS = ["stop", "yield", "no_entry", "no_overtaking", "speed_60", "speed_120", "pedestrian", "traffic_circle", "t_junction", "robot", "railway", "no_stopping"] as const satisfies readonly SignKey[];
+const VEHICLE_CODES = ["8", "10", "14", "A1", "A"] as const satisfies readonly VehicleCode[];
+
+function memberOf<T extends string>(value: unknown, values: readonly T[]): value is T {
+  return typeof value === "string" && values.some((allowed) => allowed === value);
+}
 
 const PRACTICE_KEY = "k53mentor.draft.practice.v1";
 const FLASHCARD_KEY = "k53mentor.draft.flashcards.v1";
@@ -78,7 +86,7 @@ function isQuestionLike(value: unknown): value is Question {
   const question = value as Partial<Question>;
   return (
     typeof question.id === "string" &&
-    typeof question.categoryId === "string" &&
+    memberOf(question.categoryId, CATEGORY_IDS) &&
     typeof question.prompt === "string" &&
     Array.isArray(question.options) &&
     question.options.length > 0 &&
@@ -87,8 +95,13 @@ function isQuestionLike(value: unknown): value is Question {
     question.correctIndex! >= 0 &&
     question.correctIndex! < question.options.length &&
     typeof question.explanation === "string" &&
-    Number.isInteger(question.difficulty) &&
-    typeof question.scope === "string"
+    (question.difficulty === 1 || question.difficulty === 2 || question.difficulty === 3) &&
+    (question.scope === "learners" || question.scope === "drivers") &&
+    (question.sign === undefined || memberOf(question.sign, SIGN_KEYS)) &&
+    (question.image === undefined || typeof question.image === "string") &&
+    (question.imageDetail === undefined || typeof question.imageDetail === "boolean") &&
+    (question.codes === undefined || (Array.isArray(question.codes) && question.codes.every((code) => memberOf(code, VEHICLE_CODES)))) &&
+    (question.source === undefined || typeof question.source === "string")
   );
 }
 

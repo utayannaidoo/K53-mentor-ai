@@ -120,6 +120,7 @@ describe("short study session drafts", () => {
         index: 0.5,
       });
       expect(loadPracticeDraft("learner", "category=all;cram=false", new Set(["q_1"]))).toBeNull();
+      expect(window.localStorage.getItem("k53mentor.draft.practice.v1")).toBeNull();
 
       saveFlashcardDraft({
         kind: "flashcards",
@@ -130,6 +131,46 @@ describe("short study session drafts", () => {
         index: 0.5,
       });
       expect(loadFlashcardDraft(null, "category=all", new Set(["card_1"]))).toBeNull();
+      expect(window.localStorage.getItem("k53mentor.draft.flashcards.v1")).toBeNull();
+    });
+  });
+
+  it.each([
+    null,
+    { id: "q_1" },
+    { ...question, categoryId: "unknown" },
+    { ...question, difficulty: 99 },
+    { ...question, scope: "anything" },
+    { ...question, options: "not-an-array" },
+    { ...question, options: [null] },
+    { ...question, correctIndex: 4 },
+    { ...question, sign: "unknown" },
+    { ...question, image: {} },
+    { ...question, imageDetail: "yes" },
+    { ...question, codes: ["invalid"] },
+    { ...question, codes: "8" },
+    { ...question, source: 42 },
+  ])("rejects and removes malformed persisted question: %j", (malformed) => {
+    withLocalStorage(() => {
+      const key = "k53mentor.draft.practice.v1";
+      window.localStorage.setItem(key, JSON.stringify({
+        kind: "practice", savedAt: new Date().toISOString(),
+        ownerProfileId: "learner", signature: "all", questions: [malformed],
+        answers: [null], index: 0,
+      }));
+      expect(loadPracticeDraft("learner", "all", new Set(["q_1"]))).toBeNull();
+      expect(window.localStorage.getItem(key)).toBeNull();
+    });
+  });
+
+  it("restores valid optional question fields and domain values", () => {
+    withLocalStorage(() => {
+      const complete: Question = { ...question, categoryId: "hazard_awareness", difficulty: 3,
+        scope: "drivers", sign: "stop", image: "/signs/stop.png", imageDetail: true,
+        codes: ["8", "10", "14", "A1", "A"], source: "Manual" };
+      savePracticeDraft({ kind: "practice", savedAt: new Date().toISOString(),
+        ownerProfileId: null, signature: "all", questions: [complete], answers: [null], index: 0 });
+      expect(loadPracticeDraft(null, "all", new Set(["q_1"]))?.questions).toEqual([complete]);
     });
   });
 });
