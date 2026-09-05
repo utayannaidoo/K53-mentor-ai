@@ -17,6 +17,7 @@ import { ScoreRing } from "@/components/ui/score-ring";
 import { SessionRecap } from "@/components/study/session-recap";
 import { NextStepCard } from "@/components/study/next-step-card";
 import { SecondOpinion } from "@/components/study/second-opinion";
+import { QuestionFeedbackLink } from "@/components/study/question-feedback-link";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, miniMockConfig, MINI_MOCK, MINI_MOCK_LENGTHS, SECTION_DRILL, SECTION_OF, type ExamSection } from "@/lib/diagnostic/select";
 import { useContentPool } from "@/components/content/content-provider";
@@ -875,7 +876,15 @@ export function MockExam() {
                     </p>
                   )}
                   <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{q.explanation}</p>
-                  <p className="mt-1 text-2xs text-muted-foreground/80">Based on: {sourceFor(q)}</p>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                    <p className="text-2xs text-muted-foreground/80">
+                      Based on: {sourceFor(q)} ·{" "}
+                      <Link href="/sources" className="underline hover:text-foreground">
+                        our sources
+                      </Link>
+                    </p>
+                    <QuestionFeedbackLink question={q} context="mock review" />
+                  </div>
                   <SecondOpinion key={q.id} question={q} chosenIndex={answers[idx]} />
                 </li>
               ))}

@@ -19,6 +19,7 @@ import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
 import { NextStepCard } from "@/components/study/next-step-card";
 import { SecondOpinion } from "@/components/study/second-opinion";
+import { QuestionFeedbackLink } from "@/components/study/question-feedback-link";
 import { SpeakButton } from "@/components/study/speak-button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueTomorrow } from "@/lib/plan";
@@ -466,12 +467,15 @@ export function QuestionPractice() {
                             <SecondOpinion key={q.id} question={q} chosenIndex={selected} />
                           </>
                         )}
-                        <p className="mt-2 text-2xs text-muted-foreground">
-                          Based on: {sourceFor(q)} ·{" "}
-                          <Link href="/sources" className="underline hover:text-foreground">
-                            our sources
-                          </Link>
-                        </p>
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                          <p className="text-2xs text-muted-foreground">
+                            Based on: {sourceFor(q)} ·{" "}
+                            <Link href="/sources" className="underline hover:text-foreground">
+                              our sources
+                            </Link>
+                          </p>
+                          <QuestionFeedbackLink question={q} context="practice" />
+                        </div>
                       </div>
                     </div>
                   )}
