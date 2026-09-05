@@ -1,11 +1,11 @@
 # Fact base — AARTO demerit system
 
-Sources: [Moneyweb (1 Sep 2026 demerit start)](https://www.moneyweb.co.za/news/south-africa/driving-licence-demerit-point-system-set-to-start-on-1-september-2026/); [Daily Maverick explainer](https://www.dailymaverick.co.za/article/2026-06-29-new-demerit-system-what-south-african-motorists-need-to-know/); [aboutaarto.co.za/demerits](https://www.aboutaarto.co.za/demerits).
+Primary sources: [AARTO Act status](https://www.gov.za/documents/administrative-adjudication-road-traffic-offences-act); [Department of Transport rollout update, 2 Sep 2026](https://www.gov.za/news/speeches/minister-barbara-creecy-road-safety-practitioners-colloquium-02-sep-2026). Supporting explanation: [aboutaarto.co.za/demerits](https://www.aboutaarto.co.za/demerits).
 
-## Verified facts (as of July 2026 — re-verify before each batch)
-- Rollout (corrected 19 Jul 2026 — the previous line here predated the deferral): AARTO Act phase 2 was deferred from 1 Dec 2025 and **took effect 1 July 2026 across 62 municipalities**, building on Johannesburg and Tshwane. Nationwide rollout is planned for 2027. **Demerit-point allocation is still scheduled for 1 Sep 2026** and has not started yet.
-  - Three separate things that are easy to conflate, and were conflated in reporting: (a) the Act's adjudication/fines process going live, (b) demerit points beginning to accrue, (c) full nationwide coverage. Some sources describe the 2027 nationwide phase as "including the demerit system", which reads as if points start in 2027 — checked 19 Jul 2026 and the 1 Sep 2026 allocation date still stands. Content asserting 1 Sep 2026 is correct.
-  - Re-verify before each batch: this date has already moved twice.
+## Verified facts (as of 5 September 2026 — re-verify before each batch)
+- The government's Act page records that the 1 August 2025 commencement was withdrawn on 28 November 2025.
+- The Department of Transport's 2 September 2026 update says phase 2 launched on **1 July 2026 in 62 municipalities**. It places phase 3 national implementation in the remaining 151 municipalities in 2027 and says phase 4, the demerit system, follows phase 3. It does **not** give a fixed demerit-point commencement date.
+- Do not publish a fixed rollout date from an older report. Link the current official status and date the review.
 - Thresholds: learner driver suspension when exceeding **6 points**; licensed driver **15 points**.
 - Each point over the threshold = **3-month suspension**.
 - Expiry: 1 point removed per 3 months with no new points.

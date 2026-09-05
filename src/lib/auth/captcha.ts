@@ -8,9 +8,11 @@
  * The DOM half (script loading, rendering) lives in components/auth/turnstile.tsx.
  */
 
+/** Single external origin required by the loader and Content Security Policy. */
+export const TURNSTILE_ORIGIN = "https://challenges.cloudflare.com";
+
 /** Exact script URL the widget loader injects; pinned here so tests can assert the contract. */
-export const TURNSTILE_SCRIPT_SRC =
-  "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+export const TURNSTILE_SCRIPT_SRC = `${TURNSTILE_ORIGIN}/turnstile/v0/api.js?render=explicit`;
 
 /**
  * Whether the operator turned Turnstile on for auth. NEXT_PUBLIC_* is inlined

@@ -3,8 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * Rate-limit hardening tests:
  *  - clientIp must never key off client-forgeable header values.
- *  - A Redis outage degrades to the in-memory limiter (still bounded) for
- *    tutor/user-daily, and fails CLOSED for vision (priciest surface).
+ *  - A Redis outage forbids provider-backed tutor/coach/vision spend, while
+ *    the per-user helper remains bounded for non-provider callers.
  */
 
 function req(headers: Record<string, string>): Request {
@@ -73,23 +73,47 @@ describe("limiter degradation when Redis errors", () => {
     expect(results[3].success).toBe(false); // 4th call over the limit is refused
   });
 
-  it("limitTutor degrades to the in-memory burst cap instead of failing open", async () => {
+  it("signals tutor routes to use the cost-free fallback", async () => {
     const { limitTutor } = await import("@/lib/ai/rate-limit");
-    let refused = false;
-    for (let i = 0; i < 50; i++) {
-      const r = await limitTutor("1.2.3.4");
-      if (!r.success) {
-        refused = true;
-        break;
-      }
-    }
-    expect(refused).toBe(true); // caps stay bounded during the outage
+    const r = await limitTutor("1.2.3.4");
+    expect(r).toMatchObject({ success: true, reason: "backend_unavailable" });
+
+    const flood = await Promise.all(
+      Array.from({ length: 10 }, () => limitTutor("1.2.3.4")),
+    );
+    expect(flood.some((result) => !result.success && !result.reason)).toBe(true);
+  });
+
+  it("signals coach routes to use the cost-free fallback", async () => {
+    const { limitCoach } = await import("@/lib/ai/rate-limit");
+    const r = await limitCoach("1.2.3.4");
+    expect(r).toMatchObject({ success: true, reason: "backend_unavailable" });
   });
 
   it("limitVision fails CLOSED on limiter errors", async () => {
     const { limitVision } = await import("@/lib/ai/rate-limit");
     const r = await limitVision("1.2.3.4");
     expect(r.success).toBe(false);
+    expect(r.reason).toBe("backend_unavailable");
     expect(r.retryAfter).toBeGreaterThan(0);
+  });
+});
+
+describe("shared-IP ceilings", () => {
+  beforeEach(() => vi.resetModules());
+
+  it("leave room for two Premium Plus users' daily allowances", async () => {
+    const { AI_IP_DAILY_LIMITS, limitUserDaily } = await import("@/lib/ai/rate-limit");
+    expect(AI_IP_DAILY_LIMITS.tutor).toBeGreaterThanOrEqual(35 * 2);
+    expect(AI_IP_DAILY_LIMITS.coach).toBeGreaterThanOrEqual(100 * 2);
+    expect(AI_IP_DAILY_LIMITS.vision).toBeGreaterThanOrEqual(25 * 2);
+
+    for (const userId of ["paid-a", "paid-b"]) {
+      const allowed = await Promise.all(
+        Array.from({ length: 25 }, () => limitUserDaily("vision", userId, 25)),
+      );
+      expect(allowed.every((result) => result.success)).toBe(true);
+      expect((await limitUserDaily("vision", userId, 25)).success).toBe(false);
+    }
   });
 });

@@ -17,7 +17,7 @@ const isProd = process.env.NODE_ENV === "production";
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://*.posthog.com${isProd ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://*.posthog.com https://challenges.cloudflare.com${isProd ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   // Every image the app renders is a local /signs/* asset (439 of them) or an
   // inline data:/blob: preview from the scanner's file input. No remote hosts.
@@ -25,6 +25,7 @@ const csp = [
   "font-src 'self' data:",
   // PostHog ingestion hosts (us/eu); harmless when analytics is unconfigured.
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.i.posthog.com https://*.posthog.com${isProd ? "" : " ws:"}`,
+  "frame-src https://challenges.cloudflare.com",
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

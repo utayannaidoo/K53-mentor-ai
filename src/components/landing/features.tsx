@@ -26,7 +26,7 @@ const FEATURES: Feature[] = [
     // Not "adaptive": questions are sampled once from the learner's profile
     // (worry categories, licence code), not re-chosen per answer. Say what it
     // actually does.
-    body: "A 15-question assessment, sampled around your licence code and self-declared weak spots, that produces a readiness score, a predicted pass probability, and a per-category weakness breakdown.",
+    body: "A 15-question starting check across your licence code's seven study categories, with a baseline and per-category breakdown.",
   },
   {
     icon: ClipboardList,
@@ -51,7 +51,7 @@ const FEATURES: Feature[] = [
   {
     icon: ClipboardCheck,
     title: "Mock exam",
-    body: `A full ${EXAM_FORMAT.totalQuestions}-question, ${EXAM_FORMAT.passMark}-to-pass simulation with category breakdown and a complete mistake review.`,
+    body: `A full ${EXAM_FORMAT.totalQuestions}-question simulation: ${EXAM_FORMAT.sections.controls.pass}/${EXAM_FORMAT.sections.controls.questions} controls, ${EXAM_FORMAT.sections.signs.pass}/${EXAM_FORMAT.sections.signs.questions} signs and ${EXAM_FORMAT.sections.rules.pass}/${EXAM_FORMAT.sections.rules.questions} rules, with a complete mistake review.`,
   },
   {
     icon: Car,

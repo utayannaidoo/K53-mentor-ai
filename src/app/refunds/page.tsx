@@ -2,6 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/landing/legal-page";
 import { APP_NAME, SUPPORT_EMAIL } from "@/lib/constants";
+import {
+  MONEY_BACK_DAYS,
+  REFUND_REDEMPTION_LIMIT,
+  REFUND_WINDOW_PHRASE,
+} from "@/lib/billing/refund-policy";
 
 export const metadata: Metadata = {
   title: "Refund & cancellation policy",
@@ -46,7 +51,7 @@ export default function RefundsPage() {
             deletes your data.
           </li>
           <li>
-            Cancel <strong>within 7 days</strong> of your most recent subscription payment and that
+            Cancel {REFUND_WINDOW_PHRASE} and that
             payment is refunded <strong>automatically</strong> as you cancel — see section 2.
           </li>
         </ul>
@@ -56,11 +61,11 @@ export default function RefundsPage() {
         <h2>2. Refunds</h2>
         <ul>
           <li>
-            <strong>7-day money-back, automatically.</strong> If you cancel within{" "}
-            <strong>7 days</strong> of your most recent subscription payment, we refund that
+            <strong>{MONEY_BACK_DAYS}-day money-back, automatically.</strong> If you cancel{" "}
+            {REFUND_WINDOW_PHRASE}, we refund that
             payment <strong>in full, automatically</strong> — right from{" "}
             <strong>Account → Billing</strong>, with no need to email us. The guarantee can be used{" "}
-            <strong>once per subscription</strong>. (Window measured from your most recent plan
+            <strong>{REFUND_REDEMPTION_LIMIT}</strong>. (Window measured from your most recent plan
             payment; tutor credit top-ups don&apos;t affect it.)
           </li>
           <li>
@@ -72,7 +77,7 @@ export default function RefundsPage() {
             <strong>Test results are not a refund ground.</strong> {APP_NAME} is a study aid and
             cannot guarantee that you will pass — your result depends on your preparation and how
             the day goes. We therefore don&apos;t refund a subscription because a test didn&apos;t
-            go your way. The 7-day money-back window above applies on its own terms either way, and
+            go your way. The {MONEY_BACK_DAYS}-day money-back window above applies on its own terms either way, and
             if you didn&apos;t pass, none of your progress is lost: keep studying and book again
             when you&apos;re ready.
           </li>
@@ -101,8 +106,8 @@ export default function RefundsPage() {
           Nothing in this policy limits the rights you have under the South African{" "}
           <strong>Consumer Protection Act</strong> or the{" "}
           <strong>Electronic Communications and Transactions Act</strong>. In particular, section
-          44 of the ECT Act gives you a <strong>7-day cooling-off period</strong> on an electronic
-          transaction, during which you may cancel without reason and without penalty. Our 7-day
+          44 of the ECT Act gives you a <strong>{MONEY_BACK_DAYS}-day cooling-off period</strong> on an electronic
+          transaction, during which you may cancel without reason and without penalty. Our {MONEY_BACK_DAYS}-day
           money-back window above is designed to meet that right and give it to you automatically,
           rather than making you ask.
         </p>

@@ -17,9 +17,11 @@ import { scoreDiagnostic } from "@/lib/diagnostic/scoring";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
-import type { Question } from "@/types";
 import {
   MAX_DRAFT_AGE_MS,
+  snapshotPaper,
+  restorePaper,
+  DRAFT_RESTART_MESSAGE,
   clearDiagnosticDraft,
   loadDiagnosticDraft,
   saveDiagnosticDraft,
@@ -88,6 +90,7 @@ function DiagnosticQuiz() {
   // before the interruption) and drops the learner at the first unanswered
   // question. Completion side-effects stay intact for free: the paper simply
   // continues to its end and goes through the normal recordDiagnostic path.
+  const [draftError, setDraftError] = React.useState<string | null>(null);
   const [resumeOffer, setResumeOffer] = React.useState<DiagnosticDraft | null>(null);
 
   // Id → question lookups over the CURRENT pool. The bank can still be the
@@ -239,6 +242,7 @@ function DiagnosticQuiz() {
       savedAt: new Date().toISOString(),
       ownerProfileId: state.profile?.id ?? null,
       questionIds: questions.map((q) => q.id),
+      paper: snapshotPaper(questions),
       responses: nextResponses.map((r) => ({
         questionId: r.questionId,
         selectedIndex: r.selectedIndex,
@@ -259,29 +263,36 @@ function DiagnosticQuiz() {
   /** Throw the offered draft away and continue with a fresh paper. */
   function discardDraft() {
     clearDiagnosticDraft();
+    setDraftError(null);
     setResumeOffer(null);
   }
 
   /**
    * Rebuild the saved paper from the CURRENT pool and drop the learner back
-   * in. Responses are replayed as full records graded against the rebuilt
-   * questions (option order can't be reproduced across a reload — see
-   * exam-draft.ts), and previously-recorded attempts are NOT re-recorded:
+   * in. Responses are replayed as full records graded against the restored
+   * option order, and previously-recorded attempts are NOT re-recorded:
    * those writes already happened live before the interruption.
    */
   function resumeQuiz() {
     const d = resumeOffer;
     if (!d) return;
-    const qs: Question[] = [];
-    for (const id of d.questionIds) {
-      const found = bankById.get(id);
-      if (!found) {
-        discardDraft();
-        return;
-      }
-      qs.push(found);
+    const qs = restorePaper(d.questionIds, d.paper, bankById);
+    if (!qs) {
+      setDraftError(DRAFT_RESTART_MESSAGE);
+      return;
     }
     const byId = new Map(qs.map((q) => [q.id, q] as const));
+    const uniqueResponseIds = new Set(d.responses.map((r) => r.questionId));
+    if (
+      uniqueResponseIds.size !== d.responses.length ||
+      d.responses.some((r) => {
+        const q = byId.get(r.questionId);
+        return !q || !Number.isInteger(r.selectedIndex) || r.selectedIndex < 0 || r.selectedIndex >= q.options.length;
+      })
+    ) {
+      setDraftError(DRAFT_RESTART_MESSAGE);
+      return;
+    }
     const restored = d.responses.flatMap((r) => {
       const q = byId.get(r.questionId);
       if (!q) return [];
@@ -384,8 +395,9 @@ function DiagnosticQuiz() {
           {resumeOffer.responses.length} of {resumeOffer.questionIds.length} answered. Pick up
           where you left off — your earlier answers still count.
         </p>
+        {draftError && <p role="alert" className="mt-3 max-w-sm text-sm text-warning">{draftError}</p>}
         <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
-          <Button size="lg" onClick={resumeQuiz}>
+          <Button size="lg" onClick={resumeQuiz} disabled={!!draftError}>
             Resume
           </Button>
           <Button variant="outline" size="lg" onClick={discardDraft}>
@@ -477,10 +489,13 @@ function DiagnosticQuiz() {
             {current.prompt}
           </h1>
 
-          <div className="mt-6 space-y-3">
+          <div role="radiogroup" aria-label={`Answers for question ${index + 1}`} className="mt-6 space-y-3">
             {current.options.map((opt, i) => (
               <button
                 key={i}
+                type="button"
+                role="radio"
+                aria-checked={selected === i}
                 onClick={() => answer(i)}
                 disabled={selected !== null}
                 className={cn(

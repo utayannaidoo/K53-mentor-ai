@@ -101,7 +101,8 @@ export async function POST(req: Request) {
   // Per-IP guard first — before auth's two round-trips and before the body is
   // parsed, so a flood is refused at the cheapest possible point.
   const rl = await limitCoach(clientIp(req));
-  if (!rl.success) {
+  const limiterUnavailable = rl.reason === "backend_unavailable";
+  if (!rl.success && !limiterUnavailable) {
     return Response.json(
       { error: "rate_limited", retryAfter: rl.retryAfter },
       { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
@@ -116,7 +117,7 @@ export async function POST(req: Request) {
   // check and prompt building instead of sitting alone at the end (same
   // reasoning as /api/tutor).
   const trialPromise =
-    ent.tier === "free" && ent.userId !== null
+    !limiterUnavailable && ent.tier === "free" && ent.userId !== null
       ? isWithinFreeTrial(ent.userId)
       : Promise.resolve(false);
 
@@ -141,7 +142,7 @@ export async function POST(req: Request) {
   // before the response returns — durability unchanged, but it overlaps the
   // provider call below instead of preceding it.
   let usageWrite: Promise<void> | null = null;
-  if (ent.userId) {
+  if (ent.userId && !limiterUnavailable) {
     const cap = await limitUserDaily("coach", ent.userId, ent.allowance);
     if (!cap.success) {
       await recordAiUsage({ surface: "coach", userId: ent.userId, tier: ent.tier, capped: true });
@@ -159,7 +160,7 @@ export async function POST(req: Request) {
   // template answers instead: a lapsed signup could otherwise cost up to 12
   // provider calls a day forever, which buys nothing (the tutor route carries
   // the long-form rationale for this; only free pays for the extra lookup).
-  const forceLocal = ent.tier === "free" && !(await trialPromise);
+  const forceLocal = limiterUnavailable || (ent.tier === "free" && !(await trialPromise));
 
   const local =
     parsed.kind === "plan_rationale"

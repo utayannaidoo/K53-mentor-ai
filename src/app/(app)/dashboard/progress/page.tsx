@@ -31,7 +31,7 @@ import {
 } from "@/lib/achievements";
 import { EXAM_FORMAT, SECTION_LABEL, type ExamSection } from "@/lib/constants";
 import { activityByDay, buildHeatmap } from "@/lib/dashboard/day-strip";
-import { blockingSection, formatPassProbability, sectionCompetence } from "@/lib/diagnostic/scoring";
+import { blockingSection, sectionCompetence } from "@/lib/diagnostic/scoring";
 import { LICENCE_RANK_INDEX, MASTERY_STAMP_AT } from "@/lib/engagement";
 import { bestStudyTime, mostImproved } from "@/lib/insights";
 import { categoryName } from "@/lib/content/categories";
@@ -49,9 +49,9 @@ import { ProgressNavigator } from "@/components/onboarding/route-navigator";
  * This page was nine identical glass cards: the same radius, padding, heading
  * size and depth tier from top to bottom, which is the composition `TodaySheet`
  * was built to escape. Nothing on it was more important than anything else, so
- * "Readiness" — the number that decides whether a learner books the test — sat
- * in the same 2×4 grid as "Longest streak", and "Predicted pass" sat six tiles
- * away from the figure it contradicts, with nothing between them to explain it.
+ * "Readiness" — the number that helps a learner track preparation — sat in the
+ * same 2×4 grid as "Longest streak", with nothing nearby to explain what action
+ * the category evidence supported.
  *
  * The running order is data, not layout (see `order` below), because which sheet
  * should lead depends on whether the learner has done anything yet.
@@ -199,24 +199,15 @@ export default function ProgressPage() {
         },
       };
     }
-    if (readiness.passProbability >= 50) {
-      return {
-        tone: "text-success",
-        lead: "You would pass",
-        rest: " if the test were tomorrow.",
-        support: "Every section is clearing its own mark. Hold it there until test day.",
-        cta: { href: "/study/mock-exam", label: "Prove it on a full mock" },
-      };
-    }
     return {
-      tone: "text-warning",
-      lead: "Every section clears",
-      rest: " — but not by much.",
+      tone: "text-success",
+      lead: "Every section is above",
+      rest: " its required mark.",
       support:
-        "You are over each pass mark and not far over it, which is a thin margin to sit a real test on.",
-      cta: { href: "/study/mock-exam", label: "Take a full mock" },
+        "Confirm that category evidence under timed conditions before deciding you are ready for the real test.",
+      cta: { href: "/study/mock-exam", label: "Confirm it on a full mock" },
     };
-  }, [hasAssessment, blocking, sections, readiness.passProbability]);
+  }, [hasAssessment, blocking, sections]);
 
   const streakMilestone = STREAK_MILESTONES.find((m) => state.streak.current >= m.at) ?? null;
   const DeltaIcon = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
@@ -408,10 +399,6 @@ export default function ProgressPage() {
               app-shell header, and on this page the sentence outranks it. */}
           <FigureRow>
             <Figure label="Readiness" value={hasAssessment ? `${readiness.readiness}%` : "—"} />
-            <Figure
-              label="Predicted pass"
-              value={hasAssessment ? formatPassProbability(readiness.passProbability) : "—"}
-            />
             <Figure label="Accuracy" value={hasAttempts ? `${accuracy}%` : "—"} />
             <Figure label="Questions" value={answered.toLocaleString()} />
           </FigureRow>

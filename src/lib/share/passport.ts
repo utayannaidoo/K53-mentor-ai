@@ -6,7 +6,7 @@ import { licenceHeld } from "@/lib/licence/test-day";
 import { RANKS, LICENCE_RANK_INDEX } from "@/lib/engagement";
 import { SITE_DOMAIN } from "@/lib/constants";
 import { clamp } from "@/lib/utils";
-import { formatPassProbability, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
+import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import type { CategoryId, UserState, VehicleCode } from "@/types";
 
 /**
@@ -21,7 +21,7 @@ import type { CategoryId, UserState, VehicleCode } from "@/types";
  * theirs. So this module answers three questions in order:
  *
  * 1. **What is the strongest true thing about this learner right now?**
- *    `pickHero` walks a ladder — licence, predicted pass, readiness, streak —
+ *    `pickHero` walks a ladder — licence, readiness, streak —
  *    and stops at the first rung that clears its bar, so the card never leads
  *    with 19% when a 9-day streak is the real story. Nothing is invented: every
  *    rung is a number the app already computes and shows elsewhere.
@@ -47,8 +47,6 @@ const CATEGORY_CODE: Record<CategoryId, string> = {
   hazard_awareness: "HAZ",
 };
 
-/** Predicted pass is a product of three binomials, so it clears this bar only when it's genuinely a flex. */
-const PASS_HERO_AT = 60;
 /** Below this, readiness is not the best thing that is true — try the streak instead. */
 const READINESS_HERO_AT = 40;
 const STREAK_HERO_AT = 3;
@@ -58,7 +56,7 @@ const STREAK_RING_TARGET = 14;
 export type PassportTone = "success" | "warning" | "gold";
 
 export interface PassportHero {
-  /** Eyebrow under the ring, e.g. "PREDICTED PASS". */
+  /** Eyebrow under the ring, e.g. "TEST READINESS". */
   label: string;
   /** 0–100 ring sweep. */
   pct: number;
@@ -104,7 +102,6 @@ export interface Passport {
   streak: number;
   work: { cards: number; questions: number; mocks: number; days: number };
   readiness: number;
-  passProbability: number;
   bestMock: { score: number; total: number; passed: boolean } | null;
   /** Category order, not ranked — the skyline has to keep the same axes for everyone. */
   bars: PassportBar[];
@@ -131,8 +128,8 @@ export function formatCount(n: number): string {
  * The strongest true claim, in order of how much a learner wants to post it.
  *
  * The ladder matters more than any single rung. A learner three days in has a
- * readiness in the twenties and a predicted pass near zero — both real, neither
- * worth sending — but a 4-day streak is a genuine thing to be pleased about.
+ * readiness in the twenties, which is real but not worth leading with — while
+ * a 4-day streak is a genuine thing to be pleased about.
  * Leading with whichever is strongest is what makes the card shareable on day 4
  * as well as on day 90, and it costs nothing in honesty: the numbers the hero
  * passed over are still printed in `qualifier` a few centimetres away.
@@ -140,20 +137,10 @@ export function formatCount(n: number): string {
 function pickHero(input: {
   licensed: boolean;
   readiness: number;
-  passProbability: number;
   streak: number;
 }): PassportHero {
   if (input.licensed) {
     return { label: "LICENCE ACHIEVED", pct: 100, value: "★", unit: "", tone: "gold" };
-  }
-  if (input.passProbability >= PASS_HERO_AT) {
-    return {
-      label: "PREDICTED PASS",
-      pct: input.passProbability,
-      value: String(input.passProbability),
-      unit: "%",
-      tone: "success",
-    };
   }
   if (input.readiness >= READINESS_HERO_AT) {
     return {
@@ -225,7 +212,6 @@ export function buildPassport(
   const hero = pickHero({
     licensed,
     readiness: readiness.readiness,
-    passProbability: readiness.passProbability,
     streak: state.streak.current,
   });
 
@@ -235,19 +221,9 @@ export function buildPassport(
   else if (best?.passed) headline = `Passed a full ${best.total}-question mock exam.`;
   else headline = RANKS[Math.min(state.rankAchieved, LICENCE_RANK_INDEX)].tagline;
 
-  // Everything the hero didn't say, so no number the card is built on is hidden
-  // behind the one it chose to lead with.
-  //
-  // Except once they are licensed, when predicted pass is dropped outright:
-  // it forecasts an exam this learner has already sat and passed, and "LICENCE
-  // ACHIEVED" printed above "Predicted pass 11%" reads as the card arguing with
-  // itself. Readiness stays — it is a fair account of what they knew — but a
-  // forecast about a settled matter is not a fact, it is a leftover.
+  // Keep the strongest supporting facts visible without repeating the hero.
   const qualifier = [
     hero.label !== "TEST READINESS" ? `Readiness ${readiness.readiness}%` : null,
-    !licensed && hero.label !== "PREDICTED PASS"
-      ? `Predicted pass ${formatPassProbability(readiness.passProbability)}`
-      : null,
     best ? `Best mock ${best.score}/${best.total}` : null,
   ]
     .filter(Boolean)
@@ -285,7 +261,6 @@ export function buildPassport(
       days: activeDaysFrom([state.sessions, answered]).size,
     },
     readiness: readiness.readiness,
-    passProbability: readiness.passProbability,
     bestMock: best ? { score: best.score, total: best.total, passed: best.passed } : null,
     bars,
     strongest,
@@ -341,9 +316,6 @@ export function passportMessage(p: Passport): string {
   // of these three, and repeating it two lines later reads as padding.
   const standing = [
     p.hero.label !== "TEST READINESS" ? `Readiness ${p.readiness}%` : null,
-    !p.licensed && p.hero.label !== "PREDICTED PASS"
-      ? `Predicted pass ${formatPassProbability(p.passProbability)}`
-      : null,
     p.hero.label !== "DAY STREAK" && p.streak >= 2 ? `${p.streak}-day streak 🔥` : null,
   ].filter(Boolean);
   if (standing.length > 0) lines.push(standing.join(" · "));

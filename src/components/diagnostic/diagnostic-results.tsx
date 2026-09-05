@@ -1,9 +1,8 @@
 "use client";
-
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Lock, Sparkles, TrendingUp, Target } from "lucide-react";
+import { ArrowRight, Lock, Sparkles, Target } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { ScoreRing } from "@/components/ui/score-ring";
@@ -14,9 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { categoryName, CATEGORIES } from "@/lib/content/categories";
-import { formatPassProbability, blockingSection } from "@/lib/diagnostic/scoring";
 import { diagnosticFocusCategories } from "@/lib/diagnostic/focus";
-import { SECTION_LABEL } from "@/lib/constants";
 import { generateTodayPlan } from "@/lib/plan";
 import { useStudyStore } from "@/hooks/use-study-store";
 
@@ -43,9 +40,9 @@ export function DiagnosticResults() {
     );
   }
 
-  const confidence = state.onboarding?.confidence ?? null;
-  const feltScore = confidence !== null ? ((confidence - 1) / 4) * 100 : null;
-  const contrast = buildContrast(feltScore, latest.readiness);
+  // Onboarding currently does not ask for confidence. Historic defaults must
+  // not be presented as a learner's self-report.
+  const contrast = null;
   const retakerLine = buildRetakerLine(state.onboarding?.priorAttempts ?? 0);
   const plan = generateTodayPlan(state, readiness);
 
@@ -53,14 +50,6 @@ export function DiagnosticResults() {
   const focus = diagnosticFocusCategories(latest);
   const focusTitle =
     focus.length > 1 ? `Focus on these ${focus.length} areas first` : "Here’s what to focus on";
-  // Explain the 53 vs <1% pair that reads as contradictory without it. The
-  // per-section rule is why: one section under its own mark fails the whole
-  // paper even when the average looks passable.
-  const blocked = (() => {
-    const perCat: Record<string, number> = {};
-    for (const cat of CATEGORIES) perCat[cat.id] = latest.perCategory[cat.id]?.score ?? readiness.perCategory[cat.id] ?? 18;
-    return blockingSection(perCat as Parameters<typeof blockingSection>[0]);
-  })();
 
   return (
     <div className="min-h-dvh bg-background bg-app">
@@ -75,10 +64,9 @@ export function DiagnosticResults() {
           <Badge variant="default" className="mb-4 gap-1">
             <Sparkles className="h-3 w-3" /> Starting check complete
           </Badge>
-          <ScoreRing value={latest.readiness} size={208} label="Readiness" />
+          <h1 className="mb-4 font-display text-2xl font-semibold">Your starting baseline</h1>
+          <ScoreRing value={latest.readiness} size={208} label="Baseline" />
           <div className="mt-5 flex items-center gap-6">
-            <Stat icon={<TrendingUp className="h-4 w-4" />} label="Predicted pass" value={formatPassProbability(latest.passProbability)} />
-            <div className="h-8 w-px bg-border" />
             <Stat icon={<Target className="h-4 w-4" />} label="Scored" value={`${latest.correct}/${latest.total}`} />
           </div>
           {contrast && (
@@ -89,13 +77,10 @@ export function DiagnosticResults() {
               {retakerLine}
             </p>
           )}
-          {blocked && latest.passProbability <= 5 && (
-            <p className="mt-3 max-w-md text-balance text-xs text-muted-foreground">
-              Why &lt;1% with {latest.readiness}% readiness? You must pass every section —{" "}
-              <span className="font-medium text-foreground">{SECTION_LABEL[blocked]}</span> is under its own mark
-              and fails the paper even when the average looks okay. Your plan drills it first.
-            </p>
-          )}
+          <p className="mt-3 max-w-md text-balance text-sm text-muted-foreground">
+            This short check shows how you answered these {latest.total} questions, not your chance
+            of passing the real test. Practise each section and take a full mock to build more evidence.
+          </p>
         </div>
 
         {/* Focus areas (always visible) */}
@@ -225,13 +210,4 @@ function buildRetakerLine(priorAttempts: number): string | null {
   if (priorAttempts === 1)
     return "Last time you walked in blind. This time you'll walk in knowing exactly where your gaps are.";
   return "You've been here before — the difference now is a plan built on your actual weak spots.";
-}
-
-function buildContrast(felt: number | null, readiness: number): string | null {
-  if (felt === null) return null;
-  if (readiness >= felt + 12)
-    return "You felt unsure — but you actually know more than you think. Let's build on that.";
-  if (felt >= readiness + 12)
-    return "You felt fairly confident, and there are a few real gaps to close. Far better to find them now than on test day.";
-  return "Your gut was about right. Now let's turn that into certainty.";
 }

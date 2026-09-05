@@ -118,7 +118,7 @@ export function HowItWorks() {
       <section
         ref={sectionRef}
         id="how"
-        className="relative mx-auto h-[280vh] -mt-10 max-w-[1120px] scroll-mt-20 px-6 board:h-[380vh] board:-mt-12"
+        className="relative mx-auto h-[220vh] -mt-10 max-w-[1120px] scroll-mt-20 px-6 board:h-[300vh] board:-mt-12"
       >
         {/* pt offsets the floating nav (~4.5rem) so the steps + panel sit in the
             *visible* area, not the full viewport (which the nav overlaps at the
@@ -287,7 +287,7 @@ export function HowItWorks() {
                 </span>
               </div>
               <p className="mt-2 text-[0.95rem] text-muted-foreground">
-                {EXAM_FORMAT.passMark} needed to pass · you&apos;re consistently clearing it
+                Every section clears its own pass mark · you&apos;re consistently clearing them
               </p>
               <div className="mt-[18px] h-2 overflow-hidden rounded-full bg-muted">
                 <div

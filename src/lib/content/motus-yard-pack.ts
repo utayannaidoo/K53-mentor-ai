@@ -912,7 +912,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Cheap individually, but it compounds, and repeated cranking usually means a step of the starting procedure was skipped rather than a fault with the car.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {

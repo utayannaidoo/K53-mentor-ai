@@ -26,6 +26,8 @@ export interface LimitResult {
   success: boolean;
   /** Seconds the caller should wait before retrying (0 when allowed). */
   retryAfter: number;
+  /** Set only when shared accounting failed, so text routes can answer locally without spending. */
+  reason?: "backend_unavailable";
 }
 
 /**
@@ -55,15 +57,27 @@ if (capsUnenforceable && process.env.VERCEL_ENV === "production") {
   );
 }
 
-/** Uncappable spend is refused outright — see `capsUnenforceable`. */
-const UNCAPPED: LimitResult = { success: false, retryAfter: 0 };
+/** Uncappable provider spend is refused, while callers may still use a cost-free fallback. */
+const BACKEND_UNAVAILABLE: LimitResult = {
+  success: false,
+  retryAfter: 60,
+  reason: "backend_unavailable",
+};
 
 const BURST_LIMIT = Number(process.env.TUTOR_BURST_LIMIT ?? 8); // requests
 const BURST_WINDOW_S = Number(process.env.TUTOR_BURST_WINDOW_S ?? 10); // seconds
-const DAILY_LIMIT = Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 40); // requests / day
-
-const COACH_DAILY_LIMIT = Number(process.env.COACH_DAILY_IP_LIMIT ?? 80); // requests / day
-const VISION_DAILY_LIMIT = Number(process.env.VISION_DAILY_IP_LIMIT ?? 20); // scans / day (priciest calls)
+// Shared-IP ceilings only slow coordinated abuse. The server still enforces
+// each subscriber's paid allowance by user ID after this guard.
+export const AI_IP_DAILY_LIMITS = {
+  tutor: Number(process.env.TUTOR_DAILY_IP_LIMIT ?? 100),
+  // Two Premium Plus learners can each use their 100-call server allowance
+  // behind one household/campus IP without this abuse guard becoming the cap.
+  coach: Number(process.env.COACH_DAILY_IP_LIMIT ?? 240),
+  vision: Number(process.env.VISION_DAILY_IP_LIMIT ?? 60),
+} as const;
+const DAILY_LIMIT = AI_IP_DAILY_LIMITS.tutor;
+const COACH_DAILY_LIMIT = AI_IP_DAILY_LIMITS.coach;
+const VISION_DAILY_LIMIT = AI_IP_DAILY_LIMITS.vision;
 const CONTENT_HOURLY_LIMIT = Number(process.env.CONTENT_HOURLY_IP_LIMIT ?? 20); // pack syncs / hour
 // Entitlement probes (`/api/content/pack?probe=1`) fire on every app-shell
 // mount and on every `online` event — ordinary browsing, not syncing. Sharing
@@ -193,6 +207,26 @@ function memLimit(key: string, limit: number, windowMs: number): LimitResult {
   }
   b.count += 1;
   return { success: true, retryAfter: 0 };
+}
+
+/**
+ * Bound request work on this instance while forbidding shared provider spend.
+ * `reason` remains present on allowed requests so routes select their local,
+ * cost-free fallback. Once the emergency bucket fills, the ordinary refusal
+ * has no reason and routes return 429 before auth or body parsing.
+ */
+function allowCostFreeFallback(
+  surface: "tutor" | "coach",
+  ip: string,
+  burstLimit: number,
+  burstWindowMs: number,
+  dailyLimit: number,
+): LimitResult {
+  const burstResult = memLimit(`outage:${surface}:burst:${ip}`, burstLimit, burstWindowMs);
+  if (!burstResult.success) return burstResult;
+  const dailyResult = memLimit(`outage:${surface}:day:${ip}`, dailyLimit, 86_400_000);
+  if (!dailyResult.success) return dailyResult;
+  return { success: true, retryAfter: 0, reason: "backend_unavailable" };
 }
 
 /** Whether real (Redis-backed) limiting is active. Useful for diagnostics. */
@@ -451,7 +485,7 @@ export async function limitAuthResend(ip: string): Promise<LimitResult> {
 
 /** Burst + daily limits for the coach route (recaps / plan rationale). */
 export async function limitCoach(ip: string): Promise<LimitResult> {
-  if (capsUnenforceable) return UNCAPPED;
+  if (capsUnenforceable) return allowCostFreeFallback("coach", ip, 6, 10_000, COACH_DAILY_LIMIT);
   try {
     if (coachBurst && coachDaily) {
       const [b, d] = await Promise.all([coachBurst.limit(ip), coachDaily.limit(ip)]);
@@ -468,15 +502,13 @@ export async function limitCoach(ip: string): Promise<LimitResult> {
     return memLimit(`coach:day:${ip}`, COACH_DAILY_LIMIT, 86_400_000);
   } catch (err) {
     console.error("rate-limit error", err);
-    const b = memLimit(`coach:burst:${ip}`, 6, 10_000);
-    if (!b.success) return b;
-    return memLimit(`coach:day:${ip}`, COACH_DAILY_LIMIT, 86_400_000);
+    return allowCostFreeFallback("coach", ip, 6, 10_000, COACH_DAILY_LIMIT);
   }
 }
 
 /** Vision scans: 4/min burst, tight daily cap — these are the priciest calls. */
 export async function limitVision(ip: string): Promise<LimitResult> {
-  if (capsUnenforceable) return UNCAPPED;
+  if (capsUnenforceable) return BACKEND_UNAVAILABLE;
   try {
     if (visionBurst && visionDaily) {
       const [b, d] = await Promise.all([visionBurst.limit(ip), visionDaily.limit(ip)]);
@@ -495,13 +527,15 @@ export async function limitVision(ip: string): Promise<LimitResult> {
     // Vision calls are the priciest in the app — if the limiter itself is
     // down we cannot know how much has been spent, so fail CLOSED.
     console.error("rate-limit error", err);
-    return { success: false, retryAfter: 60 };
+    return BACKEND_UNAVAILABLE;
   }
 }
 
-/** Apply burst + daily limits for a client IP. Degrades to the in-memory limiter on limiter errors. */
+/** Apply burst + daily limits for a client IP. Shared-backend errors forbid provider spend. */
 export async function limitTutor(ip: string): Promise<LimitResult> {
-  if (capsUnenforceable) return UNCAPPED;
+  if (capsUnenforceable) {
+    return allowCostFreeFallback("tutor", ip, BURST_LIMIT, BURST_WINDOW_S * 1000, DAILY_LIMIT);
+  }
   try {
     if (burst && daily) {
       // Both windows fire in one round-trip instead of two serial ones — this
@@ -523,11 +557,9 @@ export async function limitTutor(ip: string): Promise<LimitResult> {
     if (!b.success) return b;
     return memLimit(`day:${ip}`, DAILY_LIMIT, 86_400_000);
   } catch (err) {
-    // Limiter outage: keep the tutor up, but degrade to per-instance caps
-    // instead of dropping them entirely.
+    // A per-instance provider budget multiplies by the number of serverless
+    // instances. Bound request work locally, but force a cost-free answer.
     console.error("rate-limit error", err);
-    const b = memLimit(`burst:${ip}`, BURST_LIMIT, BURST_WINDOW_S * 1000);
-    if (!b.success) return b;
-    return memLimit(`day:${ip}`, DAILY_LIMIT, 86_400_000);
+    return allowCostFreeFallback("tutor", ip, BURST_LIMIT, BURST_WINDOW_S * 1000, DAILY_LIMIT);
   }
 }

@@ -1,5 +1,9 @@
 import type { SubscriptionTier, UserState, VehicleCode } from "@/types";
 
+// Kept as re-exports for existing plan consumers. The definitions and shared
+// buyer-facing wording live in refund-policy.ts.
+export { MONEY_BACK_DAYS, REFUND_PROCESSING_DAYS } from "@/lib/billing/refund-policy";
+
 export type FeatureKey = "tutor" | "scenarios" | "licencePrep" | "advancedAnalytics" | "scanner";
 export type CapKey = "flashcardsPerDay" | "questionsPerDay" | "tutorPerDay";
 
@@ -57,31 +61,6 @@ const PREMIUM_DAILY_ITEMS = STUDY_SESSION_SIZE * PREMIUM_SESSIONS_PER_DAY; // 36
  */
 /** How long the free tier's daily allowances keep refilling. */
 export const FREE_TRIAL_DAYS = 7;
-
-/**
- * Cancel within this many days of the first charge for an automatic full
- * refund.
- *
- * Lives here rather than in subscription-cancel.ts because that module is
- * `server-only` and this number is a *promise made to the buyer* — it has to be
- * quotable by the pricing copy and the cancel dialog, which are client
- * components. A policy the customer is told about and the policy the server
- * enforces must be the same constant, or they drift and one of them is a lie.
- */
-export const MONEY_BACK_DAYS = 7;
-
-/**
- * Honest upper bound for how long a money-back refund takes when it cannot be
- * issued instantly. The usual cause is an empty Paystack settlement balance
- * (refunds are deducted from it, and it refills on the T+1–2 business-day
- * settlement cycle); the daily reconciliation cron completes the refund on its
- * first pass after funds exist. Quoted to learners at cancel time so
- * "your refund is processing" never reads as "forgotten".
- *
- * Client-safe for the same reason MONEY_BACK_DAYS is: it is a promise made to
- * the buyer, and the copy quoting it must match the behaviour the server ships.
- */
-export const REFUND_PROCESSING_DAYS = 2;
 
 export interface PlanLimits {
   /**
@@ -212,7 +191,7 @@ export const PLANS: PlanDef[] = [
   {
     id: "premium_plus",
     name: "Premium Plus",
-    tagline: "Everything unlimited — learner's and driver's, end to end.",
+    tagline: "Full learner's and driver's prep, end to end.",
     monthly: 70,
     features: { tutor: true, scenarios: true, licencePrep: true, advancedAnalytics: true, scanner: true },
     caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 35 },

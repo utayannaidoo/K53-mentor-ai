@@ -135,27 +135,23 @@ describe("Driving Passport — the claim", () => {
     );
     expect(p.hero.label).toBe("DAY STREAK");
     expect(p.hero.value).toBe("6");
-    // …and the numbers it passed over are still on the card.
+    // …and the measured readiness it passed over is still on the card.
     expect(p.qualifier).toContain("Readiness");
-    expect(p.qualifier).toContain("Predicted pass");
   });
 
   it("leads with readiness once there is real competence behind it", () => {
-    // 70% everywhere: a respectable readiness, and a predicted pass still in the
-    // teens because signs alone needs 23 of 28. Readiness is the honest lead.
+    // 70% everywhere: a respectable readiness is the honest lead.
     const p = build(stateWith({ attempts: spread(7, 10) }));
-    expect(p.passProbability).toBeLessThan(60);
     expect(p.hero.label).toBe("TEST READINESS");
     expect(p.hero.unit).toBe("%");
     expect(Number(p.hero.value)).toBe(p.readiness);
     expect(p.qualifier).not.toContain("Readiness");
   });
 
-  it("promotes predicted pass to the hero only when it clears 60", () => {
+  it("keeps readiness as the evidence-based hero for strong practice history", () => {
     const strong = build(stateWith({ attempts: spread(10, 10) }));
-    expect(strong.passProbability).toBeGreaterThanOrEqual(60);
-    expect(strong.hero.label).toBe("PREDICTED PASS");
-    expect(strong.qualifier).toContain("Readiness");
+    expect(strong.hero.label).toBe("TEST READINESS");
+    expect(Number(strong.hero.value)).toBe(strong.readiness);
   });
 
   it("stamps a passed full mock and says so in the headline", () => {
@@ -218,7 +214,7 @@ describe("Driving Passport — the message", () => {
     const text = passportMessage(readinessLed);
     expect(text).toContain(`Test readiness: ${readinessLed.readiness}%`);
     expect(text).not.toContain(`Readiness ${readinessLed.readiness}%`);
-    expect(text).toContain("Predicted pass");
+    expect(text).not.toContain("Predicted pass");
   });
 
   it("falls back to the bare domain when there is no referral code", () => {

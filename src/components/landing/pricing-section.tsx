@@ -12,6 +12,10 @@ import {
 } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
+import {
+  REFUND_GUARANTEE_LABEL,
+  REFUND_WINDOW_PHRASE,
+} from "@/lib/billing/refund-policy";
 import { track } from "@/lib/analytics";
 
 export function PricingSection({
@@ -51,7 +55,7 @@ export function PricingSection({
         >
           <span
             aria-hidden
-            className="absolute left-[5px] top-[5px] z-0 h-[calc(100%-10px)] w-[calc(50%-5px)] rounded-full bg-card/95 shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)] transition-transform duration-[450ms] ease-spring"
+            className="absolute left-[5px] top-[5px] z-0 h-[calc(100%-10px)] w-[calc(50%-5px)] rounded-full bg-card/95 shadow-[0_4px_12px_-6px_hsl(var(--shadow)/0.6)] transition-transform [transition-duration:450ms] ease-spring"
             style={{ transform: annual ? "translateX(100%)" : "translateX(0)" }}
           />
           <button
@@ -144,7 +148,7 @@ export function PricingSection({
                   })
                 }
                 className={cn(
-                  "mt-5 flex w-full items-center justify-center rounded-xl py-[13px] text-[15px] font-semibold transition-[transform,filter] duration-[400ms] ease-spring hover:brightness-[1.06] active:scale-[0.97]",
+                  "mt-5 flex w-full items-center justify-center rounded-xl py-[13px] text-[15px] font-semibold transition-[transform,filter] [transition-duration:400ms] ease-spring hover:brightness-[1.06] active:scale-[0.97]",
                   plan.highlighted
                     ? "bg-gradient-to-b from-primary-light to-primary text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45),0_12px_26px_-12px_hsl(var(--primary)/0.7)]"
                     : "bg-muted/70 text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border))]",
@@ -172,11 +176,12 @@ export function PricingSection({
       <p className="mx-auto mt-8 max-w-xl text-center text-xs text-muted-foreground">
         {isSupabaseConfigured ? (
           <>
-            Prices in ZAR, billed securely through Paystack. Cancel anytime — with a{" "}
+            Prices in ZAR, billed securely through Paystack. We refund your payment in full when
+            you cancel {REFUND_WINDOW_PHRASE}, under our{" "}
             <Link href="/refunds" className="underline hover:text-foreground">
-              7-day money-back guarantee
-            </Link>{" "}
-            on your first payment.
+              {REFUND_GUARANTEE_LABEL}
+            </Link>
+            .
           </>
         ) : (
           <>

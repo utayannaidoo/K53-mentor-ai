@@ -89,7 +89,7 @@ export function nextStepAfterQuestions({
     return {
       title: "See where you stand",
       body:
-        "It's been a week since your last mock — a short mini mock keeps your pass prediction honest.",
+        "It's been a week since your last mock — a short mini mock keeps your timed-practice evidence current.",
       href: "/study/mock-exam?mode=mini",
       cta: "Take a mini mock",
     };
@@ -124,7 +124,7 @@ export function nextStepAfterFlashcards({
  * Scenarios train judgement — reading a situation, not recalling a rule — so a
  * cluster of misjudged calls in one category points at the rule knowledge
  * underneath it: a short round of questions there turns instinct into
- * understanding. A clean session with a stale predictor gets the same re-test
+ * understanding. A clean session with stale timed evidence gets the same re-test
  * nudge as practice.
  */
 export function nextStepAfterScenarios({
@@ -132,7 +132,7 @@ export function nextStepAfterScenarios({
   mockRetestDue,
 }: {
   wrongByCategory: CategoryMisses;
-  /** Whether the predictor is due a recalibration (`mockRetestStatus().due`). */
+  /** Whether timed practice is due for a refresh (`mockRetestStatus().due`). */
   mockRetestDue: boolean;
 }): NextStep | null {
   const dominant = dominantCategory(wrongByCategory);
@@ -149,7 +149,7 @@ export function nextStepAfterScenarios({
     return {
       title: "See where you stand",
       body:
-        "It's been a week since your last mock — a short mini mock keeps your pass prediction honest.",
+        "It's been a week since your last mock — a short mini mock keeps your timed-practice evidence current.",
       href: "/study/mock-exam?mode=mini",
       cta: "Take a mini mock",
     };

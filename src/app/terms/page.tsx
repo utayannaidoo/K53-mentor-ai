@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/landing/legal-page";
 import { APP_NAME } from "@/lib/constants";
+import { REFUND_WINDOW_PHRASE } from "@/lib/billing/refund-policy";
 
 export const metadata: Metadata = {
   title: "Terms of service",
@@ -72,7 +73,7 @@ export default function TermsPage() {
           <li>
             You can cancel any time from your billing page. Billing stops immediately and you keep
             full access until the end of the period you have already paid for, after which your
-            account returns to the Free plan. Cancel within 7 days of your first payment and you
+            account returns to the Free plan. Cancel {REFUND_WINDOW_PHRASE} and you
             are refunded in full automatically, in which case access ends with the refund — see our{" "}
             <a href="/refunds" className="underline">
               Refund &amp; Cancellation Policy

@@ -185,3 +185,10 @@ export function captureException(error: Error, props?: Record<string, string>): 
 export function identify(userId: string, props?: Record<string, string>): void {
   run((ph) => ph.identify(userId, props));
 }
+
+/** Clear the current person before another learner can use this device. */
+export function resetAnalytics(): void {
+  if (!KEY || typeof window === "undefined") return;
+  buffer = [];
+  run((ph) => ph.reset());
+}

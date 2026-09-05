@@ -264,7 +264,7 @@ export function generateTodayPlan(
         retest.daysSince === null
           ? "Your first mock exam"
           : `Mock retest — it's been ${retest.daysSince} days`,
-      subtitle: "Recalibrates your pass prediction. Short on time? A mini mock counts.",
+      subtitle: "Refreshes your timed-practice evidence. Short on time? A mini mock counts.",
       targetCount: 1,
       estMinutes: 15,
       href: "/study/mock-exam",

@@ -157,6 +157,26 @@ describe("generateTodayPlan — open mistakes surfaced on the questions task", (
       "Your practice has pointed us here — keep going to build a measured picture",
     );
   });
+
+  it("excludes driver's practical-test items from the learner starting check", () => {
+    const plan = diagnosticPlanFor();
+    const pool = (Object.entries(plan) as [CategoryId, number][]).flatMap(([categoryId, count]) =>
+      Array.from({ length: count }, (_, index): Question => ({
+        id: `${categoryId}-${index}`,
+        categoryId,
+        prompt: `${categoryId} learner question ${index}`,
+        options: ["Correct", "Wrong A", "Wrong B", "Wrong C"],
+        correctIndex: 0,
+        explanation: "Test fixture",
+        difficulty: 1,
+        scope: categoryId === "parking" ? "drivers" : "learners",
+      })),
+    );
+
+    const sampled = sampleDiagnostic(pool, [], "8");
+    expect(sampled).toHaveLength(BASE_TOTAL - plan.parking);
+    expect(sampled.every((q) => q.scope === "learners")).toBe(true);
+  });
 });
 
 describe("easyFirst", () => {

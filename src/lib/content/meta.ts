@@ -519,7 +519,7 @@ export const QUESTION_DIFFICULTY: Record<string, number> = {
   "q11_haz_total_brake_failure": 3,
   "q11_haz_freeway_breakdown": 2,
   "q11_haz_oncoming_in_lane": 3,
-  "aarto_q_start_date": 2,
+  "aarto_q_start_date": 1,
   "aarto_q_what_is": 1,
   "aarto_q_learner_threshold": 2,
   "aarto_q_licensed_threshold": 2,

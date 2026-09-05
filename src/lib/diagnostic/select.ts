@@ -157,7 +157,9 @@ export function sampleDiagnostic(
   code: VehicleCode,
   worryCategories: CategoryId[] = [],
 ): Question[] {
-  const bank = forCode(pool, code);
+  // This is a learner-theory starting check. Driver's practical-test items
+  // belong in licence prep, never in this paper.
+  const bank = forCode(pool, code).filter((q) => q.scope === "learners");
   const plan = diagnosticPlanFor(worryCategories);
   const picked: Question[] = [];
   const seen = new Set<string>(); // one diagnostic, one subject list

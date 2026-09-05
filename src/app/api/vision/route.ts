@@ -79,6 +79,12 @@ export async function POST(req: Request) {
   // here — if we cannot account for spend, we do not spend.
   const rl = await limitVision(clientIp(req));
   if (!rl.success) {
+    if (rl.reason === "backend_unavailable") {
+      return Response.json(
+        { unavailable: true, error: "limiter_unavailable", retryAfter: rl.retryAfter },
+        { status: 503, headers: { "Retry-After": String(rl.retryAfter) } },
+      );
+    }
     return Response.json(
       { error: "rate_limited", retryAfter: rl.retryAfter },
       { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },

@@ -48,6 +48,8 @@ function AccountInner() {
   const needsCode = authMethod === "oauth";
   const [deleting, setDeleting] = React.useState(false);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const [signingOut, setSigningOut] = React.useState(false);
+  const [signOutError, setSignOutError] = React.useState<string | null>(null);
   const plan = PLAN_MAP[state.tier];
   const profile = state.profile;
   const onboarding = state.onboarding;
@@ -98,21 +100,17 @@ function AccountInner() {
   }
 
   async function handleSignOut() {
-    // Sign the server session out BEFORE leaving: fire-and-forget used to let
-    // the auth cookie outlive the cleared local profile on a flaky connection,
-    // and the next protected page then ping-ponged login ⇄ dashboard as the
-    // middleware and the client guard disagreed about who was signed in.
-    // (store.signOut also calls this; a second call is a harmless no-op.)
-    const supabase = createClient();
-    if (supabase) {
-      try {
-        await supabase.auth.signOut();
-      } catch {
-        /* offline — the store still clears local state below */
-      }
+    setSigningOut(true);
+    setSignOutError(null);
+    const signedOut = await signOut();
+    if (signedOut) {
+      router.push("/");
+    } else {
+      setSignOutError(
+        "We couldn't sign you out because the server couldn't end your session. Check your connection and try again.",
+      );
     }
-    signOut();
-    router.push("/");
+    setSigningOut(false);
   }
 
   const [resetting, setResetting] = React.useState(false);
@@ -162,7 +160,7 @@ function AccountInner() {
       if (res.ok) {
         // Server account is gone (or demo mode) — clear this browser too.
         resetProgress();
-        signOut();
+        await signOut();
         router.push("/");
         return;
       }
@@ -297,7 +295,14 @@ function AccountInner() {
       <Card className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Account actions</h2>
         <div className="mt-4 flex flex-wrap gap-3">
-          <Button variant="outline" className="gap-2" onClick={handleSignOut} disabled={resetting}>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleSignOut}
+            loading={signingOut}
+            loadingText="Signing out…"
+            disabled={resetting || deleting}
+          >
             <LogOut className="h-4 w-4" /> Sign out
           </Button>
           <Button
@@ -323,6 +328,11 @@ function AccountInner() {
         {resetError && (
           <p role="alert" className="mt-3 text-xs text-danger">
             {resetError}
+          </p>
+        )}
+        {signOutError && (
+          <p role="alert" className="mt-3 text-xs text-danger">
+            {signOutError}
           </p>
         )}
 

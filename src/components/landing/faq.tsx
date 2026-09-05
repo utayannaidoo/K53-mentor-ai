@@ -1,6 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Accordion } from "@/components/ui/accordion";
+import {
+  REFUND_REDEMPTION_LIMIT,
+  REFUND_WINDOW_PHRASE,
+} from "@/lib/billing/refund-policy";
 
 /**
  * Every item carries `answer` as PLAIN TEXT and optionally `richAnswer` as JSX.
@@ -54,7 +58,11 @@ export const FAQ_ITEMS: {
   {
     question: "Can I cancel? Do you offer refunds?",
     answer:
-      "Yes to both, and neither needs an email. Cancel yourself any time from Account → Billing & plan → Cancel plan: billing stops immediately and you keep full access until the end of the period you have already paid for. Cancel within 7 days of your most recent payment and that payment is refunded in full, automatically, as you cancel — in that case access ends with the refund. Your progress is kept either way. Duplicate or incorrect charges are always refunded too. Full details are in our Refund & Cancellation Policy.",
+      "Yes to both, and neither needs an email. Cancel yourself any time from Account → Billing & plan → Cancel plan: billing stops immediately and you keep full access until the end of the period you have already paid for. Cancel " +
+      REFUND_WINDOW_PHRASE +
+      " and that payment is refunded in full, automatically, as you cancel — in that case access ends with the refund. The guarantee can be used " +
+      REFUND_REDEMPTION_LIMIT +
+      ". Your progress is kept either way. Duplicate or incorrect charges are always refunded too. Full details are in our Refund & Cancellation Policy.",
     richAnswer: (
       <>
         Yes to both, and neither needs an email. Cancel yourself any time from{" "}
@@ -62,8 +70,9 @@ export const FAQ_ITEMS: {
           Account → Billing &amp; plan → Cancel plan
         </strong>
         : billing stops immediately and you keep full access until the end of the period you have
-        already paid for. Cancel within 7 days of your most recent payment and that payment is
-        refunded in full, automatically, as you cancel — in that case access ends with the refund.
+        already paid for. Cancel {REFUND_WINDOW_PHRASE} and that payment is refunded in full,
+        automatically, as you cancel — in that case access ends with the refund. The guarantee can
+        be used {REFUND_REDEMPTION_LIMIT}.
         Your progress is kept either way. Duplicate or incorrect charges are always refunded too.
         Full details are in our{" "}
         <Link href="/refunds" className="underline hover:text-foreground">

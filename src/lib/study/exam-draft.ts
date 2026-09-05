@@ -1,3 +1,5 @@
+import type { Question } from "@/types";
+
 /**
  * Mid-exam crash/reload insurance.
  *
@@ -8,14 +10,9 @@
  * These helpers persist just enough state to put the paper back on the desk
  * exactly where the learner left it.
  *
- * Deliberately NOT stored: the sampled Question objects themselves. Only ids
- * travel through localStorage — the paper is rebuilt by mapping those ids
- * through whatever bank is loaded when the learner returns (see the resume
- * paths in mock-exam.tsx / diagnostic-runner.tsx). One consequence worth
- * naming: options are re-shuffled at sample time with Math.random, so a
- * resumed question shows its options in a different order than before the
- * reload. Grading stays internally consistent (displayed options and
- * correctIndex both come from the same rebuilt object), which is what matters.
+ * Option snapshots preserve the exact displayed order. Restoration checks the
+ * current bank before applying a saved selection; legacy drafts cannot safely
+ * recover answer identity and must be restarted.
  *
  * All storage access is wrapped like local-store.ts: private mode and quota
  * errors must never break the exam itself — persistence here is best-effort.
@@ -30,6 +27,7 @@ export interface ExamDraft {
   mode: "full" | "mini" | "drill";
   drillSection: string | null;
   questionIds: string[];
+  paper?: PaperSnapshot;
   /** -1 = unanswered, same convention as the exam component's answers array. */
   answers: number[];
   index: number;
@@ -44,6 +42,7 @@ export interface DiagnosticDraft {
   savedAt: string; // ISO
   ownerProfileId: string | null;
   questionIds: string[];
+  paper?: PaperSnapshot;
   responses: { questionId: string; selectedIndex: number }[];
   index: number;
 }
@@ -273,3 +272,69 @@ export function scaledPassMark(requestedTotal: number, requestedMark: number, ac
   if (actualTotal >= requestedTotal) return Math.max(1, requestedMark);
   return Math.max(1, Math.ceil((actualTotal * requestedMark) / requestedTotal));
 }
+
+/** Versioned display identity, not an alternative content/entitlement source. */
+export interface PaperSnapshot {
+  version: 2;
+  questions: { id: string; prompt: string; options: string[]; correctAnswer: string }[];
+}
+
+export function snapshotPaper(questions: Question[]): PaperSnapshot {
+  return {
+    version: 2,
+    questions: questions.map((q) => ({
+      id: q.id,
+      prompt: q.prompt,
+      options: [...q.options],
+      correctAnswer: q.options[q.correctIndex],
+    })),
+  };
+}
+
+/** Refuse legacy, edited or changed content rather than silently regrade it. */
+export function restorePaper(
+  ids: string[],
+  paper: PaperSnapshot | undefined,
+  bank: Map<string, Question>,
+): Question[] | null {
+  if (
+    !paper ||
+    paper.version !== 2 ||
+    !Array.isArray(paper.questions) ||
+    paper.questions.length !== ids.length ||
+    new Set(ids).size !== ids.length
+  ) {
+    return null;
+  }
+  const restored: Question[] = [];
+  for (let i = 0; i < ids.length; i++) {
+    const saved = paper.questions[i];
+    const current = bank.get(ids[i]);
+    if (
+      !saved ||
+      !current ||
+      saved.id !== current.id ||
+      saved.prompt !== current.prompt ||
+      !Array.isArray(saved.options) ||
+      saved.options.some((option) => typeof option !== "string") ||
+      saved.options.length !== current.options.length
+    ) {
+      return null;
+    }
+    // Duplicated labels have no unambiguous identity; fail safely.
+    if (
+      new Set(saved.options).size !== saved.options.length ||
+      [...saved.options].sort().join("\u0000") !== [...current.options].sort().join("\u0000") ||
+      saved.correctAnswer !== current.options[current.correctIndex]
+    ) {
+      return null;
+    }
+    const correctIndex = saved.options.indexOf(saved.correctAnswer);
+    if (correctIndex < 0) return null;
+    restored.push({ ...current, options: [...saved.options], correctIndex });
+  }
+  return restored;
+}
+
+export const DRAFT_RESTART_MESSAGE =
+  "This saved paper cannot be resumed safely because its answer order or content has changed. Start a new paper; your completed study history is unchanged.";

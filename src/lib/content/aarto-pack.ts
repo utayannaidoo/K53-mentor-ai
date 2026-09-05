@@ -1,8 +1,8 @@
 import type { Flashcard, Question } from "@/types";
 
 /**
- * AARTO demerit-point pack. Facts trace to docs/content/facts/aarto.md
- * (demerit-point allocation starts 1 September 2026). This is "know the law"
+ * AARTO demerit-point pack. Facts trace to docs/content/facts/aarto.md.
+ * This is "know the law"
  * material adjacent to — not part of — the K53 learner's paper, so the batch is
  * deliberately modest and every item carries an explicit `source` override
  * pointing at AARTO rather than the K53 syllabus. Filed under `rules`.
@@ -16,14 +16,19 @@ export const AARTO_PACK_QUESTIONS: Question[] = [
   {
     id: "aarto_q_start_date",
     categoryId: "rules",
-    prompt: "Under AARTO, demerit points start being added to drivers' records from:",
-    options: ["1 September 2026", "1 January 2025", "1 March 2027", "The day you get your learner's"],
+    prompt: "Where should you verify the current rollout dates for AARTO demerit points?",
+    options: [
+      "The latest official Department of Transport or South African Government notice",
+      "An old social-media post",
+      "A date remembered from a previous news report",
+      "A private driving school's advertisement",
+    ],
     correctIndex: 0,
     explanation:
-      "AARTO's fine system rolled out earlier, but the demerit-point phase — where infringements add points that can suspend your licence — begins on 1 September 2026.",
-    difficulty: 2,
+      "AARTO rollout dates have changed. Verify the current phase and commencement details in the latest official Department of Transport or South African Government notice.",
+    difficulty: 1,
     scope: "learners",
-    source: AARTO_SOURCE,
+    source: "Department of Transport official AARTO rollout notices",
   },
   {
     id: "aarto_q_what_is",
@@ -232,9 +237,9 @@ export const AARTO_PACK_FLASHCARDS: Flashcard[] = [
   {
     id: "fca_start_date",
     categoryId: "rules",
-    front: "When do AARTO demerit points start?",
-    back: "1 September 2026 — that's when infringements begin adding points to your record.",
-    difficulty: 2,
+    front: "Where should you verify current AARTO demerit-point rollout dates?",
+    back: "Use the latest official Department of Transport or South African Government notice because rollout dates can change.",
+    difficulty: 1,
   },
   {
     id: "fca_what_is",

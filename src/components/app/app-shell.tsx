@@ -155,7 +155,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {state.tier === "free"
-                ? "Unlock the tutor, scenarios & unlimited practice."
+                ? "Unlock 36 questions, 36 flashcards, tutor help and scenarios each day."
                 : "Get driver's-licence prep & advanced analytics."}
             </p>
           </Link>

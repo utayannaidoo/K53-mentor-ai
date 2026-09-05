@@ -79,8 +79,6 @@ export default function DashboardPage() {
         firstName={state.profile?.name?.split(" ")[0] ?? "there"}
         vehicleLabel={CODE_LABEL[studyCodeOf(state)]}
         readiness={readiness.readiness}
-        passProbability={readiness.passProbability}
-        measured={readiness.measured}
         delta={weekDelta(state.readinessHistory, readiness.readiness)}
         streak={state.streak.current}
         cp={state.cp}

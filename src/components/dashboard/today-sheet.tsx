@@ -12,7 +12,6 @@ import type { PlanTask } from "@/lib/plan";
 import type { TrendPoint } from "@/components/dashboard/readiness-plot";
 import { cn, glassFloat } from "@/lib/utils";
 import { SECTION_LABEL, type ExamSection } from "@/lib/constants";
-import { formatPassProbability } from "@/lib/diagnostic/scoring";
 import { track } from "@/lib/analytics";
 import type { CategoryId, UserState } from "@/types";
 
@@ -38,8 +37,6 @@ export function TodaySheet({
   firstName,
   vehicleLabel,
   readiness,
-  passProbability,
-  measured,
   delta,
   streak,
   cp,
@@ -67,13 +64,6 @@ export function TodaySheet({
   firstName: string;
   vehicleLabel: string;
   readiness: number;
-  passProbability: number;
-  /**
-   * False while the numbers rest on too little evidence to trust (fewer than
-   * MIN_EVIDENCE_FOR_CONFIDENCE answered questions). The pass figure then says
-   * "estimate" rather than presenting early noise with full authority.
-   */
-  measured: boolean;
   delta: number | null;
   streak: number;
   cp: number;
@@ -85,9 +75,8 @@ export function TodaySheet({
   perCategoryEvidence: Record<CategoryId, number>;
   /**
    * The section sitting furthest under its own pass mark, if one is. This is
-   * what reconciles the two figures above it — readiness can read 80% beside a
-   * predicted pass of 2%, and the reason is always a single section short of
-   * its own minimum. Naming it turns that contradiction into an instruction.
+   * what turns an overall readiness figure into an instruction when a single
+   * section remains short of its own minimum.
    */
   blocking: ExamSection | null;
   hasAttempts: boolean;
@@ -98,8 +87,8 @@ export function TodaySheet({
   scenariosUnlocked: boolean;
   planLocked: boolean;
   /**
-   * True when a mock is due (never taken, or the pass prediction has gone
-   * stale — `mockRetestStatus`). The plan-complete line then points the freed
+   * True when a mock is due (never taken, or timed evidence has gone stale —
+   * `mockRetestStatus`). The plan-complete line then points the freed
    * time at a quick mock instead of ending on "come back tomorrow".
    */
   mockDue?: boolean;
@@ -176,6 +165,12 @@ export function TodaySheet({
                 <Link href="/diagnostic" className="mt-2.5 inline-flex text-sm font-medium text-primary hover:underline">
                   Take your starting check
                 </Link>
+                <Link
+                  href="/study/questions"
+                  className={cn(buttonVariants({ size: "sm" }), "mt-3 w-fit")}
+                >
+                  Start 12 questions <ArrowRight className="h-4 w-4" />
+                </Link>
               </>
             ) : (
               <>
@@ -232,8 +227,8 @@ export function TodaySheet({
       {/* ── The figures that qualify it ──────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-px border-t border-border/50 bg-border/40 sm:grid-cols-4">
         <Figure
-          label={hasDiagnostic && !measured ? "Predicted pass (estimate)" : "Predicted pass"}
-          value={hasDiagnostic ? formatPassProbability(passProbability) : "—"}
+          label="Questions answered"
+          value={Object.values(perCategoryEvidence).reduce((sum, count) => sum + count, 0).toLocaleString()}
         />
         <Figure label="Today's plan" value={`${planDonePct}%`} />
         <Figure label="Streak" value={streak} unit={streak === 1 ? "day" : "days"} />
@@ -394,7 +389,7 @@ export function TodaySheet({
               >
                 a quick mock
               </Link>{" "}
-              would sharpen your pass prediction.
+              would refresh your timed-practice evidence.
             </p>
           ) : (
             <p className="mt-4 text-sm font-medium text-success">
@@ -421,7 +416,7 @@ export function TodaySheet({
               {blocking ? (
                 <>
                   <span className="font-medium text-warning">{SECTION_LABEL[blocking]}</span> is
-                  under its own mark — that is what holds your predicted pass down.
+                  under its own mark — practise it before your next full mock.
                 </>
               ) : (
                 <>
@@ -569,6 +564,18 @@ function DayStrip({
                 type="button"
                 disabled={!openable}
                 aria-pressed={isOpen}
+                aria-current={d.isToday ? "date" : undefined}
+                aria-label={`${new Date(`${d.key}T00:00:00`).toLocaleDateString("en-ZA", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}: ${
+                  d.state === "test"
+                    ? "test day"
+                    : d.state === "today"
+                      ? "today"
+                      : d.state === "worked"
+                        ? "studied; open details"
+                        : d.state === "missed"
+                          ? "no study recorded"
+                          : "future day"
+                }`}
                 onClick={() => onSelect(d.key)}
                 title={
                   d.state === "test"

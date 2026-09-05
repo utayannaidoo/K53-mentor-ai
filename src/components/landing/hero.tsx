@@ -9,7 +9,7 @@ const PILL =
   "inline-flex items-center justify-center gap-2 rounded-full font-semibold text-white " +
   "bg-gradient-to-b from-primary-light to-primary " +
   "shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45),0_14px_30px_-12px_hsl(var(--primary)/0.7)] " +
-  "transition-[transform,filter] duration-[400ms] ease-spring hover:brightness-[1.07] active:scale-[0.96] " +
+  "transition-[transform,filter] [transition-duration:400ms] ease-spring hover:brightness-[1.07] active:scale-[0.96] " +
   "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30";
 
 export function Hero() {
@@ -49,7 +49,7 @@ export function Hero() {
           </TrackedLink>
           <Link
             href="#how"
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-6 py-[15px] text-base font-semibold text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.3)] backdrop-blur-md transition-[transform,background] duration-[400ms] ease-spring hover:bg-muted/60 active:scale-[0.96]"
+            className="inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-6 py-[15px] text-base font-semibold text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.3)] backdrop-blur-md transition-[transform,background] [transition-duration:400ms] ease-spring hover:bg-muted/60 active:scale-[0.96]"
           >
             See how it works
           </Link>
@@ -121,10 +121,10 @@ export function Hero() {
 
             <div className="flex-1">
               <div className="text-xs font-medium text-muted-foreground">
-                Predicted pass probability
+                Full mock target
               </div>
               <div className="mt-[5px] font-mono text-[22px] font-semibold text-success">
-                <CountUp value={82} suffix="%" />
+                3/3 sections
               </div>
 
               <div className="mt-3.5 flex flex-col gap-[9px]">

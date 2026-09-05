@@ -1,9 +1,9 @@
 import "server-only";
 import { fetchCustomer, disableSubscription } from "@/lib/paystack/client";
-import { MONEY_BACK_DAYS } from "@/lib/billing/plans";
+import { MONEY_BACK_DAYS } from "@/lib/billing/refund-policy";
 
 // Re-exported so server callers keep importing it from here, but declared in
-// plans.ts — the cancel dialog and pricing copy are client components and
+// refund-policy.ts — the cancel dialog and pricing copy are client components and
 // cannot import a `server-only` module to quote the same number.
 export { MONEY_BACK_DAYS };
 

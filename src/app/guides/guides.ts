@@ -20,9 +20,9 @@ export const GUIDES = [
   },
   {
     slug: "aarto-demerit-points",
-    title: "AARTO demerit points, explained (starts 1 September 2026)",
+    title: "AARTO demerit points: rollout status and what learners should know",
     description:
-      "How demerit points work, the learner threshold of 6 points, how points fall away, and why they matter the day you pass.",
+      "Why AARTO rollout dates can change, where to check the official status, and why it matters once you are licensed.",
   },
   {
     slug: "k53-mock-test",

@@ -7,12 +7,15 @@ import {
   loadMockDraft,
   saveDiagnosticDraft,
   saveMockDraft,
+  restorePaper,
   scaledPassMark,
+  snapshotPaper,
   validateDiagnosticDraft,
   validateMockDraft,
   type DiagnosticDraft,
   type ExamDraft,
 } from "@/lib/study/exam-draft";
+import type { Question } from "@/types";
 
 /**
  * Node-env stand-in for window.localStorage — same pattern as
@@ -65,6 +68,40 @@ function mockDraft(overrides: Partial<ExamDraft> = {}): ExamDraft {
 }
 
 const BANK = ["q_a", "q_b", "q_c", "q_d"];
+
+function question(overrides: Partial<Question> = {}): Question {
+  return {
+    id: "question_1",
+    categoryId: "signs",
+    prompt: "What does this sign mean?",
+    options: ["Stop", "Yield", "No entry", "Parking"],
+    correctIndex: 0,
+    explanation: "Stop means stop.",
+    difficulty: 1,
+    scope: "learners",
+    ...overrides,
+  };
+}
+
+describe("paper snapshots", () => {
+  it("preserves a selected option's meaning after restoring a shuffled paper", () => {
+    const original = question({ options: ["Parking", "No entry", "Stop", "Yield"], correctIndex: 2 });
+    const bankVersion = question();
+    const restored = restorePaper([original.id], snapshotPaper([original]), new Map([[bankVersion.id, bankVersion]]));
+
+    expect(restored).not.toBeNull();
+    expect(restored?.[0].options).toEqual(original.options);
+    expect(restored?.[0].correctIndex).toBe(2);
+  });
+
+  it("refuses a legacy snapshot or changed answer set", () => {
+    const q = question();
+    expect(restorePaper([q.id], undefined, new Map([[q.id, q]]))).toBeNull();
+    expect(
+      restorePaper([q.id], snapshotPaper([q]), new Map([[q.id, question({ options: ["Stop", "Yield", "No entry", "Changed"] })]])),
+    ).toBeNull();
+  });
+});
 
 function mockOpts(overrides: Partial<Parameters<typeof validateMockDraft>[1]> = {}) {
   return {

@@ -29,7 +29,7 @@ import {
   resolveStreak,
 } from "@/lib/store/local-store";
 import { mergeAdoptedTabState } from "@/lib/store/cross-tab-merge";
-import { identify as analyticsIdentify } from "@/lib/analytics";
+import { identify as analyticsIdentify, resetAnalytics } from "@/lib/analytics";
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
@@ -55,6 +55,7 @@ import { loadAccount, saveAccount } from "@/lib/supabase/account";
 import { pullProgress, pushProgress } from "@/lib/supabase/progress";
 import { hydrateAccountState, hydrateSessionOnly } from "@/lib/store/account-hydrate";
 import { shouldClearCachedProfile } from "@/lib/auth/session-absent";
+import { revokeRemoteSession } from "@/lib/auth/sign-out";
 import { persistOnboarding } from "@/lib/store/persist-onboarding";
 
 type UsageKind = "flashcards" | "questions" | "tutor" | "scenarios";
@@ -75,7 +76,8 @@ interface StudyStore {
   readiness: ReadinessBreakdown;
 
   signInLocal: (name: string, email: string) => void;
-  signOut: () => void;
+  /** Returns false when the durable server session could not be revoked. */
+  signOut: () => Promise<boolean>;
   setTier: (tier: SubscriptionTier) => void;
   /**
    * Re-pull the account rows (tier, profile, streak) from Supabase. Returns
@@ -556,22 +558,28 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       // shared verbatim with auth-local-provider so the rule cannot drift.
       setState((s) => applySignIn(s, name, email)),
 
-    signOut: () => {
+    signOut: async () => {
+      // Never show a successful logout or clear only the browser half while a
+      // live Supabase cookie remains. The account screen keeps the learner in
+      // place and surfaces a retry if either a resolved auth error or a network
+      // rejection prevents revocation.
+      if (!(await revokeRemoteSession(supabase))) return false;
+      resetAnalytics();
       // The downloaded content bank is paid content: it must not sit in
       // Cache Storage for whoever opens the browser next — in either mode.
       // The next sign-in re-syncs it under the new owner's key once
       // entitlement re-resolves.
-      void purgePackCache();
+      await purgePackCache();
       if (supabase) {
         // Prod: the server holds the durable copy, so wipe local progress on
         // sign-out — nothing lingers on a shared device, and the same person's
         // history restores from the server on their next sign-in.
-        supabase.auth.signOut().catch(() => {});
         setState(() => defaultUserState());
       } else {
         // Demo (no backend): keep local data; ownerEmail guards re-sign-in.
         setState((s) => ({ ...s, profile: null }));
       }
+      return true;
     },
 
     setTier: (tier) => setState((s) => ({ ...s, tier })),

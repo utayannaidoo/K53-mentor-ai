@@ -71,7 +71,8 @@ export async function POST(req: Request) {
   // request — the limiter only ever declined work that had already been done.
   // clientIp() reads headers only, so this is safe as the first statement.
   const rl = await limitTutor(clientIp(req));
-  if (!rl.success) {
+  const limiterUnavailable = rl.reason === "backend_unavailable";
+  if (!rl.success && !limiterUnavailable) {
     return Response.json(
       { error: "rate_limited", retryAfter: rl.retryAfter },
       { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
@@ -88,7 +89,7 @@ export async function POST(req: Request) {
   // the body parse, the cap check and grounding (one fewer serial RTT for
   // exactly the users the trial exists to convince).
   const trialPromise =
-    ent.tier === "free" && ent.userId !== null
+    !limiterUnavailable && ent.tier === "free" && ent.userId !== null
       ? isWithinFreeTrial(ent.userId)
       : Promise.resolve(false);
 
@@ -117,7 +118,7 @@ export async function POST(req: Request) {
   // is unchanged. It just no longer sits on the critical path to the first
   // streamed token.
   let usageWrite: Promise<void> | null = null;
-  if (ent.userId) {
+  if (ent.userId && !limiterUnavailable) {
     const cap = await limitUserDaily("tutor", ent.userId, ent.allowance);
     if (!cap.success) {
       // Premium Plus may spend a purchased top-up credit past the daily cap.
@@ -160,7 +161,7 @@ export async function POST(req: Request) {
   // cannot see, so a plain chooseProvider() here would promise a look it can't
   // take.
   const localReply =
-    image && chooseProvider("image") === "local"
+    image && (limiterUnavailable || chooseProvider("image") === "local")
       ? "I can't look at photos right now — the AI provider is unavailable. Describe what you see (shape, colour, any symbols or words) and I'll identify it from that."
       : localTutorReply(lastUser, context);
 
@@ -178,7 +179,9 @@ export async function POST(req: Request) {
   // week lapses, the local explainer takes over, and the gap between the two is
   // the upgrade pitch. Only the free tier pays for the extra lookup (started
   // early, right after entitlement — see trialPromise above).
-  const forceLocal = ent.tier === "free" && !(await trialPromise);
+  // If shared accounting is down, keep the learning flow available without
+  // making any provider call or consuming the learner's paid daily allowance.
+  const forceLocal = limiterUnavailable || (ent.tier === "free" && !(await trialPromise));
 
   try {
     const { stream, model, provider } = await streamTutorReply({

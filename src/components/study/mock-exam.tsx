@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { X, ArrowRight, Check, ChevronLeft, ChevronRight, Clock, FileText, Timer, CheckCircle2, XCircle, TrendingUp, TrendingDown, Zap } from "lucide-react";
+import { X, ArrowRight, Check, ChevronLeft, ChevronRight, Clock, FileText, Timer, CheckCircle2, XCircle, Zap } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -22,11 +22,13 @@ import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, min
 import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT, SECTION_LABEL } from "@/lib/constants";
-import { formatPassProbability } from "@/lib/diagnostic/scoring";
 import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
 import {
   MAX_DRAFT_AGE_MS,
+  snapshotPaper,
+  restorePaper,
+  DRAFT_RESTART_MESSAGE,
   clearMockDraft,
   loadMockDraft,
   saveMockDraft,
@@ -134,6 +136,7 @@ export function MockExam() {
   // ── Crash/reload resume ──
   // A validated draft of an interrupted paper, awaiting the learner's verdict
   // on the intro screen. null = nothing worth offering.
+  const [draftError, setDraftError] = React.useState<string | null>(null);
   const [resumeOffer, setResumeOffer] = React.useState<ExamDraft | null>(null);
   // The pass mark computed from the ACTUAL sampled paper, stashed at sample
   // time (start/resume). A thin bank can hand back fewer questions than were
@@ -341,6 +344,7 @@ export function MockExam() {
       mode: draftMode,
       drillSection: drill,
       questionIds: questions.map((q) => q.id),
+      paper: snapshotPaper(questions),
       answers: nextAnswers,
       index: nextIndex,
       // Derived exactly like the timer's deadline: absolute wall-clock, so
@@ -353,6 +357,7 @@ export function MockExam() {
   /** Throw the offered paper away — the learner chose a fresh start. */
   function discardDraft() {
     clearMockDraft();
+    setDraftError(null);
     setResumeOffer(null);
   }
 
@@ -367,17 +372,19 @@ export function MockExam() {
   function resumeExam() {
     const d = resumeOffer;
     if (!d) return;
-    const qs: Question[] = [];
-    for (const id of d.questionIds) {
-      const found = bankById.get(id);
-      if (!found) {
-        // The bank shrank between offering and clicking (an entitlement lapse,
-        // say). Refuse honestly rather than seat a shorter paper than the one
-        // that was started.
-        discardDraft();
-        return;
-      }
-      qs.push(found);
+    const qs = restorePaper(d.questionIds, d.paper, bankById);
+    if (!qs) {
+      setDraftError(DRAFT_RESTART_MESSAGE);
+      return;
+    }
+    if (
+      d.answers.some(
+        (answer, index) =>
+          !Number.isInteger(answer) || answer < -1 || answer >= qs[index].options.length,
+      )
+    ) {
+      setDraftError(DRAFT_RESTART_MESSAGE);
+      return;
     }
     startRef.current = d.deadlineMs - d.secondsAllotted * 1000;
     setQuestions(qs);
@@ -454,6 +461,7 @@ export function MockExam() {
       mode: draftMode,
       drillSection: drill,
       questionIds: qs.map((q) => q.id),
+      paper: snapshotPaper(qs),
       answers: new Array(qs.length).fill(-1),
       index: 0,
       deadlineMs: startedAt + requested.seconds * 1000,
@@ -495,10 +503,11 @@ export function MockExam() {
         {resumeTitle} · question {resumeOffer.index + 1} of {resumeOffer.questionIds.length},{" "}
         {resumeMinutes} min {resumeSeconds} sec left on the clock.
       </p>
+      {draftError && <p role="alert" className="mt-3 text-sm text-warning">{draftError}</p>}
       {/* Resuming deliberately ignores the daily mock allowance: this paper
           already spent it when it started. Starting something NEW below is
           what the gate still applies to. */}
-      <Button size="lg" className="mt-5 w-full" onClick={resumeExam}>
+      <Button size="lg" className="mt-5 w-full" onClick={resumeExam} disabled={!!draftError}>
         Resume <ArrowRight />
       </Button>
       <Button variant="outline" size="lg" className="mt-2 w-full" onClick={discardDraft}>
@@ -694,7 +703,6 @@ export function MockExam() {
     });
     const preProb = preProbRef.current;
     const postProb = readiness.passProbability;
-    const probDelta = preProb != null ? postProb - preProb : null;
     const failedSections = mini || drill
       ? []
       : sectionScores.filter((s) => s.correct < s.pass).map((s) => SECTION_LABEL[s.section]);
@@ -753,20 +761,6 @@ export function MockExam() {
               </Badge>
             )}
           </div>
-          {preProb != null && (
-            <p className="mt-4 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              Predicted pass:{" "}
-              <span className="font-mono">{formatPassProbability(preProb)}</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-              <span className={cn("flex items-center gap-1 font-mono font-semibold", probDelta && probDelta < 0 ? "text-warning" : "text-success")}>
-                {formatPassProbability(postProb)}
-                {probDelta !== null && probDelta !== 0 && (
-                  probDelta > 0 ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />
-                )}
-              </span>
-            </p>
-          )}
-
           {/* Say the consequence out loud. The per-section table below is
               accurate but silent — a learner reading "52/64" beside a green
               ring should not have to work out for themselves that the DLTC
@@ -952,10 +946,13 @@ export function MockExam() {
           )}
           <SignPreload image={questions[i + 1]?.image} />
           <h1 className="text-balance font-display text-xl font-semibold leading-snug tracking-tight">{q.prompt}</h1>
-          <div className="mt-5 space-y-3">
+          <div role="radiogroup" aria-label={`Answers for question ${i + 1}`} className="mt-5 space-y-3">
             {q.options.map((opt, idx) => (
               <button
                 key={idx}
+                type="button"
+                role="radio"
+                aria-checked={answers[i] === idx}
                 onClick={() => choose(idx)}
                 className={cn(
                   "flex w-full items-center gap-3 rounded-xl border-2 bg-card p-4 text-left transition-all",

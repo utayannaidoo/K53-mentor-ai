@@ -11,32 +11,31 @@ export default function SourcesPage() {
   return (
     <LegalPage
       title="Content sources"
-      updated="2026-07-02"
+      updated="2026-09-05"
       intro={`Everything you study in ${APP_NAME} is aligned to official South African road-traffic material. This page lists what our content is based on and how we keep it honest.`}
     >
       <section>
         <h2>Primary sources</h2>
         <ul>
           <li>
-            <strong>The National Road Traffic Act 93 of 1996</strong> and the National Road
-            Traffic Regulations — the legal foundation for the rules of the road, speed limits,
-            distances, licence codes and vehicle requirements our questions test.
+            <a href="https://www.gov.za/documents/national-road-traffic-act"><strong>The National Road Traffic Act 93 of 1996</strong></a>{" "}
+            and the National Road Traffic Regulations — the legal foundation for the rules of the
+            road, speed limits, distances, licence codes and vehicle requirements our questions test.
           </li>
           <li>
-            <strong>The official K53 learner&apos;s and driving licence syllabus</strong> —
-            including the learner&apos;s test structure (vehicle controls, road signs &amp;
-            markings, rules of the road) and the K53 defensive-driving system.
+            <a href="https://www.transport.gov.za/?page_id=1176"><strong>The Department of Transport learner&apos;s licence guidance</strong></a> —
+            the official overview of licence codes, the application process and the three tested
+            knowledge areas: vehicle controls, road signs and road rules.
           </li>
           <li>
-            <strong>The Department of Transport&apos;s K53 practical test volumes</strong> — the
-            source for our yard-test and road-test module procedures for light vehicles,
-            motorcycles (Codes A1/A) and heavy vehicles (Codes 10/14), including manoeuvres such
-            as the slow ride, incline start, alley docking and coupling/uncoupling.
+            <a href="https://www.gov.za/documents/notices/national-road-traffic-act-k53-practical-driving-test-motor-vehicle-drivers-vol-1"><strong>The official K53 practical driving test volume for light motor vehicles</strong></a> — the
+            published yard-test and road-test procedure for Code B vehicles, including incline
+            starts, alley docking and parallel parking.
           </li>
           <li>
-            <strong>Official South African road traffic signage</strong> (SADC road sign system) —
-            the sign images shown in the app follow the official signage series used in the K53
-            manual.
+            <a href="https://www.natis.gov.za/images/learners/2_Manual_on_Road_Traffic_Signs_v100_Jun_2012.pdf"><strong>The Department of Transport learner driver manual for road traffic signs</strong></a> —
+            the official signs, signals and markings reference used for the sign images and
+            meanings shown in the app.
           </li>
         </ul>
       </section>

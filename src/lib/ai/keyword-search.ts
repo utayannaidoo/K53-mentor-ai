@@ -29,10 +29,9 @@ export function keywords(text: string): string[] {
 /**
  * Best keyword match for a free-text question, or null when nothing scores.
  *
- * Deliberately crude: it counts how many of the asker's content words appear in
- * each question's prompt, explanation and options. That is enough to land on
- * the right K53 topic, and it cannot invent an answer — everything it returns
- * is a verified explanation someone already wrote.
+ * A match must share at least two content words and one must occur in the
+ * question prompt. Supporting text must not turn one generic word such as
+ * "stop" into an unrelated answer.
  */
 export function bestQuestionFor(text: string, pool: readonly Question[]): Question | null {
   const kw = keywords(text);
@@ -41,12 +40,16 @@ export function bestQuestionFor(text: string, pool: readonly Question[]): Questi
   let best: Question | null = null;
   let bestScore = 0;
   for (const q of pool) {
-    const hay = `${q.prompt} ${q.explanation} ${q.options.join(" ")}`.toLowerCase();
-    const score = kw.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
+    const prompt = q.prompt.toLowerCase();
+    const supporting = `${q.explanation} ${q.options.join(" ")}`.toLowerCase();
+    const promptMatches = kw.filter((word) => prompt.includes(word));
+    const totalMatches = kw.filter((word) => prompt.includes(word) || supporting.includes(word));
+    if (promptMatches.length === 0 || totalMatches.length < 2) continue;
+    const score = promptMatches.length * 2 + totalMatches.length;
     if (score > bestScore) {
       bestScore = score;
       best = q;
     }
   }
-  return bestScore >= 1 ? best : null;
+  return bestScore >= 3 ? best : null;
 }

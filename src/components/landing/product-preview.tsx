@@ -72,7 +72,7 @@ export function ProductPreview() {
        traps the reader instead of holding them.
        The track must not sit inside a transformed ancestor, which is why the
        page renders this section without a `Reveal` wrapper. */
-    <div className="board:h-[165vh]">
+    <div className="board:h-[135vh]">
       <div className="board:sticky board:top-0 board:flex board:h-dvh board:items-center">
         <section className="w-full px-6 py-20 sm:py-24 board:py-0">
           {/* Mobile: centered stack (copy → tabs → demo → CTA). Desktop: the live

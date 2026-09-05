@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/landing/legal-page";
 import { APP_NAME, BUSINESS, SUPPORT_EMAIL } from "@/lib/constants";
+import {
+  REFUND_REDEMPTION_LIMIT,
+  REFUND_WINDOW_PHRASE,
+} from "@/lib/billing/refund-policy";
 
 export const metadata: Metadata = {
   title: "Contact us",
@@ -42,9 +46,10 @@ export default function ContactPage() {
       <section>
         <h2>Refunds &amp; cancellations</h2>
         <p>
-          You can cancel yourself at any time from Account → Billing, and there is a 7-day
-          money-back window on a first subscription. The full policy, including what happens to
-          access after you cancel, is on the{" "}
+          You can cancel yourself at any time from Account → Billing. Cancel {REFUND_WINDOW_PHRASE}
+          {" "}and that payment is refunded automatically. The guarantee can be used{" "}
+          {REFUND_REDEMPTION_LIMIT}. The full policy, including what happens to access after you
+          cancel, is on the{" "}
           <a href="/refunds" className="underline">
             refunds page
           </a>

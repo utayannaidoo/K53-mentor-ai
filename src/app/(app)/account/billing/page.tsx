@@ -13,13 +13,16 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import {
   PLANS,
   PLAN_MAP,
-  MONEY_BACK_DAYS,
   REFUND_PROCESSING_DAYS,
   monthlyPrice,
   annualMonthlyPrice,
   annualPrice,
   isFreePlan,
 } from "@/lib/billing/plans";
+import {
+  MONEY_BACK_DAYS,
+  REFUND_WINDOW_PHRASE,
+} from "@/lib/billing/refund-policy";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 import { track as trackEvent } from "@/lib/analytics";
@@ -597,7 +600,7 @@ function BillingInner() {
           <p className="mt-3 text-xs text-muted-foreground">
             Paid plans renew automatically {cycle === "annual" ? "every year" : "every month"} until
             you cancel. Cancel any time from this page — you keep access to the end of the period
-            you&apos;ve paid for, and within {MONEY_BACK_DAYS} days of your first payment we refund
+            you&apos;ve paid for, and {REFUND_WINDOW_PHRASE} we refund
             it in full.
           </p>
         )}
