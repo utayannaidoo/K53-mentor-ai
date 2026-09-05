@@ -6,6 +6,7 @@ import { TutorChat, type InitialContext } from "@/components/tutor/tutor-chat";
 import { contextLabel, starterPrompt } from "@/lib/ai/tutor-context";
 import { useContentPool } from "@/components/content/content-provider";
 import { Spinner } from "@/components/ui/spinner";
+import { TutorPageNavigator } from "@/components/onboarding/route-navigator";
 import type { CategoryId } from "@/types";
 
 function TutorInner() {
@@ -49,7 +50,12 @@ function TutorInner() {
     };
   }
 
-  return <TutorChat initial={initial} />;
+  return (
+    <>
+      <TutorChat initial={initial} />
+      <TutorPageNavigator />
+    </>
+  );
 }
 
 export default function TutorPage() {

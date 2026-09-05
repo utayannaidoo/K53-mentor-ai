@@ -109,8 +109,8 @@ describe("first Today experience", () => {
   });
 });
 
-describe("Navi Study tour", () => {
-  it("explains the main study tools and ends in a real practice session", () => {
+describe("Navi app tour", () => {
+  it("explains the main study tools then continues to Navi", () => {
     const src = readFileSync(
       path.resolve(__dirname, "../src/components/onboarding/study-navigator.tsx"),
       "utf8",
@@ -123,9 +123,24 @@ describe("Navi Study tour", () => {
     expect(src).toContain("Use flashcards and questions differently");
     expect(src).toContain("signs, scenarios and controls");
     expect(src).toContain("Mock exam is the full 64-question paper");
-    expect(src).toContain('router.push("/study/questions")');
+    expect(src).toContain('router.push("/tutor?tour=1")');
     expect(study).toContain('"study-flashcards"');
     expect(study).toContain("StudyNavigator");
+  });
+
+  it("takes a learner through Tutor, Progress, Licence Prep and Account", () => {
+    const src = readFileSync(
+      path.resolve(__dirname, "../src/components/onboarding/route-navigator.tsx"),
+      "utf8",
+    );
+
+    expect(src).toContain("TutorPageNavigator");
+    expect(src).toContain('nextPath="/dashboard/progress?tour=1"');
+    expect(src).toContain("ProgressNavigator");
+    expect(src).toContain('nextPath="/licence-prep?tour=1"');
+    expect(src).toContain("LicencePrepNavigator");
+    expect(src).toContain('nextPath="/account?tour=1"');
+    expect(src).toContain("AccountNavigator");
   });
 });
 

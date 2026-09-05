@@ -23,11 +23,12 @@ import { formatDate, cn, glass, glassFloat } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
+import { AccountNavigator } from "@/components/onboarding/route-navigator";
 
 function AccountInner() {
   const router = useRouter();
   const sp = useSearchParams();
-  const { state, signOut, resetProgress } = useStudyStore();
+  const { state, signOut, resetProgress, completeFirstRunTour } = useStudyStore();
   const [dataSaver, setDataSaver] = useDataSaver();
   const [editOpen, setEditOpen] = React.useState(sp.get("edit") === "profile");
   const [showDelete, setShowDelete] = React.useState(false);
@@ -185,7 +186,7 @@ function AccountInner() {
     <div className="mx-auto max-w-3xl">
       <PageHeader title="Account" description="Your profile, plan and preferences." />
 
-      <Card className={cn(glassFloat, "flex items-center gap-4 p-6")}>
+      <Card data-tutorial="account-profile" className={cn(glassFloat, "flex items-center gap-4 p-6")}>
         <Avatar name={profile?.name ?? "Learner"} className="h-14 w-14 text-base" />
         <div className="min-w-0 flex-1">
           <p className="font-display text-lg font-semibold">{profile?.name ?? "Learner"}</p>
@@ -197,7 +198,7 @@ function AccountInner() {
       </Card>
 
       {/* Subscription */}
-      <Card className={cn(glass, "mt-5 p-6")}>
+      <Card data-tutorial="account-plan" className={cn(glass, "mt-5 p-6")}>
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="font-display text-lg font-semibold">Subscription</h2>
@@ -214,7 +215,7 @@ function AccountInner() {
 
       {/* Study profile — always available so the licence code can be set/changed
           even if onboarding was skipped (e.g. a Google sign-in). */}
-      <Card className={cn(glass, "mt-5 p-6")}>
+      <Card data-tutorial="account-study-profile" className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Study profile</h2>
         {onboarding ? (
           <>
@@ -261,7 +262,7 @@ function AccountInner() {
       </Card>
 
       {/* Preferences */}
-      <Card className={cn(glass, "mt-5 p-6")}>
+      <Card data-tutorial="account-preferences" className={cn(glass, "mt-5 p-6")}>
         <h2 className="font-display text-lg font-semibold">Preferences</h2>
         <div className="mt-4 flex items-center justify-between border-b border-border pb-4">
           <div>
@@ -283,6 +284,12 @@ function AccountInner() {
         <OfflinePackRow />
         <EmailRemindersToggle />
       </Card>
+      <AccountNavigator
+        onFinish={() => {
+          completeFirstRunTour();
+          router.push("/dashboard");
+        }}
+      />
 
       <InviteCard />
 

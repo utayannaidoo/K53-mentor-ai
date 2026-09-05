@@ -153,15 +153,17 @@ export function SheetBlock({
   first = false,
   label,
   aside,
+  tutorial,
   children,
 }: {
   first?: boolean;
   label: React.ReactNode;
   aside?: React.ReactNode;
+  tutorial?: string;
   children: React.ReactNode;
 }) {
   const block = (
-    <div className={first ? undefined : "mt-8"}>
+    <div data-tutorial={tutorial} className={first ? undefined : "mt-8"}>
       <SheetLabel aside={aside}>{label}</SheetLabel>
       <Sheet float={first}>{children}</Sheet>
     </div>

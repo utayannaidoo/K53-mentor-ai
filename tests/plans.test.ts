@@ -64,7 +64,7 @@ describe("feature gates", () => {
 });
 
 describe("the free week", () => {
-  it("every plan meters per day — nothing is a lifetime pool any more", () => {
+  it("study allowances meter per day; only Free's full mock is lifetime", () => {
     for (const plan of PLANS) expect(plan.limits.reset).toBe("daily");
   });
 
@@ -90,6 +90,13 @@ describe("the free week", () => {
         expect(plan.caps.tutorPerDay).toBe(plan.limits.tutorMessages);
       }
     }
+  });
+
+  it("gives Free one lifetime full mock, while paid full mocks reset daily", () => {
+    expect(PLAN_MAP.free.limits.mockExams).toBe(1);
+    expect(PLAN_MAP.free.limits.mockExamReset).toBe("lifetime");
+    expect(PLAN_MAP.free.limits.mockLength).toBe("full");
+    expect(PLAN_MAP.premium.limits.mockExamReset).toBe("daily");
   });
 
   it("a free week gives more total study than the old lifetime pool did", () => {

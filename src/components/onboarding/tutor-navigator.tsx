@@ -57,7 +57,6 @@ export function TutorNavigator({ onComplete }: { onComplete: () => void }) {
       steps={TOUR_STEPS}
       onDismiss={onComplete}
       onFinish={() => {
-        onComplete();
         router.push("/study?tour=1");
       }}
       finishLabel="Explore Study"

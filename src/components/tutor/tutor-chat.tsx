@@ -446,7 +446,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
 
       {/* Chat */}
       <div className="glass flex min-w-0 flex-1 flex-col rounded-xl">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+        <div data-tutorial="tutor-chat-header" className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
           <div className="flex items-center gap-2">
             <NaviAvatar priority className="h-10 w-10" />
             <div>
@@ -622,7 +622,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                   )}
                 </div>
               )}
-              <div className="no-scrollbar mb-2.5 flex gap-2 overflow-x-auto">
+              <div data-tutorial="tutor-prompts" className="no-scrollbar mb-2.5 flex gap-2 overflow-x-auto">
                 {chips.map((c) => (
                   // Disabled while a reply is in flight — send() early-returns
                   // when loading, which used to leave chip taps silently doing
@@ -662,6 +662,7 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
                 </div>
               )}
               <form
+                data-tutorial="tutor-composer"
                 onSubmit={(e) => {
                   e.preventDefault();
                   send(input);

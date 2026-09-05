@@ -537,8 +537,8 @@ export function MockExam() {
           <Paywall
             feature="mock_exam"
             plan="premium"
-            title="Full mock exams are a Premium feature"
-            description="The real 64-question exam experience — timed, scored and mapped to your weak areas. Your free week includes a 15-question mini mock every day instead."
+            title="Your free plan includes one full mock"
+            description="That one real 64-question paper is available during your free week. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
             cta="Unlock full mocks"
           />
         ) : free ? (
@@ -546,7 +546,7 @@ export function MockExam() {
             feature="mini_mock"
             plan="premium"
             title="That's today's free mini mock"
-            description="You get one a day through your free week. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
+            description="Your free week includes one full 64-question mock. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
             cta="Unlock daily mocks"
           />
         ) : (

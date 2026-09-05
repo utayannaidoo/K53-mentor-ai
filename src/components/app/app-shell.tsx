@@ -109,7 +109,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={item.href}
                 href={item.href}
                 data-tutorial={
-                  item.href === "/study" ? "study-nav" : item.href === "/tutor" ? "tutor-nav" : undefined
+                  item.href === "/dashboard"
+                    ? "today-nav"
+                    : item.href === "/study"
+                      ? "study-nav"
+                      : item.href === "/tutor"
+                        ? "tutor-nav"
+                        : item.href === "/dashboard/progress"
+                          ? "progress-nav"
+                          : item.href === "/licence-prep"
+                            ? "licence-prep-nav"
+                            : item.href === "/account"
+                              ? "account-nav"
+                              : undefined
                 }
                 aria-current={active ? "page" : undefined}
                 className={cn(
@@ -209,7 +221,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               key={item.href}
               href={item.href}
               data-tutorial={
-                item.href === "/study" ? "study-nav" : item.href === "/tutor" ? "tutor-nav" : undefined
+                item.href === "/dashboard"
+                  ? "today-nav"
+                  : item.href === "/study"
+                    ? "study-nav"
+                    : item.href === "/tutor"
+                      ? "tutor-nav"
+                      : item.href === "/dashboard/progress"
+                        ? "progress-nav"
+                        : item.href === "/licence-prep"
+                          ? "licence-prep-nav"
+                          : item.href === "/account"
+                            ? "account-nav"
+                            : undefined
               }
               aria-current={active ? "page" : undefined}
               className={cn(

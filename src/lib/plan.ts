@@ -63,10 +63,11 @@ export function countDueTomorrow(state: UserState, now = new Date()): number {
 }
 
 /**
- * How many full or mini mocks the learner has left today.
+ * How many full or mini mocks the learner has left.
  *
- * Every plan meters per day now; the free week simply stops refilling once it
- * expires, which `trialExhausted` decides.
+ * Paid-plan mocks and free mini mocks meter per day. Free gets one genuine
+ * full paper for the lifetime of its seven-day trial. Once that trial expires,
+ * `trialExhausted` closes every remaining Free allowance.
  */
 export function mocksRemaining(
   state: UserState,
@@ -81,7 +82,10 @@ export function mocksRemaining(
   const pool = state.mockExams.filter(
     (m) => !m.drill && Boolean(m.mini) === (kind === "mini"),
   );
-  const used = pool.filter((m) => atDayKey(m.at) === todayKey(now)).length;
+  const used =
+    kind === "full" && limits.mockExamReset === "lifetime"
+      ? pool.length
+      : pool.filter((m) => atDayKey(m.at) === todayKey(now)).length;
   return Math.max(0, cap - used);
 }
 

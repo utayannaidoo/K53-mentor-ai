@@ -56,6 +56,7 @@ export function GuidedSession() {
 
   function goToToday() {
     completeGuided();
+    completeFirstRunTour();
     router.push("/dashboard");
   }
 
@@ -74,7 +75,6 @@ export function GuidedSession() {
 
   function goToStudyTour() {
     completeGuided();
-    completeFirstRunTour();
     router.push("/study?tour=1");
   }
 

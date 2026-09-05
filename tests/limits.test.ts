@@ -42,8 +42,11 @@ function startedDaysAgo(daysAgo: number): UserState {
 }
 
 describe("mocksRemaining", () => {
-  it("free: full mocks are locked outright", () => {
-    expect(mocksRemaining(defaultUserState(), "full")).toBe(0);
+  it("free: one full mock over the whole free week", () => {
+    const s = startedDaysAgo(1);
+    expect(mocksRemaining(s, "full")).toBe(1);
+    s.mockExams = [mock(LAST_WEEK)];
+    expect(mocksRemaining(s, "full")).toBe(0);
   });
 
   it("free: one mini mock a day, refilling — an old one no longer counts", () => {
@@ -56,6 +59,7 @@ describe("mocksRemaining", () => {
   });
 
   it("free: nothing is left once the week is up", () => {
+    expect(mocksRemaining(startedDaysAgo(FREE_TRIAL_DAYS + 1), "full")).toBe(0);
     expect(mocksRemaining(startedDaysAgo(FREE_TRIAL_DAYS + 1), "mini")).toBe(0);
   });
 

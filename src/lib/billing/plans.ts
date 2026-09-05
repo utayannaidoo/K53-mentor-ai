@@ -85,8 +85,9 @@ export const REFUND_PROCESSING_DAYS = 2;
 
 export interface PlanLimits {
   /**
-   * All plans refill daily. Free additionally expires: its allowances reset
-   * every day for `trialDays`, then stop.
+   * Study allowances refill daily. Free additionally expires: its allowances
+   * reset every day for `trialDays`, then stop. The single Free full mock has
+   * its own lifetime reset rule below.
    *
    * It used to be `"trial"` — one lifetime pool of 12 cards, 15 questions and 3
    * tutor messages, which a learner could exhaust in a single ten-minute
@@ -108,6 +109,8 @@ export interface PlanLimits {
   /** Premium Plus: buy extra tutor messages beyond the daily allowance. */
   tutorTopUp: boolean;
   mockExams: number | "unlimited";
+  /** Full mocks normally reset daily; Free gets one genuine paper for its whole trial. */
+  mockExamReset?: "daily" | "lifetime";
   /** 15-question mini mocks, per day. */
   miniMocks: number | "unlimited";
   /** Single-section timed drills at real pass marks, per day. */
@@ -140,27 +143,31 @@ export const PLANS: PlanDef[] = [
     tagline: "A free week — build the habit before you pay for it.",
     monthly: 0,
     features: { tutor: true, scenarios: false, licencePrep: false, advancedAnalytics: false, scanner: false },
-    caps: { flashcardsPerDay: 10, questionsPerDay: 10, tutorPerDay: 2 },
+    caps: { flashcardsPerDay: 15, questionsPerDay: 15, tutorPerDay: 2 },
     limits: {
       reset: "daily",
       trialDays: FREE_TRIAL_DAYS,
       diagnostic: "full",
-      flashcards: 10,
-      questions: 10,
+      flashcards: 15,
+      questions: 15,
       scenarios: false,
       tutorMessages: 2,
       tutorTopUp: false,
-      mockExams: 0, // full mock is a paid feature
+      mockExams: 1,
+      mockExamReset: "lifetime",
       miniMocks: 1, // one a day during the free week
       sectionDrills: 1, // one a day, same taste-then-pay pattern
-      mockLength: "short",
+      // The Free plan gets one genuine 64-question paper, not a disguised
+      // mini mock. `mocksRemaining` keeps that paper lifetime-limited.
+      mockLength: "full",
       studyPlan: false,
       progressHistory: "7d",
     },
     perks: [
       "Full AI diagnostic + readiness score",
-      "10 flashcards & 10 questions every day for 7 days",
+      "15 flashcards & 15 questions every day for 7 days",
       "2 AI tutor messages a day",
+      "1 full 64-question mock during your free week",
       "A 15-question mini mock every day",
       "7-day progress history",
     ],
@@ -186,6 +193,7 @@ export const PLANS: PlanDef[] = [
       tutorMessages: 15,
       tutorTopUp: false,
       mockExams: 3,
+      mockExamReset: "daily",
       miniMocks: 5,
       sectionDrills: 5,
       mockLength: "full",
@@ -217,6 +225,7 @@ export const PLANS: PlanDef[] = [
       tutorMessages: 35,
       tutorTopUp: true,
       mockExams: "unlimited",
+      mockExamReset: "daily",
       miniMocks: "unlimited",
       sectionDrills: "unlimited",
       mockLength: "full",

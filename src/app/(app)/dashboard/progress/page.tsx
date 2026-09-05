@@ -40,6 +40,7 @@ import { mistakeStats } from "@/lib/learning/mistakes";
 import { hasFeature, PLAN_MAP } from "@/lib/billing/plans";
 import { formatDuration, formatDate, cn } from "@/lib/utils";
 import { todayKey } from "@/lib/store/local-store";
+import { ProgressNavigator } from "@/components/onboarding/route-navigator";
 
 /**
  * Progress — five sheets, each one bordered object with hairline bands inside
@@ -591,10 +592,17 @@ export default function ProgressPage() {
     <div className="mx-auto max-w-5xl pb-6">
       <PageHeader title="Progress" description="Your readiness, mastery and study habits over time." />
       {order.map((key, i) => (
-        <SheetBlock key={key} first={i === 0} label={sheets[key].label} aside={sheets[key].aside}>
+        <SheetBlock
+          key={key}
+          first={i === 0}
+          label={sheets[key].label}
+          aside={sheets[key].aside}
+          tutorial={`progress-${key}`}
+        >
           {sheets[key].body}
         </SheetBlock>
       ))}
+      <ProgressNavigator />
     </div>
   );
 }

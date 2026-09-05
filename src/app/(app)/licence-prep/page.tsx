@@ -12,6 +12,7 @@ import { hasFeature, studyCodeOf } from "@/lib/billing/plans";
 import { MODULE_META } from "@/lib/content/meta";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn, glass } from "@/lib/utils";
+import { LicencePrepNavigator } from "@/components/onboarding/route-navigator";
 
 const DIFFICULTY = { 1: "Easy", 2: "Moderate", 3: "Advanced" } as const;
 
@@ -34,10 +35,12 @@ export default function LicencePrepPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader
-        title="Driver's licence prep"
-        description="Step-by-step cook-mode guides for the K53 yard test."
-      />
+      <div data-tutorial="licence-overview">
+        <PageHeader
+          title="Driver's licence prep"
+          description="Step-by-step cook-mode guides for the K53 yard test."
+        />
+      </div>
 
       {!unlocked && (
         <Card className="mb-6 flex flex-wrap items-center justify-between gap-4 border-primary/25 bg-primary/[0.06] p-5 shadow-glass backdrop-blur-xl">
@@ -64,7 +67,11 @@ export default function LicencePrepPage() {
         unlocked/locked treatment as the module cards below it: routes to the
         real thing when unlocked, to billing otherwise.
       */}
-      <Link href={unlocked ? "/eye-test" : "/account/billing?buy=premium_plus"} className="group mb-4 block">
+      <Link
+        href={unlocked ? "/eye-test" : "/account/billing?buy=premium_plus"}
+        className="group mb-4 block"
+        data-tutorial="licence-eye-test"
+      >
         <Card
           className={cn(
             glass,
@@ -90,7 +97,7 @@ export default function LicencePrepPage() {
         </Card>
       </Link>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div data-tutorial="licence-modules" className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {modules.map((m) => {
           const done = state.driverProgress[m.id]?.length ?? 0;
           const pct = Math.round((done / m.stepCount) * 100);
@@ -135,6 +142,7 @@ export default function LicencePrepPage() {
           );
         })}
       </div>
+      <LicencePrepNavigator />
     </div>
   );
 }
