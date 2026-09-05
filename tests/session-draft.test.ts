@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  MAX_SESSION_DRAFT_AGE_MS,
   clearFlashcardDraft,
   clearPracticeDraft,
   loadFlashcardDraft,
@@ -28,9 +29,14 @@ function withLocalStorage(fn: () => void): void {
 
 const question = {
   id: "q_1",
+  categoryId: "signs",
+  prompt: "What does this sign mean?",
   options: ["A", "B", "C", "D"],
   correctIndex: 2,
-} as Question;
+  explanation: "C is correct.",
+  difficulty: 1,
+  scope: "learners",
+} satisfies Question;
 
 describe("short study session drafts", () => {
   it("restores the exact shuffled practice paper, answer and cursor", () => {
@@ -72,6 +78,58 @@ describe("short study session drafts", () => {
       expect(loadFlashcardDraft(null, "category=signs", new Set(["card_1", "card_2"]))).toBeNull();
       expect(loadFlashcardDraft(null, "category=all", new Set(["card_1"]))).toBeNull();
       clearFlashcardDraft();
+    });
+  });
+
+  it("rejects and removes expired or invalid-timestamp drafts", () => {
+    withLocalStorage(() => {
+      savePracticeDraft({
+        kind: "practice",
+        savedAt: new Date(Date.now() - MAX_SESSION_DRAFT_AGE_MS - 1).toISOString(),
+        ownerProfileId: "learner",
+        signature: "category=all;cram=false",
+        questions: [question],
+        answers: [null],
+        index: 0,
+      });
+      expect(loadPracticeDraft("learner", "category=all;cram=false", new Set(["q_1"]))).toBeNull();
+      expect(window.localStorage.getItem("k53mentor.draft.practice.v1")).toBeNull();
+
+      saveFlashcardDraft({
+        kind: "flashcards",
+        savedAt: "not-a-date",
+        ownerProfileId: null,
+        signature: "category=all",
+        cardIds: ["card_1"],
+        index: 0,
+      });
+      expect(loadFlashcardDraft(null, "category=all", new Set(["card_1"]))).toBeNull();
+      expect(window.localStorage.getItem("k53mentor.draft.flashcards.v1")).toBeNull();
+    });
+  });
+
+  it("rejects and removes fractional cursors before they reach the UI", () => {
+    withLocalStorage(() => {
+      savePracticeDraft({
+        kind: "practice",
+        savedAt: new Date().toISOString(),
+        ownerProfileId: "learner",
+        signature: "category=all;cram=false",
+        questions: [question],
+        answers: [null],
+        index: 0.5,
+      });
+      expect(loadPracticeDraft("learner", "category=all;cram=false", new Set(["q_1"]))).toBeNull();
+
+      saveFlashcardDraft({
+        kind: "flashcards",
+        savedAt: new Date().toISOString(),
+        ownerProfileId: null,
+        signature: "category=all",
+        cardIds: ["card_1"],
+        index: 0.5,
+      });
+      expect(loadFlashcardDraft(null, "category=all", new Set(["card_1"]))).toBeNull();
     });
   });
 });
