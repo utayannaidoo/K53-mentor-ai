@@ -23,7 +23,12 @@ export function keywords(text: string): string[] {
     .toLowerCase()
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
-    .filter((w) => w.length > 3 && !STOP.has(w));
+    .filter((w) => w.length > 3 && !STOP.has(w))
+    // K53 questions naturally alternate between singular and plural forms
+    // ("four-way stop" / "four-way stops"). Keep the matcher deliberately
+    // small, but normalize that regular plural so exact word boundaries do not
+    // turn a relevant prompt into the generic fallback.
+    .map((w) => (w.length > 4 && w.endsWith("s") && !w.endsWith("ss") ? w.slice(0, -1) : w));
 }
 
 /** Match a topic term, never a coincidental substring ("four" ≠ "fourth"). */
