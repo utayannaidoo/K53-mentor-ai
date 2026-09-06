@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bestQuestionFor } from "@/lib/ai/keyword-search";
 import { retrieveRelated } from "@/lib/ai/retrieve";
+import { localTutorReply } from "@/lib/ai/fallback";
 import type { Question } from "@/types";
 
 const amber: Question = {
@@ -42,5 +43,12 @@ describe("bestQuestionFor", () => {
     expect(grounding).toMatch(/four-way stop/i);
     expect(grounding).not.toContain("fixed direction is a memory aid");
     expect(grounding).not.toContain("yard-test sheet");
+  });
+
+  it("answers the exact production quick prompt instead of using the generic fallback", () => {
+    const reply = localTutorReply("How do four-way stops work?");
+
+    expect(reply).toMatch(/four-way stop|order they arrived|vehicle on the right/i);
+    expect(reply).not.toContain("What would you like to understand better?");
   });
 });
