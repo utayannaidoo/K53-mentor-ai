@@ -93,3 +93,19 @@ describe("onboarding choice tiles stack on phones", () => {
     expect(src).not.toContain("Right now, how ready do you feel?");
   });
 });
+
+describe("marketing pages keep the first mobile decision above the fold", () => {
+  it("uses a mobile-sized pricing headline before restoring the desktop scale", () => {
+    const src = read("app/pricing/page.tsx");
+    expect(src).toContain("text-2xl");
+    expect(src).toContain("sm:text-3xl lg:text-4xl");
+    expect(src).toContain('className="pt-10 sm:pt-16"');
+  });
+
+  it("does not spend multiple phone viewports driving the How it works animation", () => {
+    const src = read("components/landing/how-it-works.tsx");
+    expect(src).not.toContain('h-[220vh]');
+    expect(src).toContain("board:h-[300vh]");
+    expect(src).toContain("relative hidden h-[348px]");
+  });
+});

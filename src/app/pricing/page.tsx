@@ -15,16 +15,16 @@ export default function PricingPage() {
     <div className="flex min-h-dvh flex-col">
       <MarketingNav />
       <main id="main-content" tabIndex={-1} className="flex-1">
-        <div className="container pt-16 text-center lg:pt-20">
-          <h1 className="text-balance font-display text-4xl font-semibold tracking-tight">
+        <div className="container pt-12 text-center sm:pt-16 lg:pt-20">
+          <h1 className="text-balance font-display text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
             One plan to pass. One to keep driving well.
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Start free with a full diagnostic. Upgrade only when you&apos;re ready — and never pay
-            more than the cost of a single failed re-test.
+            Start with a free diagnostic. Upgrade when you&apos;re ready — one plan costs less than a
+            single failed re-test.
           </p>
         </div>
-        <PricingSection withHeading={false} />
+        <PricingSection withHeading={false} className="pt-10 sm:pt-16" />
         <Faq />
       </main>
       <Footer />

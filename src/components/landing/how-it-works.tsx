@@ -12,6 +12,8 @@ import { EXAM_FORMAT } from "@/lib/constants";
  * 64 questions.
  */
 const DEMO_MOCK_SCORE = 58;
+const BOARD_QUERY =
+  "(min-width: 1024px) and (min-height: 500px), (min-width: 768px) and (min-height: 600px)";
 
 const STEPS = [
   {
@@ -47,9 +49,14 @@ export function HowItWorks() {
   React.useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
+    const board = window.matchMedia(BOARD_QUERY);
 
     let frame = 0;
     const onScroll = () => {
+      if (!board.matches) {
+        setActive(0);
+        return;
+      }
       if (frame) return;
       frame = requestAnimationFrame(() => {
         frame = 0;
@@ -69,8 +76,10 @@ export function HowItWorks() {
 
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
+    board.addEventListener("change", onScroll);
     return () => {
       window.removeEventListener("scroll", onScroll);
+      board.removeEventListener("change", onScroll);
       if (frame) cancelAnimationFrame(frame);
     };
   }, []);
@@ -118,16 +127,14 @@ export function HowItWorks() {
       <section
         ref={sectionRef}
         id="how"
-        className="relative mx-auto h-[220vh] -mt-10 max-w-[1120px] scroll-mt-20 px-6 board:h-[300vh] board:-mt-12"
+        className="relative mx-auto max-w-[1120px] scroll-mt-20 px-6 pb-16 board:-mt-12 board:h-[300vh] board:pb-0"
       >
-        {/* pt offsets the floating nav (~4.5rem) so the steps + panel sit in the
-            *visible* area, not the full viewport (which the nav overlaps at the
-            top). On the board layout they centre in it; on the stacked one they
-            top-align, otherwise centring inside a viewport-tall box opens a gap
-            under the heading before the sticky engages. svh (not dvh) keeps the
-            box from re-laying-out when mobile browser chrome collapses
-            mid-scroll. */}
-        <div className="sticky top-0 flex h-[100svh] flex-col justify-start pt-[4.5rem] board:h-dvh board:justify-center">
+        {/* Phones use ordinary document flow: all four steps remain readable
+            without spending extra viewports on a scroll-driven presentation.
+            The board breakpoint earns the sticky treatment because it has room
+            for the list and visual panel side by side. Its top padding clears
+            the floating navigation. */}
+        <div className="flex flex-col justify-start board:sticky board:top-0 board:h-dvh board:justify-center board:pt-[4.5rem]">
           <div className="flex flex-col items-center gap-4 board:flex-row board:gap-14">
             <div className="flex w-full flex-none flex-col gap-2 board:flex-1">
               {STEPS.map((s, i) => {
@@ -135,31 +142,21 @@ export function HowItWorks() {
                 return (
                   <div
                     key={s.n}
-                    className="flex gap-4 rounded-2xl px-4 py-2 transition-[opacity,background,box-shadow] duration-500 ease-soft max-md:[@media(min-height:750px)]:py-2.5 board:py-3"
-                    style={{
-                      opacity: on ? 1 : 0.42,
-                      background: on ? "hsl(var(--card)/0.55)" : "transparent",
-                      boxShadow: on
-                        ? "inset 0 0 0 1px hsl(0 0% 100%/0.08), inset 3px 0 0 hsl(var(--primary))"
-                        : "none",
-                    }}
+                    className={`flex gap-4 rounded-2xl bg-card/40 px-4 py-3 shadow-[inset_3px_0_0_hsl(var(--primary))] transition-[opacity,background,box-shadow] duration-500 ease-soft board:py-3 ${
+                      on
+                        ? "board:bg-card/[0.55] board:opacity-100 board:shadow-[inset_0_0_0_1px_hsl(0_0%_100%/0.08),inset_3px_0_0_hsl(var(--primary))]"
+                        : "board:bg-transparent board:opacity-[0.42] board:shadow-none"
+                    }`}
                   >
                     <span className="pt-1 font-mono text-[13px] font-semibold text-primary">{s.n}</span>
                     <div>
                       <h3 className="font-display text-[17px] font-semibold tracking-[-0.01em]">
                         {s.title}
                       </h3>
-                      {/* On the stacked layout the four steps and the panel
-                          compete for one viewport, so only the active step
-                          keeps its body. The max-height ceiling is generous
-                          enough for the longest body (~63px) to animate open
-                          without clipping; the board layout pins every row
-                          open. */}
-                      <div
-                        className={`overflow-hidden transition-[max-height,opacity] duration-500 ease-soft motion-reduce:transition-none board:max-h-none board:opacity-100 ${
-                          on ? "max-h-[6.5rem] opacity-100" : "max-h-0 opacity-0"
-                        }`}
-                      >
+                      {/* Keep every description available in both layouts. On
+                          the animated board, row emphasis and the adjacent
+                          panel communicate the active step without hiding copy. */}
+                      <div className="max-h-none overflow-hidden opacity-100">
                         <p className="mt-1 text-[0.9rem] leading-[1.45] text-muted-foreground">
                           {s.body}
                         </p>
@@ -170,16 +167,11 @@ export function HowItWorks() {
               })}
             </div>
 
-            {/* flex-none on the stacked layout: every panel inside is
-                absolutely positioned, so with flex-1 the column has no
-                min-content floor and its flex-basis of 0 overrides the explicit
-                height in the stacked (column) layout — collapsing the panels to
-                nothing. On the board layout the main axis is horizontal, so
-                flex-1 sizes width and h applies. */}
-            {/* 348px: the tallest panel needs ~320px once the board columns
-                narrow to a tablet's ~330px, and `max-h-full` would squash it
-                against a tighter box. */}
-            <div className="relative h-[310px] w-full flex-none max-md:[@media(min-height:750px)]:h-[325px] board:h-[348px] board:flex-1">
+            {/* The visual panels are board-only. Phones just saw the real
+                interactive product preview above, so repeating four decorative
+                simulations here added length without adding understanding.
+                348px fits the tallest panel at the narrow board breakpoint. */}
+            <div className="relative hidden h-[348px] w-full flex-none board:block board:flex-1">
             {/* 0 — practice question */}
             <div
               className={`${PANEL} rounded-[22px] p-5 board:p-6 ${active === 0 ? "translate-y-0" : "translate-y-[22px]"}`}
