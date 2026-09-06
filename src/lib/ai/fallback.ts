@@ -9,7 +9,7 @@ import type { CategoryId } from "@/types";
 // argument. This module resolves ids against the whole bank and so can never
 // run in a browser; the matching itself has no such constraint, and the
 // landing page's tutor demo needs it against the public starter pack.
-export { keywords } from "@/lib/ai/keyword-search";
+export { containsKeyword, keywords } from "@/lib/ai/keyword-search";
 
 const searchExplanation = (text: string) => bestQuestionFor(text, QUESTIONS);
 

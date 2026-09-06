@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { bestQuestionFor } from "@/lib/ai/keyword-search";
+import { retrieveRelated } from "@/lib/ai/retrieve";
 import type { Question } from "@/types";
 
 const amber: Question = {
@@ -33,5 +34,13 @@ describe("bestQuestionFor", () => {
     expect(bestQuestionFor("How do I safely approach a four-way stop?", [amber, fourWayStop])?.id).toBe(
       "four-way-stop",
     );
+  });
+
+  it("grounds a four-way-stop prompt in intersection facts, not generic vehicle-walk wording", () => {
+    const grounding = retrieveRelated("How do four-way stops work?");
+
+    expect(grounding).toMatch(/four-way stop/i);
+    expect(grounding).not.toContain("fixed direction is a memory aid");
+    expect(grounding).not.toContain("yard-test sheet");
   });
 });

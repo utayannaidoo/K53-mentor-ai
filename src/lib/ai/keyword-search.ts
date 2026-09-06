@@ -15,7 +15,7 @@ import type { Question } from "@/types";
 const STOP = new Set([
   "what", "why", "how", "the", "are", "does", "explain", "this", "that", "when",
   "should", "can", "you", "please", "tell", "about", "again", "another", "example",
-  "give", "with", "from", "have", "your", "mean", "like",
+  "give", "with", "from", "have", "your", "mean", "like", "work", "works",
 ]);
 
 export function keywords(text: string): string[] {
@@ -24,6 +24,11 @@ export function keywords(text: string): string[] {
     .replace(/[^a-z0-9\s]/g, " ")
     .split(/\s+/)
     .filter((w) => w.length > 3 && !STOP.has(w));
+}
+
+/** Match a topic term, never a coincidental substring ("four" ≠ "fourth"). */
+export function containsKeyword(text: string, word: string): boolean {
+  return new RegExp(`\\b${word}\\b`, "i").test(text);
 }
 
 /**
@@ -42,8 +47,8 @@ export function bestQuestionFor(text: string, pool: readonly Question[]): Questi
   for (const q of pool) {
     const prompt = q.prompt.toLowerCase();
     const supporting = `${q.explanation} ${q.options.join(" ")}`.toLowerCase();
-    const promptMatches = kw.filter((word) => prompt.includes(word));
-    const totalMatches = kw.filter((word) => prompt.includes(word) || supporting.includes(word));
+    const promptMatches = kw.filter((word) => containsKeyword(prompt, word));
+    const totalMatches = kw.filter((word) => containsKeyword(prompt, word) || containsKeyword(supporting, word));
     if (promptMatches.length === 0 || totalMatches.length < 2) continue;
     const score = promptMatches.length * 2 + totalMatches.length;
     if (score > bestScore) {

@@ -1,6 +1,6 @@
 import { QUESTIONS } from "@/lib/content/questions";
 import { FLASHCARDS } from "@/lib/content/flashcards";
-import { keywords } from "@/lib/ai/fallback";
+import { containsKeyword, keywords } from "@/lib/ai/fallback";
 
 /**
  * Lightweight retrieval (RAG-lite) over the seeded K53 content bank.
@@ -35,7 +35,7 @@ export function retrieveRelated(userText: string, excludeId?: string, k = 3): st
   for (const q of QUESTIONS) {
     if (q.id === excludeId) continue;
     const hay = haystacks.get(q.id)!;
-    const score = kw.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
+    const score = kw.reduce((s, w) => s + (containsKeyword(hay, w) ? 1 : 0), 0);
     if (score > 0) {
       scored.push({
         text: `Q: ${q.prompt} → ${q.options[q.correctIndex]}. ${q.explanation}`,
@@ -46,13 +46,18 @@ export function retrieveRelated(userText: string, excludeId?: string, k = 3): st
 
   for (const f of FLASHCARDS) {
     const hay = haystacks.get(f.id)!;
-    const score = kw.reduce((s, w) => s + (hay.includes(w) ? 1 : 0), 0);
+    const score = kw.reduce((s, w) => s + (containsKeyword(hay, w) ? 1 : 0), 0);
     if (score > 0) {
       scored.push({ text: `${f.front} → ${f.back}`, score });
     }
   }
 
   scored.sort((a, b) => b.score - a.score);
-  const top = scored.slice(0, k).filter((t) => t.score >= 2);
+  // Conversational glue such as "work" used to match an unrelated explanation
+  // about walking around a vehicle. That weak match sat beside the genuinely
+  // relevant four-way-stop facts, and a remote tutor could then latch onto the
+  // wrong one. Requiring two topic-bearing terms keeps grounding about the
+  // learner's subject rather than about generic wording in an explanation.
+  const top = scored.filter((t) => t.score >= 2).slice(0, k);
   return top.length ? top.map((t) => `• ${t.text}`).join("\n") : null;
 }
