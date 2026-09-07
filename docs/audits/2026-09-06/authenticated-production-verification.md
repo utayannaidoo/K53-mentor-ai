@@ -90,9 +90,9 @@ state was changed.
 | Free production entitlement — scanner | Pass | `/study/scan` rendered the Premium upgrade gate and did not expose camera/upload controls. |
 | Free production entitlement — tutor | Pass | `/tutor` rendered the expired-free-week gate, preserved the learner's readiness, and did not expose the paid composer or image attachment. |
 | Preview deployment health | Pass | PR #91 deployment `dpl_6qvqJbPqEsWrJzX2Ruw5JfX374sd` was `READY`; GitHub CI and the Vercel status check were successful. |
-| Preview Google authentication | Fail / configuration blocker | Starting **Continue with Google** on the PR #91 Preview returned the browser to the authenticated production `/dashboard`; it did not establish a session on the Preview hostname. This is consistent with the Preview callback URL being absent from Supabase's allowed redirect URLs. |
-| Preview Paystack mode | User-confirmed, not independently completed | The operator confirmed that Preview uses an `sk_test_` key. Vercel CLI exposed the expected variable names but returned empty values for both general and branch-scoped Preview pulls, so the secret prefix and four plan objects could not be independently queried without a Preview checkout session. No checkout was initialized. |
-| Approved vision fixture | Ready, blocked by entitlement | The repository-owned stop-sign asset `public/signs/regulatory/regulatory-006-01.png` is non-sensitive and explicitly approved for upload. The only authenticated account available for this follow-up is Free, so the production UI correctly prevents the upload; Preview authentication must work before the fixture can exercise vision safely. |
+| Preview Google authentication | Pass after configuration repair | The first attempt returned to production because the Preview callback was absent from Supabase's redirect allow list. After the operator added the stable Preview alias, Google OAuth returned to `/continue` on Preview and established the session successfully. |
+| Preview data and Paystack isolation | Blocked / unsafe for checkout | The authenticated Preview session loaded an existing `utayan.naidoo@gmail.com` Premium subscription, cancellation, pending refund and 1,367 CP. Preview is therefore not an isolated billing test environment. The operator also suspects production Paystack credentials are present. No checkout, resume, card update or plan change was initialized. Preview needs test Paystack keys, test plan codes and a non-production Supabase project before lifecycle testing. |
+| Approved vision fixture | Provider outage reproduced | The repository-owned stop-sign asset `public/signs/regulatory/regulatory-006-01.png` uploaded successfully. `/api/vision` reached Anthropic, which rejected the request because the provider account had insufficient credit. The scan allowance was refunded, but the client rendered a generic failure; the follow-up fix maps this known provider failure to the scanner's actionable unavailable state. |
 | 320 px responsive probe | Tooling blocker | The in-app browser accepted a 320 px viewport override, but the document still reported a 645 px client width on all six core routes. No horizontal overflow appeared at that effective width, but this cannot certify the requested phone breakpoints. |
 
 ## Still unverified (not safe or possible with this one session)
@@ -141,15 +141,15 @@ permission prompt.
 
 ### Paystack lifecycle
 
-First add the exact Preview callback (prefer the stable branch alias) to
-Supabase Auth's allowed redirect URLs, for example
-`https://k53-mentor-ai-git-codex-auth-c73014-utayannaidoo-5493s-projects.vercel.app/auth/callback`,
-then sign a dedicated test account into that Preview. Verify in Vercel or the
-Paystack merchant dashboard that its four plan codes are test Plans; the
-operator has confirmed the Preview secret uses the `sk_test_` prefix. Then use
-Paystack test cards for success, failure and abandonment. Replay or delay signed
-test webhook events from the Paystack test dashboard to cover duplicate delivery,
-return-before-webhook, renewal, disable/cancel, refund and expiry. A second test
+The Preview callback is now allow-listed and Google authentication passes.
+Before checkout, replace any production Paystack key/plan values in Preview
+with test equivalents and point all Preview Supabase variables at a dedicated
+non-production project. Verify in Vercel or the Paystack merchant dashboard
+that the secret uses the `sk_test_` prefix and all four plan codes are test
+Plans. Then use Paystack test cards for success, failure and abandonment. Replay
+or delay signed test webhook events from the Paystack test dashboard to cover
+duplicate delivery, return-before-webhook, renewal, disable/cancel, refund and
+expiry. A second test
 account is required for cross-account reference-reuse attempts. Each hosted
 checkout confirmation is a financial-flow action even in test mode and requires
 an explicit go-ahead at the final confirmation step.

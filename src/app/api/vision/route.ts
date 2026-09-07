@@ -157,7 +157,14 @@ export async function POST(req: Request) {
       // provider call otherwise costs a paid scan without serving anything.
       // Refund the allowance — an outage shouldn't tax the learner's quota.
       if (ent.userId) await refundUserDaily("vision", ent.userId);
-      return Response.json({ error: "Vision call failed" }, { status: 502 });
+      // The client already has a specific, actionable provider-unavailable
+      // state. Preserve that contract when a configured provider rejects the
+      // request (for example exhausted provider credits), not only when no
+      // image-capable provider is configured at all.
+      return Response.json(
+        { unavailable: true, error: "provider_unavailable" },
+        { status: 503 },
+      );
     }
 
     await usageWrite;
