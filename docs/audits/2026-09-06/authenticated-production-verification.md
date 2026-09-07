@@ -91,19 +91,20 @@ state was changed.
 | Free production entitlement — tutor | Pass | `/tutor` rendered the expired-free-week gate, preserved the learner's readiness, and did not expose the paid composer or image attachment. |
 | Preview deployment health | Pass | PR #91 deployment `dpl_6qvqJbPqEsWrJzX2Ruw5JfX374sd` was `READY`; GitHub CI and the Vercel status check were successful. |
 | Preview Google authentication | Pass after configuration repair | The first attempt returned to production because the Preview callback was absent from Supabase's redirect allow list. After the operator added the stable Preview alias, Google OAuth returned to `/continue` on Preview and established the session successfully. |
+| Preview logout and protected-route invalidation | Pass | The recoverable Google session signed out through Account, returned to the public landing page, and a direct request to `/tutor` was rejected to `/login?next=/tutor`. Reauthentication through Google succeeded before this probe, so the result was not inferred from a stale or unknown session. |
 | Preview data and Paystack isolation | Blocked / unsafe for checkout | The authenticated Preview session loaded an existing `utayan.naidoo@gmail.com` Premium subscription, cancellation, pending refund and 1,367 CP. Preview is therefore not an isolated billing test environment. The operator also suspects production Paystack credentials are present. No checkout, resume, card update or plan change was initialized. Preview needs test Paystack keys, test plan codes and a non-production Supabase project before lifecycle testing. |
 | Approved vision fixture | Provider outage reproduced | The repository-owned stop-sign asset `public/signs/regulatory/regulatory-006-01.png` uploaded successfully. `/api/vision` reached Anthropic, which rejected the request because the provider account had insufficient credit. The scan allowance was refunded, but the client rendered a generic failure; the follow-up fix maps this known provider failure to the scanner's actionable unavailable state. |
 | 320 px responsive probe | Tooling blocker | The in-app browser accepted a 320 px viewport override, but the document still reported a 645 px client width on all six core routes. No horizontal overflow appeared at that effective width, but this cannot certify the requested phone breakpoints. |
 
 ## Still unverified (not safe or possible with this one session)
 
-- Successful authentication from credentials; password-reset email and token
-  lifecycle; logout invalidation; analytics reset; account switching and
-  cross-account isolation.
+- Password-based authentication; password-reset email and token lifecycle;
+  live analytics identity reset; account switching and cross-account isolation.
 - Premium *production* entitlement behavior. Premium Plus and Free have now
   been observed; the middle tier still needs its own account.
-- Vision recognition itself and provider-outage behavior. Testing needs an image
-  and would transmit it to the AI provider.
+- Successful vision recognition. The approved image upload and provider-outage
+  path were exercised; Anthropic needs sufficient credit before recognition can
+  complete.
 - Checkout success/failure/abandonment, return-before-webhook, delayed or
   duplicate webhook, renewal, cancellation, refund, expiry and cross-account
   reference-reuse behavior. These require a dedicated preview deployment with
@@ -115,13 +116,12 @@ state was changed.
 
 ### Authentication, logout and isolation
 
-Provide two dedicated test accounts (one Free, one Premium) with access to their
-test inboxes, or sign both accounts into separate browser profiles and hand off
-those sessions. This is necessary to verify credential login, reset-email
-delivery/token reuse, account switching and cross-account data isolation. The
-Premium Plus review session must not be logged out without recoverable
-credentials or inbox access. The separate main production account is Free, but
-its production session does not transfer to a Vercel Preview hostname.
+Google authentication, reauthentication, logout and protected-route invalidation
+now pass on Preview. Two dedicated test accounts (one Free, one Premium) with
+test-inbox access are still required for password login, reset-email delivery,
+token reuse, account switching and cross-account data isolation. The Premium
+Plus production review session must not be logged out without recoverable
+credentials or inbox access.
 
 ### Free and Premium entitlements
 
@@ -132,12 +132,12 @@ would not prove the normal purchase path.
 
 ### Vision recognition
 
-The repository stop-sign fixture is now approved. Complete Preview
-authentication (or provide a dedicated paid Preview session), then upload
-`public/signs/regulatory/regulatory-006-01.png` and verify identification,
-explanation, allowance decrement and the provider-unavailable message. A
-camera-permission test still needs an interactive browser handoff at the
-permission prompt.
+The repository stop-sign fixture uploaded successfully and the provider-outage
+path was reproduced. PR #93 now maps a failed configured provider to the clear
+unavailable state while refunding the scan allowance. Add Anthropic credit (or
+another configured image-capable provider), redeploy and repeat the fixture to
+verify successful identification and explanation. A camera-permission test
+still needs an interactive browser handoff at the permission prompt.
 
 ### Paystack lifecycle
 
