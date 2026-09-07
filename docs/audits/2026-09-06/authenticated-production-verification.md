@@ -92,14 +92,18 @@ state was changed.
 | Preview deployment health | Pass | PR #91 deployment `dpl_6qvqJbPqEsWrJzX2Ruw5JfX374sd` was `READY`; GitHub CI and the Vercel status check were successful. |
 | Preview Google authentication | Pass after configuration repair | The first attempt returned to production because the Preview callback was absent from Supabase's redirect allow list. After the operator added the stable Preview alias, Google OAuth returned to `/continue` on Preview and established the session successfully. |
 | Preview logout and protected-route invalidation | Pass | The recoverable Google session signed out through Account, returned to the public landing page, and a direct request to `/tutor` was rejected to `/login?next=/tutor`. Reauthentication through Google succeeded before this probe, so the result was not inferred from a stale or unknown session. |
+| Preview password authentication | Pass | Both operator-authorized accounts authenticated through the email/password form and reached their server-backed dashboards. No OAuth fallback was used for this probe. |
+| Preview account switching and visible data isolation | Pass | Switching Premium → Free → Premium through complete sign-outs preserved distinct identities, tiers and study state in both directions. Premium returned to 1,395 CP and 422 answers; Free remained at 59 CP and 17 answers. Profile, readiness, weakest category and plan content also remained account-specific. |
+| Preview password-reset request | Partial pass | The support account reset request returned the non-enumerating “Check your email” confirmation and the same-browser PKCE warning. Delivery, recovery-token acceptance/reuse rejection and password update remain pending because the email link must be opened in this requesting browser. |
 | Preview data and Paystack isolation | Blocked / unsafe for checkout | The authenticated Preview session loaded an existing `utayan.naidoo@gmail.com` Premium subscription, cancellation, pending refund and 1,367 CP. Preview is therefore not an isolated billing test environment. The operator also suspects production Paystack credentials are present. No checkout, resume, card update or plan change was initialized. Preview needs test Paystack keys, test plan codes and a non-production Supabase project before lifecycle testing. |
 | Approved vision fixture | Provider outage reproduced | The repository-owned stop-sign asset `public/signs/regulatory/regulatory-006-01.png` uploaded successfully. `/api/vision` reached Anthropic, which rejected the request because the provider account had insufficient credit. The scan allowance was refunded, but the client rendered a generic failure; the follow-up fix maps this known provider failure to the scanner's actionable unavailable state. |
 | 320 px responsive probe | Tooling blocker | The in-app browser accepted a 320 px viewport override, but the document still reported a 645 px client width on all six core routes. No horizontal overflow appeared at that effective width, but this cannot certify the requested phone breakpoints. |
 
 ## Still unverified (not safe or possible with this one session)
 
-- Password-based authentication; password-reset email and token lifecycle;
-  live analytics identity reset; account switching and cross-account isolation.
+- Password-reset email delivery and recovery-token lifecycle; live analytics
+  identity reset. Password authentication and visible cross-account isolation
+  now pass with two accounts.
 - Premium *production* entitlement behavior. Premium Plus and Free have now
   been observed; the middle tier still needs its own account.
 - Successful vision recognition. The approved image upload and provider-outage
@@ -116,12 +120,16 @@ state was changed.
 
 ### Authentication, logout and isolation
 
-Google authentication, reauthentication, logout and protected-route invalidation
-now pass on Preview. Two dedicated test accounts (one Free, one Premium) with
-test-inbox access are still required for password login, reset-email delivery,
-token reuse, account switching and cross-account data isolation. The Premium
-Plus production review session must not be logged out without recoverable
-credentials or inbox access.
+Google authentication, password authentication, reauthentication, logout,
+protected-route invalidation and bidirectional account switching now pass on
+Preview. The two accounts retained separate identities, tiers, points,
+readiness, progress and study plans across Premium → Free → Premium. A reset
+request for the support account also reached the non-enumerating success state.
+Open that reset email's link in the same requesting browser to verify delivery,
+token acceptance, token reuse rejection and the update flow. Do not submit a
+new password without an explicit operator handoff at the final step. Live
+analytics identity reset still needs PostHog Live Events or browser storage
+inspection; the current in-app browser does not expose localStorage.
 
 ### Free and Premium entitlements
 
