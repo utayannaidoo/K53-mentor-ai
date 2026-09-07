@@ -78,13 +78,30 @@ facts.
   ledger idempotency, webhook lifecycle events, reconciliation, entitlement
   expiry, cancellation, pending refunds and the concurrent refund race.
 
+## Follow-up live matrix — 7 September 2026
+
+The main production account `support.k53mentor@gmail.com` was available in a
+separate authenticated session. The UI identifies it as **Free**, with its
+introductory week expired. No progress, preference, subscription or account
+state was changed.
+
+| Check | Result | Evidence |
+|---|---|---|
+| Free production entitlement — scanner | Pass | `/study/scan` rendered the Premium upgrade gate and did not expose camera/upload controls. |
+| Free production entitlement — tutor | Pass | `/tutor` rendered the expired-free-week gate, preserved the learner's readiness, and did not expose the paid composer or image attachment. |
+| Preview deployment health | Pass | PR #91 deployment `dpl_6qvqJbPqEsWrJzX2Ruw5JfX374sd` was `READY`; GitHub CI and the Vercel status check were successful. |
+| Preview Google authentication | Fail / configuration blocker | Starting **Continue with Google** on the PR #91 Preview returned the browser to the authenticated production `/dashboard`; it did not establish a session on the Preview hostname. This is consistent with the Preview callback URL being absent from Supabase's allowed redirect URLs. |
+| Preview Paystack mode | User-confirmed, not independently completed | The operator confirmed that Preview uses an `sk_test_` key. Vercel CLI exposed the expected variable names but returned empty values for both general and branch-scoped Preview pulls, so the secret prefix and four plan objects could not be independently queried without a Preview checkout session. No checkout was initialized. |
+| Approved vision fixture | Ready, blocked by entitlement | The repository-owned stop-sign asset `public/signs/regulatory/regulatory-006-01.png` is non-sensitive and explicitly approved for upload. The only authenticated account available for this follow-up is Free, so the production UI correctly prevents the upload; Preview authentication must work before the fixture can exercise vision safely. |
+| 320 px responsive probe | Tooling blocker | The in-app browser accepted a 320 px viewport override, but the document still reported a 645 px client width on all six core routes. No horizontal overflow appeared at that effective width, but this cannot certify the requested phone breakpoints. |
+
 ## Still unverified (not safe or possible with this one session)
 
 - Successful authentication from credentials; password-reset email and token
   lifecycle; logout invalidation; analytics reset; account switching and
   cross-account isolation.
-- Free and Premium *production* entitlement behavior. Only the existing Premium
-  Plus account was available.
+- Premium *production* entitlement behavior. Premium Plus and Free have now
+  been observed; the middle tier still needs its own account.
 - Vision recognition itself and provider-outage behavior. Testing needs an image
   and would transmit it to the AI provider.
 - Checkout success/failure/abandonment, return-before-webhook, delayed or
@@ -102,9 +119,9 @@ Provide two dedicated test accounts (one Free, one Premium) with access to their
 test inboxes, or sign both accounts into separate browser profiles and hand off
 those sessions. This is necessary to verify credential login, reset-email
 delivery/token reuse, account switching and cross-account data isolation. The
-current Premium Plus session cannot be logged out safely because no recoverable
-credentials or inbox are available; doing so could destroy the only live paid
-test session before reauthentication is proven.
+Premium Plus review session must not be logged out without recoverable
+credentials or inbox access. The separate main production account is Free, but
+its production session does not transfer to a Vercel Preview hostname.
 
 ### Free and Premium entitlements
 
@@ -115,19 +132,23 @@ would not prove the normal purchase path.
 
 ### Vision recognition
 
-Supply or explicitly approve a non-sensitive road-sign image for upload to the
-K53 Mentor AI production/preview scanner. The image is sent to an external AI
-provider, so it should contain no people, number plates, addresses or location
-metadata. A camera-permission test additionally needs an interactive browser
-handoff at the permission prompt.
+The repository stop-sign fixture is now approved. Complete Preview
+authentication (or provide a dedicated paid Preview session), then upload
+`public/signs/regulatory/regulatory-006-01.png` and verify identification,
+explanation, allowance decrement and the provider-unavailable message. A
+camera-permission test still needs an interactive browser handoff at the
+permission prompt.
 
 ### Paystack lifecycle
 
-Sign a dedicated test account into a Vercel Preview and verify in Vercel or the
-Paystack merchant dashboard that Preview's encrypted `PAYSTACK_SECRET_KEY` has
-the `sk_test_` prefix and its plan codes are test Plans. Then use Paystack test
-cards for success, failure and abandonment. Replay or delay signed test webhook
-events from the Paystack test dashboard to cover duplicate delivery,
+First add the exact Preview callback (prefer the stable branch alias) to
+Supabase Auth's allowed redirect URLs, for example
+`https://k53-mentor-ai-git-codex-auth-c73014-utayannaidoo-5493s-projects.vercel.app/auth/callback`,
+then sign a dedicated test account into that Preview. Verify in Vercel or the
+Paystack merchant dashboard that its four plan codes are test Plans; the
+operator has confirmed the Preview secret uses the `sk_test_` prefix. Then use
+Paystack test cards for success, failure and abandonment. Replay or delay signed
+test webhook events from the Paystack test dashboard to cover duplicate delivery,
 return-before-webhook, renewal, disable/cancel, refund and expiry. A second test
 account is required for cross-account reference-reuse attempts. Each hosted
 checkout confirmation is a financial-flow action even in test mode and requires
