@@ -15,6 +15,7 @@ const limitTutor = vi.fn(async () => LOCAL_ONLY);
 const limitCoach = vi.fn(async () => LOCAL_ONLY);
 const limitVision = vi.fn(async () => BACKEND_DOWN);
 const limitUserDaily = vi.fn(async (_surface: string, _userId: string, _limit: number) => ({ success: true, retryAfter: 0 }));
+const refundUserDaily = vi.fn(async (_surface: string, _userId: string) => {});
 const resolveEntitlement = vi.fn(async (_surface: string) => ({
   userId: "paid-user",
   tier: "premium_plus" as const,
@@ -37,7 +38,7 @@ vi.mock("@/lib/ai/rate-limit", () => ({
   limitVision: () => limitVision(),
   limitUserDaily: (surface: string, userId: string, limit: number) =>
     limitUserDaily(surface, userId, limit),
-  refundUserDaily: vi.fn(async () => {}),
+  refundUserDaily: (surface: string, userId: string) => refundUserDaily(surface, userId),
 }));
 
 vi.mock("@/lib/billing/entitlements.server", () => ({
@@ -119,5 +120,25 @@ describe("AI routes during a shared-limiter outage", () => {
     expect(await res.json()).toMatchObject({ unavailable: true, error: "limiter_unavailable" });
     expect(resolveEntitlement).not.toHaveBeenCalled();
     expect(completeVisionText).not.toHaveBeenCalled();
+  });
+
+  it("reports a configured vision-provider failure as unavailable and refunds the scan", async () => {
+    limitVision.mockResolvedValueOnce(LOCAL_ONLY);
+
+    const res = await visionPost(
+      new Request("https://k53.test/api/vision", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ image: { data: "x".repeat(120), mediaType: "image/jpeg" } }),
+      }),
+    );
+
+    expect(res.status).toBe(503);
+    expect(await res.json()).toMatchObject({
+      unavailable: true,
+      error: "provider_unavailable",
+    });
+    expect(completeVisionText).toHaveBeenCalledTimes(1);
+    expect(refundUserDaily).toHaveBeenCalledWith("vision", "paid-user");
   });
 });
