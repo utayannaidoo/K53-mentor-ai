@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { reportLimiterOutage } from "@/lib/ops/limiter-alert";
 
 /**
  * Server-side rate limiting for the AI tutor route.
@@ -502,6 +503,7 @@ export async function limitCoach(ip: string): Promise<LimitResult> {
     return memLimit(`coach:day:${ip}`, COACH_DAILY_LIMIT, 86_400_000);
   } catch (err) {
     console.error("rate-limit error", err);
+    reportLimiterOutage("coach", err);
     return allowCostFreeFallback("coach", ip, 6, 10_000, COACH_DAILY_LIMIT);
   }
 }
@@ -527,6 +529,7 @@ export async function limitVision(ip: string): Promise<LimitResult> {
     // Vision calls are the priciest in the app — if the limiter itself is
     // down we cannot know how much has been spent, so fail CLOSED.
     console.error("rate-limit error", err);
+    reportLimiterOutage("vision", err);
     return BACKEND_UNAVAILABLE;
   }
 }
@@ -560,6 +563,7 @@ export async function limitTutor(ip: string): Promise<LimitResult> {
     // A per-instance provider budget multiplies by the number of serverless
     // instances. Bound request work locally, but force a cost-free answer.
     console.error("rate-limit error", err);
+    reportLimiterOutage("tutor", err);
     return allowCostFreeFallback("tutor", ip, BURST_LIMIT, BURST_WINDOW_S * 1000, DAILY_LIMIT);
   }
 }

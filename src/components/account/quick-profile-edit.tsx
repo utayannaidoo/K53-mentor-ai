@@ -92,10 +92,11 @@ export function QuickProfileEdit({ open, onClose }: { open: boolean; onClose: ()
       ? { ...onboarding, ...patch }
       : {
           ...patch,
-          confidence: 3,
+          // Unasked here too — null, not an invented answer.
+          confidence: null,
           worryCategories: [],
-          knowledgeLevel: "some",
-          studyFrequency: "steady",
+          knowledgeLevel: null,
+          studyFrequency: null,
           priorAttempts: 0,
           completedAt: new Date().toISOString(),
         };

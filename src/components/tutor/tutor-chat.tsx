@@ -310,6 +310,14 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
       }
 
       const model = res.headers.get("x-tutor-model") ?? "local";
+      // Basic mode: the server answered from study notes without metering the
+      // message, so return the optimistic client count and say what happened
+      // rather than letting a paid learner wonder why Navi got simpler.
+      const basicMode = res.headers.get("x-tutor-mode") === "basic";
+      if (basicMode) bumpUsage("tutor", -1);
+      const basicNote = basicMode
+        ? "\n\n_Navi is in basic mode for a moment, so this answer comes from our study notes. It didn't use any of today's messages._"
+        : "";
       // Recorded once per answered message, before the body is read, so a
       // reply the learner abandons mid-stream still counts as served.
       track("tutor_message_sent", {
@@ -324,7 +332,9 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         const text = await res.text();
         appendTutorMessage(id, {
           role: "assistant",
-          content: text.trim() || "Sorry — I had trouble responding just then. Please try again.",
+          content: text.trim()
+            ? text.trim() + basicNote
+            : "Sorry — I had trouble responding just then. Please try again.",
           model,
         });
         return;
@@ -343,7 +353,9 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
       acc += decoder.decode();
       appendTutorMessage(id, {
         role: "assistant",
-        content: acc.trim() || "Sorry — I had trouble responding just then. Please try again.",
+        content: acc.trim()
+          ? acc.trim() + basicNote
+          : "Sorry — I had trouble responding just then. Please try again.",
         model,
       });
     } catch {

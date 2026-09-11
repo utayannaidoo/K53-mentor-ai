@@ -84,6 +84,8 @@ describe("AI routes during a shared-limiter outage", () => {
 
     expect(res.status).toBe(200);
     expect(streamTutorReply).toHaveBeenCalledWith(expect.objectContaining({ forceLocal: true }));
+    // A paying learner is told why the answer is simpler, not left guessing.
+    expect(res.headers.get("x-tutor-mode")).toBe("basic");
     expect(limitUserDaily).not.toHaveBeenCalled();
     expect(recordAiUsage).not.toHaveBeenCalled();
   });

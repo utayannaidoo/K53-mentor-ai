@@ -23,6 +23,7 @@ import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, min
 import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT, SECTION_LABEL } from "@/lib/constants";
+import { formatPassProbability } from "@/lib/diagnostic/scoring";
 import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
 import {
@@ -130,6 +131,10 @@ export function MockExam() {
   // the finish arrow AND the timer expiry. A racing double-click used to push
   // two identical exam rows and double the CP.
   const submittedRef = React.useRef(false);
+  // Pass chance before this paper's answers reach the readiness model. The
+  // results only mention it when the paper moved it UP — a drop is already
+  // explained, constructively, by the section feedback beside it.
+  const preProbRef = React.useRef<number | null>(null);
   const cpStartRef = React.useRef<number | null>(null);
   // ── Crash/reload resume ──
   // A validated draft of an interrupted paper, awaiting the learner's verdict
@@ -385,6 +390,7 @@ export function MockExam() {
       return;
     }
     startRef.current = d.deadlineMs - d.secondsAllotted * 1000;
+    preProbRef.current = readiness.passProbability;
     setQuestions(qs);
     setAnswers([...d.answers]);
     setI(Math.min(d.index, qs.length - 1));
@@ -440,6 +446,7 @@ export function MockExam() {
     setSecondsLeft(requested.seconds);
     const startedAt = Date.now();
     startRef.current = startedAt;
+    preProbRef.current = readiness.passProbability;
     // Reset the fire-once guard: "Take another" starts a fresh paper, and a
     // guard left over from the previous submission made every submit path —
     // button, arrow, nav row AND timer expiry — silently no-op until reload.
@@ -697,6 +704,10 @@ export function MockExam() {
       const correct = idxs.filter((x) => answers[x.idx] === x.q.correctIndex).length;
       return { section: s, correct, total: idxs.length, pass: EXAM_FORMAT.sections[s].pass };
     });
+    const passChanceRose =
+      preProbRef.current !== null && readiness.passProbability > preProbRef.current
+        ? { from: preProbRef.current, to: readiness.passProbability }
+        : null;
     const failedSections = mini || drill
       ? []
       : sectionScores.filter((s) => s.correct < s.pass).map((s) => SECTION_LABEL[s.section]);
@@ -773,6 +784,12 @@ export function MockExam() {
                   has to clear its own pass mark on test day, so that&apos;s where the work is.
                 </>
               )}
+            </p>
+          )}
+          {passChanceRose && (
+            <p className="mt-4 text-sm font-medium text-success">
+              This paper lifted your pass chance from {formatPassProbability(passChanceRose.from)} to{" "}
+              {formatPassProbability(passChanceRose.to)}.
             </p>
           )}
         </Card>

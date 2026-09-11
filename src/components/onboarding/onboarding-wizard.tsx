@@ -21,10 +21,13 @@ import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OptionCard } from "@/components/onboarding/option-card";
+import { Chip } from "@/components/ui/chip";
+import { CategoryIcon } from "@/components/shared/category-icon";
+import { CATEGORIES } from "@/lib/content/categories";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { track } from "@/lib/analytics";
 import { cn, daysUntil, glassFloat, glassSubtle, isPastDate, localIsoDate } from "@/lib/utils";
-import type { LicenceGoal, OnboardingData, VehicleCode } from "@/types";
+import type { CategoryId, LicenceGoal, OnboardingData, VehicleCode } from "@/types";
 
 /** Goal, vehicle, date, then the informed starting-check choice. */
 const TOTAL_STEPS = 4;
@@ -38,6 +41,7 @@ interface WizardDraft {
   noDate: boolean;
   driversTestDate: string;
   noDriversDate: boolean;
+  worryCategories: CategoryId[];
 }
 
 const GOALS: readonly LicenceGoal[] = ["learners", "drivers", "both"];
@@ -76,6 +80,7 @@ export function OnboardingWizard() {
   const [noDate, setNoDate] = React.useState(false);
   const [driversTestDate, setDriversTestDate] = React.useState("");
   const [noDriversDate, setNoDriversDate] = React.useState(false);
+  const [worryCategories, setWorryCategories] = React.useState<CategoryId[]>([]);
 
   const todayIso = React.useMemo(() => localIsoDate(), []);
   const testDateInPast = isPastDate(testDate || null);
@@ -105,6 +110,14 @@ export function OnboardingWizard() {
         if (typeof draft.noDriversDate === "boolean") {
           setNoDriversDate(draft.noDriversDate);
         }
+        // Whitelisted like the enums above: the draft is user-controlled storage.
+        if (Array.isArray(draft.worryCategories)) {
+          setWorryCategories(
+            draft.worryCategories.filter((c): c is CategoryId =>
+              CATEGORIES.some((cat) => cat.id === c),
+            ),
+          );
+        }
       }
     } catch {
       // Corrupt or unavailable storage means a fresh start, never a blocked flow.
@@ -122,13 +135,20 @@ export function OnboardingWizard() {
       noDate,
       driversTestDate,
       noDriversDate,
+      worryCategories,
     };
     try {
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       // The flow still works when storage is blocked; it simply cannot resume.
     }
-  }, [step, goal, vehicleCode, testDate, noDate, driversTestDate, noDriversDate]);
+  }, [step, goal, vehicleCode, testDate, noDate, driversTestDate, noDriversDate, worryCategories]);
+
+  function toggleWorry(id: CategoryId) {
+    setWorryCategories((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
+    );
+  }
 
   const next = () => setStep((current) => Math.min(current + 1, TOTAL_STEPS));
   const back = () => setStep((current) => Math.max(current - 1, 0));
@@ -150,12 +170,13 @@ export function OnboardingWizard() {
     return {
       goal: goal ?? "learners",
       vehicleCode: vehicleCode ?? "8",
-      // Progressive-personalisation answers now use neutral defaults. They
-      // remain editable later without delaying the learner's first value.
-      confidence: 3,
-      worryCategories: [],
-      knowledgeLevel: "some",
-      studyFrequency: "steady",
+      // Not asked here, so recorded as unanswered — never a made-up choice
+      // saved to the profile as if the learner had given it. Consumers fall
+      // back to neutral behaviour on null.
+      confidence: null,
+      worryCategories,
+      knowledgeLevel: null,
+      studyFrequency: null,
       priorAttempts: 0,
       testDate: noDate || testDateInPast ? null : testDate || null,
       driversTestDate:
@@ -356,6 +377,30 @@ export function OnboardingWizard() {
                   <SummaryRow label="Vehicle" value={CODE_LABEL[vehicleCode ?? "8"]} />
                   <SummaryRow label="Test date" value={dateSummary(testDate)} />
                   <SummaryRow label="Today's plan" value="About 10 minutes" />
+                </div>
+              </div>
+
+              {/* Optional, one tap each, no extra step — the only onboarding
+                  signal that shapes the starting check and the first plan. */}
+              <div className="mx-auto mt-4 max-w-md text-left">
+                <p className="text-sm font-medium text-foreground">
+                  Anything you&apos;re worried about?{" "}
+                  <span className="font-normal text-muted-foreground">Optional</span>
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  We&apos;ll give these extra weight in your starting check and first plan.
+                </p>
+                <div className="mt-2.5 flex flex-wrap gap-2">
+                  {CATEGORIES.map((c) => (
+                    <Chip
+                      key={c.id}
+                      active={worryCategories.includes(c.id)}
+                      onClick={() => toggleWorry(c.id)}
+                    >
+                      <CategoryIcon id={c.id} className="h-3.5 w-3.5" />
+                      {c.name}
+                    </Chip>
+                  ))}
                 </div>
               </div>
 

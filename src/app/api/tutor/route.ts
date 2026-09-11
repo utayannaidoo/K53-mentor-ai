@@ -205,6 +205,10 @@ export async function POST(req: Request) {
         // an empty balance, or an image sent while DeepSeek is the only provider
         // — is visible as a shift in the mix rather than as nothing at all.
         "x-tutor-provider": provider,
+        // A paid learner answered from study notes because spend can't be
+        // accounted for right now. Flagged so the chat can say so — the
+        // intentional free-tier fallback stays unflagged.
+        ...(limiterUnavailable && ent.tier !== "free" ? { "x-tutor-mode": "basic" } : {}),
       },
     });
   } finally {

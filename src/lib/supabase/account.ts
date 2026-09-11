@@ -106,10 +106,12 @@ export async function loadAccount(
           vehicleCode: p.vehicle_code ?? "8",
           testDate: p.test_date,
           driversTestDate: p.drivers_test_date,
-          confidence: p.confidence ?? 3,
+          // Unanswered stays unanswered — onboarding no longer asks these, and
+          // a filled-in default would read as the learner's own choice.
+          confidence: p.confidence ?? null,
           worryCategories: p.worry_categories ?? [],
-          knowledgeLevel: p.knowledge_level ?? "some",
-          studyFrequency: p.study_frequency ?? "steady",
+          knowledgeLevel: p.knowledge_level ?? null,
+          studyFrequency: p.study_frequency ?? null,
           priorAttempts: p.prior_attempts ?? 0,
           completedAt: p.onboarded_at,
         }

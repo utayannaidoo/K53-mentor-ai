@@ -32,6 +32,7 @@ import {
 import { EXAM_FORMAT, SECTION_LABEL, type ExamSection } from "@/lib/constants";
 import { activityByDay, buildHeatmap } from "@/lib/dashboard/day-strip";
 import { blockingSection, sectionCompetence } from "@/lib/diagnostic/scoring";
+import { passChanceStory } from "@/lib/diagnostic/pass-chance";
 import { LICENCE_RANK_INDEX, MASTERY_STAMP_AT } from "@/lib/engagement";
 import { bestStudyTime, mostImproved } from "@/lib/insights";
 import { categoryName } from "@/lib/content/categories";
@@ -130,6 +131,9 @@ export default function ProgressPage() {
   );
   const stamped = mastery.filter((m) => m.value >= MASTERY_STAMP_AT).length;
   const blocking = hasAssessment ? blockingSection(readiness.perCategory) : null;
+  const passChance = hasAssessment
+    ? passChanceStory(readiness.passProbability, readiness.perCategory)
+    : null;
   const mistakes = React.useMemo(() => mistakeStats(state), [state]);
 
   const views = React.useMemo(
@@ -186,13 +190,19 @@ export default function ProgressPage() {
     }
     if (blocking) {
       const othersClear = sections.every((s) => s.id === blocking || s.value >= s.required);
+      // Framed as the next thing to lift, not a sentence passed on the learner.
       return {
-        tone: "text-warning",
+        tone: "text-primary",
         lead: SECTION_LABEL[blocking],
-        rest: " would fail you today.",
-        support: othersClear
-          ? "Every other section is clearing its own mark — this is the only thing in the way."
-          : "The test is three separate minimums, not one average — and this section sits furthest below its own.",
+        rest: " is the one to lift next.",
+        support: [
+          othersClear
+            ? "Every other section is clearing its own mark — this is the only thing in the way."
+            : "The test is three separate minimums, not one average — and this section sits furthest below its own.",
+          passChance?.liftLine,
+        ]
+          .filter(Boolean)
+          .join(" "),
         cta: {
           href: `/study/mock-exam?mode=drill&section=${blocking}`,
           label: `Drill ${SECTION_LABEL[blocking].toLowerCase()}`,
@@ -207,7 +217,7 @@ export default function ProgressPage() {
         "Confirm that category evidence under timed conditions before deciding you are ready for the real test.",
       cta: { href: "/study/mock-exam", label: "Confirm it on a full mock" },
     };
-  }, [hasAssessment, blocking, sections]);
+  }, [hasAssessment, blocking, sections, passChance]);
 
   const streakMilestone = STREAK_MILESTONES.find((m) => state.streak.current >= m.at) ?? null;
   const DeltaIcon = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
@@ -399,6 +409,11 @@ export default function ProgressPage() {
               app-shell header, and on this page the sentence outranks it. */}
           <FigureRow>
             <Figure label="Readiness" value={hasAssessment ? `${readiness.readiness}%` : "—"} />
+            <Figure
+              label="Pass chance"
+              value={passChance ? passChance.display : "—"}
+              tone={passChance?.tone}
+            />
             <Figure label="Accuracy" value={hasAttempts ? `${accuracy}%` : "—"} />
             <Figure label="Questions" value={answered.toLocaleString()} />
           </FigureRow>
