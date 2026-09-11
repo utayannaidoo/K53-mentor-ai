@@ -19,6 +19,20 @@ interface TemplateInput {
   streak: number;
   longest: number;
   dueCards: number;
+  /** Whole days until the learner's test (SAST calendar), when one is booked. */
+  daysToTest?: number | null;
+}
+
+/**
+ * The learner's own deadline is the most honest urgency a nudge can carry —
+ * more motivating than any streak, and true. Shown only while the test is
+ * close enough to act on; a date that has passed or sits months out says
+ * nothing useful.
+ */
+function testCountdown(days: number | null | undefined): string | null {
+  if (days == null || !Number.isFinite(days) || days < 0 || days > 60) return null;
+  if (days === 0) return "Your test is today — a quick review now is worth it.";
+  return `${days} ${pluralize(days, "day")} to your test.`;
 }
 
 const BRAND = "#2C5F4F";
@@ -491,6 +505,22 @@ export function buildDisputeAlertEmail(input: {
 }
 
 export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
+  const content = buildNudge(type, input);
+  const countdown = testCountdown(input.daysToTest);
+  if (!countdown) return content;
+  // Appended to every nudge type, above the button in HTML and before the
+  // link line in text, so it reads as part of the message.
+  return {
+    subject: content.subject,
+    html: content.html.replace(
+      '<a href="',
+      `<p style="font-size:14px;line-height:1.6;color:#1d2724;font-weight:600;margin:12px 0 0;">${countdown}</p>\n        <a href="`,
+    ),
+    text: content.text.replace(/\n\n(?=[^\n]*https?:\/\/[^\n]*$)/, ` ${countdown}\n\n`),
+  };
+}
+
+function buildNudge(type: NotificationType, input: TemplateInput): EmailContent {
   const { streak, longest, dueCards } = input;
   // The name is profile data the user typed — escape it so a crafted "name"
   // can't inject markup into the email HTML.
