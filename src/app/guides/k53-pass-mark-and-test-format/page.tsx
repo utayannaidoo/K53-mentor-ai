@@ -11,6 +11,7 @@ export default function GuidePage() {
   return (
     <LegalPage
       articleSlug="k53-pass-mark-and-test-format"
+      quiz={{}}
       title="K53 pass marks & test format, explained"
       updated="2026-08-01"
       intro="The single most misunderstood thing about the learner's test: there is no single pass mark. You must reach the pass mark in each of the three sections."
@@ -55,8 +56,8 @@ export default function GuidePage() {
           Track your accuracy per section, not overall. If you're at 90% on signs and 70% on
           rules, more sign practice is wasted effort — the marginal hour belongs to your weakest
           section. That per-section targeting is exactly how K53 Mentor's study plan decides what
-          you see each day, and its mock exams apply the real per-section pass marks so a pass in
-          practice means a pass at the DLTC.
+          you see each day, and its mock exams apply the real per-section pass marks, so a
+          practice paper is scored exactly the way the real one is.
         </p>
       </section>
       <section>

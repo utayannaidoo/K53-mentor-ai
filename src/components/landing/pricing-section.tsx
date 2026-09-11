@@ -130,7 +130,7 @@ export function PricingSection({
                   entered, not first appear on the receipt. */}
               <div className="mt-1 text-[0.78rem] text-muted-foreground">
                 {isFree
-                  ? "No card needed · daily practice for your first 7 days"
+                  ? "No card needed · 7 full days, then a free daily taste"
                   : annual
                     ? `${formatZar(annualPrice(plan))} billed yearly, renews automatically`
                     : "Billed monthly, renews automatically"}
@@ -156,6 +156,13 @@ export function PricingSection({
               >
                 {cta}
               </Link>
+              {/* Risk reversal at the moment of decision, not only in the
+                  footnote under the grid. */}
+              {!isFree && (
+                <p className="mt-2 text-center text-[0.75rem] text-muted-foreground">
+                  Cancel any time in Account · 7-day money-back guarantee
+                </p>
+              )}
 
               <div className="mt-[22px] flex flex-col gap-[11px]">
                 {plan.perks.map((perk) => (

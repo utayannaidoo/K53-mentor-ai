@@ -33,7 +33,7 @@ import { identify as analyticsIdentify, resetAnalytics, track } from "@/lib/anal
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
-import { trialExhausted } from "@/lib/billing/trial";
+import { afterTrialCap, trialExhausted } from "@/lib/billing/trial";
 import { purgePackCache } from "@/lib/content/pack-cache";
 import { countDueFlashcards, generateTodayPlan, isTaskDone } from "@/lib/plan";
 import {
@@ -880,12 +880,16 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
       usageFor: (kind) => {
         const capKey = CAP_KEY[kind];
-        // Every plan meters per day now. Free additionally expires after its
-        // trial week, at which point the cap is 0 rather than the daily
-        // allowance — see PlanLimits.trialDays and trialExhausted().
+        // Every plan meters per day. Free drops to its small after-trial
+        // allowance once the week is over (tutor and scenarios to nothing) —
+        // see PlanLimits.afterTrial and trialExhausted().
         const used = getTodayUsage(state)[kind];
         const base = capKey ? dailyCap(state.tier, capKey) : Infinity;
-        const cap = trialExhausted(state) ? 0 : base;
+        const cap = !trialExhausted(state)
+          ? base
+          : kind === "questions" || kind === "flashcards"
+            ? afterTrialCap(kind)
+            : 0;
         return { used, cap, allowed: used < cap };
       },
     }),

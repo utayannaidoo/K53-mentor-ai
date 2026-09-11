@@ -70,11 +70,21 @@ export function trialExhausted(state: UserState, now = Date.now()): boolean {
 }
 
 /**
- * How many of a free pool remain *today*. Zero once the week is up, otherwise
- * the daily cap minus today's usage — so a learner who stops at their limit
- * comes back tomorrow to a full allowance, which is the entire point.
+ * A free pool's daily cap once the week is over: the small `afterTrial`
+ * allowance for practice, nothing for the tutor.
+ */
+export function afterTrialCap(pool: TrialPool): number {
+  if (pool === "tutor") return 0;
+  return PLAN_MAP.free.limits.afterTrial?.[pool] ?? 0;
+}
+
+/**
+ * How many of a free pool remain *today*: the week's daily cap, or the
+ * after-trial allowance once it's over, minus today's usage — so a learner who
+ * stops at their limit comes back tomorrow to a full allowance, which is the
+ * entire point.
  */
 export function poolRemaining(state: UserState, pool: TrialPool, now = Date.now()): number {
-  if (trialExhausted(state, now)) return 0;
-  return Math.max(0, POOL_CAP[pool] - getTodayUsage(state)[pool]);
+  const cap = trialExhausted(state, now) ? afterTrialCap(pool) : POOL_CAP[pool];
+  return Math.max(0, cap - getTodayUsage(state)[pool]);
 }

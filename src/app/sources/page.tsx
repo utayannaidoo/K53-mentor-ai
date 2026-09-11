@@ -11,7 +11,7 @@ export default function SourcesPage() {
   return (
     <LegalPage
       title="Content sources"
-      updated="2026-09-05"
+      updated="2026-09-11"
       intro={`Everything you study in ${APP_NAME} is aligned to official South African road-traffic material. This page lists what our content is based on and how we keep it honest.`}
     >
       <section>
@@ -57,6 +57,21 @@ export default function SourcesPage() {
           vehicle controls (8), road signs &amp; markings (28) and rules of the road (28), with
           section-level pass requirements. Actual test administration can vary by testing centre.
         </p>
+      </section>
+
+      <section>
+        <h2>Statistics we quote</h2>
+        <ul>
+          <li>
+            <strong>Learner&apos;s licence pass rate, 68% → 40%.</strong> Reported by the RTMC
+            (spokesperson Simon Zwane) after the move to computerised learner&apos;s testing, in{" "}
+            <a href="https://www.citizen.co.za/news/why-learners-licence-pass-rates-are-plunging/">
+              The Citizen, May 2026
+            </a>
+            . The RTMC describes the figures as not nationally representative, and they are an
+            overall pass rate, not a first-attempt one.
+          </li>
+        </ul>
       </section>
 
       <section>

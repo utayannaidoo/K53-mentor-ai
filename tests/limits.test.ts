@@ -136,12 +136,23 @@ describe("the free week", () => {
     expect(poolRemaining(yesterdayOnly, "questions")).toBe(caps.questionsPerDay);
   });
 
-  it("running out of days IS the end, whatever today's usage says", () => {
+  it("running out of days ends the week but leaves a small free daily allowance", () => {
     const expired = startedDaysAgo(FREE_TRIAL_DAYS + 1);
+    const floor = PLAN_MAP.free.limits.afterTrial!;
     expect(trialExhausted(expired)).toBe(true);
+    expect(poolRemaining(expired, "questions")).toBe(floor.questions);
+    expect(poolRemaining(expired, "flashcards")).toBe(floor.flashcards);
+    // The tutor stays paid after the week.
+    expect(poolRemaining(expired, "tutor")).toBe(0);
+    // Smaller than the week's allowance, or it's just a longer trial.
+    expect(floor.questions).toBeLessThan(PLAN_MAP.free.caps.questionsPerDay);
+    expect(floor.flashcards).toBeLessThan(PLAN_MAP.free.caps.flashcardsPerDay);
+  });
+
+  it("the after-trial allowance is spent and refilled daily like the week's", () => {
+    const expired = withUsage(startedDaysAgo(FREE_TRIAL_DAYS + 30), 5, 5, 0);
     expect(poolRemaining(expired, "questions")).toBe(0);
     expect(poolRemaining(expired, "flashcards")).toBe(0);
-    expect(poolRemaining(expired, "tutor")).toBe(0);
   });
 
   it("paid tiers are never on a clock", () => {

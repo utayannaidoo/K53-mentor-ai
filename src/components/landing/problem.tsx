@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { CountUp } from "@/components/landing/count-up";
 import { PASS_RATE_BEFORE, PASS_RATE_NOW } from "@/lib/constants";
 
@@ -23,9 +24,17 @@ export function Problem() {
         </div>
         <p className="max-w-[560px] text-pretty text-[1.05rem] leading-[1.5] text-muted-foreground">
           of learners pass South Africa&apos;s computerised learner&apos;s test — down from{" "}
-          {PASS_RATE_BEFORE}% before it went digital (RTMC, 2026). And there&apos;s no averaging
-          your way through: signs, rules and controls must{" "}
+          {PASS_RATE_BEFORE}% before it went digital. And there&apos;s no averaging your way
+          through: signs, rules and controls must{" "}
           <em className="not-italic text-foreground">each</em> clear their own pass mark.
+          {/* The RTMC's own caveat travels with its number — a scary statistic
+              without it reads as a scare tactic. */}
+          <span className="mt-1.5 block text-[0.8rem]">
+            RTMC figures reported May 2026, which it describes as not nationally representative ·{" "}
+            <Link href="/sources" className="underline hover:text-foreground">
+              Sources
+            </Link>
+          </span>
         </p>
       </div>
     </section>

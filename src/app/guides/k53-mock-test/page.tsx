@@ -12,6 +12,7 @@ export default function GuidePage() {
   return (
     <LegalPage
       articleSlug="k53-mock-test"
+      quiz={{}}
       title="K53 mock tests: how to practise like it's test day"
       updated="2026-08-22"
       intro="Working through practice questions is study. A mock is a rehearsal — same format, same clock, same scoring — and it's the rehearsal that tells you whether test day will go your way."

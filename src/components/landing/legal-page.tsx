@@ -3,6 +3,8 @@ import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
 import { APP_NAME, SITE_URL } from "@/lib/constants";
 import { GUIDES } from "@/app/guides/guides";
+import { GuideQuiz } from "@/components/guides/guide-quiz";
+import type { CategoryId } from "@/types";
 
 /** Shared chrome + prose layout for the legal/info pages linked from the footer. */
 export function LegalPage({
@@ -10,6 +12,7 @@ export function LegalPage({
   intro,
   updated,
   articleSlug,
+  quiz,
   children,
 }: {
   title: string;
@@ -28,6 +31,11 @@ export function LegalPage({
    * with no schema at all. Legal pages leave this unset.
    */
   articleSlug?: string;
+  /**
+   * Guides only: end the article with a five-question quiz from the starter
+   * pack, optionally narrowed to the categories the guide is about.
+   */
+  quiz?: { categories?: CategoryId[] };
   children: React.ReactNode;
 }) {
   const articleUrl = articleSlug ? `${SITE_URL}/guides/${articleSlug}` : null;
@@ -113,6 +121,13 @@ export function LegalPage({
           <div className="mt-10 space-y-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-muted-foreground [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5 [&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-muted-foreground">
             {children}
           </div>
+          {/* Outside the prose wrapper, whose descendant selectors would
+              restyle the quiz's own paragraphs and lists. */}
+          {articleSlug && quiz && (
+            <div className="mt-12">
+              <GuideQuiz slug={articleSlug} categories={quiz.categories} />
+            </div>
+          )}
           {siblings.length > 0 && (
             <nav aria-label="More K53 guides" className="mt-14 border-t border-border pt-8">
               {/* Same type scale as the article's own sections — this reads as

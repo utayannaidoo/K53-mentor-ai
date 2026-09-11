@@ -100,7 +100,10 @@ describe("client / content boundary", () => {
     //    must never reach for the bank (via ai/fallback or otherwise), which
     //    would hand the entire paid content set to anonymous visitors and make
     //    the entitlement check on /api/content/pack pointless.
-    const SANCTIONED = ["content-provider.tsx", "product-preview.tsx"];
+    //  - guide-quiz: the five-question quiz at the foot of each guide, for
+    //    signed-out search visitors. Same terms as product-preview: imported
+    //    lazily on mount, learner's-scope starter items only, never the bank.
+    const SANCTIONED = ["content-provider.tsx", "guide-quiz.tsx", "product-preview.tsx"];
     // Static AND dynamic form. product-preview loads it lazily so the landing
     // page doesn't carry 31KB for a demo most visitors never open — matching
     // only `from "..."` would quietly stop seeing this file at all.
