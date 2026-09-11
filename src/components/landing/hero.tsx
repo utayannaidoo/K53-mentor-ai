@@ -22,7 +22,10 @@ export function Hero() {
       className="mx-auto grid max-w-[1120px] items-center gap-14 px-6 pb-16 pt-8 lg:grid-cols-[1.05fr_0.95fr] lg:pt-10"
     >
       {/* ── Copy column ─────────────────────────────────────────── */}
-      <div className="animate-blur-in text-center lg:text-left">
+      {/* Painted at rest, no entrance animation: this column holds the page's
+          largest element, and an opacity-0 start holds LCP back until the
+          animation finishes. Field p75 LCP was ~4s on mobile with it. */}
+      <div className="text-center lg:text-left">
         <span className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-primary/20 bg-primary/10 py-1.5 pl-2.5 pr-3.5 text-[13px] font-medium text-primary">
           <span className="h-[7px] w-[7px] rounded-full bg-primary shadow-[0_0_0_4px_hsl(var(--primary)/0.18)]" />
           Built for the South African K53
@@ -62,7 +65,9 @@ export function Hero() {
       </div>
 
       {/* ── Readiness mock card ─────────────────────────────────── */}
-      <div className="relative animate-scale-in">
+      {/* Same reason as the copy column — the card can be the LCP element on
+          a wide screen. Its ring and bars still animate inside it. */}
+      <div className="relative">
         <div
           aria-hidden
           className="pointer-events-none absolute -inset-x-6 -bottom-6 -top-12 -z-10 bg-[radial-gradient(60%_55%_at_60%_30%,hsl(var(--primary)/0.28),transparent_70%)] blur-[30px]"

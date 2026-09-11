@@ -413,6 +413,17 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     if (!supabase) return;
+    // The password path tracks this in submit(); without it here, Google
+    // signups completed without ever starting and the funnel read 7 done / 2
+    // started.
+    if (mode === "signup" && !startedTrackedRef.current) {
+      startedTrackedRef.current = true;
+      const plan = new URLSearchParams(window.location.search).get("plan");
+      track("signup_started", {
+        has_plan: plan === "premium" || plan === "premium_plus",
+        method: "google",
+      });
+    }
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {

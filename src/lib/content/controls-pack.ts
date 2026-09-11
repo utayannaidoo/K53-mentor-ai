@@ -39,7 +39,7 @@ export const CONTROLS_PACK_QUESTIONS: Question[] = [
     explanation:
       "The yard test checks turn-in-the-road, alley docking, parallel parking and the incline start — the everyday manoeuvres you'll need in tight spaces.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
   },
   {
     id: "q8_ctrl_incline_rollback",
@@ -55,7 +55,7 @@ export const CONTROLS_PACK_QUESTIONS: Question[] = [
     explanation:
       "Rolling back on the incline is an instant fail — it means a real hill start could roll into the car behind. Hold on the handbrake until the clutch bites.",
     difficulty: 1,
-    scope: "learners",
+    scope: "drivers",
   },
   {
     id: "q8_ctrl_yard_contact",
@@ -71,7 +71,7 @@ export const CONTROLS_PACK_QUESTIONS: Question[] = [
     explanation:
       "A pole represents another car or a wall. Touching a pole, kerb or line fails the manoeuvre, because in the real world that's a collision.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
   },
   {
     id: "q8_ctrl_alley_dock",
@@ -87,7 +87,7 @@ export const CONTROLS_PACK_QUESTIONS: Question[] = [
     explanation:
       "Alley docking mimics reversing into a driveway or loading bay: back in under control, using observation, and stop completely within the markings.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
   },
 
   // ── Observation discipline ──────────────────────────────────
@@ -105,7 +105,7 @@ export const CONTROLS_PACK_QUESTIONS: Question[] = [
     explanation:
       "The examiner watches your head. A fresh mirror-and-blind-spot check before each movement is scored every time — a missed 'look' is a classic loss of points.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
   },
   {
     id: "q8_ctrl_moving_off_look",

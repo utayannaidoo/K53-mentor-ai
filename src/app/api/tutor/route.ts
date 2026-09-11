@@ -3,7 +3,7 @@ import { TUTOR_PERSONA, buildGroundingText, resolveContext } from "@/lib/ai/tuto
 import { localTutorReply } from "@/lib/ai/fallback";
 import { retrieveRelated } from "@/lib/ai/retrieve";
 import { chooseProvider, streamTutorReply } from "@/lib/ai/provider";
-import { clientIp, limitTutor, limitUserDaily } from "@/lib/ai/rate-limit";
+import { clientIp, limitTutor, limitUserDaily, refundUserDaily } from "@/lib/ai/rate-limit";
 import {
   isWithinFreeTrial,
   resolveEntitlement,
@@ -193,6 +193,13 @@ export async function POST(req: Request) {
       image,
       forceLocal,
     });
+    // A provider outage or an empty balance falls through to the study-notes
+    // explainer without erroring. Everyone who reaches this line was promised
+    // the AI — a lapsed free trial is `forceLocal`, where the explainer IS the
+    // product — so give the message back and flag the answer rather than
+    // serving the lesser reply as if it were what they pay for.
+    const fellBack = provider === "local" && !forceLocal;
+    if (fellBack && ent.userId) await refundUserDaily("tutor", ent.userId);
 
     await usageWrite;
     return new Response(stream, {
@@ -208,7 +215,7 @@ export async function POST(req: Request) {
         // A paid learner answered from study notes because spend can't be
         // accounted for right now. Flagged so the chat can say so — the
         // intentional free-tier fallback stays unflagged.
-        ...(limiterUnavailable && ent.tier !== "free" ? { "x-tutor-mode": "basic" } : {}),
+        ...((limiterUnavailable && ent.tier !== "free") || fellBack ? { "x-tutor-mode": "basic" } : {}),
       },
     });
   } finally {

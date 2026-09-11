@@ -56,10 +56,13 @@ vi.mock("@/lib/supabase/admin", () => ({
       : null,
 }));
 
+const refundUserDaily = vi.fn(async (_surface: string, _userId: string) => {});
+
 vi.mock("@/lib/ai/rate-limit", () => ({
   clientIp: () => "203.0.113.7",
   limitTutor: async () => ({ success: true, retryAfter: 0 }),
   limitUserDaily: async () => ({ success: true, retryAfter: 0 }),
+  refundUserDaily: (surface: string, userId: string) => refundUserDaily(surface, userId),
 }));
 
 const streamTutorReply = vi.fn(async (_args: { forceLocal?: boolean }) => ({
@@ -164,6 +167,40 @@ describe("paid tiers", () => {
     subscriptionRow = { tier: "premium_plus", status: "past_due" };
     profileRow = { onboarded_at: null, created_at: daysAgo(400) };
     expect(await askTutor()).toBe(false);
+  });
+});
+
+describe("when the cascade falls through to the study notes", () => {
+  // The stubbed provider always answers "local", which is exactly what an
+  // outage or an empty DeepSeek balance looks like from the route.
+  async function ask(): Promise<Response> {
+    return POST(
+      new Request("https://k53.test/api/tutor", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ messages: [{ role: "user", content: "What is the pass mark?" }] }),
+      }),
+    );
+  }
+
+  it("flags a paid learner's answer as basic and gives the message back", async () => {
+    subscriptionRow = { tier: "premium", status: "active" };
+    const res = await ask();
+    expect(res.headers.get("x-tutor-mode")).toBe("basic");
+    expect(refundUserDaily).toHaveBeenCalledWith("tutor", "u1");
+  });
+
+  it("does the same for a free learner inside the week, who was promised the AI", async () => {
+    const res = await ask();
+    expect(res.headers.get("x-tutor-mode")).toBe("basic");
+    expect(refundUserDaily).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a lapsed free trial alone — the explainer is its product", async () => {
+    profileRow = { onboarded_at: null, created_at: daysAgo(8) };
+    const res = await ask();
+    expect(res.headers.get("x-tutor-mode")).toBeNull();
+    expect(refundUserDaily).not.toHaveBeenCalled();
   });
 });
 
