@@ -378,120 +378,129 @@ export async function completeCoachText(args: {
   return null;
 }
 
-/** Check if an error indicates the model doesn't support image input. */
-function isVisionUnsupportedError(err: unknown): boolean {
-  const msg = String(err).toLowerCase();
-  return (
-    msg.includes("does not support image") ||
-    msg.includes("model does not support image") ||
-    msg.includes("image input") ||
-    msg.includes("vision") && msg.includes("not supported")
-  );
+/**
+ * Commit to a provider only once it has produced text.
+ *
+ * Provider rejections — a model without vision, exhausted credits, a bad key —
+ * surface on the first read of the stream, not when the request is created.
+ * Priming that first piece here is what lets the image cascade move on to the
+ * next provider; returning an unread stream handed the failure to the learner
+ * as a local reply instead. Null = failed before any text, safe to retry
+ * elsewhere.
+ */
+async function primedStream(
+  pieces: AsyncIterator<string>,
+  upstreamAbort: AbortController,
+  provider: Provider,
+): Promise<ReadableStream<Uint8Array> | null> {
+  let first: IteratorResult<string>;
+  try {
+    first = await pieces.next();
+  } catch (err) {
+    upstreamAbort.abort();
+    console.error(`${provider} vision error`, err);
+    return null;
+  }
+  if (first.done) return null;
+  const opening = first.value;
+  return new ReadableStream<Uint8Array>({
+    async start(controller) {
+      controller.enqueue(encoder.encode(opening));
+      try {
+        for (let r = await pieces.next(); !r.done; r = await pieces.next()) {
+          controller.enqueue(encoder.encode(r.value));
+        }
+      } catch (err) {
+        // Text is already on screen, so the honest one-liner — the same
+        // degradation as the text branches below.
+        if (!upstreamAbort.signal.aborted) {
+          console.error(`${provider} stream error`, err);
+          try {
+            controller.enqueue(
+              encoder.encode("\n\n_My connection dropped mid-answer — please send that again._"),
+            );
+          } catch {
+            /* stream already closed */
+          }
+        }
+      } finally {
+        try {
+          controller.close();
+        } catch {
+          /* already closed by cancel() */
+        }
+      }
+    },
+    cancel() {
+      upstreamAbort.abort();
+    },
+  });
 }
 
 /**
- * Try image-capable providers in cascade order until one works.
- * Returns null if all fail (caller should use local fallback).
+ * Stream a photo question through every image-capable provider, preferred one
+ * first, until one produces text. DeepSeek never appears here — it cannot see.
+ * Returns null when all fail; the caller serves the local reply.
  */
-async function tryImageProviders(
-  args: StreamArgs,
-  firstProvider: Provider,
-  firstModel: string,
+async function streamImageReply(
+  args: StreamArgs & { image: AttachedImage },
 ): Promise<{ stream: ReadableStream<Uint8Array>; model: string; provider: Provider } | null> {
-  // Build ordered list of image-capable providers to try
-  const imageCascade: Provider[] = [];
-  if (firstProvider !== "local" && IMAGE_CAPABLE[firstProvider as keyof typeof IMAGE_CAPABLE]) {
-    imageCascade.push(firstProvider);
-  }
-  for (const p of CASCADE) {
-    if (p !== firstProvider && IMAGE_CAPABLE[p] && CLIENT_FOR[p]()) {
-      imageCascade.push(p);
-    }
-  }
+  const preferred = chooseProvider("image");
+  if (preferred === "local") return null;
+  const order: RemoteProvider[] = [
+    preferred,
+    ...CASCADE.filter((p) => p !== preferred && IMAGE_CAPABLE[p] && Boolean(CLIENT_FOR[p]())),
+  ];
+  // The photo belongs to the learner's last turn (see the text branches).
+  const lastUserIdx = args.messages.map((m) => m.role).lastIndexOf("user");
+  const { image } = args;
 
-  for (const provider of imageCascade) {
+  for (const provider of order) {
     const model = modelFor(provider, args.userText);
-    try {
-      if (provider === "anthropic") {
-        const client = anthropic()!;
-        const system = [
-          { type: "text" as const, text: args.persona },
-          ...(args.grounding ? [{ type: "text" as const, text: args.grounding }] : []),
-        ];
-        const lastUserIdx = args.messages.map((m) => m.role).lastIndexOf("user");
-        const upstreamAbort = new AbortController();
-        const events = client.messages.stream(
-          {
-            model,
-            max_tokens: MAX_TOKENS,
-            temperature: TEMPERATURE,
-            system,
-            messages: args.messages.map((m, i) =>
-              args.image && i === lastUserIdx && m.role === "user"
-                ? {
-                    role: "user" as const,
-                    content: [
-                      {
-                        type: "image" as const,
-                        source: {
-                          type: "base64" as const,
-                          media_type: args.image.mediaType,
-                          data: args.image.data,
-                        },
-                      },
-                      { type: "text" as const, text: m.content },
-                    ],
-                  }
-                : { role: m.role, content: m.content },
-            ),
-          },
-          { signal: upstreamAbort.signal },
-        );
-        const stream = new ReadableStream<Uint8Array>({
-          async start(controller) {
-            let emitted = false;
-            try {
-              for await (const ev of events) {
-                if (ev.type === "content_block_delta" && ev.delta.type === "text_delta") {
-                  emitted = true;
-                  controller.enqueue(encoder.encode(ev.delta.text));
-                }
-              }
-            } catch (err) {
-              if (!upstreamAbort.signal.aborted) console.error("anthropic stream error", err);
-              try {
-                if (!upstreamAbort.signal.aborted) {
-                  controller.enqueue(
-                    encoder.encode(
-                      emitted
-                        ? "\n\n_My connection dropped mid-answer — please send that again._"
-                        : args.localReply,
-                    ),
-                  );
-                }
-              } catch {
-                /* stream already closed */
-              }
-            } finally {
-              try {
-                controller.close();
-              } catch {
-                /* already closed by cancel() */
-              }
-            }
-          },
-          cancel() {
-            upstreamAbort.abort();
-          },
-        });
-        return { stream, model, provider };
-      }
+    const upstreamAbort = new AbortController();
+    let pieces: AsyncIterator<string>;
 
+    if (provider === "anthropic") {
+      const client = anthropic();
+      if (!client) continue;
+      const events = client.messages.stream(
+        {
+          model,
+          max_tokens: MAX_TOKENS,
+          temperature: TEMPERATURE,
+          system: [
+            { type: "text" as const, text: args.persona },
+            ...(args.grounding ? [{ type: "text" as const, text: args.grounding }] : []),
+          ],
+          messages: args.messages.map((m, i) =>
+            i === lastUserIdx && m.role === "user"
+              ? {
+                  role: "user" as const,
+                  content: [
+                    {
+                      type: "image" as const,
+                      source: { type: "base64" as const, media_type: image.mediaType, data: image.data },
+                    },
+                    { type: "text" as const, text: m.content },
+                  ],
+                }
+              : { role: m.role, content: m.content },
+          ),
+        },
+        { signal: upstreamAbort.signal },
+      );
+      pieces = (async function* () {
+        for await (const ev of events) {
+          if (ev.type === "content_block_delta" && ev.delta.type === "text_delta" && ev.delta.text) {
+            yield ev.delta.text;
+          }
+        }
+      })();
+    } else {
       const wire = wireClient(provider);
-      if (wire) {
-        const system = args.grounding ? `${args.persona}\n\n${args.grounding}` : args.persona;
-        const lastUserIdx = args.messages.map((m) => m.role).lastIndexOf("user");
-        const upstreamAbort = new AbortController();
+      if (!wire) continue;
+      const system = args.grounding ? `${args.persona}\n\n${args.grounding}` : args.persona;
+      pieces = (async function* () {
         const completion = await wire.chat.completions.create(
           {
             model,
@@ -501,13 +510,13 @@ async function tryImageProviders(
             messages: [
               { role: "system", content: system },
               ...args.messages.map((m, i) =>
-                args.image && i === lastUserIdx && m.role === "user"
+                i === lastUserIdx && m.role === "user"
                   ? {
                       role: "user" as const,
                       content: [
                         {
                           type: "image_url" as const,
-                          image_url: { url: `data:${args.image.mediaType};base64,${args.image.data}` },
+                          image_url: { url: `data:${image.mediaType};base64,${image.data}` },
                         },
                         { type: "text" as const, text: m.content },
                       ],
@@ -518,55 +527,15 @@ async function tryImageProviders(
           },
           { signal: upstreamAbort.signal },
         );
-        const stream = new ReadableStream<Uint8Array>({
-          async start(controller) {
-            let emitted = false;
-            try {
-              for await (const chunk of completion) {
-                const t = chunk.choices[0]?.delta?.content;
-                if (t) {
-                  emitted = true;
-                  controller.enqueue(encoder.encode(t));
-                }
-              }
-            } catch (err) {
-              if (!upstreamAbort.signal.aborted) console.error(`${provider} stream error`, err);
-              try {
-                if (!upstreamAbort.signal.aborted) {
-                  controller.enqueue(
-                    encoder.encode(
-                      emitted
-                        ? "\n\n_My connection dropped mid-answer — please send that again._"
-                        : args.localReply,
-                    ),
-                  );
-                }
-              } catch {
-                /* stream already closed */
-              }
-            } finally {
-              try {
-                controller.close();
-              } catch {
-                /* already closed by cancel() */
-              }
-            }
-          },
-          cancel() {
-            upstreamAbort.abort();
-          },
-        });
-        return { stream, model, provider };
-      }
-    } catch (err) {
-      console.error(`vision provider ${provider} error`, err);
-      // If this provider doesn't support vision, try the next one
-      if (isVisionUnsupportedError(err)) {
-        continue;
-      }
-      // Other errors (network, auth) — don't retry other providers, fall through to local
-      break;
+        for await (const chunk of completion) {
+          const t = chunk.choices[0]?.delta?.content;
+          if (t) yield t;
+        }
+      })();
     }
+
+    const stream = await primedStream(pieces, upstreamAbort, provider);
+    if (stream) return { stream, model, provider };
   }
   return null;
 }
@@ -579,19 +548,15 @@ export async function streamTutorReply(
     return { stream: localStream(args.localReply), model: "local", provider: "local" };
   }
 
-  // A photo narrows the field to providers that can see one — DeepSeek cannot.
-  const need = args.image ? "image" : "text";
-  let provider = chooseProvider(need);
-  let model = modelFor(provider, args.userText);
-
-  // For image requests, if the selected provider's model doesn't support vision,
-  // fall back through the cascade to find one that does.
+  // A photo narrows the field to providers that can see one — DeepSeek cannot
+  // — and falls through them in turn if one refuses.
   if (args.image) {
-    const result = await tryImageProviders(args, provider, model);
-    if (result) return result;
-    // All image-capable providers failed — use local fallback.
-    return { stream: localStream(args.localReply), model: "local", provider: "local" };
+    const result = await streamImageReply({ ...args, image: args.image });
+    return result ?? { stream: localStream(args.localReply), model: "local", provider: "local" };
   }
+
+  const provider = chooseProvider("text");
+  const model = modelFor(provider, args.userText);
 
   try {
     if (provider === "anthropic") {

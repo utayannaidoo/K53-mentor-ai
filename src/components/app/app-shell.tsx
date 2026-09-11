@@ -28,7 +28,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
-import { hasFeature, studyCodeOf } from "@/lib/billing/plans";
+import { hasFeature, PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,8 @@ interface NavItem {
    * "Licence Prep" needs ~75px of the ~62px a cell gets on a 375px phone.
    */
   shortLabel?: string;
+  /** Anchor for Navi's first-run tour (`[data-tutorial=…]`). */
+  tutorial: string;
   icon: typeof LayoutDashboard;
   match: (path: string) => boolean;
   lockedForFree?: boolean;
@@ -53,13 +55,17 @@ interface NavItem {
  * entry point at all on a phone, since the sidebar is `display: none` there.
  */
 const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Today", icon: LayoutDashboard, match: (p) => p === "/dashboard" },
-  { href: "/study", label: "Study", icon: GraduationCap, match: (p) => p.startsWith("/study") },
-  { href: "/tutor", label: "Tutor", icon: MessageSquareText, match: (p) => p.startsWith("/tutor") },
-  { href: "/dashboard/progress", label: "Progress", icon: LineChart, match: (p) => p === "/dashboard/progress" },
-  { href: "/licence-prep", label: "Licence Prep", shortLabel: "Licence", icon: Car, match: (p) => p.startsWith("/licence-prep"), lockedForFree: true },
-  { href: "/account", label: "Account", icon: Settings, match: (p) => p.startsWith("/account") },
+  { href: "/dashboard", label: "Today", tutorial: "today-nav", icon: LayoutDashboard, match: (p) => p === "/dashboard" },
+  { href: "/study", label: "Study", tutorial: "study-nav", icon: GraduationCap, match: (p) => p.startsWith("/study") },
+  { href: "/tutor", label: "Tutor", tutorial: "tutor-nav", icon: MessageSquareText, match: (p) => p.startsWith("/tutor") },
+  { href: "/dashboard/progress", label: "Progress", tutorial: "progress-nav", icon: LineChart, match: (p) => p === "/dashboard/progress" },
+  { href: "/licence-prep", label: "Licence Prep", shortLabel: "Licence", tutorial: "licence-prep-nav", icon: Car, match: (p) => p.startsWith("/licence-prep"), lockedForFree: true },
+  { href: "/account", label: "Account", tutorial: "account-nav", icon: Settings, match: (p) => p.startsWith("/account") },
 ];
+
+// Derived, not typed out: a cap change in plans.ts must not leave the upsell
+// promising the old numbers.
+const PREMIUM_UPSELL = `Unlock ${PLAN_MAP.premium.limits.questions} questions, ${PLAN_MAP.premium.limits.flashcards} flashcards, tutor help and scenarios each day.`;
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { ready, accountHydrated, isAuthed, state } = useStudyStore();
@@ -108,21 +114,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.href}
                 href={item.href}
-                data-tutorial={
-                  item.href === "/dashboard"
-                    ? "today-nav"
-                    : item.href === "/study"
-                      ? "study-nav"
-                      : item.href === "/tutor"
-                        ? "tutor-nav"
-                        : item.href === "/dashboard/progress"
-                          ? "progress-nav"
-                          : item.href === "/licence-prep"
-                            ? "licence-prep-nav"
-                            : item.href === "/account"
-                              ? "account-nav"
-                              : undefined
-                }
+                data-tutorial={item.tutorial}
                 aria-current={active ? "page" : undefined}
                 className={cn(
                   "press flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40",
@@ -155,7 +147,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
               {state.tier === "free"
-                ? "Unlock 36 questions, 36 flashcards, tutor help and scenarios each day."
+                ? PREMIUM_UPSELL
                 : "Get driver's-licence prep & advanced analytics."}
             </p>
           </Link>
@@ -220,21 +212,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <Link
               key={item.href}
               href={item.href}
-              data-tutorial={
-                item.href === "/dashboard"
-                  ? "today-nav"
-                  : item.href === "/study"
-                    ? "study-nav"
-                    : item.href === "/tutor"
-                      ? "tutor-nav"
-                      : item.href === "/dashboard/progress"
-                        ? "progress-nav"
-                        : item.href === "/licence-prep"
-                          ? "licence-prep-nav"
-                          : item.href === "/account"
-                            ? "account-nav"
-                            : undefined
-              }
+              data-tutorial={item.tutorial}
               aria-current={active ? "page" : undefined}
               className={cn(
                 "flex min-w-0 flex-1 flex-col items-center gap-1 py-2.5 text-2xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/40",

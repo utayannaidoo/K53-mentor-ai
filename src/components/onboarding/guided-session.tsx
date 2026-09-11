@@ -50,8 +50,17 @@ export function GuidedSession() {
   });
 
   const [flashcard] = React.useState<Flashcard | null>(() => {
+    // bank[0] handed every learner the same card. Prefer an unseen card on
+    // the starter question's topic (itself freshness-ordered), so the two
+    // steps teach one idea and the pick varies between learners.
     const bank = forCode(flashcardBank, studyCodeOf(state));
-    return bank[0] ?? null;
+    const unseen = bank.filter((card) => !state.cardStates[card.id]);
+    return (
+      unseen.find((card) => card.categoryId === question?.categoryId) ??
+      unseen[0] ??
+      bank[0] ??
+      null
+    );
   });
 
   function goToToday() {

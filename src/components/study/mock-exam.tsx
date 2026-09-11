@@ -130,9 +130,6 @@ export function MockExam() {
   // the finish arrow AND the timer expiry. A racing double-click used to push
   // two identical exam rows and double the CP.
   const submittedRef = React.useRef(false);
-  // Pass probability before this exam's answers hit the readiness model —
-  // shown against the recomputed value so the learner sees the number move.
-  const preProbRef = React.useRef<number | null>(null);
   const cpStartRef = React.useRef<number | null>(null);
   // ── Crash/reload resume ──
   // A validated draft of an interrupted paper, awaiting the learner's verdict
@@ -393,7 +390,6 @@ export function MockExam() {
     setI(Math.min(d.index, qs.length - 1));
     setSecondsLeft(Math.max(0, Math.ceil((d.deadlineMs - Date.now()) / 1000)));
     submittedRef.current = false;
-    preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
     // Same sample-time mark logic as start(): the rebuilt paper's length may
     // differ from advertised, so grade it on its own ratio (minis/drills only).
@@ -448,7 +444,6 @@ export function MockExam() {
     // guard left over from the previous submission made every submit path —
     // button, arrow, nav row AND timer expiry — silently no-op until reload.
     submittedRef.current = false;
-    preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
     // Starting fresh supersedes any resume offer still on screen.
     setResumeOffer(null);
@@ -702,8 +697,6 @@ export function MockExam() {
       const correct = idxs.filter((x) => answers[x.idx] === x.q.correctIndex).length;
       return { section: s, correct, total: idxs.length, pass: EXAM_FORMAT.sections[s].pass };
     });
-    const preProb = preProbRef.current;
-    const postProb = readiness.passProbability;
     const failedSections = mini || drill
       ? []
       : sectionScores.filter((s) => s.correct < s.pass).map((s) => SECTION_LABEL[s.section]);
@@ -807,8 +800,6 @@ export function MockExam() {
             passed: last.passed,
             failedSections,
             weakCategories,
-            passProbabilityBefore: preProb ?? undefined,
-            passProbabilityAfter: postProb,
           }}
         />
 

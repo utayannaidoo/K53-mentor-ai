@@ -42,8 +42,6 @@ const recapSchema = z.object({
   againCount: z.number().int().min(0).max(500).optional(),
   passed: z.boolean().optional(),
   failedSections: z.array(z.string().max(48)).max(3).optional(),
-  passProbabilityBefore: z.number().int().min(0).max(100).optional(),
-  passProbabilityAfter: z.number().int().min(0).max(100).optional(),
   dueTomorrow: z.number().int().min(0).max(5000).optional(),
 });
 

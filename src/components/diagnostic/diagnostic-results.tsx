@@ -40,9 +40,6 @@ export function DiagnosticResults() {
     );
   }
 
-  // Onboarding currently does not ask for confidence. Historic defaults must
-  // not be presented as a learner's self-report.
-  const contrast = null;
   const retakerLine = buildRetakerLine(state.onboarding?.priorAttempts ?? 0);
   const plan = generateTodayPlan(state, readiness);
 
@@ -69,9 +66,6 @@ export function DiagnosticResults() {
           <div className="mt-5 flex items-center gap-6">
             <Stat icon={<Target className="h-4 w-4" />} label="Scored" value={`${latest.correct}/${latest.total}`} />
           </div>
-          {contrast && (
-            <p className="mt-6 max-w-md text-balance text-muted-foreground">{contrast}</p>
-          )}
           {retakerLine && (
             <p className="mt-2 max-w-md text-balance text-sm font-medium text-primary">
               {retakerLine}

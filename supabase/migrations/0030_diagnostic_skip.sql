@@ -1,4 +1,4 @@
--- 0028: persist the learner's decision to defer the diagnostic.
+-- 0030: persist the learner's decision to defer the diagnostic.
 -- ============================================================================
 -- `diagnosticSkippedAt` previously lived only in localStorage. It made the
 -- same-browser flow work, but a later sign-in on another device had no way to
