@@ -318,10 +318,12 @@ export interface OnboardingData {
   vehicleCode: VehicleCode;
   testDate: string | null; // ISO date or null ("not booked") — the learner's test date, or the only test date when goal isn't "both"
   driversTestDate: string | null; // ISO date or null — only meaningful when goal === "both"
-  confidence: ConfidenceLevel;
+  // The next three are null when never asked — current onboarding skips them,
+  // and a stored default would masquerade as the learner's own answer.
+  confidence: ConfidenceLevel | null;
   worryCategories: CategoryId[]; // self-reported weak spots, asked before any diagnostic data exists
-  knowledgeLevel: KnowledgeLevel;
-  studyFrequency: StudyFrequency;
+  knowledgeLevel: KnowledgeLevel | null;
+  studyFrequency: StudyFrequency | null;
   priorAttempts: number;
   completedAt: string;
 }

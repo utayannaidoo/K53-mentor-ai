@@ -13,6 +13,7 @@ import type { TrendPoint } from "@/components/dashboard/readiness-plot";
 import { cn, glassFloat } from "@/lib/utils";
 import { SECTION_LABEL, type ExamSection } from "@/lib/constants";
 import { track } from "@/lib/analytics";
+import type { PassChanceStory } from "@/lib/diagnostic/pass-chance";
 import type { CategoryId, UserState } from "@/types";
 
 /**
@@ -60,6 +61,7 @@ export function TodaySheet({
   daySource,
   rankLine,
   firstPlanExperience,
+  passChance,
 }: {
   firstName: string;
   vehicleLabel: string;
@@ -115,6 +117,8 @@ export function TodaySheet({
   rankLine: string;
   /** Keep the one-line orientation until the learner starts independent work. */
   firstPlanExperience: boolean;
+  /** Present only once the starting check has measured every section. */
+  passChance: PassChanceStory | null;
 }) {
   const strip = React.useMemo(
     () => buildDayStrip({ activeDays, testDate }),
@@ -234,6 +238,22 @@ export function TodaySheet({
         <Figure label="Streak" value={streak} unit={streak === 1 ? "day" : "days"} />
         <Figure label="Points" value={cp.toLocaleString()} unit="CP" />
       </div>
+
+      {/* ── Pass chance: a band, with its next step always attached ─────── */}
+      {passChance && (
+        <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1 border-t border-border/50 px-6 py-3.5">
+          <p className="text-2xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+            Pass chance today
+          </p>
+          <p className={cn("font-mono text-lg font-semibold leading-none tabular-nums", passChance.tone)}>
+            {passChance.display}
+          </p>
+          <p className="min-w-0 flex-1 basis-64 text-xs leading-relaxed text-muted-foreground">
+            <span className="font-medium text-foreground">{passChance.headline}</span>{" "}
+            {passChance.liftLine ?? passChance.detail}
+          </p>
+        </div>
+      )}
 
       {/* ── An interruption, if there is one. A band, never a floating card. */}
       {alert && (

@@ -106,7 +106,9 @@ export default function RefundsPage() {
           Nothing in this policy limits the rights you have under the South African{" "}
           <strong>Consumer Protection Act</strong> or the{" "}
           <strong>Electronic Communications and Transactions Act</strong>. In particular, section
-          44 of the ECT Act gives you a <strong>{MONEY_BACK_DAYS}-day cooling-off period</strong> on an electronic
+          {/* Statutory: fixed at 7 days by the Act, independent of our own
+              MONEY_BACK_DAYS — changing the guarantee must not rewrite the law. */}
+          44 of the ECT Act gives you a <strong>7-day cooling-off period</strong> on an electronic
           transaction, during which you may cancel without reason and without penalty. Our {MONEY_BACK_DAYS}-day
           money-back window above is designed to meet that right and give it to you automatically,
           rather than making you ask.

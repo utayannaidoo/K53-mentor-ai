@@ -15,5 +15,11 @@ alphabetical order (`lock_subscriptions`, then `worry_categories`). If you later
 resolve the pair FIRST — merge both into one file and `supabase migration repair` the live
 project to record the merged name as applied — never by renaming one of them alone.
 
-New migrations continue from the highest number (next: `0027_…`) — never reuse a prefix again.
+New migrations continue from the highest number (next: `0031_…`) — never reuse a prefix again.
+Check the folder, not this line: `0028_diagnostic_skip` reused `0028` (taken by
+`0028_pending_refunds`) and was renamed to `0030_diagnostic_skip` before it was ever applied.
+
+**Prod is not tracked by `supabase_migrations`.** Most files from `0025` on were applied
+through the SQL editor, so the dashboard's migration list stops early. Before assuming a
+migration is live, check its effect directly (column, index, constraint) in prod.
 

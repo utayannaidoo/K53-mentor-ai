@@ -12,6 +12,7 @@ import { openMistakes } from "@/lib/learning/mistakes";
 import { categoryName } from "@/lib/content/categories";
 import { CODE_LABEL, hasFeature, PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
 import { blockingSection } from "@/lib/diagnostic/scoring";
+import { passChanceStory } from "@/lib/diagnostic/pass-chance";
 import { rankProgress } from "@/lib/engagement";
 import { topAlert, type DashboardAlert } from "@/lib/dashboard/alerts";
 import { activeDaysFrom } from "@/lib/dashboard/day-strip";
@@ -119,6 +120,9 @@ export default function DashboardPage() {
           state.mockExams.length === 0 &&
           state.attempts.filter((attempt) => attempt.context === "practice").length <= 1 &&
           state.sessions.filter((session) => session.type !== "diagnostic").length <= 1
+        }
+        passChance={
+          hasDiagnostic ? passChanceStory(readiness.passProbability, readiness.perCategory) : null
         }
       />
       {!state.firstRunTourDone && <TutorNavigator onComplete={completeFirstRunTour} />}

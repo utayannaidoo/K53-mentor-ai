@@ -23,6 +23,7 @@ import { sampleMockExam, sampleMiniMock, sampleSectionDrill, fullMockPassed, min
 import { useContentPool } from "@/components/content/content-provider";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { EXAM_FORMAT, SECTION_LABEL } from "@/lib/constants";
+import { formatPassProbability } from "@/lib/diagnostic/scoring";
 import { track } from "@/lib/analytics";
 import { mocksRemaining, drillsRemaining } from "@/lib/plan";
 import {
@@ -130,8 +131,9 @@ export function MockExam() {
   // the finish arrow AND the timer expiry. A racing double-click used to push
   // two identical exam rows and double the CP.
   const submittedRef = React.useRef(false);
-  // Pass probability before this exam's answers hit the readiness model —
-  // shown against the recomputed value so the learner sees the number move.
+  // Pass chance before this paper's answers reach the readiness model. The
+  // results only mention it when the paper moved it UP — a drop is already
+  // explained, constructively, by the section feedback beside it.
   const preProbRef = React.useRef<number | null>(null);
   const cpStartRef = React.useRef<number | null>(null);
   // ── Crash/reload resume ──
@@ -388,12 +390,12 @@ export function MockExam() {
       return;
     }
     startRef.current = d.deadlineMs - d.secondsAllotted * 1000;
+    preProbRef.current = readiness.passProbability;
     setQuestions(qs);
     setAnswers([...d.answers]);
     setI(Math.min(d.index, qs.length - 1));
     setSecondsLeft(Math.max(0, Math.ceil((d.deadlineMs - Date.now()) / 1000)));
     submittedRef.current = false;
-    preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
     // Same sample-time mark logic as start(): the rebuilt paper's length may
     // differ from advertised, so grade it on its own ratio (minis/drills only).
@@ -444,11 +446,11 @@ export function MockExam() {
     setSecondsLeft(requested.seconds);
     const startedAt = Date.now();
     startRef.current = startedAt;
+    preProbRef.current = readiness.passProbability;
     // Reset the fire-once guard: "Take another" starts a fresh paper, and a
     // guard left over from the previous submission made every submit path —
     // button, arrow, nav row AND timer expiry — silently no-op until reload.
     submittedRef.current = false;
-    preProbRef.current = readiness.passProbability;
     cpStartRef.current = state.cp;
     // Starting fresh supersedes any resume offer still on screen.
     setResumeOffer(null);
@@ -702,8 +704,10 @@ export function MockExam() {
       const correct = idxs.filter((x) => answers[x.idx] === x.q.correctIndex).length;
       return { section: s, correct, total: idxs.length, pass: EXAM_FORMAT.sections[s].pass };
     });
-    const preProb = preProbRef.current;
-    const postProb = readiness.passProbability;
+    const passChanceRose =
+      preProbRef.current !== null && readiness.passProbability > preProbRef.current
+        ? { from: preProbRef.current, to: readiness.passProbability }
+        : null;
     const failedSections = mini || drill
       ? []
       : sectionScores.filter((s) => s.correct < s.pass).map((s) => SECTION_LABEL[s.section]);
@@ -782,6 +786,12 @@ export function MockExam() {
               )}
             </p>
           )}
+          {passChanceRose && (
+            <p className="mt-4 text-sm font-medium text-success">
+              This paper lifted your pass chance from {formatPassProbability(passChanceRose.from)} to{" "}
+              {formatPassProbability(passChanceRose.to)}.
+            </p>
+          )}
         </Card>
 
         {mockNextStep && (
@@ -807,8 +817,6 @@ export function MockExam() {
             passed: last.passed,
             failedSections,
             weakCategories,
-            passProbabilityBefore: preProb ?? undefined,
-            passProbabilityAfter: postProb,
           }}
         />
 

@@ -76,7 +76,8 @@ describe("a preview without Supabase boots", () => {
     // The whole bug: this throw ran at module scope in the middleware, so it
     // was not a loud failure — it was a 500 on every request.
     await expect(load(HOSTED_NO_SUPABASE)).resolves.toBeTruthy();
-  });
+    // A cold import of the middleware graph can pass 5s on a loaded machine.
+  }, 20_000);
 
   it("still refuses to let production ship without Supabase", async () => {
     // Importing entitlements.server would trip the guard at module scope before

@@ -189,20 +189,102 @@ describe("images never reach a text-only provider", () => {
     expect(chooseProvider("image")).toBe("anthropic");
   });
 
-  it("streams a photo-bearing message to Anthropic, not DeepSeek", async () => {
-    const { streamTutorReply } = await loadWith({
-      DEEPSEEK_API_KEY: "sk-ds-stub",
-      ANTHROPIC_API_KEY: "sk-ant-stub",
-    });
-    const res = await streamTutorReply({
+  describe("streaming a photo", () => {
+    // The image path waits for the first token before committing to a
+    // provider (so a refusal can fall through to the next one). With stub keys
+    // that would be a real network call, so both SDKs are mocked here and every
+    // client records which provider was asked.
+    const photo = {
       persona: "persona",
       grounding: "",
-      messages: [{ role: "user", content: "What sign is this?" }],
+      messages: [{ role: "user" as const, content: "What sign is this?" }],
       userText: "What sign is this?",
       localReply: "Describe the sign and I'll identify it.",
-      image: { data: "AAAA", mediaType: "image/jpeg" },
+      image: { data: "AAAA", mediaType: "image/jpeg" as const },
+    };
+
+    function mockSdks(outcome: { anthropic: "ok" | "fail"; openai: "ok" | "fail" }) {
+      const asked: string[] = [];
+      vi.doMock("@anthropic-ai/sdk", () => ({
+        default: class {
+          messages = {
+            stream: () => {
+              asked.push("anthropic");
+              return (async function* () {
+                if (outcome.anthropic === "fail") throw new Error("401 authentication_error");
+                yield { type: "content_block_delta", delta: { type: "text_delta", text: "From Anthropic" } };
+              })();
+            },
+          };
+        },
+      }));
+      vi.doMock("openai", () => ({
+        default: class {
+          private readonly name: string;
+          constructor(opts: { baseURL?: string }) {
+            this.name = opts?.baseURL?.includes("deepseek") ? "deepseek" : "openai";
+          }
+          chat = {
+            completions: {
+              create: async () => {
+                asked.push(this.name);
+                if (outcome.openai === "fail") throw new Error("429 insufficient_quota");
+                return (async function* () {
+                  yield { choices: [{ delta: { content: "From OpenAI" } }] };
+                })();
+              },
+            },
+          };
+        },
+      }));
+      return asked;
+    }
+
+    afterEach(() => {
+      vi.doUnmock("@anthropic-ai/sdk");
+      vi.doUnmock("openai");
     });
-    expect(res.provider).toBe("anthropic");
+
+    it("streams a photo-bearing message to Anthropic, not DeepSeek", async () => {
+      const asked = mockSdks({ anthropic: "ok", openai: "ok" });
+      const { streamTutorReply } = await loadWith({
+        DEEPSEEK_API_KEY: "sk-ds-stub",
+        ANTHROPIC_API_KEY: "sk-ant-stub",
+      });
+      const res = await streamTutorReply(photo);
+      expect(res.provider).toBe("anthropic");
+      expect(await new Response(res.stream).text()).toBe("From Anthropic");
+      expect(asked).toEqual(["anthropic"]);
+    });
+
+    it("falls through to the next image provider when one refuses", async () => {
+      // The old cascade handed back an unread stream, so a refusal (bad key,
+      // exhausted credits) surfaced later as the local reply — OpenAI was
+      // never tried even when configured.
+      const asked = mockSdks({ anthropic: "fail", openai: "ok" });
+      const { streamTutorReply } = await loadWith({
+        DEEPSEEK_API_KEY: "sk-ds-stub",
+        ANTHROPIC_API_KEY: "sk-ant-stub",
+        OPENAI_API_KEY: "sk-oai-stub",
+      });
+      const res = await streamTutorReply(photo);
+      expect(res.provider).toBe("openai");
+      expect(await new Response(res.stream).text()).toBe("From OpenAI");
+      expect(asked).toEqual(["anthropic", "openai"]);
+    });
+
+    it("serves the local reply when every image provider refuses", async () => {
+      const asked = mockSdks({ anthropic: "fail", openai: "fail" });
+      const { streamTutorReply } = await loadWith({
+        DEEPSEEK_API_KEY: "sk-ds-stub",
+        ANTHROPIC_API_KEY: "sk-ant-stub",
+        OPENAI_API_KEY: "sk-oai-stub",
+      });
+      const res = await streamTutorReply(photo);
+      expect(res.provider).toBe("local");
+      expect(await new Response(res.stream).text()).toBe(photo.localReply);
+      expect(asked).not.toContain("deepseek");
+    });
   });
 });
 

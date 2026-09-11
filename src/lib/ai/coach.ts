@@ -35,8 +35,6 @@ export interface SessionRecapData {
   /** Mock exam only. */
   passed?: boolean;
   failedSections?: string[];
-  passProbabilityBefore?: number;
-  passProbabilityAfter?: number;
   /** Cards that come due by end of tomorrow — the reason to come back. */
   dueTomorrow?: number;
 }
