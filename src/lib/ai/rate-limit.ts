@@ -95,6 +95,13 @@ const AUTH_RESEND_DAILY_LIMIT = Number(process.env.AUTH_RESEND_DAILY_IP_LIMIT ??
 // the cap is the anti-bombing bound. A shared phone or a classroom on one IP
 // still has room for a handful of genuine sends a day.
 const PLAN_EMAIL_DAILY_LIMIT = Number(process.env.PLAN_EMAIL_DAILY_IP_LIMIT ?? 8);
+// Unsigned or forged unsubscribe attempts — what probing that endpoint looks
+// like. Its own bucket rather than the plan-email one: sharing meant a handful
+// of bad links (a scanner, or a mail client that wrapped a real link across two
+// lines) spent the daily plan-email allowance for everyone behind the same
+// address, and South African mobile traffic is heavily CGNAT'd. A valid
+// signature is never counted here at all, so this only ever bounds probing.
+const UNSUBSCRIBE_PROBE_DAILY_LIMIT = Number(process.env.UNSUBSCRIBE_PROBE_DAILY_IP_LIMIT ?? 20);
 
 let redis: Redis | null = null;
 let burst: Ratelimit | null = null;
@@ -110,6 +117,7 @@ let logLimiter: Ratelimit | null = null;
 let authReset: Ratelimit | null = null;
 let authResend: Ratelimit | null = null;
 let planEmail: Ratelimit | null = null;
+let unsubscribeProbe: Ratelimit | null = null;
 
 if (hasUpstash) {
   redis = Redis.fromEnv();
@@ -189,6 +197,12 @@ if (hasUpstash) {
     redis,
     limiter: Ratelimit.fixedWindow(PLAN_EMAIL_DAILY_LIMIT, "1 d"),
     prefix: "k53:plan:email",
+    analytics: false,
+  });
+  unsubscribeProbe = new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(UNSUBSCRIBE_PROBE_DAILY_LIMIT, "1 d"),
+    prefix: "k53:unsub:probe",
     analytics: false,
   });
 }
@@ -496,11 +510,12 @@ export async function limitAuthResend(ip: string): Promise<LimitResult> {
 }
 
 /**
- * Plan emails and unsubscribe clicks (/api/plan-email, /api/unsubscribe).
+ * Plan emails (/api/plan-email).
  *
- * Same posture as the auth email triggers: each request can put a real message
- * in someone's inbox, and neither endpoint has an account behind it to key on,
- * so IP is all there is.
+ * Same posture as the auth email triggers: each request puts a real message in
+ * someone's inbox, and the endpoint has no account behind it to key on, so IP
+ * is all there is. The unsubscribe endpoints used to share this bucket — see
+ * `limitUnsubscribeProbe` for why they no longer do.
  */
 export async function limitPlanEmail(ip: string): Promise<LimitResult> {
   try {
@@ -514,6 +529,31 @@ export async function limitPlanEmail(ip: string): Promise<LimitResult> {
   } catch (err) {
     console.error("rate-limit error", err);
     return memLimit(`plan:email:${ip}`, PLAN_EMAIL_DAILY_LIMIT, 86_400_000);
+  }
+}
+
+/**
+ * Unsubscribe attempts that carry no valid signature (/api/unsubscribe,
+ * /api/unsubscribe/reminders).
+ *
+ * A valid HMAC proves the caller holds a link we minted, so those are never
+ * counted — the #102 lesson, since Gmail sends one-click POSTs from Google's
+ * shared IP ranges. What is left is probing, and it gets a bucket of its own so
+ * it cannot spend the plan-email allowance of every real visitor behind the
+ * same CGNAT address.
+ */
+export async function limitUnsubscribeProbe(ip: string): Promise<LimitResult> {
+  try {
+    if (unsubscribeProbe) {
+      const r = await unsubscribeProbe.limit(ip);
+      return r.success
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
+    }
+    return memLimit(`unsub:probe:${ip}`, UNSUBSCRIBE_PROBE_DAILY_LIMIT, 86_400_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return memLimit(`unsub:probe:${ip}`, UNSUBSCRIBE_PROBE_DAILY_LIMIT, 86_400_000);
   }
 }
 

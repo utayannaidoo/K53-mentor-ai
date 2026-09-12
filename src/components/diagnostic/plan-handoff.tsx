@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { categoryName } from "@/lib/content/categories";
 import { LEAD_EMAIL_MAX } from "@/lib/leads/plan-lead";
-import { SITE_DOMAIN } from "@/lib/constants";
+import { SITE_DOMAIN, SUPPORT_EMAIL } from "@/lib/constants";
 import { track } from "@/lib/analytics";
 import type { CategoryId, VehicleCode } from "@/types";
 
@@ -40,7 +40,9 @@ export function PlanHandoff({
 }) {
   const [email, setEmail] = React.useState("");
   const [consent, setConsent] = React.useState(false);
-  const [status, setStatus] = React.useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [status, setStatus] = React.useState<
+    "idle" | "sending" | "sent" | "error" | "suppressed"
+  >("idle");
 
   const focus = weakCategories.slice(0, 3).map(categoryName);
   const looksLikeEmail = /.+@.+\..+/.test(email.trim()) && email.trim().length <= LEAD_EMAIL_MAX;
@@ -70,8 +72,14 @@ export function PlanHandoff({
           vehicleCode,
         }),
       });
-      setStatus(res.ok ? "sent" : "error");
-      if (res.ok) track("cta_clicked", { location: "results_plan_emailed" });
+      if (res.ok) {
+        setStatus("sent");
+        track("cta_clicked", { location: "results_plan_emailed" });
+      } else {
+        // 409 means this address asked us to stop. "Try again in a moment" is
+        // advice that can never work for the one person who opted out.
+        setStatus(res.status === 409 ? "suppressed" : "error");
+      }
     } catch {
       setStatus("error");
     }
@@ -116,6 +124,15 @@ export function PlanHandoff({
             <p role="alert" className="text-xs text-danger">
               That didn&apos;t send. Try again in a moment, or create the free account instead —
               your plan is on this screen either way.
+            </p>
+          )}
+          {status === "suppressed" && (
+            <p role="alert" className="text-xs text-muted-foreground">
+              This address asked us to stop emailing it, so we haven&apos;t sent anything. Email{" "}
+              <a href={`mailto:${SUPPORT_EMAIL}`} className="underline">
+                {SUPPORT_EMAIL}
+              </a>{" "}
+              to opt back in, or create the free account — your plan is on this screen either way.
             </p>
           )}
           <Button

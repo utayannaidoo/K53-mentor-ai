@@ -563,21 +563,33 @@ function withOptOut(content: EmailContent, unsubscribeUrl?: string | null): Emai
   };
 }
 
-export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
-  const content = withOptOut(buildNudge(type, input), input.unsubscribeUrl);
-  const countdown = testCountdown(input.daysToTest);
+/**
+ * Put the countdown above the button in HTML, and at the end of the body in
+ * text — which it finds by anchoring on the last line carrying a URL, the
+ * nudge's own call to action.
+ */
+function withCountdown(content: EmailContent, daysToTest: number | null | undefined): EmailContent {
+  const countdown = testCountdown(daysToTest);
   if (!countdown) return content;
-  // Appended to every nudge type, above the button in HTML and before the
-  // link line in text, so it reads as part of the message.
   return {
     ...content,
-    subject: content.subject,
     html: content.html.replace(
       '<a href="',
       `<p style="font-size:14px;line-height:1.6;color:#1d2724;font-weight:600;margin:12px 0 0;">${countdown}</p>\n        <a href="`,
     ),
     text: content.text.replace(/\n\n(?=[^\n]*https?:\/\/[^\n]*$)/, ` ${countdown}\n\n`),
   };
+}
+
+export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
+  // Countdown first, opt-out second — deliberately this order. The countdown
+  // anchors on the last line of the text part that holds a URL, so adding the
+  // opt-out link first moved that anchor onto the opt-out line and the
+  // countdown landed after the call to action instead of before it
+  // ("Study now: https://… 9 days to your test."). Nothing caught it because
+  // the two were only ever tested apart, and in production they always
+  // arrive together.
+  return withOptOut(withCountdown(buildNudge(type, input), input.daysToTest), input.unsubscribeUrl);
 }
 
 function buildNudge(type: NotificationType, input: TemplateInput): EmailContent {
