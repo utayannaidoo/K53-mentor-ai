@@ -25,6 +25,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import { countDueTomorrow } from "@/lib/plan";
 import type { SessionRecapData } from "@/lib/ai/coach";
 import { forCode } from "@/lib/content/vehicle";
+import { showsDriversContent } from "@/lib/content/scope";
 import { useContentPool } from "@/components/content/content-provider";
 import {
   easyFirst,
@@ -70,9 +71,8 @@ export function QuestionPractice() {
     const base = categoryParam ? bank.filter((q) => q.categoryId === categoryParam) : bank;
     // Yard- and road-test items are driver's material: only learners who said
     // they're working toward the driver's licence see them in practice.
-    const drivers = state.onboarding?.goal === "drivers" || state.onboarding?.goal === "both";
     const pool = forCode(base, studyCodeOf(state)).filter(
-      (q) => drivers || q.scope === "learners",
+      (q) => showsDriversContent(state) || q.scope === "learners",
     );
 
     // Emergency Revision: with the test 48 hours away, spacing and difficulty

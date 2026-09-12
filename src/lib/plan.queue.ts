@@ -1,5 +1,6 @@
 import type { CategoryId, Flashcard, UserState } from "@/types";
 import { forCode } from "@/lib/content/vehicle";
+import { showsDriversContent } from "@/lib/content/scope";
 import { isDue } from "@/lib/srs/sm2";
 import { studyCodeOf } from "@/lib/billing/plans";
 import { shuffle } from "@/lib/utils";
@@ -28,7 +29,11 @@ export function selectFlashcardQueue(
   opts: { categoryId?: CategoryId; limit?: number } = {},
 ): Flashcard[] {
   const now = new Date();
-  let pool = forCode(deck, studyCodeOf(state));
+  // Yard- and road-test cards are driver's material, the same rule the
+  // question bank got in #97. A learner studying for the computerised theory
+  // paper was being taught what a missed 360° observation costs in the yard
+  // test — 29 cards, 15% of the Controls deck they see most of.
+  let pool = forCode(deck, studyCodeOf(state)).filter((f) => showsDriversContent(state) || f.scope !== "drivers");
   if (opts.categoryId) pool = pool.filter((f) => f.categoryId === opts.categoryId);
 
   // due cards (shuffled so the review order varies each session), then unseen
