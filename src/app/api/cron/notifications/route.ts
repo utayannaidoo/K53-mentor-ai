@@ -8,6 +8,7 @@ import {
   type NotificationType,
 } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
+import { reminderOptOutUrl } from "@/lib/notify/reminder-optout";
 
 export const runtime = "nodejs";
 // One email per user, sent sequentially — allow the full minute available on
@@ -177,6 +178,7 @@ export async function GET(req: Request) {
         longest: streak?.longest ?? 0,
         dueCards: streak?.due_cards ?? 0,
         daysToTest: daysBetween(today, profile.test_date),
+        unsubscribeUrl: reminderOptOutUrl(profile.id),
       });
       const ok = await sendEmail({ to: profile.email, ...content });
       if (!ok) continue;

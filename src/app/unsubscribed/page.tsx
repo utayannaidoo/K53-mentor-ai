@@ -16,9 +16,13 @@ export const metadata: Metadata = {
 export default async function UnsubscribedPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; kind?: string }>;
 }) {
-  const status = (await searchParams).status;
+  const params = await searchParams;
+  const status = params.status;
+  // Reminders are switched off per account; everything else suppresses the
+  // address. The difference matters to the reader, so the page says which.
+  const remindersOnly = params.kind === "reminders";
   const failed = status === "error";
   const invalid = status === "invalid";
 
@@ -29,8 +33,10 @@ export default async function UnsubscribedPage({
         invalid
           ? "That link isn't valid — it may have been broken across two lines by your email app, or it belongs to a different address."
           : failed
-            ? "Something went wrong on our side, so your address may still be on the list."
-            : "We've removed your address. You won't get study reminders or plan emails from us again."
+            ? "Something went wrong on our side, so you may still be receiving these emails."
+            : remindersOnly
+              ? "Study reminders are off. Account email — receipts, password resets, subscription notices — still works."
+              : "We've removed your address. You won't get study reminders or plan emails from us again."
       }
     >
       <section>
@@ -43,9 +49,9 @@ export default async function UnsubscribedPage({
           </p>
         ) : (
           <p>
-            This covers everything we send, including study reminders and plan emails. If you have
-            an account, your progress is untouched — signing in still works, and you can turn
-            reminders back on from your account page.
+            {remindersOnly
+              ? "Only the study nudges stopped: the streak, due-card and check-in emails. Receipts, password resets and subscription notices are unaffected, and you can turn reminders back on any time from your account page."
+              : "This covers everything we send, including study reminders and plan emails. If you have an account, your progress is untouched — signing in still works, and you can turn reminders back on from your account page."}
           </p>
         )}
       </section>
