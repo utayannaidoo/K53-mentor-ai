@@ -24,6 +24,12 @@ interface TemplateInput {
   streak: number;
   longest: number;
   dueCards: number;
+  /**
+   * One-click opt-out for these reminders (see reminder-optout.ts). Absent
+   * only when no signing secret is configured, in which case the footer falls
+   * back to pointing at account preferences.
+   */
+  unsubscribeUrl?: string | null;
   /** Whole days until the learner's test (SAST calendar), when one is booked. */
   daysToTest?: number | null;
 }
@@ -70,7 +76,11 @@ function footerHtml(kind: FooterKind, unsubscribeUrl?: string | null): string {
   }
   return `<p ${style}>
         You're getting study reminders because they're on in your
-        <a href="${SITE_URL}/account" style="color:#8a938e;">account preferences</a> — switch them off there any time.
+        <a href="${SITE_URL}/account" style="color:#8a938e;">account preferences</a>.${
+          unsubscribeUrl
+            ? ` <a href="${unsubscribeUrl}" style="color:#8a938e;">Turn them off</a> — receipts and account email keep working.`
+            : ` Switch them off there any time.`
+        }
       </p>`;
 }
 
@@ -531,13 +541,36 @@ export function buildDisputeAlertEmail(input: {
   return { subject, html, text: lines.join("\n") };
 }
 
+
+/**
+ * Give a reminder email its opt-out: a line in the text part (the footer link
+ * lives only in the HTML alternative) and the List-Unsubscribe headers mail
+ * clients render their own control from.
+ *
+ * Study reminders are bulk mail to a real account, so the link stops the
+ * reminders rather than suppressing the address — see reminder-optout.ts.
+ */
+function withOptOut(content: EmailContent, unsubscribeUrl?: string | null): EmailContent {
+  if (!unsubscribeUrl) return content;
+  return {
+    ...content,
+    text: `${content.text}\n\nStop these reminders: ${unsubscribeUrl}`,
+    headers: {
+      ...content.headers,
+      "List-Unsubscribe": `<${unsubscribeUrl}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    },
+  };
+}
+
 export function buildEmail(type: NotificationType, input: TemplateInput): EmailContent {
-  const content = buildNudge(type, input);
+  const content = withOptOut(buildNudge(type, input), input.unsubscribeUrl);
   const countdown = testCountdown(input.daysToTest);
   if (!countdown) return content;
   // Appended to every nudge type, above the button in HTML and before the
   // link line in text, so it reads as part of the message.
   return {
+    ...content,
     subject: content.subject,
     html: content.html.replace(
       '<a href="',
@@ -565,6 +598,8 @@ function buildNudge(type: NotificationType, input: TemplateInput): EmailContent 
           p(`Five quiet minutes of flashcards is all it takes to keep it alive.`),
         "Keep my streak",
         "/study/flashcards",
+        "reminders",
+        input.unsubscribeUrl,
       );
       return { subject, html, text };
     }
@@ -581,6 +616,8 @@ function buildNudge(type: NotificationType, input: TemplateInput): EmailContent 
           p(`A few minutes now locks them in for much longer.`),
         "Review now",
         "/study/flashcards",
+        "reminders",
+        input.unsubscribeUrl,
       );
       return { subject, html, text };
     }
@@ -595,6 +632,8 @@ function buildNudge(type: NotificationType, input: TemplateInput): EmailContent 
           p(`Today's plan takes about 10 minutes, and it starts with your weakest area.`),
         "Pick up where I left off",
         "/dashboard",
+        "reminders",
+        input.unsubscribeUrl,
       );
       return { subject, html, text };
     }
@@ -611,6 +650,8 @@ function buildNudge(type: NotificationType, input: TemplateInput): EmailContent 
           p(`One short session brings it back fast.${bestBit}`),
         "Ease back in",
         "/dashboard",
+        "reminders",
+        input.unsubscribeUrl,
       );
       return { subject, html, text };
     }
