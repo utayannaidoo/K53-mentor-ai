@@ -48,9 +48,12 @@ vi.mock("@/lib/supabase/admin", () => ({
     adminAvailable
       ? {
           from: (table: string) => ({
-            update: (patch: unknown) => ({
+            // `opts` is captured so a test can prove the route asks for the row
+            // count. Without `{ count: "exact" }` supabase-js returns null, and
+            // the no-row check below would silently never fire.
+            update: (patch: unknown, opts?: unknown) => ({
               eq: (column: string, value: unknown) =>
-                Promise.resolve(profileUpdate({ table, patch, column, value })),
+                Promise.resolve(profileUpdate({ table, patch, opts, column, value })),
             }),
           }),
         }
@@ -100,7 +103,7 @@ beforeEach(() => {
   limitUnsubscribeProbe.mockResolvedValue(ALLOWED);
   suppress.mockResolvedValue(true);
   forgetPlanLead.mockResolvedValue(undefined);
-  profileUpdate.mockReturnValue({ error: null });
+  profileUpdate.mockReturnValue({ error: null, count: 1 });
   // The error branches log on purpose; keep the run readable.
   const original = console.error;
   console.error = () => {};
@@ -217,6 +220,8 @@ describe("/api/unsubscribe/reminders — the per-account opt-out", () => {
     expect(profileUpdate).toHaveBeenCalledWith({
       table: "profiles",
       patch: { email_notifications: false },
+      // Asking for the count is what makes the no-row case detectable.
+      opts: { count: "exact" },
       column: "id",
       value: USER,
     });
@@ -242,6 +247,18 @@ describe("/api/unsubscribe/reminders — the per-account opt-out", () => {
     }, "POST");
     expect(other.status).toBe(400);
     expect(profileUpdate).not.toHaveBeenCalled();
+  });
+
+  it("does not claim success when the update matched no row", async () => {
+    // A signed link for a profile that has since been deleted. The update
+    // succeeds and changes nothing, and the page would otherwise tell the
+    // reader their reminders are off.
+    profileUpdate.mockReturnValue({ error: null, count: 0 });
+    const res = await call(remindersPost, "/api/unsubscribe/reminders", {
+      u: USER,
+      t: reminderOptOutToken(USER)!,
+    }, "POST");
+    expect(res.status).toBe(400);
   });
 
   it("answers 5xx when the profile write fails or the admin key is absent", async () => {

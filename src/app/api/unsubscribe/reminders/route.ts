@@ -27,15 +27,18 @@ async function optOut(
   if (userId && verifyReminderOptOut(userId, token)) {
     const admin = createAdminClient();
     if (!admin) return { status: "error" };
-    const { error } = await admin
+    // `count` matters: an update that matches no row succeeds. A link for a
+    // profile that has since been deleted would otherwise land on a page
+    // telling the reader their reminders are off, having changed nothing.
+    const { error, count } = await admin
       .from("profiles")
-      .update({ email_notifications: false })
+      .update({ email_notifications: false }, { count: "exact" })
       .eq("id", userId);
     if (error) {
       console.error("reminder opt-out failed", error.message);
       return { status: "error" };
     }
-    return { status: "done" };
+    return { status: count === 0 ? "invalid" : "done" };
   }
 
   const rl = await limitUnsubscribeProbe(clientIp(req));
