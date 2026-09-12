@@ -359,9 +359,9 @@ async function demoReply(question: string): Promise<string> {
   const hit = bestQuestionFor(question, STARTER_QUESTIONS);
   if (hit) {
     const prefix = /why/i.test(question) ? "Good question — here's the reasoning. " : "";
-    return `${prefix}${hit.explanation}\n\nThe answer is “${hit.options[hit.correctIndex]}”. Want another example?`;
+    return `${prefix}${hit.explanation}\n\nIn the test, the option to pick is “${hit.options[hit.correctIndex]}”.`;
   }
-  return "I'm your K53 tutor — ask me about any road sign, rule, intersection or following-distance question and I'll break it down. What would you like to understand?";
+  return "I couldn't find that one in the sample notes. Try a road sign, a rule, an intersection or a following-distance question — the full AI tutor inside the app handles anything else.";
 }
 
 /**
@@ -427,7 +427,15 @@ function DemoTutor({ onInteract }: { onInteract: () => void }) {
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
           <Sparkles className="h-3.5 w-3.5" />
         </span>
-        <p className="text-sm font-semibold">Your AI tutor</p>
+        <div>
+          <p className="text-sm font-semibold">Tutor preview</p>
+          {/* Honest about what this is: a keyword match over the free starter
+              notes, not a model call. Calling it "AI" here made the first AI a
+              visitor met read like an answer key. */}
+          <p className="text-xs text-muted-foreground">
+            Sample answers from our study notes — the AI tutor is inside the app
+          </p>
+        </div>
       </div>
 
       <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto py-4">

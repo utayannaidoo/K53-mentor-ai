@@ -113,6 +113,17 @@ export function takeDistinctSubjects(
   return picked;
 }
 
+/**
+ * The learner's-test bank for one licence code. The diagnostic and every
+ * paper that simulates the computerised test (mock, mini, section drill) draw
+ * from this and nothing else: yard- and road-test items are driver's
+ * practical material, and a yard-scoring question in the 8-question Controls
+ * section — 6 to pass — skews the most fragile section of the paper.
+ */
+export function learnersBank(pool: Question[], code: VehicleCode): Question[] {
+  return forCode(pool, code).filter((q) => q.scope === "learners");
+}
+
 /** Target question count per category for the 15-question diagnostic. */
 const DIAGNOSTIC_PLAN: Record<CategoryId, number> = {
   signs: 4,
@@ -157,9 +168,7 @@ export function sampleDiagnostic(
   code: VehicleCode,
   worryCategories: CategoryId[] = [],
 ): Question[] {
-  // This is a learner-theory starting check. Driver's practical-test items
-  // belong in licence prep, never in this paper.
-  const bank = forCode(pool, code).filter((q) => q.scope === "learners");
+  const bank = learnersBank(pool, code);
   const plan = diagnosticPlanFor(worryCategories);
   const picked: Question[] = [];
   const seen = new Set<string>(); // one diagnostic, one subject list
@@ -217,7 +226,7 @@ export function sampleMiniMock(
   weakCategories: CategoryId[] = [],
   total: number = MINI_MOCK.total,
 ): Question[] {
-  const bank = forCode(pool, code);
+  const bank = learnersBank(pool, code);
   const weakSet = new Set(weakCategories.slice(0, 3));
   const weakPool = bank.filter((q) => weakSet.has(q.categoryId));
   const restPool = bank.filter((q) => !weakSet.has(q.categoryId));
@@ -292,7 +301,7 @@ export function sampleSectionDrill(
   attempts: QuestionAttempt[],
   code: VehicleCode,
 ): Question[] {
-  const sectionPool = forCode(pool, code).filter((q) => SECTION_OF[q.categoryId] === section);
+  const sectionPool = learnersBank(pool, code).filter((q) => SECTION_OF[q.categoryId] === section);
   return shuffle(
     takeDistinctSubjects(orderByFreshness(sectionPool, attempts), SECTION_DRILL[section].total),
   ).map(withShuffledOptions);
@@ -320,7 +329,7 @@ export function sampleMockExam(
     signs: [],
     rules: [],
   };
-  for (const q of forCode(pool, code)) bySection[SECTION_OF[q.categoryId]].push(q);
+  for (const q of learnersBank(pool, code)) bySection[SECTION_OF[q.categoryId]].push(q);
 
   const out: Question[] = [];
   const seen = new Set<string>(); // shared across sections — one paper, one subject list

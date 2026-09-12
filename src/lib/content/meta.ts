@@ -2436,4 +2436,4 @@ export const MODULE_META: ModuleMeta[] = [
  * stale — which is what stops a content sprint being invisible to everyone who
  * synced before it.
  */
-export const CONTENT_VERSION = "3d5521cfc719";
+export const CONTENT_VERSION = "c396e53d2205";

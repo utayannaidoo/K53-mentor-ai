@@ -39,7 +39,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The yard test sheet totals 50. You lose points fault by fault, so a run can be untidy in several small ways and still pass — but a few specific faults end it outright regardless of your score.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -57,7 +57,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "A black box is not a penalty, it is a full stop. Rolling, touching a pole, mounting the kerb or needing a fourth movement in the turn in the road all end the test where you sit — there is no points arithmetic to argue about afterwards.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -69,7 +69,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Observation is the most expensive single item on the yard sheet at 5 points, and it is scored on every movement. Two missed checks cost more than most learners lose in the whole rest of the test.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -81,7 +81,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "A signal that outlives the manoeuvre tells everyone around you that you are still about to move, which is worse than no signal at all. Cancelling is scored separately from signalling, at 4 points.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -99,7 +99,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Pressing the release button in while you lift the lever stops the ratchet clicking, which spares the mechanism and shows control. It is a single point, but it is a point the examiner can hear without looking.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -116,7 +116,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "A stall is a single point, so it is recoverable — but the recovery is scored too. Go back through the whole starting procedure rather than stabbing at the key, or you turn one cheap point into several.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -133,7 +133,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Rolling and pole contact are both test-ending faults, so there is nothing left to re-attempt. Anything short of those — an awkward line, a stall, an untidy finish — leaves you a second try.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -150,7 +150,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "There is no set running order, so you cannot rehearse a script. Practise each manoeuvre as a self-contained routine that begins with the same sequence checks, and the order stops mattering.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
 
@@ -170,7 +170,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Stop, Indicate, Move. It is the backbone of the yard test — every manoeuvre is just this loop repeated, so learning it once earns points in all four.",
     difficulty: 1,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -187,7 +187,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The parking brake goes on the moment the vehicle is fully stopped — before neutral, not after — because it is the brake, not the gearbox, that keeps you still. Feet then come off the pedals so the examiner can see nothing is holding the car.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -204,7 +204,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "You look first, then announce. Indicating before you have looked commits you to a direction you have not yet checked is safe — and the examiner scores the order, not just the fact that both happened.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -222,7 +222,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Time passes between the first check and actually moving, and a yard is full of people walking. The second check is what makes the first one still true.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -239,7 +239,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Keep a hand on the lever while you find clutch control, so the brake is still holding the car if the clutch bites early. Release it last and the vehicle can only move the way you intended.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -256,7 +256,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Clutch control means the engine is already pulling gently against the brake. Release from there and the car moves the way you chose; release without it and gravity chooses instead — which on the incline is an instant failure.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
 
@@ -275,7 +275,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "A fixed direction is a memory aid, not a rule of physics — but under test nerves it is what stops you missing a wheel. Walk it the same way every time you practise.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -292,7 +292,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Looking under the car is the only way to find a fluid leak — or a small child or an animal sheltering there. Once you have moved off it is too late to have looked.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -310,7 +310,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The inspection is a gate, not a scored section. This is why the checks matter most on the vehicle you are taking to the test — do them at home, days before, while there is still time to fix something.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -327,7 +327,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Feeling the rubber finds splits and hardening that looking cannot. Leaving the blade up is the signal to the examiner — and to you — that this one has already been done.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -345,7 +345,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The examiner is testing whether you know what needs checking, not your vocabulary. Pointing and saying so scores; silence does not.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -362,7 +362,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Four fluids-and-belts items, and you may state that you have checked them rather than dismantling anything. A snapped belt strands you as surely as an empty tank.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -379,7 +379,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Four systems, each checked front and rear where that applies. Any one of them failing is grounds to declare the vehicle unroadworthy on the spot.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -397,7 +397,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "A bottle rolling under the pedals is a genuine hazard, and so is a rear window you cannot see through. Saying it aloud is how the examiner knows you looked rather than assumed.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -414,7 +414,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The inspection is inside the clock, not before it. A slow, hesitant walk-around eats the time you will want for a second attempt at a parking bay.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
 
@@ -428,7 +428,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Two — provided the first attempt did not roll and did not touch a pole. Knowing you have a spare is worth a lot: it stops the panicky over-correction that causes pole contact in the first place.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -445,7 +445,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Half a metre is close enough to place the car accurately and wide enough to absorb a small steering error. Hugging the poles leaves you no margin at all.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -462,7 +462,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Your own head is the one reference that does not move when you shift in the seat or the car sits differently. Lining a pole up with it turns a judgement call into a fixed mark.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -475,7 +475,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Three seconds is long enough for someone to walk behind you. You may stop as often as you like — the check is simply the price of each pause.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -492,7 +492,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The poles stand in for other people's cars and for pedestrians. Touching one is treated as the collision it represents, so it ends the test rather than costing points.",
     difficulty: 1,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
 
@@ -511,7 +511,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Three is the budget the manoeuvre is built around: reverse in, a correcting move forward, then straight back to settle. Fewer is fine; the count is a ceiling, not a target.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -528,7 +528,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The three movements are an allowance, not a routine to perform. If the car is in the bay and straight, the manoeuvre is done.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -545,7 +545,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Another body-part reference, for the same reason as pole B and your head — it stays true whoever is driving and whatever the car.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -562,7 +562,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Everything after this depends on the start. Too close and you cannot swing in without clipping a pole; too far and you finish a metre off the kerb.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -580,7 +580,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Parallel is what you aim for; inside the box is what is scored. Chasing perfection with extra shuffling costs more points than a slightly crooked finish.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -597,7 +597,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The distinction is whether the wheel rides up onto the pavement. Touching a kerb is clumsy; climbing it is the moment a pedestrian standing there would have been hit.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -614,7 +614,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "It is simply unwinding the lock you put on. Do it while the vehicle is still moving — steering a stationary car scrubs the tyres and is scored elsewhere.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
 
@@ -633,7 +633,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Three movements is the definition of the manoeuvre, not a guideline — which is why it is worth practising in a road narrow enough to be realistic rather than a wide-open yard.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -651,7 +651,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Straightening the wheels before you stop is what buys you room on the reverse. Arrive at the kerb still on full lock and the second movement has nowhere to go.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -668,7 +668,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Forty-five degrees, or the moment your steering position passes the road's centre line. Unwinding there leaves the front wheels pointing where you want to drive out.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -685,7 +685,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The manoeuvre is not over when the car points the other way — it is over when it is parked properly facing that way, secured, and waiting for the examiner's next instruction.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -702,7 +702,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Each movement points the car somewhere new and takes time. Three movements means three full sets of checks — this is where most of the observation points in the manoeuvre are won or lost.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
 
@@ -722,7 +722,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "In gear with the clutch down, you cannot tell whether the brake is holding the car or the transmission is. Neutral removes the doubt — which is the whole point of testing an incline start.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -739,7 +739,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Same logic as the manual: neutral first, so the parking brake is demonstrably doing the work, then Drive for the departure.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -756,7 +756,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "There is no tolerance band. On a real hill the car behind is exactly where your roll would take you, which is why this one is absolute rather than scored.",
     difficulty: 1,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
 
@@ -994,7 +994,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "It is scored at five points every time you let it slip, which makes it the most expensive habit on the road-test sheet. Build it in practice until it stops being something you remember to do.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1006,7 +1006,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Five points, and priced that way for a reason: at 60 km/h a one-second glance is nearly seventeen metres travelled blind. Practise changing by feel.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1018,7 +1018,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "It takes a hand off the wheel at the moment you most need both. Choose the gear before the corner and leave it alone until you are straight.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1030,7 +1030,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "In neutral the engine can no longer help slow or steady the car, and you cannot accelerate out of trouble. Stay in gear until the vehicle is stopped, then select neutral.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1047,7 +1047,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Both errors put you in a lane that belongs to someone else, just at different points in the turn. Aim to leave a corner in the same lane position you entered it.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1064,7 +1064,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Excessive caution is its own hazard — it frustrates the drivers behind and invites them to take risks around you. The examiner is testing judgement, not timidity.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1081,7 +1081,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "An unexpected stop is exactly what the driver behind has not planned for. Cheap on the sheet, but it signals hesitancy the examiner will then watch for elsewhere.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1098,7 +1098,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Same standard as the yard, and for the same reason. Every hill start you do on a real road has a car somewhere behind you.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1115,7 +1115,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "If the first stop is too gentle, or the wheels lock and you do not release and re-apply, you get one more. There is no third.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1132,7 +1132,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "A locked wheel cannot steer and stops the car more slowly than one just short of locking. Release, re-apply — and keep both hands on the wheel until you are stationary.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1149,7 +1149,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Freeway speeds close gaps fast, so the whole sequence has to be finished before you get there. Starting late means signalling into a lane you have not yet checked.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1161,7 +1161,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Traffic will have moved since your first check a hundred metres back. The 50 m repeat is what catches a car that has slid into your blind spot in the meantime.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1178,7 +1178,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Traffic joins from the left, so that is where the conflict is. Passing an OFF-ramp the answer changes — check both, because vehicles cross from the right to leave.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1190,7 +1190,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "The arm has to come back in and onto the wheel before the braking starts, so the signal has to be finished well ahead. Anything later and you are braking one-handed.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1207,7 +1207,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Two chances, then it is over. Hand signals are the fallback for a failed indicator, so being unable to give one clearly is treated as a real gap rather than untidiness.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1224,7 +1224,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Your arm is about to occupy the space a passing cyclist or motorcyclist would be in. Missing the blind-spot check here costs five points on its own, separately from the signal.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1292,7 +1292,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Three things sit in this category: manoeuvring dangerously around pedestrians, taking unsafe gaps, and turning corners uncontrollably fast. All three end the test on the spot.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1309,7 +1309,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Deferred, because nothing about the breakdown tells the examiner whether you can drive. Causing an accident yourself is different — that is an immediate failure.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {
@@ -1326,7 +1326,7 @@ export const MOTUS_YARD_QUESTIONS: Question[] = [
     explanation:
       "Fault decides it. An accident you cause is an immediate failure; one caused to you leaves the decision with the examiner and the condition of the car.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
     source: MOTUS,
   },
   {

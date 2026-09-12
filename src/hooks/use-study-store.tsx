@@ -29,7 +29,7 @@ import {
   resolveStreak,
 } from "@/lib/store/local-store";
 import { mergeAdoptedTabState } from "@/lib/store/cross-tab-merge";
-import { identify as analyticsIdentify, resetAnalytics } from "@/lib/analytics";
+import { identify as analyticsIdentify, resetAnalytics, track } from "@/lib/analytics";
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
@@ -384,7 +384,21 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         // an AuthSessionMissingError is definitive, anything else keeps the
         // profile and lets the session cookies remain the source of truth.
         if (shouldClearCachedProfile({ event, hasUser: false, error })) {
-          setState((s) => (s.profile ? { ...s, profile: null } : s));
+          // The session is definitively gone. If this store belongs to an
+          // account, treat it exactly like sign-out: the server holds the
+          // durable copy, and an account's history must not outlive its
+          // session on a shared phone — it used to seed the next visitor's
+          // guest check ("283 past mistakes waiting"). Anonymous pre-signup
+          // progress carries no ownerEmail and is kept. The cost is any answer
+          // not yet pushed when the cookie died; saves flush on pagehide, so
+          // that window is small.
+          if (latest.current.state.ownerEmail) {
+            setState(() => defaultUserState());
+            resetAnalytics();
+            void purgePackCache();
+          } else {
+            setState((s) => (s.profile ? { ...s, profile: null } : s));
+          }
         }
         setAccountHydrated(true); // nothing to wait for
         return;
@@ -395,6 +409,19 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       // per page load. Without it every billing/funnel event stays under an
       // anonymous distinct id and signup→paying cannot be joined per learner.
       analyticsIdentifyRef.current(user.id);
+      // OAuth signups never pass through the password form that tracks
+      // signup_completed, so a brand-new Google account is counted here, once.
+      const method = user.app_metadata?.provider;
+      if (method && method !== "email" && Date.now() - Date.parse(user.created_at) < 10 * 60_000) {
+        try {
+          if (window.localStorage.getItem("k53.signupTracked") !== user.id) {
+            window.localStorage.setItem("k53.signupTracked", user.id);
+            track("signup_completed", { method });
+          }
+        } catch {
+          /* private mode */
+        }
+      }
       // A parked referral code from /signup?ref=… — claim it exactly once,
       // now that a real account exists (covers password and OAuth signups).
       try {

@@ -1454,7 +1454,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "In gear with the clutch down, you cannot tell whether the brake is holding the car or the transmission is. Neutral removes the doubt — which is the whole point of testing an incline start.",
     "difficulty": 3,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
@@ -1501,7 +1501,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "A signal that outlives the manoeuvre tells everyone around you that you are still about to move, which is worse than no signal at all. Cancelling is scored separately from signalling, at 4 points.",
     "difficulty": 2,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
@@ -1517,7 +1517,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "It takes a hand off the wheel at the moment you most need both. Choose the gear before the corner and leave it alone until you are straight.",
     "difficulty": 2,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
@@ -1578,7 +1578,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "In neutral the engine can no longer help slow or steady the car, and you cannot accelerate out of trouble. Stay in gear until the vehicle is stopped, then select neutral.",
     "difficulty": 3,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
@@ -1594,7 +1594,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "Observation is the most expensive single item on the yard sheet at 5 points, and it is scored on every movement. Two missed checks cost more than most learners lose in the whole rest of the test.",
     "difficulty": 2,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
@@ -1640,7 +1640,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "Four fluids-and-belts items, and you may state that you have checked them rather than dismantling anything. A snapped belt strands you as surely as an empty tank.",
     "difficulty": 2,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
@@ -1671,7 +1671,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "A stall is a single point, so it is recoverable — but the recovery is scored too. Go back through the whole starting procedure rather than stabbing at the key, or you turn one cheap point into several.",
     "difficulty": 2,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
@@ -1748,7 +1748,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "You look first, then announce. Indicating before you have looked commits you to a direction you have not yet checked is safe — and the examiner scores the order, not just the fact that both happened.",
     "difficulty": 3,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
@@ -1779,7 +1779,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "correctIndex": 0,
     "explanation": "Two — provided the first attempt did not roll and did not touch a pole. Knowing you have a spare is worth a lot: it stops the panicky over-correction that causes pole contact in the first place.",
     "difficulty": 2,
-    "scope": "learners",
+    "scope": "drivers",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {

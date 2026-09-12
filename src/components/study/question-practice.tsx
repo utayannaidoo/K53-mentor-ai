@@ -68,7 +68,12 @@ export function QuestionPractice() {
 
   function buildQueue(): Question[] {
     const base = categoryParam ? bank.filter((q) => q.categoryId === categoryParam) : bank;
-    const pool = forCode(base, studyCodeOf(state));
+    // Yard- and road-test items are driver's material: only learners who said
+    // they're working toward the driver's licence see them in practice.
+    const drivers = state.onboarding?.goal === "drivers" || state.onboarding?.goal === "both";
+    const pool = forCode(base, studyCodeOf(state)).filter(
+      (q) => drivers || q.scope === "learners",
+    );
 
     // Emergency Revision: with the test 48 hours away, spacing and difficulty
     // laddering stop being the right advice. Every remaining minute goes on

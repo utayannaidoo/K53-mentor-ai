@@ -308,7 +308,7 @@ export const CONTROLS_EXTRA_QUESTIONS: Question[] = [
     explanation:
       "It is about control and observation in a tight space, not speed or a fixed number of movements — you keep looking throughout, and use as many shunts as the road width honestly needs.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
   },
   {
     id: "qx_ctrl_parallel_finish",
@@ -324,7 +324,7 @@ export const CONTROLS_EXTRA_QUESTIONS: Question[] = [
     explanation:
       "Finish inside the demarcated bay with nothing touched. Contact with a pole or line is a fail item — the bay stands in for the real cars you would otherwise be hitting.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
   },
   {
     id: "qx_ctrl_yard_time_limit",
@@ -340,7 +340,7 @@ export const CONTROLS_EXTRA_QUESTIONS: Question[] = [
     explanation:
       "The yard test is timed at 20 minutes 59 seconds for the inspection and manoeuvres together. It is generous if you work methodically, but it does rule out starting over repeatedly.",
     difficulty: 3,
-    scope: "learners",
+    scope: "drivers",
   },
   {
     id: "qx_ctrl_observation_before_reverse",
@@ -356,7 +356,7 @@ export const CONTROLS_EXTRA_QUESTIONS: Question[] = [
     explanation:
       "All round first, because a child or cyclist can be anywhere, then eyes where the vehicle is actually going. Mirrors and cameras supplement that look — they don't replace it.",
     difficulty: 2,
-    scope: "learners",
+    scope: "drivers",
   },
 
   // ── Lights, signals & visibility ────────────────────────────
