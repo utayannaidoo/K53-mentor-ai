@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { buildSubscriptionEndingEmail, buildPaymentReceiptEmail } from "@/lib/notify/templates";
-import { MONEY_BACK_DAYS } from "@/lib/billing/plans";
+import { MONEY_BACK_DAYS, PLAN_MAP } from "@/lib/billing/plans";
 import { refundEligible } from "@/lib/billing/subscription-cancel";
 
 /**
@@ -62,18 +62,21 @@ describe("buildSubscriptionEndingEmail", () => {
     expect(mail.html).toContain("3 September 2026");
   });
 
-  it("is honest that there is no usable free plan to land on", () => {
-    // The free tier IS a 7-day trial anchored to signup, so a lapsing
-    // subscriber lands on nothing. "You'll move to our Free plan" would imply
-    // a soft landing that does not exist.
+  it("names the small free allowance they land on, and what stops", () => {
+    // The free week is long spent by now, but PlanLimits.afterTrial survives
+    // it. Promising neither too much ("move to our Free plan") nor too little
+    // ("everything stops") is the whole job of this sentence.
+    const floor = PLAN_MAP.free.limits.afterTrial!;
     const mail = buildSubscriptionEndingEmail({
       firstName: "Sam",
       planName: "Premium",
       endsOn,
       daysLeft: 3,
     });
-    expect(mail.text).toMatch(/free week was used at signup/i);
-    expect(mail.text).toMatch(/stop/i);
+    const phrase = `${floor.questions} questions and ${floor.flashcards} flashcards a day`;
+    expect(mail.text).toContain(phrase);
+    expect(mail.html).toContain(phrase);
+    expect(mail.text).toMatch(/AI tutor stop/i);
   });
 
   it("reassures that progress survives, so cancelling isn't punished", () => {

@@ -1,4 +1,5 @@
 import { SITE_URL } from "@/lib/constants";
+import { PLAN_MAP } from "@/lib/billing/plans";
 import { pluralize } from "@/lib/utils";
 
 /**
@@ -164,17 +165,25 @@ export function buildPaymentReceiptEmail(input: {
 }
 
 /**
+ * What a lapsed or cancelled account still gets each day, in words. Read from
+ * the plan definition so an email can never quote a number the app no longer
+ * honours.
+ */
+function freeFloor(): string {
+  const floor = PLAN_MAP.free.limits.afterTrial;
+  if (!floor) return "nothing";
+  return `${floor.questions} ${pluralize(floor.questions, "question")} and ${floor.flashcards} ${pluralize(floor.flashcards, "flashcard")} a day`;
+}
+
+/**
  * Sent a few days before a cancelled subscription's paid period runs out.
  *
  * This is the one warning someone gets that access is about to stop, and it
- * matters more here than in most products: the free tier *is* a seven-day
- * trial anchored to signup, so a lapsing subscriber does not land on a usable
- * free plan — they land on nothing. Saying that plainly is more honest than
- * "you'll move to our Free plan", which implies a soft landing that does not
- * exist.
- *
- * Transactional, not marketing: it goes to people who have paid and are about
- * to lose something, so it is not gated on the reminders opt-out.
+ * names exactly what they keep and what they lose. The seven-day free
+ * week is anchored to signup and long spent by now, but a small daily
+ * allowance (PlanLimits.afterTrial) survives it, so this says "you drop to
+ * N a day" rather than "you'll move to our Free plan", which would imply
+ * the paid loop continues.
  */
 export function buildSubscriptionEndingEmail(input: {
   firstName: string;
@@ -190,15 +199,17 @@ export function buildSubscriptionEndingEmail(input: {
   const subject = `Your ${input.planName} access ends ${dayPhrase}`;
   const text =
     `Hi ${input.firstName || "there"} — your ${input.planName} plan was cancelled and your access ends on ${when}.\n\n` +
-    `Nothing has been charged and nothing will be. But when it ends you won't drop onto a usable free plan: ` +
-    `your free week was used at signup, so daily flashcards, questions, mocks and the AI tutor all stop.\n\n` +
+    `Nothing has been charged and nothing will be. When it ends you drop to the free daily allowance, ` +
+    `${freeFloor()}, and mock exams, scenarios and the AI tutor stop.
+
+` +
     `If you're still working towards your test, resubscribing before ${when} keeps everything going without a gap. ` +
     `Your progress, streak and readiness score are safe either way.\n\n` +
     `Resubscribe: ${SITE_URL}/account/billing`;
   const html = wrap(
     h(`Your access ends ${esc(dayPhrase)}`) +
       p(`Hi ${name} — your <strong>${plan}</strong> plan was cancelled, and your access ends on <strong>${esc(when)}</strong>.`) +
-      p("Nothing has been charged and nothing will be. But this isn't a step down to a smaller plan — your free week was used at signup, so daily flashcards, questions, mock exams and the AI tutor all stop on that date.") +
+      p(`Nothing has been charged and nothing will be. When it ends you drop to the free daily allowance, ${esc(freeFloor())}, and mock exams, scenarios and the AI tutor stop on that date.`) +
       p("If you're still working towards your test, resubscribing before then keeps everything running without a gap. Your progress, streak and readiness score are safe either way.") ,
     "Resubscribe",
     "/account/billing",
@@ -588,4 +599,38 @@ function buildNudge(type: NotificationType, input: TemplateInput): EmailContent 
       return { subject, html, text };
     }
   }
+}
+
+/**
+ * A learner's testimonial, forwarded to SUPPORT_EMAIL for review before it is
+ * published anywhere.
+ *
+ * Deliberately an email rather than a table: nothing about this needs to be
+ * queryable, review is a human reading it once, and a new table would need a
+ * migration applied by hand in production. Plain and escaped, like the other
+ * operator alerts.
+ */
+export function buildTestimonialEmail(input: {
+  quote: string;
+  displayName?: string;
+  kind: "learners" | "drivers";
+  userId: string;
+  email: string | null;
+}): EmailContent {
+  const test = input.kind === "drivers" ? "driver's licence" : "learner's licence";
+  const subject = `Testimonial from a ${test} pass`;
+  const lines = [
+    `A learner who just passed their ${test} agreed to have this published.`,
+    ``,
+    `Quote: ${input.quote}`,
+    `Publish as: ${input.displayName || "(no name given — publish anonymously)"}`,
+    `Account: ${input.userId}${input.email ? ` (${input.email})` : ""}`,
+    ``,
+    `They ticked the consent box on the test-day dialog. Do not publish more`,
+    `than the name above, and drop it on request.`,
+  ];
+  const html =
+    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
+    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
+  return { subject, html, text: lines.join("\n") };
 }
