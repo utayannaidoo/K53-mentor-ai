@@ -9,7 +9,15 @@ import { LogoMark } from "@/components/shared/logo";
  */
 export function AppShellSkeleton() {
   return (
-    <div className="flex min-h-dvh bg-background bg-app" aria-busy aria-label="Loading">
+    // role="status": aria-label is prohibited on a bare div, so screen
+    // readers dropped the label entirely and announced nothing while the
+    // store hydrated. The role also makes the state announce itself.
+    <div
+      className="flex min-h-dvh bg-background bg-app"
+      role="status"
+      aria-busy
+      aria-label="Loading"
+    >
       {/* Desktop sidebar rail */}
       <aside className="glass-panel sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r px-3 py-4 md:flex">
         <div className="px-2 py-1">
