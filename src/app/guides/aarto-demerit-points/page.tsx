@@ -12,6 +12,7 @@ export default function GuidePage() {
   return (
     <LegalPage
       articleSlug="aarto-demerit-points"
+      quiz={{ categories: ["rules"] }}
       title="AARTO demerit points, explained"
       updated="2026-09-05"
       intro="AARTO rollout dates and phases have changed. Treat commencement dates as time-sensitive: check the official government status before relying on one."

@@ -15,7 +15,10 @@ import { CategoryIcon } from "@/components/shared/category-icon";
 import { categoryName, CATEGORIES } from "@/lib/content/categories";
 import { diagnosticFocusCategories } from "@/lib/diagnostic/focus";
 import { generateTodayPlan } from "@/lib/plan";
+import { EXAM_FORMAT, SECTION_LABEL, SECTION_OF, type ExamSection } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { useStudyStore } from "@/hooks/use-study-store";
+import type { CategoryId, CategoryScore, DiagnosticResult } from "@/types";
 
 export function DiagnosticResults() {
   const router = useRouter();
@@ -43,6 +46,12 @@ export function DiagnosticResults() {
   const retakerLine = buildRetakerLine(state.onboarding?.priorAttempts ?? 0);
   const plan = generateTodayPlan(state, readiness);
 
+  // The headline is the raw share correct, so it agrees with the "x/15" beside
+  // it. The weighted readiness figure used to sit there instead: "36%" next to
+  // "6/15" (40%) read as two different scores for the same fifteen answers.
+  const scorePct = latest.total ? Math.round((latest.correct / latest.total) * 100) : 0;
+  const sections = sectionResults(latest.perCategory);
+
   const strongest = latest.strongCategories[0];
   const focus = diagnosticFocusCategories(latest);
   const focusTitle =
@@ -62,7 +71,7 @@ export function DiagnosticResults() {
             <Sparkles className="h-3 w-3" /> Starting check complete
           </Badge>
           <h1 className="mb-4 font-display text-2xl font-semibold">Your starting baseline</h1>
-          <ScoreRing value={latest.readiness} size={208} label="Baseline" />
+          <ScoreRing value={scorePct} size={208} label="Correct" />
           <div className="mt-5 flex items-center gap-6">
             <Stat icon={<Target className="h-4 w-4" />} label="Scored" value={`${latest.correct}/${latest.total}`} />
           </div>
@@ -77,8 +86,51 @@ export function DiagnosticResults() {
           </p>
         </div>
 
-        {/* Focus areas (always visible) */}
+        {/* The aha moment: the real test is passed section by section, so put
+            each section's answers next to the mark that section needs. */}
         <Card className="mt-10 p-6">
+          <h2 className="font-display text-lg font-semibold">Against the real pass marks</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            The learner&apos;s test is passed section by section — a strong total can&apos;t cover
+            a weak section.
+          </p>
+          <ul className="mt-5 divide-y divide-border/60">
+            {sections.map((s) => (
+              <li key={s.section} className="flex items-center justify-between gap-3 py-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{SECTION_LABEL[s.section]}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Test needs {s.pass} of {s.questions} ({s.needPct}%)
+                  </p>
+                </div>
+                <div className="flex shrink-0 items-center gap-3">
+                  <span className="tabular font-mono text-sm font-semibold">
+                    {s.total ? `${s.correct}/${s.total}` : "—"}
+                  </span>
+                  <span
+                    className={cn(
+                      "rounded-full px-2.5 py-1 text-2xs font-semibold",
+                      s.total === 0
+                        ? "bg-muted text-muted-foreground"
+                        : s.onTrack
+                          ? "bg-success/15 text-success"
+                          : "bg-warning/15 text-warning",
+                    )}
+                  >
+                    {s.total === 0 ? "Not sampled" : s.onTrack ? "At the pass line" : "Below the pass line"}
+                  </span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-3 text-xs text-muted-foreground">
+            A few questions per section points you somewhere to start — a full 64-question mock is
+            what shows where you&apos;d really land.
+          </p>
+        </Card>
+
+        {/* Focus areas (always visible) */}
+        <Card className="mt-6 p-6">
           <h2 className="font-display text-lg font-semibold">{focusTitle}</h2>
           {strongest && (
             <p className="mt-1 text-sm text-muted-foreground">
@@ -154,10 +206,10 @@ export function DiagnosticResults() {
                 <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-primary/10 text-primary">
                   <Lock className="h-5 w-5" />
                 </div>
-                <h3 className="mt-4 font-display text-lg font-semibold">Save your plan</h3>
+                <h3 className="mt-4 font-display text-lg font-semibold">Save this plan</h3>
                 <p className="mt-1.5 text-sm text-muted-foreground">
-                  Create a free account to unlock your full breakdown, your personalised plan and
-                  start studying.
+                  Create a free account to see every category, keep your first study session and
+                  start studying — about 30 seconds with Google.
                 </p>
                 <Button className="mt-5 w-full" size="lg" onClick={() => router.push("/signup")}>
                   Create my free account <ArrowRight />
@@ -184,6 +236,31 @@ export function DiagnosticResults() {
       </main>
     </div>
   );
+}
+
+/** Each exam section's starting-check answers beside the mark it needs. */
+function sectionResults(perCategory: DiagnosticResult["perCategory"]) {
+  return (Object.keys(EXAM_FORMAT.sections) as ExamSection[]).map((section) => {
+    let correct = 0;
+    let total = 0;
+    for (const [cat, score] of Object.entries(perCategory) as [CategoryId, CategoryScore | undefined][]) {
+      if (score && SECTION_OF[cat] === section) {
+        correct += score.correct;
+        total += score.total;
+      }
+    }
+    const { questions, pass } = EXAM_FORMAT.sections[section];
+    return {
+      section,
+      correct,
+      total,
+      questions,
+      pass,
+      needPct: Math.round((pass / questions) * 100),
+      // Compared as ratios, not rounded percentages, so 3/4 against 6/8 is "at".
+      onTrack: total > 0 && correct * questions >= pass * total,
+    };
+  });
 }
 
 function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {

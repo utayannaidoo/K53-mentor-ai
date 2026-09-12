@@ -12,6 +12,7 @@ export default function GuidePage() {
   return (
     <LegalPage
       articleSlug="failed-learners-test"
+      quiz={{}}
       title="Failed the learner's licence test? What happens next"
       updated="2026-08-22"
       intro="A fail stings more than it costs. You leave the centre with a marks sheet that names the section which fell short — and that sheet is the most useful study document you'll ever be handed."

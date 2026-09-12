@@ -48,6 +48,16 @@ interface ProfileRow {
   full_name: string | null;
   last_active_at: string | null;
   email_notifications: boolean | null;
+  test_date: string | null;
+}
+
+/** Whole days from one SAST date key (YYYY-MM-DD) to another; null if unparseable. */
+function daysBetween(fromKey: string, toKey: string | null): number | null {
+  if (!toKey) return null;
+  const from = Date.parse(`${fromKey}T00:00:00Z`);
+  const to = Date.parse(`${toKey.slice(0, 10)}T00:00:00Z`);
+  if (!Number.isFinite(from) || !Number.isFinite(to)) return null;
+  return Math.round((to - from) / 86_400_000);
 }
 
 interface StreakRow {
@@ -91,7 +101,7 @@ export async function GET(req: Request) {
   for (let from = 0; ; from += PAGE) {
     const profilesRes = await admin
       .from("profiles")
-      .select("id, email, full_name, last_active_at, email_notifications")
+      .select("id, email, full_name, last_active_at, email_notifications, test_date")
       .not("email", "is", null)
       .order("id")
       .range(from, from + PAGE - 1);
@@ -166,6 +176,7 @@ export async function GET(req: Request) {
         streak: current,
         longest: streak?.longest ?? 0,
         dueCards: streak?.due_cards ?? 0,
+        daysToTest: daysBetween(today, profile.test_date),
       });
       const ok = await sendEmail({ to: profile.email, ...content });
       if (!ok) continue;

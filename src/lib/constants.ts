@@ -80,13 +80,12 @@ export const SECTION_LABEL: Record<ExamSection, string> = {
 /**
  * Public support/refund inbox, rendered on /contact and /refunds.
  *
- * Interim: a role address rather than a personal one, which is the part that
- * mattered — a learner emailing about a refund should not be mailing someone's
- * name. Swap to `support@k53mentorai.co.za` once Cloudflare Email Routing
- * forwards it (see docs/ops/launch-runbook.md §5); the Gmail stays the
- * destination behind it, so nothing breaks on the day it changes.
+ * The domain address: Cloudflare Email Routing forwards it to the role Gmail
+ * (docs/ops/launch-runbook.md §5), so the inbox behind it is unchanged. A
+ * Gmail address on the refund page read as a side project to the people
+ * deciding whether to trust us with a card.
  */
-export const SUPPORT_EMAIL = "support.k53mentor@gmail.com";
+export const SUPPORT_EMAIL = "support@k53mentorai.co.za";
 
 /**
  * Operator details disclosed on /contact.

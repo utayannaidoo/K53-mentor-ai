@@ -3,34 +3,26 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  ArrowRight,
-  BarChart3,
-  Bike,
-  CalendarClock,
-  Car,
-  Clock3,
-  Gauge,
-  GraduationCap,
-  Layers,
-  ShieldCheck,
-  Sparkles,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, Bike, Car, Gauge, GraduationCap, Layers } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { OptionCard } from "@/components/onboarding/option-card";
-import { Chip } from "@/components/ui/chip";
-import { CategoryIcon } from "@/components/shared/category-icon";
-import { CATEGORIES } from "@/lib/content/categories";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { track } from "@/lib/analytics";
-import { cn, daysUntil, glassFloat, glassSubtle, isPastDate, localIsoDate } from "@/lib/utils";
-import type { CategoryId, LicenceGoal, OnboardingData, VehicleCode } from "@/types";
+import { cn, isPastDate, localIsoDate } from "@/lib/utils";
+import type { LicenceGoal, OnboardingData, VehicleCode } from "@/types";
 
-/** Goal, vehicle, date, then the informed starting-check choice. */
-const TOTAL_STEPS = 4;
+/**
+ * Goal, vehicle, date — then straight into the starting check.
+ *
+ * Every landing CTA says "Start free assessment", so the assessment has to be
+ * the destination. This used to open on an intro screen and close on a "your
+ * plan is ready" summary (a plan can't be ready before a single answer), so a
+ * visitor saw six screens before question one. The date stays: it drives the
+ * dashboard's countdown and the plan's pace.
+ */
+const TOTAL_STEPS = 3;
 const DRAFT_KEY = "k53mentor.onboarding.draft.v1";
 
 interface WizardDraft {
@@ -41,46 +33,23 @@ interface WizardDraft {
   noDate: boolean;
   driversTestDate: string;
   noDriversDate: boolean;
-  worryCategories: CategoryId[];
 }
 
 const GOALS: readonly LicenceGoal[] = ["learners", "drivers", "both"];
 const VEHICLE_CODES: readonly VehicleCode[] = ["8", "10", "14", "A1", "A"];
 
-const GOAL_LABEL: Record<LicenceGoal, string> = {
-  learners: "Learner's licence",
-  drivers: "Driver's licence",
-  both: "Learner's and driver's licences",
-};
-
-const CODE_LABEL: Record<VehicleCode, string> = {
-  "8": "Car (Code 08)",
-  A: "Motorcycle (Code A)",
-  A1: "Motorcycle (Code A1)",
-  "10": "Heavy vehicle (Code 10)",
-  "14": "Heavy vehicle (Code 14)",
-};
-
-function weeksAway(dateStr: string): number | null {
-  const days = daysUntil(dateStr);
-  if (days === null || days < 0) return null;
-  return Math.max(1, Math.round(days / 7));
-}
-
 export function OnboardingWizard() {
   const router = useRouter();
-  const { completeOnboarding, skipDiagnostic, state, isAuthed } = useStudyStore();
-  const firstName = state.profile?.name?.split(" ")[0] ?? null;
+  const { completeOnboarding, skipDiagnostic, isAuthed } = useStudyStore();
   const startedAt = React.useRef(Date.now());
 
-  const [step, setStep] = React.useState(0);
+  const [step, setStep] = React.useState(1);
   const [goal, setGoal] = React.useState<LicenceGoal | null>(null);
   const [vehicleCode, setVehicleCode] = React.useState<VehicleCode | null>(null);
   const [testDate, setTestDate] = React.useState("");
   const [noDate, setNoDate] = React.useState(false);
   const [driversTestDate, setDriversTestDate] = React.useState("");
   const [noDriversDate, setNoDriversDate] = React.useState(false);
-  const [worryCategories, setWorryCategories] = React.useState<CategoryId[]>([]);
 
   const todayIso = React.useMemo(() => localIsoDate(), []);
   const testDateInPast = isPastDate(testDate || null);
@@ -94,9 +63,9 @@ export function OnboardingWizard() {
       if (raw) {
         const draft = JSON.parse(raw) as Partial<WizardDraft>;
         if (typeof draft.step === "number") {
-          // Old seven-step drafts safely land on the new decision screen once
-          // their three durable answers have already been collected.
-          setStep(Math.min(Math.max(draft.step, 0), TOTAL_STEPS));
+          // Drafts from the older intro/summary flows land on the nearest
+          // question that still exists.
+          setStep(Math.min(Math.max(draft.step, 1), TOTAL_STEPS));
         }
         if (draft.goal && GOALS.includes(draft.goal)) setGoal(draft.goal);
         if (draft.vehicleCode && VEHICLE_CODES.includes(draft.vehicleCode)) {
@@ -109,14 +78,6 @@ export function OnboardingWizard() {
         }
         if (typeof draft.noDriversDate === "boolean") {
           setNoDriversDate(draft.noDriversDate);
-        }
-        // Whitelisted like the enums above: the draft is user-controlled storage.
-        if (Array.isArray(draft.worryCategories)) {
-          setWorryCategories(
-            draft.worryCategories.filter((c): c is CategoryId =>
-              CATEGORIES.some((cat) => cat.id === c),
-            ),
-          );
         }
       }
     } catch {
@@ -135,23 +96,16 @@ export function OnboardingWizard() {
       noDate,
       driversTestDate,
       noDriversDate,
-      worryCategories,
     };
     try {
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       // The flow still works when storage is blocked; it simply cannot resume.
     }
-  }, [step, goal, vehicleCode, testDate, noDate, driversTestDate, noDriversDate, worryCategories]);
-
-  function toggleWorry(id: CategoryId) {
-    setWorryCategories((prev) =>
-      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id],
-    );
-  }
+  }, [step, goal, vehicleCode, testDate, noDate, driversTestDate, noDriversDate]);
 
   const next = () => setStep((current) => Math.min(current + 1, TOTAL_STEPS));
-  const back = () => setStep((current) => Math.max(current - 1, 0));
+  const back = () => setStep((current) => Math.max(current - 1, 1));
 
   // Show a selection before auto-advancing and ignore fast double taps.
   const advancing = React.useRef(false);
@@ -172,9 +126,9 @@ export function OnboardingWizard() {
       vehicleCode: vehicleCode ?? "8",
       // Not asked here, so recorded as unanswered — never a made-up choice
       // saved to the profile as if the learner had given it. Consumers fall
-      // back to neutral behaviour on null.
+      // back to neutral behaviour on null / empty.
       confidence: null,
-      worryCategories,
+      worryCategories: [],
       knowledgeLevel: null,
       studyFrequency: null,
       priorAttempts: 0,
@@ -220,6 +174,10 @@ export function OnboardingWizard() {
   }
 
   const primaryDateLabel = goal === "drivers" ? "Driver's test date" : "Learner's test date";
+  const datesChosen =
+    (Boolean(testDate) || noDate) &&
+    !testDateInPast &&
+    (goal !== "both" || ((Boolean(driversTestDate) || noDriversDate) && !driversDateInPast));
 
   return (
     <div className="flex min-h-dvh flex-col bg-background bg-app">
@@ -234,52 +192,42 @@ export function OnboardingWizard() {
         )}
       </header>
 
-      {step > 0 && (
-        <div className="mx-auto w-full max-w-lg px-6">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={back}
-              className="press -m-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
-              aria-label="Back"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </button>
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-              <div
-                className="h-full rounded-full bg-primary transition-[width] duration-500 ease-glass"
-                style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
-              />
-            </div>
-            <span className="font-mono text-xs text-muted-foreground">
-              {step}/{TOTAL_STEPS}
-            </span>
+      <div className="mx-auto w-full max-w-lg px-6">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={back}
+            // Kept in the layout on step one so the progress bar doesn't jump
+            // sideways when the button appears.
+            className={cn(
+              "press -m-2 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-muted/70 hover:text-foreground focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25",
+              step === 1 && "invisible",
+            )}
+            aria-label="Back"
+            aria-hidden={step === 1 || undefined}
+            tabIndex={step === 1 ? -1 : undefined}
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-500 ease-glass"
+              style={{ width: `${(step / (TOTAL_STEPS + 1)) * 100}%` }}
+            />
           </div>
+          <span className="font-mono text-xs text-muted-foreground">
+            {step}/{TOTAL_STEPS}
+          </span>
         </div>
-      )}
+      </div>
 
       <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-6 py-8">
         <div key={step} className="w-full max-w-lg animate-fade-in">
-          {step === 0 && (
-            <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <Sparkles className="h-8 w-8" />
-              </div>
-              <h1 className="mt-6 text-balance font-display text-3xl font-semibold tracking-tight">
-                Get your first study plan in under a minute
-              </h1>
-              <p className="mx-auto mt-3 max-w-md text-balance text-muted-foreground">
-                Three quick choices set the right test, vehicle and pace. Then you can measure your
-                starting point or begin studying straight away.
-              </p>
-              <Button size="xl" className="mt-8 w-full sm:w-auto" onClick={next}>
-                Build my plan <ArrowRight />
-              </Button>
-            </div>
-          )}
-
           {step === 1 && (
-            <Step title="What are you working toward?" subtitle="We'll tailor the plan to the test you need next.">
+            <Step
+              title="What are you working toward?"
+              subtitle="Three quick taps, then a 15-question starting check — about 5 minutes, no pass or fail."
+            >
               <div className="space-y-3">
                 <OptionCard selected={goal === "learners"} onClick={() => pick(setGoal, "learners")} icon={<GraduationCap className="h-5 w-5" />} title="Learner's licence" description="Rules of the road, signs and vehicle controls" />
                 <OptionCard selected={goal === "drivers"} onClick={() => pick(setGoal, "drivers")} icon={<Car className="h-5 w-5" />} title="Driver's licence" description="Parking, manoeuvres and the yard test" />
@@ -304,7 +252,7 @@ export function OnboardingWizard() {
           {step === 3 && (
             <Step
               title={goal === "both" ? "When are your tests?" : "When's your test?"}
-              subtitle="A date helps us pace the plan. Not booked yet is a perfectly good answer."
+              subtitle="A date paces your plan and starts a countdown. Not booked yet is a perfectly good answer."
             >
               <div className="space-y-5">
                 <DateChoice
@@ -343,113 +291,28 @@ export function OnboardingWizard() {
                   />
                 )}
 
-                <Button
-                  size="lg"
-                  className="w-full"
-                  disabled={
-                    (!testDate && !noDate) ||
-                    testDateInPast ||
-                    (goal === "both" && ((!driversTestDate && !noDriversDate) || driversDateInPast))
-                  }
-                  onClick={next}
-                >
-                  See my plan <ArrowRight />
-                </Button>
+                <div>
+                  <Button
+                    size="lg"
+                    className="w-full"
+                    disabled={!datesChosen}
+                    onClick={() => completeSetup("starting_check")}
+                  >
+                    Start my 5-minute check <ArrowRight />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="lg"
+                    disabled={!datesChosen}
+                    onClick={() => completeSetup("study_first")}
+                    className="mt-2 w-full text-muted-foreground"
+                  >
+                    Study first — measure me later
+                  </Button>
+                </div>
               </div>
             </Step>
-          )}
-
-          {step === 4 && (
-            <div className="text-center">
-              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <CalendarClock className="h-8 w-8" />
-              </div>
-              <h1 className="mt-6 text-balance font-display text-3xl font-semibold tracking-tight">
-                {firstName ? `${firstName}, your plan is ready` : "Your plan is ready"}
-              </h1>
-              <p className="mx-auto mt-2 max-w-md text-balance text-muted-foreground">
-                One optional starting check can make it more precise.
-              </p>
-
-              <div className={cn(glassFloat, "mx-auto mt-6 max-w-md rounded-2xl border p-5 text-left")}>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <SummaryRow label="Goal" value={GOAL_LABEL[goal ?? "learners"]} />
-                  <SummaryRow label="Vehicle" value={CODE_LABEL[vehicleCode ?? "8"]} />
-                  <SummaryRow label="Test date" value={dateSummary(testDate)} />
-                  <SummaryRow label="Today's plan" value="About 10 minutes" />
-                </div>
-              </div>
-
-              {/* Optional, one tap each, no extra step — the only onboarding
-                  signal that shapes the starting check and the first plan. */}
-              <div className="mx-auto mt-4 max-w-md text-left">
-                <p className="text-sm font-medium text-foreground">
-                  Anything you&apos;re worried about?{" "}
-                  <span className="font-normal text-muted-foreground">Optional</span>
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  We&apos;ll give these extra weight in your starting check and first plan.
-                </p>
-                <div className="mt-2.5 flex flex-wrap gap-2">
-                  {CATEGORIES.map((c) => (
-                    <Chip
-                      key={c.id}
-                      active={worryCategories.includes(c.id)}
-                      onClick={() => toggleWorry(c.id)}
-                    >
-                      <CategoryIcon id={c.id} className="h-3.5 w-3.5" />
-                      {c.name}
-                    </Chip>
-                  ))}
-                </div>
-              </div>
-
-              <section
-                aria-labelledby="starting-check-explained"
-                className={cn(glassSubtle, "mx-auto mt-4 max-w-md rounded-2xl border p-4 text-left")}
-              >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                  About the starting check
-                </p>
-                <h2 id="starting-check-explained" className="mt-1 font-display text-base font-semibold">
-                  A quick baseline, not another test to pass
-                </h2>
-                <div className="mt-3 space-y-2">
-                  <CheckFact
-                    icon={<Clock3 />}
-                    title="15 questions · about 5 minutes"
-                    detail="It samples all 7 K53 study categories."
-                  />
-                  <CheckFact
-                    icon={<BarChart3 />}
-                    title="A plan based on your answers"
-                    detail="Your first tasks target the gaps the check finds."
-                  />
-                  <CheckFact
-                    icon={<ShieldCheck />}
-                    title="No pass or fail"
-                    detail="It only shows where it makes sense to begin."
-                  />
-                </div>
-              </section>
-
-              <p className="mx-auto mt-4 max-w-md text-balance text-sm text-muted-foreground">
-                You can study first instead. Until you take the check, we&apos;ll keep readiness and
-                category scores unmeasured rather than guessing them.
-              </p>
-              <Button size="xl" className="mt-6 w-full sm:w-auto" onClick={() => completeSetup("starting_check")}>
-                Start my 5-minute check <ArrowRight />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="lg"
-                onClick={() => completeSetup("study_first")}
-                className="mx-auto mt-2 w-full text-muted-foreground sm:w-auto"
-              >
-                Study first — measure me later
-              </Button>
-            </div>
           )}
         </div>
       </main>
@@ -507,33 +370,6 @@ function DateChoice({
       >
         I haven&apos;t booked yet
       </Button>
-    </div>
-  );
-}
-
-function dateSummary(date: string): string {
-  if (!date) return "Not booked — steady pace";
-  const weeks = weeksAway(date);
-  return weeks === null ? "Booked" : `In ${weeks} ${weeks === 1 ? "week" : "weeks"}`;
-}
-
-function SummaryRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{label}</p>
-      <p className="mt-0.5 text-sm font-medium text-foreground">{value}</p>
-    </div>
-  );
-}
-
-function CheckFact({ icon, title, detail }: { icon: React.ReactNode; title: string; detail: string }) {
-  return (
-    <div className="flex items-start gap-3 rounded-xl border border-border/60 bg-background/35 px-3 py-2.5">
-      <span className="mt-0.5 text-primary [&_svg]:h-4 [&_svg]:w-4">{icon}</span>
-      <span>
-        <span className="block text-sm font-medium text-foreground">{title}</span>
-        <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">{detail}</span>
-      </span>
     </div>
   );
 }

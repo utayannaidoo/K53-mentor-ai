@@ -88,7 +88,7 @@ describe("Select dropdowns stay reachable inside dialogs", () => {
 describe("onboarding choice tiles stack on phones", () => {
   it("keeps the three required decisions full-width on phones", () => {
     const src = read("components/onboarding/onboarding-wizard.tsx");
-    expect(src).toContain("const TOTAL_STEPS = 4");
+    expect(src).toContain("const TOTAL_STEPS = 3");
     expect(src).toContain('className="space-y-3"');
     expect(src).not.toContain("Right now, how ready do you feel?");
   });

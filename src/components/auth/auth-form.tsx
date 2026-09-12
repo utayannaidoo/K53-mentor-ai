@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLocalProvider, useAuthLocal } from "@/components/auth/auth-local-provider";
 import { isSupabaseConfigured } from "@/lib/env";
+import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { isPasswordValid } from "@/lib/auth/password";
 import { checkAuthAttempt, recordAuthResult, type ThrottleSurface } from "@/lib/auth/client-throttle";
@@ -490,7 +491,28 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           : "Log in to pick up where you left off."}
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-7 space-y-4">
+      {/* Google OAuth first — production only (needs the Supabase Google
+          provider enabled). One tap beats a four-field form on a phone, and it
+          used to sit below the fold under the password rules. The callback
+          route lands the session and forwards on. */}
+      {isSupabaseConfigured && (
+        <>
+          <Button type="button" variant="outline" size="lg" className="mt-7 w-full gap-2.5" onClick={continueWithGoogle}>
+            <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+              <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.02.15 3.5 2.7.24.03c2.2-2.1 3.5-5.1 3.5-8.6z" />
+              <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2a7.2 7.2 0 0 1-6.8-5l-.14.01-3.7 2.8-.05.13A12 12 0 0 0 12 24z" />
+              <path fill="#FBBC05" d="M5.2 14.4a7.4 7.4 0 0 1 0-4.7l-.01-.16-3.7-2.9-.12.06a12 12 0 0 0 0 10.7l3.9-3z" />
+              <path fill="#EB4335" d="M12 4.7c2.3 0 3.9 1 4.8 1.8l3.5-3.4C18 1.2 15.2 0 12 0A12 12 0 0 0 1.3 6.7l3.9 3a7.2 7.2 0 0 1 6.8-5z" />
+            </svg>
+            Continue with Google
+          </Button>
+          <div className="mt-5 flex items-center gap-3 text-2xs uppercase tracking-wide text-muted-foreground">
+            <span className="h-px flex-1 bg-border" /> or use email <span className="h-px flex-1 bg-border" />
+          </div>
+        </>
+      )}
+
+      <form onSubmit={handleSubmit} className={cn(isSupabaseConfigured ? "mt-5" : "mt-7", "space-y-4")}>
         {mode === "signup" && (
           <div className="space-y-1.5">
             <Label htmlFor="name">Full name</Label>
@@ -592,25 +614,6 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
           </p>
         )}
       </form>
-
-      {/* Google OAuth — production only (needs the Supabase Google provider
-          enabled). The callback route lands the session and forwards on. */}
-      {isSupabaseConfigured && (
-        <>
-          <div className="my-5 flex items-center gap-3 text-2xs uppercase tracking-wide text-muted-foreground">
-            <span className="h-px flex-1 bg-border" /> or <span className="h-px flex-1 bg-border" />
-          </div>
-          <Button type="button" variant="outline" size="lg" className="w-full gap-2.5" onClick={continueWithGoogle}>
-            <svg className="h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
-              <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.1h6.5c-.1 1.1-.8 2.7-2.4 3.8l-.02.15 3.5 2.7.24.03c2.2-2.1 3.5-5.1 3.5-8.6z" />
-              <path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2a7.2 7.2 0 0 1-6.8-5l-.14.01-3.7 2.8-.05.13A12 12 0 0 0 12 24z" />
-              <path fill="#FBBC05" d="M5.2 14.4a7.4 7.4 0 0 1 0-4.7l-.01-.16-3.7-2.9-.12.06a12 12 0 0 0 0 10.7l3.9-3z" />
-              <path fill="#EB4335" d="M12 4.7c2.3 0 3.9 1 4.8 1.8l3.5-3.4C18 1.2 15.2 0 12 0A12 12 0 0 0 1.3 6.7l3.9 3a7.2 7.2 0 0 1 6.8-5z" />
-            </svg>
-            Continue with Google
-          </Button>
-        </>
-      )}
 
       {/* Guest access is a demo-only convenience — in production every user
           signs up, so tier and usage always have a real account behind them. */}

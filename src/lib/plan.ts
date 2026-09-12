@@ -218,7 +218,10 @@ export function generateTodayPlan(
       subtitle:
         (hasSignal
           ? hasMeasuredStartingPoint
-            ? `Your weakest area at ${readiness.perCategory[weakest]}% — let's close the gap`
+            ? // No percentage: this is the blended readiness estimate, and printed
+              // beside the starting check's raw score it read as a second,
+              // contradictory number for the same category.
+              "Your weakest area so far — let's close the gap"
             : "Your practice has pointed us here — keep going to build a measured picture"
           : "You told us this one worries you most — let's start here") + mistakeLine,
       targetCount: size.questions,

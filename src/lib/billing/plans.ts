@@ -78,6 +78,13 @@ export interface PlanLimits {
   reset: "daily";
   /** Days the plan's daily allowance keeps refilling. Absent = forever (paid). */
   trialDays?: number;
+  /**
+   * Free only: the small daily allowance that outlives the trial. Without it
+   * day eight walled off everything, and a learner whose test was in week four
+   * simply left — every competing K53 app is free forever. Tutor, scenarios
+   * and mocks stay paid; this keeps the daily habit and the streak alive.
+   */
+  afterTrial?: { questions: number; flashcards: number };
   diagnostic: "full";
   /** A per-day item count, or unlimited. */
   flashcards: number | "unlimited";
@@ -119,13 +126,14 @@ export const PLANS: PlanDef[] = [
   {
     id: "free",
     name: "Free",
-    tagline: "A free week — build the habit before you pay for it.",
+    tagline: "A full free week, then a daily taste that stays free.",
     monthly: 0,
     features: { tutor: true, scenarios: false, licencePrep: false, advancedAnalytics: false, scanner: false },
     caps: { flashcardsPerDay: 15, questionsPerDay: 15, tutorPerDay: 2 },
     limits: {
       reset: "daily",
       trialDays: FREE_TRIAL_DAYS,
+      afterTrial: { questions: 5, flashcards: 5 },
       diagnostic: "full",
       flashcards: 15,
       questions: 15,
@@ -145,6 +153,7 @@ export const PLANS: PlanDef[] = [
     perks: [
       "Full AI diagnostic + readiness score",
       "15 flashcards & 15 questions every day for 7 days",
+      "Then 5 flashcards & 5 questions a day, free for good",
       "2 AI tutor messages a day",
       "1 full 64-question mock during your free week",
       "A 15-question mini mock every day",

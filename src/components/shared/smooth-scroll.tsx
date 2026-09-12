@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Lenis from "lenis";
 
 /**
  * Inertial (eased) scrolling for the marketing experience — the "gliding"
@@ -12,11 +11,34 @@ import Lenis from "lenis";
  * Renders no DOM. Disabled entirely under reduced-motion, and yields wheel
  * control inside any element marked `data-lenis-prevent` (e.g. inner scroll
  * panes) so nested scrolling stays native.
+ *
+ * Also skipped on touch-first devices. It never smoothed touch there
+ * (`syncTouch: false`), yet its rAF loop still ran every frame for the life of
+ * the page — main-thread time on exactly the low-end Androids whose field INP
+ * was 336ms. Loaded lazily, so those phones don't download it either.
  */
 export function SmoothScroll() {
   React.useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;
 
+    let cleanup: (() => void) | undefined;
+    let cancelled = false;
+    void import("lenis").then(({ default: Lenis }) => {
+      if (cancelled) return;
+      cleanup = start(Lenis);
+    });
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, []);
+
+  return null;
+}
+
+function start(Lenis: typeof import("lenis").default): () => void {
+  {
     const lenis = new Lenis({
       // Weighty feel = friction + glide. Duration/easing mode (instead of a
       // single lerp) gives each scroll impulse a long, eased settle — a firm
@@ -63,7 +85,5 @@ export function SmoothScroll() {
       cancelAnimationFrame(raf);
       lenis.destroy();
     };
-  }, []);
-
-  return null;
+  }
 }
