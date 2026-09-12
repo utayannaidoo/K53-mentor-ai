@@ -16,6 +16,9 @@ import {
   type TrialPool,
 } from "@/lib/billing/trial";
 import { cn, daysUntil } from "@/lib/utils";
+import { SECTION_LABEL, SECTION_OF, type ExamSection } from "@/lib/constants";
+import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
+import type { CategoryId } from "@/types";
 import { track } from "@/lib/analytics";
 
 export { trialExhausted, poolRemaining } from "@/lib/billing/trial";
@@ -81,11 +84,17 @@ export function TrialEndCard({
       .filter(Boolean)
       .join(" ") || null;
 
+  // Naming the section that would fail is more persuasive, and more useful,
+  // than a bare readiness percentage.
+  const weakest = hasDiagnostic ? weakestSection(readiness) : null;
   const situation = !hasDiagnostic
     ? "Your readiness has not been measured yet."
     : daysToTest !== null
       ? `You're at ${r}% readiness with your test in ${daysToTest} ${daysToTest === 1 ? "day" : "days"}.`
       : `You're at ${r}% readiness.`;
+  const weakLine = weakest
+    ? ` ${SECTION_LABEL[weakest]} is the section that would catch you out today.`
+    : "";
   const promise =
     !hasDiagnostic
       ? "Take the starting check when you're ready; Premium keeps the full practice loop open every day."
@@ -101,7 +110,7 @@ export function TrialEndCard({
           <div>
             <p className="text-sm font-semibold text-foreground">{headline} — {situation}</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {remainingLine ? `${remainingLine} ` : ""}{promise}
+              {weakLine ? `${weakLine.trim()} ` : ""}{remainingLine ? `${remainingLine} ` : ""}{promise}
             </p>
           </div>
         </div>
@@ -127,7 +136,7 @@ export function TrialEndCard({
         <TrendingUp className="h-6 w-6" />
       </div>
       <h2 className="mt-5 font-display text-xl font-semibold tracking-tight">{headline}</h2>
-      <p className="mt-2 text-sm text-foreground">{situation}</p>
+      <p className="mt-2 text-sm text-foreground">{situation}{weakLine}</p>
       {remainingLine && (
         <p className="mt-2 text-sm font-medium text-primary">
           {remainingLine}{" "}
@@ -151,4 +160,28 @@ export function TrialEndCard({
       </p>
     </Card>
   );
+}
+
+/**
+ * The exam section furthest below par, weighted by how much evidence each
+ * category actually has. A category nobody has answered is showing a prior,
+ * not a measurement, so it can never name the weakness.
+ */
+function weakestSection(readiness: ReadinessBreakdown): ExamSection | null {
+  const totals = new Map<ExamSection, { score: number; weight: number }>();
+  for (const [cat, score] of Object.entries(readiness.perCategory) as [CategoryId, number][]) {
+    const evidence = readiness.perCategoryEvidence[cat] ?? 0;
+    if (evidence <= 0) continue;
+    const section = SECTION_OF[cat];
+    const acc = totals.get(section) ?? { score: 0, weight: 0 };
+    acc.score += score * evidence;
+    acc.weight += evidence;
+    totals.set(section, acc);
+  }
+  let worst: { section: ExamSection; mean: number } | null = null;
+  for (const [section, { score, weight }] of totals) {
+    const mean = score / weight;
+    if (!worst || mean < worst.mean) worst = { section, mean };
+  }
+  return worst?.section ?? null;
 }
