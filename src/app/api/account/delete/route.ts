@@ -5,6 +5,7 @@ import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/
 import { refundTransaction } from "@/lib/paystack/client";
 import { disableActiveSubscriptions, refundEligible } from "@/lib/billing/subscription-cancel";
 import { verifyDeletionCode } from "@/lib/account/deletion-code";
+import { forgetPlanLead } from "@/lib/leads/plan-lead-store";
 
 export const runtime = "nodejs";
 
@@ -168,6 +169,11 @@ export async function POST(req: Request) {
     console.error("account/delete failed", error.message);
     return Response.json({ error: "Deletion failed — please try again." }, { status: 500 });
   }
+
+  // `plan_leads` is keyed by email, not user id, so nothing cascades into it
+  // when the auth user goes. An address captured before this person made an
+  // account would have outlived the account itself.
+  if (user.email) await forgetPlanLead(user.email);
 
   return Response.json({ ok: true });
 }

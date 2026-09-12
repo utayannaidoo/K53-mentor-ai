@@ -1,5 +1,5 @@
 import { SITE_URL } from "@/lib/constants";
-import { clientIp, limitPlanEmail } from "@/lib/ai/rate-limit";
+import { clientIp, limitUnsubscribeProbe } from "@/lib/ai/rate-limit";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { verifyReminderOptOut } from "@/lib/notify/reminder-optout";
 
@@ -38,7 +38,7 @@ async function optOut(
     return { status: "done" };
   }
 
-  const rl = await limitPlanEmail(clientIp(req));
+  const rl = await limitUnsubscribeProbe(clientIp(req));
   if (!rl.success) return { status: "rate_limited", retryAfter: rl.retryAfter };
   return { status: "invalid" };
 }
