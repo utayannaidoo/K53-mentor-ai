@@ -27,6 +27,11 @@ export function PricingSection({
 }) {
   const [annual, setAnnual] = React.useState(false);
 
+  // The /pricing page renders this section under its own h1 and hides the
+  // section heading, so the plan names are that page's h2. On the landing
+  // page they sit under the section h2 and stay h3.
+  const PlanName = withHeading ? "h3" : "h2";
+
   return (
     <section
       id="pricing"
@@ -108,7 +113,9 @@ export function PricingSection({
                 </span>
               )}
 
-              <h3 className="font-display text-[18px] font-semibold">{plan.name}</h3>
+              {/* Without the section heading (the /pricing page supplies its
+                  own h1), these are the next level down, not two. */}
+              <PlanName className="font-display text-[18px] font-semibold">{plan.name}</PlanName>
               <p className="mt-1.5 text-[0.88rem] text-muted-foreground">{plan.tagline}</p>
 
               <div className="mt-[18px] flex items-baseline gap-1">

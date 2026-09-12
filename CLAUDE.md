@@ -8,6 +8,7 @@ npm run dev        # dev server (use .claude/launch.json for previews)
 npm run typecheck  # tsc --noEmit
 npm run test       # vitest run
 npm run build      # next build
+npm run test:a11y  # axe over the prerendered pages (run after build)
 node scripts/content-stats.mjs  # per-category question/flashcard counts
 npm run tutor:eval -- --compare # grounding eval before any provider/model change
 ```
