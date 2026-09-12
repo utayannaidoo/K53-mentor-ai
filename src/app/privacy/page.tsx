@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="2026-08-11"
+      updated="2026-09-12"
       intro={`This policy explains what ${APP_NAME} collects, why we collect it, and the choices you have. We collect as little as we can get away with — your study data exists to teach you, not to sell you.`}
     >
       <section>
@@ -29,6 +29,12 @@ export default function PrivacyPage() {
             <strong>Study activity</strong> — question attempts, flashcard reviews, mock-exam
             results, scenario answers and streaks, used to compute your readiness and schedule
             revision.
+          </li>
+          <li>
+            <strong>Plan emails without an account</strong> — if you finish the starting check and
+            ask us to email your plan, we keep that address, the result you asked us to send and
+            the time you ticked the consent box. Every one of those emails carries a one-click
+            unsubscribe, and asking us to stop removes the address from all our email.
           </li>
           <li>
             <strong>Tutor conversations</strong> — messages you send to the AI tutor, used to
@@ -181,7 +187,9 @@ export default function PrivacyPage() {
         <h2>Retention</h2>
         <p>
           We keep your data for as long as your account is active. If your account is inactive for
-          an extended period we may delete it after notice to your email address.
+          an extended period we may delete it after notice to your email address. An address left by someone who asked for
+          a plan email but never created an account is kept only until you unsubscribe or ask us
+          to delete it.
         </p>
       </section>
 

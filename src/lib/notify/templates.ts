@@ -1,5 +1,7 @@
 import { SITE_URL } from "@/lib/constants";
 import { PLAN_MAP } from "@/lib/billing/plans";
+import { categoryName } from "@/lib/content/categories";
+import type { CategoryId } from "@/types";
 import { pluralize } from "@/lib/utils";
 
 /**
@@ -43,10 +45,21 @@ const BRAND = "#2C5F4F";
  * transactional ones (receipts, dunning, security) get a neutral service note
  * instead — the opt-out line would be wrong (and phishy) on those.
  */
-type FooterKind = "reminders" | "transactional";
+type FooterKind = "reminders" | "transactional" | "lead";
 
-function footerHtml(kind: FooterKind): string {
+function footerHtml(kind: FooterKind, unsubscribeUrl?: string | null): string {
   const style = 'style="font-size:12px;color:#8a938e;margin:18px 4px 0;line-height:1.5;"';
+  if (kind === "lead") {
+    // No account, so no preferences page to point at: the opt-out has to be
+    // in the mail itself.
+    return `<p ${style}>
+        You asked us to email your K53 plan. ${
+          unsubscribeUrl
+            ? `<a href="${unsubscribeUrl}" style="color:#8a938e;">Unsubscribe</a> and we'll stop.`
+            : `Reply with "stop" and we'll take you off.`
+        }
+      </p>`;
+  }
   if (kind === "transactional") {
     return `<p ${style}>
         This is a service email about your K53 Mentor AI account. Manage your account
@@ -76,6 +89,7 @@ function wrap(
   ctaLabel: string,
   ctaPath: string,
   footer: FooterKind = "reminders",
+  unsubscribeUrl?: string | null,
 ): string {
   return `<!doctype html>
 <html>
@@ -89,7 +103,7 @@ function wrap(
           ${ctaLabel}
         </a>
       </div>
-      ${footerHtml(footer)}
+      ${footerHtml(footer, unsubscribeUrl)}
     </div>
   </body>
 </html>`;
@@ -633,4 +647,47 @@ export function buildTestimonialEmail(input: {
     `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
     `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
   return { subject, html, text: lines.join("\n") };
+}
+
+/**
+ * The starting-check plan, emailed to a visitor who has not made an account.
+ *
+ * Their result lives in a browser they may not come back to, so this is the
+ * copy of it they keep. It names the weakest sections (the reason the check
+ * was worth doing) and offers the account as the thing that keeps the plan
+ * going, rather than as a toll gate.
+ */
+export function buildPlanEmail(input: {
+  score: number;
+  correct: number;
+  total: number;
+  weakCategories: CategoryId[];
+  unsubscribeUrl: string | null;
+}): EmailContent {
+  const focus = input.weakCategories.slice(0, 3).map((c) => categoryName(c));
+  const first = focus[0];
+  const scoreLine = `You scored ${input.correct} of ${input.total} (${input.score}%) on the starting check.`;
+  const focusLine = focus.length
+    ? `Your weakest areas, worst first: ${focus.join(", ")}.`
+    : `You were even across the categories — a full mock is the next useful measurement.`;
+  const subject = first ? `Your K53 plan: start with ${first}` : "Your K53 plan";
+  const text =
+    `${scoreLine}\n\n${focusLine}\n\n` +
+    `Ten minutes a day on the weakest area first is what moves a section over its pass mark. ` +
+    `A free account keeps this plan, your streak and your readiness score as you go.\n\n` +
+    `Pick it up here: ${SITE_URL}/signup`;
+  const html = wrap(
+    h(first ? `Start with ${esc(first)}` : "Your K53 plan") +
+      p(esc(scoreLine)) +
+      p(esc(focusLine)) +
+      p(
+        "Ten minutes a day on the weakest area first is what moves a section over its pass mark. " +
+          "A free account keeps this plan, your streak and your readiness score as you go.",
+      ),
+    "Keep my plan",
+    "/signup",
+    "lead",
+    input.unsubscribeUrl,
+  );
+  return { subject, html, text };
 }

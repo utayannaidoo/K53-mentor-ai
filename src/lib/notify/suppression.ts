@@ -13,7 +13,12 @@ import { createAdminClient } from "@/lib/supabase/admin";
  * happen.
  */
 
-export type SuppressionReason = "bounced" | "complained";
+/**
+ * "unsubscribed" is ours, not Resend's: a one-click opt-out from a plan
+ * email lands here too, so the same pre-send check covers it and someone who
+ * asked us to stop is not mailed by a different code path.
+ */
+export type SuppressionReason = "bounced" | "complained" | "unsubscribed";
 
 /** Addresses are compared case-insensitively; the local part rarely is in practice. */
 function normalise(email: string): string {

@@ -91,6 +91,10 @@ const CONTENT_PROBE_HOURLY_LIMIT = Number(process.env.CONTENT_PROBE_HOURLY_IP_LI
 // tight — this is an anti-email-bombing bound, not a UX allowance.
 const AUTH_RESET_DAILY_LIMIT = Number(process.env.AUTH_RESET_DAILY_IP_LIMIT ?? 10); // reset emails / IP / day
 const AUTH_RESEND_DAILY_LIMIT = Number(process.env.AUTH_RESEND_DAILY_IP_LIMIT ?? 6); // confirmation emails / IP / day
+// Plan emails to signed-out visitors: an open endpoint that sends mail, so
+// the cap is the anti-bombing bound. A shared phone or a classroom on one IP
+// still has room for a handful of genuine sends a day.
+const PLAN_EMAIL_DAILY_LIMIT = Number(process.env.PLAN_EMAIL_DAILY_IP_LIMIT ?? 8);
 
 let redis: Redis | null = null;
 let burst: Ratelimit | null = null;
@@ -105,6 +109,7 @@ let contentProbe: Ratelimit | null = null;
 let logLimiter: Ratelimit | null = null;
 let authReset: Ratelimit | null = null;
 let authResend: Ratelimit | null = null;
+let planEmail: Ratelimit | null = null;
 
 if (hasUpstash) {
   redis = Redis.fromEnv();
@@ -178,6 +183,12 @@ if (hasUpstash) {
     redis,
     limiter: Ratelimit.fixedWindow(AUTH_RESEND_DAILY_LIMIT, "1 d"),
     prefix: "k53:auth:resend",
+    analytics: false,
+  });
+  planEmail = new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(PLAN_EMAIL_DAILY_LIMIT, "1 d"),
+    prefix: "k53:plan:email",
     analytics: false,
   });
 }
@@ -481,6 +492,28 @@ export async function limitAuthResend(ip: string): Promise<LimitResult> {
   } catch (err) {
     console.error("rate-limit error", err);
     return memLimit(`auth:resend:${ip}`, AUTH_RESEND_DAILY_LIMIT, 86_400_000);
+  }
+}
+
+/**
+ * Plan emails and unsubscribe clicks (/api/plan-email, /api/unsubscribe).
+ *
+ * Same posture as the auth email triggers: each request can put a real message
+ * in someone's inbox, and neither endpoint has an account behind it to key on,
+ * so IP is all there is.
+ */
+export async function limitPlanEmail(ip: string): Promise<LimitResult> {
+  try {
+    if (planEmail) {
+      const r = await planEmail.limit(ip);
+      return r.success
+        ? { success: true, retryAfter: 0 }
+        : { success: false, retryAfter: Math.max(1, Math.ceil((r.reset - Date.now()) / 1000)) };
+    }
+    return memLimit(`plan:email:${ip}`, PLAN_EMAIL_DAILY_LIMIT, 86_400_000);
+  } catch (err) {
+    console.error("rate-limit error", err);
+    return memLimit(`plan:email:${ip}`, PLAN_EMAIL_DAILY_LIMIT, 86_400_000);
   }
 }
 
