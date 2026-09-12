@@ -15,6 +15,8 @@ export interface EmailContent {
   subject: string;
   html: string;
   text: string;
+  /** Passed through to the sender; see EmailMessage.headers. */
+  headers?: Record<string, string>;
 }
 
 interface TemplateInput {
@@ -675,7 +677,12 @@ export function buildPlanEmail(input: {
     `${scoreLine}\n\n${focusLine}\n\n` +
     `Ten minutes a day on the weakest area first is what moves a section over its pass mark. ` +
     `A free account keeps this plan, your streak and your readiness score as you go.\n\n` +
-    `Pick it up here: ${SITE_URL}/signup`;
+    `Pick it up here: ${SITE_URL}/signup\n\n` +
+    // The opt-out has to be in BOTH alternatives. A text-only client used to
+    // get a marketing email with no way to stop it, which POPIA s69 requires.
+    (input.unsubscribeUrl
+      ? `Unsubscribe: ${input.unsubscribeUrl}`
+      : `To stop these emails, reply with "stop".`);
   const html = wrap(
     h(first ? `Start with ${esc(first)}` : "Your K53 plan") +
       p(esc(scoreLine)) +
@@ -689,5 +696,20 @@ export function buildPlanEmail(input: {
     "lead",
     input.unsubscribeUrl,
   );
-  return { subject, html, text };
+  return {
+    subject,
+    html,
+    text,
+    // Mailbox providers render their own unsubscribe control from these, and
+    // Gmail asks bulk senders for them. One-Click means the provider POSTs
+    // the URL itself, so /api/unsubscribe answers POST as well as GET.
+    ...(input.unsubscribeUrl
+      ? {
+          headers: {
+            "List-Unsubscribe": `<${input.unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }
+      : {}),
+  };
 }

@@ -16,24 +16,53 @@ export const runtime = "nodejs";
  * `sendEmail` already checks before every send — so this stops account email
  * too, deliberately: someone clicking "stop emailing me" means all of it.
  */
-export async function GET(req: Request) {
+/** Shared by both verbs: rate limit, prove the address, suppress it. */
+async function unsubscribeFrom(
+  req: Request,
+): Promise<{ status: "rate_limited" | "invalid" | "done" | "error"; retryAfter?: number }> {
   const url = new URL(req.url);
   const email = (url.searchParams.get("e") ?? "").trim().toLowerCase();
   const token = url.searchParams.get("t") ?? "";
 
   // Cheap guard on an endpoint anyone can hit; the HMAC is the real check.
   const rl = await limitPlanEmail(clientIp(req));
-  if (!rl.success) {
-    return Response.json(
-      { error: "rate_limited", retryAfter: rl.retryAfter },
-      { status: 429, headers: { "Retry-After": String(rl.retryAfter) } },
-    );
-  }
-
-  if (!email || !verifyUnsubscribe(email, token)) {
-    return Response.redirect(`${SITE_URL}/unsubscribed?status=invalid`, 303);
-  }
+  if (!rl.success) return { status: "rate_limited", retryAfter: rl.retryAfter };
+  if (!email || !verifyUnsubscribe(email, token)) return { status: "invalid" };
 
   const ok = await suppress(email, "unsubscribed", "one-click from a plan email");
-  return Response.redirect(`${SITE_URL}/unsubscribed?status=${ok ? "done" : "error"}`, 303);
+  return { status: ok ? "done" : "error" };
+}
+
+/**
+ * RFC 8058 one-click: the mailbox provider POSTs this URL itself when the
+ * reader taps its own unsubscribe control, and never shows them our page. It
+ * must not need a body, a session or a redirect — just a 2xx once the address
+ * is off. Advertising List-Unsubscribe-Post without answering POST is worse
+ * than not advertising it at all: Gmail shows the button, then it fails.
+ */
+export async function POST(req: Request) {
+  const result = await unsubscribeFrom(req);
+  if (result.status === "rate_limited") {
+    return Response.json(
+      { error: "rate_limited", retryAfter: result.retryAfter },
+      { status: 429, headers: { "Retry-After": String(result.retryAfter) } },
+    );
+  }
+  if (result.status === "invalid") return Response.json({ error: "invalid" }, { status: 400 });
+  // A failed suppression returns 5xx on purpose: providers retry, and silently
+  // answering "fine" would drop the request on the floor.
+  if (result.status === "error") return Response.json({ error: "unavailable" }, { status: 503 });
+  return Response.json({ ok: true });
+}
+
+export async function GET(req: Request) {
+  const result = await unsubscribeFrom(req);
+  if (result.status === "rate_limited") {
+    return Response.json(
+      { error: "rate_limited", retryAfter: result.retryAfter },
+      { status: 429, headers: { "Retry-After": String(result.retryAfter) } },
+    );
+  }
+  // A human followed the link, so every other outcome is a page, not JSON.
+  return Response.redirect(`${SITE_URL}/unsubscribed?status=${result.status}`, 303);
 }
