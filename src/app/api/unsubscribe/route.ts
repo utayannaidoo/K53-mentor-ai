@@ -16,7 +16,7 @@ export const runtime = "nodejs";
  * `sendEmail` already checks before every send — so this stops account email
  * too, deliberately: someone clicking "stop emailing me" means all of it.
  */
-/** Shared by both verbs: rate limit, prove the address, suppress it. */
+/** Shared by both verbs: prove the address, suppress it, throttle the rest. */
 async function unsubscribeFrom(
   req: Request,
 ): Promise<{ status: "rate_limited" | "invalid" | "done" | "error"; retryAfter?: number }> {
@@ -24,13 +24,25 @@ async function unsubscribeFrom(
   const email = (url.searchParams.get("e") ?? "").trim().toLowerCase();
   const token = url.searchParams.get("t") ?? "";
 
-  // Cheap guard on an endpoint anyone can hit; the HMAC is the real check.
+  // Signature first, rate limit second — deliberately this order.
+  //
+  // A valid HMAC already proves the caller holds a link we minted for that
+  // address, so there is nothing to throttle. Throttling first broke the very
+  // button we advertise: Gmail sends one-click POSTs from Google's own shared
+  // IP ranges, so a handful of unsubscribes from Gmail users would exhaust a
+  // per-IP daily bucket and the rest would get 429s. An unsubscribe that
+  // fails is worse than one that never existed.
+  //
+  // The limit still covers unsigned or forged attempts, which is what probing
+  // this endpoint looks like.
+  if (email && verifyUnsubscribe(email, token)) {
+    const ok = await suppress(email, "unsubscribed", "one-click from a plan email");
+    return { status: ok ? "done" : "error" };
+  }
+
   const rl = await limitPlanEmail(clientIp(req));
   if (!rl.success) return { status: "rate_limited", retryAfter: rl.retryAfter };
-  if (!email || !verifyUnsubscribe(email, token)) return { status: "invalid" };
-
-  const ok = await suppress(email, "unsubscribed", "one-click from a plan email");
-  return { status: ok ? "done" : "error" };
+  return { status: "invalid" };
 }
 
 /**
