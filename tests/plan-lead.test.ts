@@ -70,6 +70,33 @@ describe("the plan email", () => {
     expect(mail.html).toContain("Unsubscribe");
   });
 
+  it("puts the opt-out in the TEXT part too, not just the HTML", () => {
+    // A text-only client used to get a marketing email with no way to stop
+    // it; the footer lived only in the HTML alternative.
+    expect(mail.text).toContain("Unsubscribe: https://k53.test/api/unsubscribe?e=a%40b.com&t=abc");
+  });
+
+  it("advertises List-Unsubscribe so the mail client shows its own control", () => {
+    expect(mail.headers?.["List-Unsubscribe"]).toBe(
+      "<https://k53.test/api/unsubscribe?e=a%40b.com&t=abc>",
+    );
+    // One-Click means the provider POSTs the URL itself — /api/unsubscribe
+    // answers POST for exactly this reason.
+    expect(mail.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
+  });
+
+  it("advertises nothing it cannot honour when there is no link", () => {
+    const noLink = buildPlanEmail({
+      score: 40,
+      correct: 6,
+      total: 15,
+      weakCategories: ["rules"],
+      unsubscribeUrl: null,
+    });
+    expect(noLink.headers).toBeUndefined();
+    expect(noLink.text).toMatch(/reply with "stop"/i);
+  });
+
   it("falls back to a reply-to-stop line when no secret is configured", () => {
     const noLink = buildPlanEmail({
       score: 40,

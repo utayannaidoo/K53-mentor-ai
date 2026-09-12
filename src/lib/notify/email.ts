@@ -13,6 +13,12 @@ export interface EmailMessage {
   subject: string;
   html: string;
   text: string;
+  /**
+   * Extra MIME headers. Used for List-Unsubscribe on bulk mail: mailbox
+   * providers read it to render their own unsubscribe control, and Gmail
+   * expects it from anyone sending marketing.
+   */
+  headers?: Record<string, string>;
 }
 
 export const isEmailConfigured = Boolean(process.env.RESEND_API_KEY);
@@ -56,6 +62,7 @@ export async function sendEmail(msg: EmailMessage): Promise<boolean> {
         subject: msg.subject,
         html: msg.html,
         text: msg.text,
+        ...(msg.headers ? { headers: msg.headers } : {}),
       }),
     });
     if (!res.ok) {
