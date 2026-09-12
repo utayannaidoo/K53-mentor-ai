@@ -15,6 +15,8 @@ import { CategoryIcon } from "@/components/shared/category-icon";
 import { categoryName, CATEGORIES } from "@/lib/content/categories";
 import { diagnosticFocusCategories } from "@/lib/diagnostic/focus";
 import { generateTodayPlan } from "@/lib/plan";
+import { studyCodeOf } from "@/lib/billing/plans";
+import { PlanHandoff } from "@/components/diagnostic/plan-handoff";
 import { EXAM_FORMAT, SECTION_LABEL, SECTION_OF, type ExamSection } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -227,6 +229,16 @@ export function DiagnosticResults() {
             </div>
           )}
         </div>
+
+        {!isAuthed && (
+          <PlanHandoff
+            score={scorePct}
+            correct={latest.correct}
+            total={latest.total}
+            weakCategories={latest.weakCategories}
+            vehicleCode={studyCodeOf(state)}
+          />
+        )}
 
         {isAuthed && (
           <Button size="xl" className="mt-8 w-full" onClick={() => router.push("/dashboard")}>
