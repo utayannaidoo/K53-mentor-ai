@@ -116,6 +116,16 @@ export interface Flashcard {
   image?: string;
   /** Vehicle codes this item is specific to. Omitted = applies to all codes. */
   codes?: VehicleCode[];
+  /**
+   * Omitted = `"learners"`, which is what almost every card is.
+   *
+   * Optional rather than required, unlike `Question.scope`: tagging all 974
+   * cards to mark 29 of them would bury the ones that matter in a diff nobody
+   * could review. `tests/learners-scope.test.ts` is what actually holds the
+   * line — it fails on a card that reads as yard- or road-test material and is
+   * not tagged `"drivers"`.
+   */
+  scope?: Scope;
 }
 
 export interface ScenarioChoice {

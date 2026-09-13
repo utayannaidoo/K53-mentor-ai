@@ -120,7 +120,15 @@ const STARTER_FLASHCARDS_BY_CATEGORY = {
  */
 function pickStarter(items, categoryId, n, rand) {
   const pool = seededShuffle(
-    items.filter((i) => i.categoryId === categoryId && isUniversal(i)).sort((a, b) => (a.id < b.id ? -1 : 1)),
+    items
+      // Learner's scope only. The starter pack is the free learner's whole
+      // world — diagnostic, mini mock and section drill all draw from it — so
+      // a yard- or road-test item here is a driver's-practical question asked
+      // on the theory paper. Nothing enforced this before; the pack happened
+      // to be clean because of which items the seeded shuffle reached.
+      .filter((i) => (i.scope ?? "learners") === "learners")
+      .filter((i) => i.categoryId === categoryId && isUniversal(i))
+      .sort((a, b) => (a.id < b.id ? -1 : 1)),
     rand,
   );
   const picked = [];
@@ -165,6 +173,7 @@ try {
     return (
       `  { id: ${j(item.id)}, categoryId: ${j(item.categoryId)}${extra}` +
       (codes ? `, codes: ${j(codes)}` : "") +
+      (item.scope === "drivers" ? `, scope: ${j(item.scope)}` : "") +
       " },"
     );
   };
@@ -189,13 +198,15 @@ try {
 // is due and award CP, with none of the material a learner is paying to see.
 // Importing the full bank for this is what shipped every question and answer to
 // every route that mounts the store.
-import type { CategoryId, Difficulty, VehicleCode } from "@/types";
+import type { CategoryId, Difficulty, Scope, VehicleCode } from "@/types";
 
 export interface ContentMeta {
   id: string;
   categoryId: CategoryId;
   /** Absent means "applies to every licence code" — see forCode(). */
   codes?: VehicleCode[];
+  /** Absent means "learners" — driver's practical material is tagged. */
+  scope?: Scope;
 }
 
 /** Scenario tasks surface their title as the plan subtitle, so labels ride along. */

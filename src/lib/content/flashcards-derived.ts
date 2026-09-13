@@ -120,6 +120,10 @@ export function deriveFlashcards(questions: Question[], existing: Flashcard[]): 
       ...(q.sign ? { sign: q.sign } : {}),
       ...(q.image ? { image: q.image } : {}),
       ...(q.codes ? { codes: q.codes } : {}),
+      // A card derived from a driver's-scope question is driver's material
+      // too. Dropping this is how yard-test cards reached learner decks after
+      // the questions themselves were retagged.
+      ...(q.scope === "drivers" ? { scope: q.scope } : {}),
     });
     takenByCat.set(q.categoryId, (takenByCat.get(q.categoryId) ?? 0) + 1);
   }

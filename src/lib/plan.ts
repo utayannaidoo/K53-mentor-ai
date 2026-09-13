@@ -13,6 +13,7 @@ import type { CategoryId, StudyFrequency, UserState } from "@/types";
  */
 import { FLASHCARD_META, SCENARIO_META } from "@/lib/content/meta";
 import { forCode } from "@/lib/content/vehicle";
+import { showsDriversContent } from "@/lib/content/scope";
 import { isDue } from "@/lib/srs/sm2";
 import { atDayKey, getTodayUsage, todayKey } from "@/lib/store/local-store";
 import { PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
@@ -39,8 +40,23 @@ export interface PlanTask {
   premium?: boolean;
 }
 
+/**
+ * The card index this learner's deck is drawn from: their licence code, and
+ * driver's practical material only if they are working toward that licence.
+ *
+ * Scope matters here as well as in the queue: someone who studied yard cards
+ * before they were tagged still has review state for them, and counting those
+ * as "due" would keep sending a learner's-test candidate back to material
+ * their paper never asks about.
+ */
+function learnerDeck(state: UserState): typeof FLASHCARD_META {
+  return forCode(FLASHCARD_META, studyCodeOf(state)).filter(
+    (f) => showsDriversContent(state) || f.scope !== "drivers",
+  );
+}
+
 export function countDueFlashcards(state: UserState, now = new Date()): number {
-  return forCode(FLASHCARD_META, studyCodeOf(state)).filter((f) => {
+  return learnerDeck(state).filter((f) => {
     const card = state.cardStates[f.id];
     // Unseen cards are available to learn, not overdue review work. Keeping
     // the two separate stops a new account opening on "900 cards due".
@@ -56,7 +72,7 @@ export function countDueTomorrow(state: UserState, now = new Date()): number {
   const end = new Date(now);
   end.setDate(end.getDate() + 1);
   end.setHours(23, 59, 59, 999);
-  return forCode(FLASHCARD_META, studyCodeOf(state)).filter((f) => {
+  return learnerDeck(state).filter((f) => {
     const cs = state.cardStates[f.id];
     return cs && (cs.reps > 0 || cs.lapses > 0) && new Date(cs.due) <= end;
   }).length;

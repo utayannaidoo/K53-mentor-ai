@@ -23,7 +23,7 @@ export const CONTROLS_PACK_QUESTIONS: Question[] = [
     explanation:
       "The practical has two parts: the yard test (manoeuvres in a controlled area) and the road test (real traffic). Fail either and you fail the whole test.",
     difficulty: 1,
-    scope: "learners",
+    scope: "drivers",
   },
   {
     id: "q8_ctrl_yard_manoeuvres",
@@ -343,14 +343,14 @@ export const CONTROLS_PACK_QUESTIONS: Question[] = [
 
 export const CONTROLS_PACK_FLASHCARDS: Flashcard[] = [
   // Yard test
-  { id: "fc8_two_parts", categoryId: "controls", front: "Two parts of the K53 practical test?", back: "Yard test + road test — both must be passed.", difficulty: 1 },
-  { id: "fc8_yard_manoeuvres", categoryId: "controls", front: "The four yard-test manoeuvres?", back: "Turn in the road, alley docking, parallel parking, incline start.", difficulty: 2 },
-  { id: "fc8_incline_fail", categoryId: "controls", front: "Instant fail on the incline start?", back: "Rolling backwards before moving off — hold on the handbrake until the clutch bites.", difficulty: 1 },
-  { id: "fc8_pole_contact", categoryId: "controls", front: "Touch a pole/kerb/line in a manoeuvre?", back: "Fails that manoeuvre — it represents a real collision.", difficulty: 2 },
-  { id: "fc8_alley_dock", categoryId: "controls", front: "Alley docking goal?", back: "Reverse into the bay and finish fully inside, no pole/line contact.", difficulty: 2 },
+  { id: "fc8_two_parts", categoryId: "controls", front: "Two parts of the K53 practical test?", back: "Yard test + road test — both must be passed.", difficulty: 1, scope: "drivers" },
+  { id: "fc8_yard_manoeuvres", categoryId: "controls", front: "The four yard-test manoeuvres?", back: "Turn in the road, alley docking, parallel parking, incline start.", difficulty: 2, scope: "drivers" },
+  { id: "fc8_incline_fail", categoryId: "controls", front: "Instant fail on the incline start?", back: "Rolling backwards before moving off — hold on the handbrake until the clutch bites.", difficulty: 1, scope: "drivers" },
+  { id: "fc8_pole_contact", categoryId: "controls", front: "Touch a pole/kerb/line in a manoeuvre?", back: "Fails that manoeuvre — it represents a real collision.", difficulty: 2, scope: "drivers" },
+  { id: "fc8_alley_dock", categoryId: "controls", front: "Alley docking goal?", back: "Reverse into the bay and finish fully inside, no pole/line contact.", difficulty: 2, scope: "drivers" },
 
   // Observation
-  { id: "fc8_observe_every", categoryId: "controls", front: "How often to do full observation?", back: "Before EVERY movement — moving off, changing direction, reversing. The examiner watches your head.", difficulty: 2 },
+  { id: "fc8_observe_every", categoryId: "controls", front: "How often to do full observation?", back: "Before EVERY movement — moving off, changing direction, reversing. The examiner watches your head.", difficulty: 2, scope: "drivers" },
   { id: "fc8_moving_off_look", categoryId: "controls", front: "Before pulling away from the kerb?", back: "Mirror check PLUS a shoulder glance for the blind-spot cyclist/car.", difficulty: 1 },
   { id: "fc8_reverse_look", categoryId: "controls", front: "Observing while reversing?", back: "Look over your shoulder through the rear window — not just mirrors/camera.", difficulty: 2 },
 

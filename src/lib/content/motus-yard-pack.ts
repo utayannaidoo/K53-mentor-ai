@@ -1579,6 +1579,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "What is the yard test marked out of?",
     back: "50 points. Separately, a short list of faults — rolling, touching a pole, mounting the kerb, a fourth movement in the turn in the road — ends the test regardless of your score.",
     difficulty: 2,
+    scope: "drivers",
   },
   {
     id: "fm_sim",
@@ -1586,6 +1587,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "What does 'SIM' stand for in the yard test?",
     back: "Stop, Indicate, Move — the sequence checks before every movement. Stop: parking brake, neutral, feet off the pedals. Indicate: 360° observation, then the indicator. Move: gear, clutch control, a second 360°, release the brake, go.",
     difficulty: 1,
+    scope: "drivers",
   },
   {
     id: "fm_obs_cost",
@@ -1593,6 +1595,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "What does a missed 360° observation cost in the yard test?",
     back: "5 points — the most expensive single item, and it is scored on every movement.",
     difficulty: 2,
+    scope: "drivers",
   },
   {
     id: "fm_black_box",
@@ -1600,6 +1603,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "What does a black box on the examiner's test sheet mean?",
     back: "That fault stops the test immediately. It is not a penalty to be totalled up — it ends the run where you sit.",
     difficulty: 2,
+    scope: "drivers",
   },
   {
     id: "fm_second_attempt",
@@ -1607,6 +1611,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "When are you allowed a second attempt at a yard parking manoeuvre?",
     back: "When the first attempt neither rolled nor touched an obstacle. Both of those end the test, so there is nothing left to re-attempt.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_ratchet",
@@ -1614,6 +1619,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "Why should the parking-brake ratchet not click as you apply it?",
     back: "The clicking means the thumb button was not pressed in. It costs one point, and the examiner can hear it without looking.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_bump_vs_mount",
@@ -1621,6 +1627,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "Bumping the kerb versus mounting the kerb — how are they scored?",
     back: "Bumping it costs 4 points. Mounting it — the wheel lifting onto the pavement — is immediate disqualification.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_counter_steer",
@@ -1628,6 +1635,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "What does 'counter steer' mean on the yard test sheet?",
     back: "Straightening the front wheels out again after a lock. Do it while the vehicle is still moving.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_pretrip_direction",
@@ -1635,6 +1643,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "Which way round the vehicle does the exterior pre-trip inspection go?",
     back: "Anti-clockwise, top to bottom, starting by looking underneath for leaks — or for a child or animal sheltering there.",
     difficulty: 2,
+    scope: "drivers",
   },
   {
     id: "fm_pretrip_gate",
@@ -1642,6 +1651,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "What happens if the vehicle is judged unroadworthy during the exterior inspection?",
     back: "Immediate failure — you never reach the interior check. The inspection is a gate, not a scored section.",
     difficulty: 2,
+    scope: "drivers",
   },
   {
     id: "fm_pretrip_declarations",
@@ -1649,6 +1659,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "What four things do you say aloud once the examiner is seated?",
     back: "All doors closed · parking brake engaged · gear in neutral (or park) · no obstructions on the floor or blocking your view through the windows.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_wiper_check",
@@ -1656,6 +1667,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "How is a wiper blade checked during the pre-trip inspection?",
     back: "Lift it, feel the rubber, say aloud that it is not torn or perished, and leave the blade standing up so you know it is done.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_alley_key_numbers",
@@ -1663,6 +1675,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "Alley docking — the three numbers to remember.",
     back: "Two attempts · poles about half a metre from the side of the vehicle · a fresh 360° check if you have been stopped more than three seconds. Stop with pole B in line with your head.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_parallel_movements",
@@ -1670,6 +1683,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "How many movements does the parallel park allow?",
     back: "Three — reverse in, forward, straight back until the white dot lines up with your shoulder. Getting in cleanly in one movement is equally acceptable.",
     difficulty: 2,
+    scope: "drivers",
   },
   {
     id: "fm_turn_moves",
@@ -1677,6 +1691,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "How many movements are allowed for the turn in the road?",
     back: "Three. A fourth is immediate disqualification — and the sequence checks are repeated before every one of them.",
     difficulty: 2,
+    scope: "drivers",
   },
   {
     id: "fm_incline_neutral",
@@ -1684,6 +1699,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "Why must the gear go into neutral on the incline start?",
     back: "To prove the parking brake alone is holding the vehicle. In gear with the clutch down you could not tell. Any rearward roll on pulling away is immediate failure.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_mirror_cadence",
@@ -1691,6 +1707,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "How often must you check the mirror during the road test?",
     back: "Every 5 to 8 seconds — and it costs 5 points every time you let it slip.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_gear_penalties",
@@ -1698,6 +1715,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "Three gear-related road-test penalties.",
     back: "Eyes down at the lever: 5 points. Changing gear while cornering: 4. Selecting neutral before you stop ('gear coasting'): 3.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_biting_point_revs",
@@ -1726,6 +1744,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "The rules around giving a hand signal on test.",
     back: "Mirror and right blind spot first (5 points if missed) · complete it from at least 100 m or 12 seconds out, before braking · two attempts, then you fail.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_freeway_checks",
@@ -1740,6 +1759,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "What ends the road test immediately?",
     back: "Breaking any rule of the road · rolling at a stop · disobeying a road sign · causing an accident · and the 'uncontrolled/dangerous' three: dangerous manoeuvring around pedestrians, unsafe gaps, cornering uncontrollably fast.",
     difficulty: 2,
+    scope: "drivers",
   },
   {
     id: "fm_breakdown",
@@ -1747,6 +1767,7 @@ export const MOTUS_YARD_FLASHCARDS: Flashcard[] = [
     front: "The test vehicle breaks down mid-test. Pass, fail or something else?",
     back: "Deferred — a mechanical failure says nothing about your driving. An accident you cause, by contrast, is an immediate failure.",
     difficulty: 3,
+    scope: "drivers",
   },
   {
     id: "fm_steering_hands",
