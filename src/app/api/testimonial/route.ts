@@ -34,14 +34,6 @@ export async function POST(req: Request) {
   } = (await supabase?.auth.getUser()) ?? { data: { user: null } };
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-  const userRl = await limitUserDaily("testimonial", user.id, TESTIMONIALS_PER_DAY);
-  if (!userRl.success) {
-    return Response.json(
-      { error: "rate_limited", retryAfter: userRl.retryAfter },
-      { status: 429, headers: { "Retry-After": String(userRl.retryAfter) } },
-    );
-  }
-
   const parsed = testimonialSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return Response.json({ error: "Invalid testimonial" }, { status: 400 });
 
@@ -49,6 +41,18 @@ export async function POST(req: Request) {
     // Say so rather than thanking someone for words that went nowhere.
     console.error("testimonial received but email is not configured");
     return Response.json({ error: "unavailable" }, { status: 503 });
+  }
+
+  // Metered last, on a request that is actually going to send something. Two a
+  // day is a tight allowance, and spending it on a malformed body or on an
+  // unconfigured mail provider would lock a learner out of the ask for the day
+  // over something that was never their doing.
+  const userRl = await limitUserDaily("testimonial", user.id, TESTIMONIALS_PER_DAY);
+  if (!userRl.success) {
+    return Response.json(
+      { error: "rate_limited", retryAfter: userRl.retryAfter },
+      { status: 429, headers: { "Retry-After": String(userRl.retryAfter) } },
+    );
   }
 
   const mail = buildTestimonialEmail({

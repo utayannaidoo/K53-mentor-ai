@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { clientIp, limitPlanEmail } from "@/lib/ai/rate-limit";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
+import { isSuppressed } from "@/lib/notify/suppression";
 import { buildPlanEmail } from "@/lib/notify/templates";
 import { planLeadSchema } from "@/lib/leads/plan-lead";
 import { unsubscribeUrl } from "@/lib/leads/unsubscribe-token";
@@ -34,6 +35,16 @@ export async function POST(req: Request) {
   if (!isEmailConfigured) {
     console.error("plan email requested but email is not configured");
     return Response.json({ error: "unavailable" }, { status: 503 });
+  }
+
+  // Someone who already asked us to stop gets told so. `sendEmail` refuses a
+  // suppressed address and returns the same false as a provider outage, and
+  // the screen then says "try again in a moment" — advice that can never work,
+  // to the one person who explicitly opted out. Answering honestly does reveal
+  // that the address is on our list, but only to whoever typed the address in,
+  // which in practice is the person it belongs to.
+  if (await isSuppressed(lead.email)) {
+    return Response.json({ error: "suppressed" }, { status: 409 });
   }
 
   const mail = buildPlanEmail({

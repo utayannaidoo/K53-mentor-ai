@@ -1,7 +1,8 @@
 import { SITE_URL } from "@/lib/constants";
-import { clientIp, limitPlanEmail } from "@/lib/ai/rate-limit";
+import { clientIp, limitUnsubscribeProbe } from "@/lib/ai/rate-limit";
 import { suppress } from "@/lib/notify/suppression";
 import { verifyUnsubscribe } from "@/lib/leads/unsubscribe-token";
+import { forgetPlanLead } from "@/lib/leads/plan-lead-store";
 
 export const runtime = "nodejs";
 
@@ -34,13 +35,19 @@ async function unsubscribeFrom(
   // fails is worse than one that never existed.
   //
   // The limit still covers unsigned or forged attempts, which is what probing
-  // this endpoint looks like.
+  // this endpoint looks like — in a bucket of its own, so those attempts
+  // cannot spend the plan-email allowance shared by everyone on the same IP.
   if (email && verifyUnsubscribe(email, token)) {
     const ok = await suppress(email, "unsubscribed", "one-click from a plan email");
+    // Suppress first, forget second. The suppression is what actually stops
+    // the sending, so it has to be in place before the lead row it came from
+    // goes away — and the privacy policy promises the row goes away, which
+    // suppression on its own did not deliver.
+    if (ok) await forgetPlanLead(email);
     return { status: ok ? "done" : "error" };
   }
 
-  const rl = await limitPlanEmail(clientIp(req));
+  const rl = await limitUnsubscribeProbe(clientIp(req));
   if (!rl.success) return { status: "rate_limited", retryAfter: rl.retryAfter };
   return { status: "invalid" };
 }

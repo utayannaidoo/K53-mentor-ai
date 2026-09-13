@@ -21,6 +21,21 @@ describe("study nudges carry the test-date countdown", () => {
     expect(mail.text.indexOf("12 days to your test.")).toBeLessThan(mail.text.indexOf(SITE_URL));
   });
 
+  it("keeps its place when the opt-out link is there too", () => {
+    // Production always sends both, and they were only ever tested apart. The
+    // countdown anchors on the last line of the text part holding a URL, so
+    // appending the opt-out link first moved that anchor and glued the
+    // countdown onto the end of the call to action.
+    const link = "https://k53.test/api/unsubscribe/reminders?u=u1&t=abc";
+    const mail = buildEmail("streak_risk", { ...base, daysToTest: 12, unsubscribeUrl: link });
+    const countdown = mail.text.indexOf("12 days to your test.");
+    expect(countdown).toBeGreaterThan(-1);
+    expect(countdown).toBeLessThan(mail.text.indexOf(SITE_URL));
+    // …and the CTA line still ends where it should, not mid-sentence.
+    expect(mail.text).not.toMatch(new RegExp(`${SITE_URL}\\S* 12 days`));
+    expect(mail.text.trimEnd().endsWith(`Stop these reminders: ${link}`)).toBe(true);
+  });
+
   it("uses the singular and a test-day line", () => {
     expect(buildEmail("due_review", { ...base, daysToTest: 1 }).text).toContain("1 day to your test.");
     expect(buildEmail("due_review", { ...base, daysToTest: 0 }).text).toContain("Your test is today");
