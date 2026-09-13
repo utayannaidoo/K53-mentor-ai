@@ -9,6 +9,10 @@ import {
 } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
 import { reminderOptOutUrl } from "@/lib/notify/reminder-optout";
+import { buildPlanFollowupEmail } from "@/lib/notify/templates";
+import { unsubscribeUrl } from "@/lib/leads/unsubscribe-token";
+import { CATEGORY_MAP } from "@/lib/content/categories";
+import type { CategoryId } from "@/types";
 
 export const runtime = "nodejs";
 // One email per user, sent sequentially — allow the full minute available on
@@ -197,12 +201,14 @@ export async function GET(req: Request) {
   }
 
   const endingSent = await sendSubscriptionEndingNotices(admin, now);
+  const leadFollowups = await sendLeadFollowups(admin, now);
 
   return Response.json({
     configured: isEmailConfigured,
     scanned,
     sent,
     endingSoon: endingSent,
+    leadFollowups,
     ...(isEmailConfigured ? {} : { wouldSend }),
   });
 }
@@ -304,4 +310,101 @@ async function sendSubscriptionEndingNotices(
     });
   }
   return count;
+}
+
+/** Days after capture before the single lead follow-up goes out. */
+const LEAD_FOLLOWUP_DAYS = 3;
+/** Never chase an address that has been sitting for months. */
+const LEAD_FOLLOWUP_MAX_DAYS = 30;
+
+interface LeadRow {
+  email: string;
+  weak_categories: string[] | null;
+  created_at: string;
+}
+
+/**
+ * The one follow-up a captured lead gets.
+ *
+ * `plan_leads` captured addresses and then never used them: someone asked for
+ * their plan, got it once, and heard nothing again. This sends exactly one
+ * email a few days later naming the same weak section — and then stops. A drip
+ * campaign is not what they consented to.
+ *
+ * Three things stop it becoming spam:
+ *  - `followup_sent_at` is written only after a successful send, so an email
+ *    outage never silently consumes somebody's single follow-up;
+ *  - a lead whose address now has an account is skipped, because they took the
+ *    offer and the account's own emails take over from here;
+ *  - `sendEmail` checks the suppression list first, so an unsubscribe between
+ *    the plan email and this one is honoured.
+ */
+async function sendLeadFollowups(admin: SupabaseClient, now: Date): Promise<number> {
+  const ready = new Date(now.getTime() - LEAD_FOLLOWUP_DAYS * 86_400_000).toISOString();
+  const floor = new Date(now.getTime() - LEAD_FOLLOWUP_MAX_DAYS * 86_400_000).toISOString();
+
+  const { data, error } = await admin
+    .from("plan_leads")
+    .select("email, weak_categories, created_at")
+    .is("followup_sent_at", null)
+    .lte("created_at", ready)
+    .gte("created_at", floor)
+    .order("created_at")
+    .limit(200);
+
+  if (error) {
+    console.error("cron: lead follow-up query failed", error.message);
+    return 0;
+  }
+  const leads = (data ?? []) as LeadRow[];
+  if (leads.length === 0) return 0;
+
+  // One lookup, not one per lead: an address that now has an account took the
+  // offer already.
+  const { data: accounts } = await admin
+    .from("profiles")
+    .select("email")
+    .in("email", leads.map((l) => l.email));
+  const hasAccount = new Set(
+    ((accounts ?? []) as { email: string | null }[])
+      .map((a) => a.email?.trim().toLowerCase())
+      .filter(Boolean) as string[],
+  );
+
+  let sent = 0;
+  for (const lead of leads) {
+    if (hasAccount.has(lead.email)) {
+      // Not a send, but it is a decision: stamp it so the row stops being
+      // scanned every night for the next month.
+      await admin
+        .from("plan_leads")
+        .update({ followup_sent_at: now.toISOString() })
+        .eq("email", lead.email);
+      continue;
+    }
+
+    const weak = (lead.weak_categories ?? []).filter(isCategoryId);
+    const content = buildPlanFollowupEmail({
+      weakCategories: weak,
+      daysSince: Math.max(
+        LEAD_FOLLOWUP_DAYS,
+        Math.round((now.getTime() - Date.parse(lead.created_at)) / 86_400_000),
+      ),
+      unsubscribeUrl: unsubscribeUrl(lead.email),
+    });
+    const ok = await sendEmail({ to: lead.email, ...content });
+    if (!ok) continue;
+
+    sent += 1;
+    await admin
+      .from("plan_leads")
+      .update({ followup_sent_at: new Date().toISOString() })
+      .eq("email", lead.email);
+  }
+  return sent;
+}
+
+/** The stored array is plain text — only pass through ids the app still knows. */
+function isCategoryId(value: string): value is CategoryId {
+  return Object.prototype.hasOwnProperty.call(CATEGORY_MAP, value);
 }

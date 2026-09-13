@@ -218,3 +218,27 @@ export async function spendTutorCredit(userId: string): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Give back a purchased top-up credit that bought nothing.
+ *
+ * A Premium Plus learner past their daily cap spends a credit to send one more
+ * message. If the provider cascade then falls through to the study-notes
+ * explainer, they paid for an AI answer and got the free one. Refunding the
+ * *daily* allowance is no use here — it was already exhausted, which is why a
+ * credit was spent in the first place — so the credit itself goes back.
+ *
+ * Reuses the same grant the Paystack webhook uses, so a refund and a purchase
+ * land through one audited path. Best-effort: a failed refund leaves the burn
+ * rather than failing the learner's reply.
+ */
+export async function refundTutorCredit(userId: string): Promise<void> {
+  const admin = createAdminClient();
+  if (!admin) return;
+  try {
+    const { error } = await admin.rpc("grant_tutor_credits", { p_user: userId, p_credits: 1 });
+    if (error) console.error("tutor credit refund failed", error.message);
+  } catch (err) {
+    console.error("tutor credit refund threw", err);
+  }
+}

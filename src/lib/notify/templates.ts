@@ -705,6 +705,65 @@ export function buildTestimonialEmail(input: {
 }
 
 /**
+ * The one follow-up a captured lead gets, a few days after their plan.
+ *
+ * They asked for the plan, read it (or did not), and did not make an account.
+ * The email that works here is not a second copy of the first one: it names
+ * the same weak section, gives one thing to do about it, and is honest that
+ * this is the last they will hear from us unless they come back. Anything
+ * more would be a drip campaign, and we did not ask for permission to run one.
+ *
+ * Sent once, ever — `plan_leads.followup_sent_at` is what makes that true.
+ */
+export function buildPlanFollowupEmail(input: {
+  weakCategories: CategoryId[];
+  daysSince: number;
+  unsubscribeUrl: string | null;
+}): EmailContent {
+  const first = input.weakCategories[0] ? categoryName(input.weakCategories[0]) : null;
+  const subject = first ? `Still worth ten minutes on ${first.toLowerCase()}` : "Your K53 plan is still here";
+  const opening = first
+    ? `A few days ago your starting check put ${first.toLowerCase()} at the bottom. That does not fix itself, and it is the section most likely to be the reason a first attempt fails.`
+    : `A few days ago you asked us for your K53 plan. It is still here whenever you want to pick it up.`;
+  const body = first
+    ? `Ten minutes a day on one section is what moves it over its own pass mark — the test is three separate minimums, not one average. A free account keeps the plan, the streak and the readiness score going while you do it.`
+    : `A free account keeps your plan, your streak and your readiness score as you go.`;
+  const closing = `This is the only follow-up we will send.`;
+
+  const text =
+    `${opening}\n\n${body}\n\n${closing}\n\n` +
+    `Start here: ${SITE_URL}/signup\n\n` +
+    (input.unsubscribeUrl
+      ? `Unsubscribe: ${input.unsubscribeUrl}`
+      : `To stop these emails, reply with "stop".`);
+
+  const html = wrap(
+    h(first ? `${esc(first)} is still the gap` : "Your K53 plan is still here") +
+      p(esc(opening)) +
+      p(esc(body)) +
+      p(esc(closing)),
+    "Pick up my plan",
+    "/signup",
+    "lead",
+    input.unsubscribeUrl,
+  );
+
+  return {
+    subject,
+    html,
+    text,
+    ...(input.unsubscribeUrl
+      ? {
+          headers: {
+            "List-Unsubscribe": `<${input.unsubscribeUrl}>`,
+            "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+          },
+        }
+      : {}),
+  };
+}
+
+/**
  * The starting-check plan, emailed to a visitor who has not made an account.
  *
  * Their result lives in a browser they may not come back to, so this is the
