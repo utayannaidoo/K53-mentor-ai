@@ -6,6 +6,7 @@ import { chooseProvider, streamTutorReply } from "@/lib/ai/provider";
 import { clientIp, limitTutor, limitUserDaily, refundUserDaily } from "@/lib/ai/rate-limit";
 import {
   isWithinFreeTrial,
+  refundTutorCredit,
   resolveEntitlement,
   spendTutorCredit,
 } from "@/lib/billing/entitlements.server";
@@ -118,12 +119,17 @@ export async function POST(req: Request) {
   // is unchanged. It just no longer sits on the critical path to the first
   // streamed token.
   let usageWrite: Promise<void> | null = null;
+  // Tracked out here because the fallback path below has to refund the right
+  // thing: a message paid for with a credit is not made good by handing back a
+  // daily unit the learner had already used up.
+  let spentCredit = false;
   if (ent.userId && !limiterUnavailable) {
     const cap = await limitUserDaily("tutor", ent.userId, ent.allowance);
     if (!cap.success) {
       // Premium Plus may spend a purchased top-up credit past the daily cap.
       const canTopUp = ent.tier === "premium_plus";
       const usedCredit = canTopUp && (await spendTutorCredit(ent.userId));
+      spentCredit = usedCredit;
       if (!usedCredit) {
         // Count the refusal before returning. A rising `capped` is the only
         // signal that an allowance is too low — average usage alone would
@@ -199,7 +205,10 @@ export async function POST(req: Request) {
     // product — so give the message back and flag the answer rather than
     // serving the lesser reply as if it were what they pay for.
     const fellBack = provider === "local" && !forceLocal;
-    if (fellBack && ent.userId) await refundUserDaily("tutor", ent.userId);
+    if (fellBack && ent.userId) {
+      if (spentCredit) await refundTutorCredit(ent.userId);
+      else await refundUserDaily("tutor", ent.userId);
+    }
 
     await usageWrite;
     return new Response(stream, {
