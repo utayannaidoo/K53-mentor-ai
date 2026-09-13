@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { SUPPORT_EMAIL } from "@/lib/constants";
+import { clearsAutobuyGuard } from "@/lib/billing/autobuy-guard";
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Sparkles, CheckCircle2 } from "lucide-react";
@@ -425,11 +426,16 @@ function BillingInner() {
     if (blocked) return;
     setBusy(plan.id);
     // A deliberate click means future intents in this tab may auto-checkout
-    // again — clear the abandoned-checkout guard.
-    try {
-      window.sessionStorage.removeItem(AUTOBUY_SESSION_KEY);
-    } catch {
-      /* private mode */
+    // again — clear the abandoned-checkout guard. The AUTOMATIC path must not:
+    // it calls this same function, so clearing unconditionally deleted the very
+    // guard that stops Back-from-Paystack bouncing the buyer straight back to
+    // Paystack. See lib/billing/autobuy-guard.
+    if (clearsAutobuyGuard(source)) {
+      try {
+        window.sessionStorage.removeItem(AUTOBUY_SESSION_KEY);
+      } catch {
+        /* private mode */
+      }
     }
     trackEvent("checkout_started", { plan: plan.id, cycle, source });
     try {
