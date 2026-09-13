@@ -160,7 +160,10 @@ function isComplex(userText: string): boolean {
 export function fastModelFor(provider: Provider): string {
   switch (provider) {
     case "deepseek":
-      return process.env.DEEPSEEK_MODEL_FAST ?? "deepseek-v4-flash";
+      // `deepseek-flash` is the id this account's /models actually lists;
+      // `deepseek-v4-flash` is an accepted alias for it. Prefer the listed
+      // name — an alias is the thing a provider quietly retires.
+      return process.env.DEEPSEEK_MODEL_FAST ?? "deepseek-flash";
     case "anthropic":
       return process.env.ANTHROPIC_MODEL_FAST ?? "claude-haiku-4-5-20251001";
     case "openai":
@@ -184,7 +187,26 @@ export function smartModelFor(provider: Provider): string {
   }
 }
 
+/**
+ * Providers whose cheap tier answers everything, however the question reads.
+ *
+ * DeepSeek Pro costs roughly 3x Flash on both input and output, and the
+ * escalation heuristic fires on precisely the phrases a struggling learner
+ * types: "I don't understand", "confused", "step by step", "explain it
+ * again". That is the worst correlation a bill can have — the learners who ask
+ * the most questions are the ones routed to the expensive model every time,
+ * and they are also the ones least able to pay for a plan.
+ *
+ * DeepSeek leads the cascade because it is the cheap option (see the module
+ * header). Letting it escalate gives back most of that saving for a K53
+ * answer that is a few hundred tokens long and grounded in our own facts
+ * either way. Anthropic and OpenAI keep the split: they are the fallbacks, so
+ * a message that reaches them is already unusual.
+ */
+const NEVER_ESCALATES: ReadonlySet<Provider> = new Set<Provider>(["deepseek"]);
+
 export function modelFor(provider: Provider, userText: string): string {
+  if (NEVER_ESCALATES.has(provider)) return fastModelFor(provider);
   return isComplex(userText) ? smartModelFor(provider) : fastModelFor(provider);
 }
 

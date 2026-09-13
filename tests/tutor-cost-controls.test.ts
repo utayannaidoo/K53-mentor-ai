@@ -98,6 +98,34 @@ describe("model routing", () => {
     expect(modelFor("anthropic", "please explain it again")).toBe("claude-sonnet-5");
   });
 
+  /**
+   * DeepSeek never escalates, and this is the whole reason it leads the
+   * cascade. Pro costs ~3x Flash, and `isComplex` fires on the phrases a
+   * struggling learner actually types — so escalation would route the heaviest
+   * askers to the dearest model every time. Anthropic keeps its split, being
+   * the fallback rather than the default.
+   */
+  it("never escalates DeepSeek, whatever the question looks like", async () => {
+    const { modelFor } = await load();
+    const escalating = [
+      "explain it again please",
+      "I'm confused about right of way",
+      "walk me through it step by step",
+      "a".repeat(501),
+    ];
+    for (const q of escalating) {
+      expect(modelFor("deepseek", q), `escalated: ${q.slice(0, 40)}…`).toBe("deepseek-flash");
+    }
+  });
+
+  it("prefers the model id DeepSeek actually lists over its alias", async () => {
+    // Both `deepseek-flash` and `deepseek-v4-flash` are accepted by the API,
+    // but only the former appears in /models — and an alias is the thing a
+    // provider quietly retires.
+    const { modelFor } = await load();
+    expect(modelFor("deepseek", "What is the following distance?")).toBe("deepseek-flash");
+  });
+
   it("honours explicit model overrides", async () => {
     env.ANTHROPIC_MODEL_FAST = "custom-fast";
     env.ANTHROPIC_MODEL_SMART = "custom-smart";
@@ -137,20 +165,26 @@ describe("provider cascade", () => {
     expect((await loadWith({})).chooseProvider()).toBe("local");
   });
 
-  it("routes the DeepSeek tiers to V4-Flash and V4-Pro", async () => {
+  it("keeps DeepSeek on Flash for every question, cheap or hard-looking", async () => {
+    // Was: Flash for ordinary questions, Pro once `isComplex` fired. Pro costs
+    // ~3x, and the heuristic fires on the phrasing a struggling learner uses,
+    // so escalation billed the heaviest askers the most. DeepSeek is in the
+    // cascade to be cheap; escalating gave that back.
     const { modelFor } = await loadWith({ DEEPSEEK_API_KEY: "sk-ds-stub" });
-    expect(modelFor("deepseek", "What is the following distance?")).toBe("deepseek-v4-flash");
-    expect(modelFor("deepseek", "I'm confused about right of way")).toBe("deepseek-v4-pro");
+    expect(modelFor("deepseek", "What is the following distance?")).toBe("deepseek-flash");
+    expect(modelFor("deepseek", "I'm confused about right of way")).toBe("deepseek-flash");
   });
 
-  it("honours DeepSeek model overrides", async () => {
+  it("honours a DeepSeek model override, which is the way off Flash", async () => {
+    // No smart tier is consulted any more, so DEEPSEEK_MODEL_FAST is the one
+    // knob — and it is enough to move to a newer model without a deploy.
     const { modelFor } = await loadWith({
       DEEPSEEK_API_KEY: "sk-ds-stub",
       DEEPSEEK_MODEL_FAST: "custom-flash",
       DEEPSEEK_MODEL_SMART: "custom-pro",
     });
     expect(modelFor("deepseek", "short one")).toBe("custom-flash");
-    expect(modelFor("deepseek", "I'm confused")).toBe("custom-pro");
+    expect(modelFor("deepseek", "I'm confused")).toBe("custom-flash");
   });
 });
 
