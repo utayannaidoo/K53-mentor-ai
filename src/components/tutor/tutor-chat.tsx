@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog } from "@/components/ui/dialog";
 import { Paywall } from "@/components/app/paywall";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 import { TrialMeter } from "@/components/app/trial-meter";
 import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -161,13 +162,22 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ plan: "tutor_topup" }),
       });
-      const data = await res.json().catch(() => ({}) as { url?: string });
+      const data = await res
+        .json()
+        .catch(() => ({}) as { url?: string; fault?: string });
       if (res.ok && data.url) {
         window.location.href = data.url;
         return;
       }
       setTopUpTone("warning");
-      setTopUpBanner("Top-ups aren't available right now — please try again later.");
+      // The same distinction the billing page makes: a Plan-code or Paystack
+      // fault is ours and will not fix itself, so "try again later" would be
+      // a second wrong answer. Support has already been alerted by the route.
+      setTopUpBanner(
+        data.fault === "ours"
+          ? `Something on our side is stopping payments — you have NOT been charged, and trying again won't help. We've been alerted. Email ${SUPPORT_EMAIL} and we'll sort it out.`
+          : "Top-ups aren't available right now — please try again later.",
+      );
     } catch {
       setTopUpTone("warning");
       setTopUpBanner("Network error — please try again.");
