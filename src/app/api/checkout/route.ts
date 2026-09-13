@@ -12,6 +12,7 @@ import {
 import { initializeTransaction } from "@/lib/paystack/client";
 import { callbackOrigin } from "@/lib/billing/callback-origin";
 import { SITE_DOMAIN } from "@/lib/constants";
+import { reportCheckoutFailure } from "@/lib/ops/checkout-alert";
 
 export const runtime = "nodejs";
 
@@ -157,7 +158,19 @@ export async function POST(req: Request) {
     const cycle = parsed.cycle ?? "monthly";
     const planCode = planCodeFor(parsed.plan, cycle);
     if (!planCode) {
-      return Response.json({ error: "Price not configured for this plan." }, { status: 500 });
+      // `fault: "ours"` tells the buyer's screen this is not something a retry
+      // can fix. Without it the page said "try again in a moment", and a real
+      // learner pressed the button six times in 29 seconds before giving up.
+      reportCheckoutFailure({
+        reason: "plan_code_missing",
+        plan: parsed.plan,
+        cycle,
+        userId,
+      });
+      return Response.json(
+        { error: "Price not configured for this plan.", fault: "ours" },
+        { status: 500 },
+      );
     }
 
     // Paystack's initialize endpoint rejects the request ("Invalid Amount Sent")
@@ -181,6 +194,13 @@ export async function POST(req: Request) {
     return Response.json({ url: authorization_url });
   } catch (err) {
     console.error("checkout: paystack error", err);
-    return Response.json({ error: "Checkout could not start." }, { status: 502 });
+    reportCheckoutFailure({
+      reason: "paystack_error",
+      plan: parsed.plan,
+      cycle: parsed.cycle ?? "monthly",
+      userId,
+      err,
+    });
+    return Response.json({ error: "Checkout could not start.", fault: "ours" }, { status: 502 });
   }
 }

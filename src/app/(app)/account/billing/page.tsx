@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import { SUPPORT_EMAIL } from "@/lib/constants";
+import { clearsAutobuyGuard } from "@/lib/billing/autobuy-guard";
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Sparkles, CheckCircle2 } from "lucide-react";
@@ -74,6 +76,13 @@ function BillingInner() {
     setBannerTone(tone);
   }
   const [error, setError] = React.useState<string | null>(null);
+  /**
+   * Checkout is broken on our side, so the buy buttons stop being an option
+   * for the rest of this visit. Re-pressing a button that returned 5xx cannot
+   * succeed, and leaving it live is what produced eight attempts from one
+   * learner in a single afternoon.
+   */
+  const [blocked, setBlocked] = React.useState(false);
   const [busy, setBusy] = React.useState<SubscriptionTier | null>(null);
 
   // After the Paystack redirect the webhook may still be in flight — poll the
@@ -414,13 +423,19 @@ function BillingInner() {
       showBanner("You're now on the Free plan.", "info");
       return;
     }
+    if (blocked) return;
     setBusy(plan.id);
     // A deliberate click means future intents in this tab may auto-checkout
-    // again — clear the abandoned-checkout guard.
-    try {
-      window.sessionStorage.removeItem(AUTOBUY_SESSION_KEY);
-    } catch {
-      /* private mode */
+    // again — clear the abandoned-checkout guard. The AUTOMATIC path must not:
+    // it calls this same function, so clearing unconditionally deleted the very
+    // guard that stops Back-from-Paystack bouncing the buyer straight back to
+    // Paystack. See lib/billing/autobuy-guard.
+    if (clearsAutobuyGuard(source)) {
+      try {
+        window.sessionStorage.removeItem(AUTOBUY_SESSION_KEY);
+      } catch {
+        /* private mode */
+      }
     }
     trackEvent("checkout_started", { plan: plan.id, cycle, source });
     try {
@@ -429,7 +444,9 @@ function BillingInner() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ plan: plan.id, cycle }),
       });
-      const data = await res.json().catch(() => ({}) as { url?: string; demo?: boolean });
+      const data = await res
+        .json()
+        .catch(() => ({}) as { url?: string; demo?: boolean; fault?: string });
       if (res.ok && data.url) {
         window.location.href = data.url;
         return;
@@ -442,11 +459,25 @@ function BillingInner() {
         showBanner(`You're now on ${plan.name}. (Demo — no charge was made.)`);
         return;
       }
-      setError(
-        data.demo
-          ? "Payments aren't configured on this environment yet (Paystack keys are missing), so no charge was made and your plan is unchanged."
-          : "Checkout couldn't start — please try again in a moment.",
-      );
+      if (data.demo) {
+        setError(
+          "Payments aren't configured on this environment yet (Paystack keys are missing), so no charge was made and your plan is unchanged.",
+        );
+      } else if (data.fault === "ours") {
+        // A misconfigured Plan code or a Paystack rejection is not transient,
+        // and "try again in a moment" is advice that can never come true. A
+        // learner took that advice eight times over three hours before giving
+        // up — so say what is actually happening, and stop offering the button
+        // as the way out of it.
+        setBlocked(true);
+        setError(
+          "Something on our side is stopping payments right now — you have NOT been charged, " +
+            `and pressing the button again won't help. We've been alerted and we're on it. ` +
+            `Email ${SUPPORT_EMAIL} and we'll set your plan up by hand.`,
+        );
+      } else {
+        setError("Checkout couldn't start — please try again in a moment.");
+      }
     } catch {
       setError("Network error — check your connection and try again.");
     } finally {
@@ -757,7 +788,7 @@ function BillingInner() {
               <Button
                 className="mt-5 w-full"
                 variant={current ? "outline" : plan.highlighted ? "default" : "outline"}
-                disabled={current || busy !== null}
+                disabled={current || busy !== null || blocked}
                 loading={busy === plan.id}
                 loadingText="Opening checkout…"
                 onClick={() => choose(plan)}
