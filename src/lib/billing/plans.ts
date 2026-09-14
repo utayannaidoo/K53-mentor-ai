@@ -154,9 +154,13 @@ export const PLANS: PlanDef[] = [
       "Full AI diagnostic + readiness score",
       "15 flashcards & 15 questions every day for 7 days",
       "Then 5 flashcards & 5 questions a day, free for good",
-      "2 AI tutor messages a day",
+      // Both of these stop at day 7 — `afterTrial` carries only questions and
+      // flashcards, and mocksRemaining() returns 0 once trialExhausted(). They
+      // used to read "a day" / "every day" with no qualifier, which is the plan
+      // page promising something the app takes away on day eight.
+      "2 AI tutor messages a day during your free week",
       "1 full 64-question mock during your free week",
-      "A 15-question mini mock every day",
+      "A 15-question mini mock a day during your free week",
       "7-day progress history",
     ],
   },
@@ -225,7 +229,10 @@ export const PLANS: PlanDef[] = [
       "AI tutor — 35 messages a day (cheap top-ups available)",
       "Unlimited mock exams",
       "Driver's-licence yard-test modules",
-      "DLTC eye-test screener",
+      // The DLTC eye-test screener used to be listed here. It is free on every
+      // tier now — a DLTC admin step rather than study content — so selling it
+      // as a Plus perk would promise exclusivity the product does not enforce,
+      // which is the same misrepresentation as an unqualified Free perk.
       "Advanced analytics & trends",
       "Priority new-content access",
     ],
