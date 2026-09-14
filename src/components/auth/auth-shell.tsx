@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Check } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { SupportLink } from "@/components/shared/support-link";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 const POINTS = [
   "Free starting check + readiness score",
@@ -46,8 +48,20 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </Link>
           <ThemeToggle />
         </div>
-        <div className="flex flex-1 items-center justify-center px-6 pb-16">
+        <div className="flex flex-1 flex-col items-center justify-center px-6 pb-16">
           <div className="w-full max-w-sm">{children}</div>
+          {/*
+            Login, signup and both reset screens share this shell, and the
+            (auth) route group deliberately mounts nothing else — no app nav, no
+            marketing footer. Someone whose confirmation mail never arrived or
+            whose reset link won't take cannot be told to sign in first, so this
+            is their only route to a human. One copy here rather than one per
+            screen, so it can't go missing from whichever screen is added next.
+          */}
+          <p className="mt-8 w-full max-w-sm text-center text-xs text-muted-foreground">
+            Can&apos;t get in? Email{" "}
+            <SupportLink subject="K53 Mentor — I can't sign in">{SUPPORT_EMAIL}</SupportLink>
+          </p>
         </div>
       </div>
     </div>

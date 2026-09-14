@@ -63,12 +63,14 @@ export default function LicencePrepPage() {
 
       {/*
         Not a MODULE_META entry — the eye test is a DLTC admin step, not a
-        yard-test manoeuvre, so it doesn't fit that content model. Same
-        unlocked/locked treatment as the module cards below it: routes to the
-        real thing when unlocked, to billing otherwise.
+        yard-test manoeuvre, so it doesn't fit that content model. And unlike
+        the module cards below it, it is NOT gated: the screener is free on
+        every tier. It keeps its place here because this is the page about
+        getting licensed, and a free card sitting among locked ones on a page
+        headed by an upgrade banner needs to say so — hence the badge.
       */}
       <Link
-        href={unlocked ? "/eye-test" : "/account/billing?buy=premium_plus"}
+        href="/eye-test"
         className="group mb-4 block"
         data-tutorial="licence-eye-test"
       >
@@ -83,17 +85,16 @@ export default function LicencePrepPage() {
               <Eye className="h-5 w-5" />
             </span>
             <div>
-              <h3 className="font-display text-base font-semibold tracking-tight">Eye test</h3>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="font-display text-base font-semibold tracking-tight">Eye test</h3>
+                {!unlocked && <Badge variant="secondary">Free</Badge>}
+              </div>
               <p className="text-sm text-muted-foreground">
                 The tumbling-E screener the DLTC uses before they&apos;ll book your test
               </p>
             </div>
           </div>
-          {unlocked ? (
-            <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-          ) : (
-            <Lock className="h-4 w-4 shrink-0 text-muted-foreground" />
-          )}
+          <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" />
         </Card>
       </Link>
 

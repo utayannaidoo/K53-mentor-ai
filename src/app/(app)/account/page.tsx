@@ -4,7 +4,7 @@ import * as React from "react";
 import { Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LogOut, CreditCard, Trash2, Gauge, Target, CalendarClock, Wifi } from "lucide-react";
+import { LogOut, CreditCard, Trash2, Gauge, Target, CalendarClock, Wifi, LifeBuoy } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +24,8 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/client";
 import { Input } from "@/components/ui/input";
 import { AccountNavigator } from "@/components/onboarding/route-navigator";
+import { SupportLink } from "@/components/shared/support-link";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 function AccountInner() {
   const router = useRouter();
@@ -290,6 +292,30 @@ function AccountInner() {
       />
 
       <InviteCard />
+
+      {/*
+        The app shell renders no footer, so /contact — which only the marketing
+        footer links — is unreachable from inside the product. Account is on the
+        nav from every screen, which makes it the one place a stuck learner can
+        reliably find. Address in full rather than behind a "Contact us" link:
+        it can be read off a screenshot, or typed into a different mail app.
+      */}
+      <Card className={cn(glass, "mt-5 p-6")}>
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+          <LifeBuoy className="h-4 w-4 text-muted-foreground" /> Help &amp; support
+        </h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Something broken, a question marked wrong, or a payment that didn&apos;t go through?
+          Email <SupportLink subject="K53 Mentor — I need help">{SUPPORT_EMAIL}</SupportLink> and a
+          real person will answer.
+        </p>
+        <Link
+          href="/contact"
+          className="mt-4 inline-block text-sm font-medium text-primary hover:underline"
+        >
+          More ways to reach us
+        </Link>
+      </Card>
 
       {/* Danger zone */}
       <Card className={cn(glass, "mt-5 p-6")}>

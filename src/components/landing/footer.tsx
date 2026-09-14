@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ShieldCheck, Lock } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { CopyrightYear } from "@/components/landing/copyright-year";
-import { APP_NAME } from "@/lib/constants";
+import { APP_NAME, SUPPORT_EMAIL } from "@/lib/constants";
 
 const GROUPS = [
   {
@@ -29,7 +29,7 @@ const GROUPS = [
   {
     title: "Legal",
     links: [
-      { href: "/contact", label: "Contact us" },
+      { href: "/contact", label: "Contact & support" },
       { href: "/privacy", label: "Privacy policy" },
       { href: "/terms", label: "Terms of service" },
       { href: "/refunds", label: "Refund & cancellation" },
@@ -48,6 +48,18 @@ export function Footer() {
             <p className="max-w-xs text-sm text-muted-foreground">
               The AI study coach for the South African K53 learner&apos;s and driver&apos;s
               licence. Diagnose, study smart, pass with confidence.
+            </p>
+            {/* The address in full, on every marketing page. "Contact us"
+                lived under Legal, which is not where anyone looks when
+                something is broken — and a visible support address is also
+                what makes a payment page look like a real business. */}
+            <p className="pt-1 text-sm text-muted-foreground">
+              <a
+                href={`mailto:${SUPPORT_EMAIL}`}
+                className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+              >
+                {SUPPORT_EMAIL}
+              </a>
             </p>
             <div className="flex flex-wrap gap-3 pt-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">

@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import { reportError } from "@/lib/report-error";
+import { SupportLine } from "@/components/shared/support-link";
+import { ClearLocalData } from "@/components/shared/clear-local-data";
 
 /** Route-level error boundary: report it, keep the shell, offer a retry. */
 export default function ErrorBoundary({
@@ -42,6 +44,13 @@ export default function ErrorBoundary({
           Reload app
         </button>
       </div>
+      <SupportLine
+        className="mt-6"
+        lead="Still broken after a reload?"
+        subject="K53 Mentor — a page keeps erroring"
+        reference={error.digest}
+      />
+      <ClearLocalData className="mt-3" />
     </div>
   );
 }
