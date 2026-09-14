@@ -2,6 +2,9 @@
 
 import { useEffect } from "react";
 import { reportError } from "@/lib/report-error";
+// constants.ts has no runtime imports of its own, so it is safe here — this
+// boundary replaces the root layout and must not depend on the theme or store.
+import { SUPPORT_EMAIL } from "@/lib/constants";
 
 /**
  * Last-resort boundary: replaces the root layout when even it crashes, so it
@@ -34,6 +37,19 @@ export default function GlobalError({
           >
             Reload
           </button>
+          {/* The last screen before the app is simply gone. Tailwind may not
+              have loaded here either, so this is inline-styled like the rest. */}
+          <p style={{ marginTop: 20, fontSize: 12, color: "#5B665F" }}>
+            Still broken? Email{" "}
+            <a
+              href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
+                "K53 Mentor — the app won't load",
+              )}${error.digest ? `&body=${encodeURIComponent(`Reference: ${error.digest}`)}` : ""}`}
+              style={{ color: "#2C5F4F", fontWeight: 600 }}
+            >
+              {SUPPORT_EMAIL}
+            </a>
+          </p>
         </div>
       </body>
     </html>

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { SUPPORT_EMAIL } from "@/lib/constants";
+import { SupportLine } from "@/components/shared/support-link";
 import { clearsAutobuyGuard } from "@/lib/billing/autobuy-guard";
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -566,6 +567,16 @@ function BillingInner() {
       {error && (
         <div className="mb-5 rounded-lg border border-danger/30 bg-danger/[0.08] px-4 py-3 text-sm text-danger">
           {error}
+          {/* This is the money screen: every failure here needs a route to a
+              human, not just a retry. The blocked-checkout copy already names
+              the address inline, so don't print it twice. */}
+          {!error.includes(SUPPORT_EMAIL) && (
+            <SupportLine
+              className="mt-2 text-danger/80"
+              lead="Need a hand?"
+              subject="K53 Mentor — a billing problem"
+            />
+          )}
         </div>
       )}
 

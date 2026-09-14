@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { SupportLink } from "@/components/shared/support-link";
 import { cn, glass } from "@/lib/utils";
 
 export const metadata = { title: "Page not found" };
@@ -28,6 +29,12 @@ export default function NotFound() {
             Back to home
           </Link>
         </div>
+        {/* A 404 someone reached from inside the app is usually our broken
+            link, not their typo — so give them somewhere to say so. */}
+        <p className="mt-6 text-xs text-muted-foreground">
+          Followed a link from inside the app to get here? Tell us at{" "}
+          <SupportLink subject="K53 Mentor — a link is broken" /> and we&apos;ll fix it.
+        </p>
       </div>
     </div>
   );

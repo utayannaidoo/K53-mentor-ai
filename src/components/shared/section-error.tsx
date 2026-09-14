@@ -2,6 +2,8 @@
 
 import { useEffect } from "react";
 import { reportError } from "@/lib/report-error";
+import { SupportLine } from "@/components/shared/support-link";
+import { ClearLocalData } from "@/components/shared/clear-local-data";
 import { cn, glass } from "@/lib/utils";
 
 /**
@@ -39,6 +41,13 @@ export function SectionError({
         >
           Try again
         </button>
+        <SupportLine
+          className="mt-5"
+          lead="Still broken after a retry?"
+          subject={`K53 Mentor — ${label} hit a snag`}
+          reference={error.digest}
+        />
+        <ClearLocalData className="mt-3 block w-full" />
       </div>
     </div>
   );
