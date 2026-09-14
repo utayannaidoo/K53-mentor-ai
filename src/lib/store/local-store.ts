@@ -134,14 +134,62 @@ export function applySignIn(state: UserState, name: string, email: string): User
   };
 }
 
+/** Array vs plain object vs anything else — the distinction that decides
+ *  whether `.filter`, `.map` or `[key]` exists on a value. */
+function kindOf(v: unknown): "array" | "object" | "other" {
+  if (Array.isArray(v)) return "array";
+  if (v !== null && typeof v === "object") return "object";
+  return "other";
+}
+
+/**
+ * Drop any field whose saved value disagrees with the shape its default
+ * declares, keeping the default instead.
+ *
+ * The try/catch in {@link loadState} only ever guarded `JSON.parse`. A record
+ * that parses but is structurally wrong — `attempts` arriving as a string, say
+ * — sailed through the shallow merge and threw later, inside render, as
+ * `state.attempts.filter is not a function`. That is not a broken page: the
+ * store is mounted by the (app) layout, so it takes down every route at once,
+ * including /account, where the reset button that would have fixed it lives.
+ * Both error-boundary buttons then re-read the same record and crash again, so
+ * there is no way out of it from inside the browser. (`ClearLocalData` on the
+ * boundaries is the last resort for a cause this cannot anticipate.)
+ *
+ * Shapes are read off `defaultUserState()` rather than listed here, so a field
+ * added later is covered without anyone remembering to come back. A corrupted
+ * slice then costs that slice, not the account.
+ *
+ * Order matters: this runs before the migration steps below, several of which
+ * spread a saved field into an object literal. `{ ...defaults.streak,
+ * ...merged.streak }` over a string `streak` yields `{ 0: "x" }` rather than
+ * throwing, which would bank the nonsense instead of repairing it.
+ */
+function withSaneShapes(merged: UserState, defaults: UserState): UserState {
+  for (const key of Object.keys(defaults) as (keyof UserState)[]) {
+    const fallback = defaults[key];
+    const want = kindOf(fallback);
+    // Only an array or object default declares a shape worth checking. A
+    // primitive or null default (version, tier, profile, …) says nothing about
+    // what the saved value must be, and nothing dereferences those the way
+    // that throws.
+    if (want === "other") continue;
+    if (kindOf(merged[key]) !== want) {
+      (merged as unknown as Record<string, unknown>)[key] = fallback;
+    }
+  }
+  return merged;
+}
+
 export function loadState(): UserState {
   if (typeof window === "undefined") return defaultUserState();
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaultUserState();
     const parsed = JSON.parse(raw) as UserState;
-    // Shallow-merge against defaults so new fields don't break old saves.
-    const merged = { ...defaultUserState(), ...parsed };
+    // Shallow-merge against defaults so new fields don't break old saves, then
+    // discard anything whose shape can't be what the app is about to assume.
+    const merged = withSaneShapes({ ...defaultUserState(), ...parsed }, defaultUserState());
     // v1 → v2: grant Confidence Points for everything already done (endowed
     // progress — an existing user's first sight of CP is their banked work).
     if ((parsed.version ?? 1) < 2) {

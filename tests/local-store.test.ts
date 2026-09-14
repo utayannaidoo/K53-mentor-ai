@@ -256,6 +256,53 @@ describe("celebration queue is ephemeral", () => {
     });
   });
 
+  // A blob that parses but is structurally wrong used to take down every route
+  // at once — the store is mounted by the (app) layout, so `attempts` arriving
+  // as a string threw inside render on /account too, where the only reset
+  // button lives, and both error-boundary buttons re-read the same record.
+  it("loadState replaces fields whose saved shape can't be used", () => {
+    const corrupt = {
+      ...defaultUserState(),
+      version: 4,
+      attempts: "not-an-array",
+      cardStates: "not-an-object",
+      mockExams: 42,
+      dailyUsage: [],
+      achievements: null,
+    };
+    withStoredBlob(corrupt, () => {
+      const loaded = loadState();
+      expect(Array.isArray(loaded.attempts)).toBe(true);
+      expect(loaded.attempts).toEqual([]);
+      expect(loaded.cardStates).toEqual({});
+      expect(loaded.mockExams).toEqual([]);
+      // An array where an object belongs is just as wrong — `dailyUsage[key]`
+      // would read undefined off it forever rather than throw, which is worse.
+      expect(Array.isArray(loaded.dailyUsage)).toBe(false);
+      expect(loaded.dailyUsage).toEqual({});
+      expect(loaded.achievements).toEqual({});
+    });
+  });
+
+  it("loadState keeps good data beside a corrupted field", () => {
+    const partly = {
+      ...defaultUserState(),
+      version: 4,
+      cp: 240,
+      tier: "premium" as const,
+      achievements: { volume: 1 },
+      attempts: "wrecked",
+    };
+    withStoredBlob(partly, () => {
+      const loaded = loadState();
+      expect(loaded.attempts).toEqual([]);
+      // Losing one slice must not cost the account its plan or its progress.
+      expect(loaded.cp).toBe(240);
+      expect(loaded.tier).toBe("premium");
+      expect(loaded.achievements).toEqual({ volume: 1 });
+    });
+  });
+
   it("saveState strips unseen celebrations but keeps what was banked", () => {
     withWritableStorage((store) => {
       const state = defaultUserState();
