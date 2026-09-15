@@ -3,10 +3,29 @@ import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-// Test-only PostgreSQL WASM runtime, installed outside the app. CI may set
+// Test-only PostgreSQL WASM runtime, installed outside the app. CI sets
 // PARTNER_SQL_RUNTIME to its module path; no production dependency is added.
 const runtime = process.env.PARTNER_SQL_RUNTIME ?? join(tmpdir(), "k53-partner-sql/node_modules/@electric-sql/pglite/dist/index.js");
 export const hasPartnerDb = existsSync(runtime);
+
+/**
+ * Every test of the commission rules is `describe.skipIf(!hasPartnerDb)`, which
+ * means a missing runtime does not fail the suite — it makes the money tests
+ * *vacuously pass*. The default path is under the OS temp directory, which is
+ * cleared routinely, so "the suite is green" and "R20 is provably correct" can
+ * quietly stop being the same statement, on a developer machine and in CI alike.
+ *
+ * So CI sets PARTNER_SQL_REQUIRED=1 and this throws instead. A workflow that
+ * fails to install the runtime now goes red at import, rather than reporting a
+ * clean run in which nothing about the payout path was ever executed.
+ */
+if (process.env.PARTNER_SQL_REQUIRED === "1" && !hasPartnerDb) {
+  throw new Error(
+    `PARTNER_SQL_REQUIRED=1 but no Postgres runtime exists at ${runtime}. ` +
+      "The partner money tests would have skipped silently. Install the runtime " +
+      "(see the 'partner SQL runtime' step in .github/workflows/ci.yml) or unset the variable.",
+  );
+}
 export interface TestDb {
   exec(sql: string): Promise<unknown>;
   query<T = Record<string, unknown>>(sql: string, args?: unknown[]): Promise<{ rows: T[] }>;
@@ -26,7 +45,11 @@ export async function partnerDb(): Promise<TestDb> {
     grant select on public.profiles to authenticated;
     grant insert(id),update(id) on public.profiles to authenticated;
   `);
-  await db.exec(readFileSync("supabase/migrations/0033_driving_school_partners.sql", "utf8"));
+  // Every partner migration, in order — a test that only loads 0033 would
+  // verify rules that production no longer runs.
+  for (const file of ["0033_driving_school_partners.sql", "0034_partner_payout_offset.sql"]) {
+    await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
+  }
   return db;
 }
 export const school = "10000000-0000-0000-0000-000000000001";
