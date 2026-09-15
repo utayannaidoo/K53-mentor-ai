@@ -7,6 +7,7 @@ import { ArrowLeft, ArrowRight, Bike, Car, Gauge, GraduationCap, Layers } from "
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SchoolReferralField } from "@/components/account/school-referral";
 import { OptionCard } from "@/components/onboarding/option-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { track } from "@/lib/analytics";
@@ -291,6 +292,7 @@ export function OnboardingWizard() {
                   />
                 )}
 
+                <SchoolReferralField />
                 <div>
                   <Button
                     size="lg"

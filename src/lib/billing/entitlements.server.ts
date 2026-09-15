@@ -186,10 +186,10 @@ export async function isWithinFreeTrial(userId: string, now = Date.now()): Promi
   try {
     const { data } = await admin
       .from("profiles")
-      .select("onboarded_at,created_at")
+      .select("onboarded_at,created_at,trial_bonus_days")
       .eq("id", userId)
       .maybeSingle();
-    const row = data as { onboarded_at: string | null; created_at: string | null } | null;
+    const row = data as { onboarded_at: string | null; created_at: string | null; trial_bonus_days?: number } | null;
     if (!row) return true;
 
     const started = [row.created_at, row.onboarded_at]
@@ -197,7 +197,8 @@ export async function isWithinFreeTrial(userId: string, now = Date.now()): Promi
       .filter((t) => Number.isFinite(t));
     if (started.length === 0) return true;
 
-    return now - Math.min(...started) < days * DAY_MS;
+    const bonus = row.trial_bonus_days === 7 ? 7 : 0;
+    return now - Math.min(...started) < (days + bonus) * DAY_MS;
   } catch {
     return true;
   }

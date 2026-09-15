@@ -15,6 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { QuickProfileEdit, GOAL_LABEL } from "@/components/account/quick-profile-edit";
 import { EmailRemindersToggle } from "@/components/account/email-reminders-toggle";
 import { InviteCard } from "@/components/account/invite-card";
+import { SchoolReferralField } from "@/components/account/school-referral";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { useDataSaver } from "@/hooks/use-data-saver";
 import { OfflinePackRow } from "@/components/content/offline-pack-row";
@@ -292,6 +293,7 @@ function AccountInner() {
       />
 
       <InviteCard />
+      <SchoolReferralField />
 
       {/*
         The app shell renders no footer, so /contact — which only the marketing

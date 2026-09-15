@@ -9,7 +9,7 @@ import { achievementInputs, evaluateAchievements } from "@/lib/achievements";
 export type AccountFields = Partial<
   Pick<
     UserState,
-    "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence" | "diagnosticSkippedAt"
+    "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence" | "diagnosticSkippedAt" | "trialBonusDays" | "hasEverPaid"
   >
 >;
 
@@ -32,6 +32,10 @@ export function hydrateAccountState(
   const base = differentAccount ? defaultUserState() : current;
 
   let next: UserState = { ...base, ...account, ownerEmail: userEmail ?? base.ownerEmail };
+  // A school claim can finish before the initial account read returns. This
+  // immutable reward must not disappear when that older response arrives.
+  next.trialBonusDays = Math.max(base.trialBonusDays ?? 0, account.trialBonusDays ?? 0);
+  next.hasEverPaid = base.hasEverPaid || (account.hasEverPaid ?? false);
   // The streak is resolved against today the moment it lands — login is where
   // a returning learner first sees it, so a run that broke while they were
   // away must read as restarted here, not after their first attempt.
