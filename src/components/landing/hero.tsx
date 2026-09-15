@@ -126,14 +126,18 @@ export function Hero() {
 
             <div className="flex-1">
               <div className="text-xs font-medium text-muted-foreground">
-                Full mock target
+                Predicted pass probability
               </div>
               <div className="mt-[5px] font-mono text-[22px] font-semibold text-success">
-                3/3 sections
+                <CountUp value={82} suffix="%" />
               </div>
 
               <div className="mt-3.5 flex flex-col gap-[9px]">
                 {[
+                  // The learner's test's three sections, in the order the app
+                  // names them (SECTION_LABEL) — the mock's results table and
+                  // this card are the same three sections and must agree.
+                  { label: "Vehicle controls", value: 75, bar: "from-primary to-success" },
                   { label: "Road signs", value: 64, bar: "from-warning to-accent" },
                   { label: "Rules of the road", value: 88, bar: "from-primary to-success" },
                 ].map((m) => (
