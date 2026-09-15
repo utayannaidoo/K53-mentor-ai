@@ -62,6 +62,8 @@ export function defaultUserState(): UserState {
     ownerEmail: null,
     onboarding: null,
     tier: "free",
+    trialBonusDays: 0,
+    hasEverPaid: false,
     diagnostics: [],
     cardStates: {},
     attempts: [],

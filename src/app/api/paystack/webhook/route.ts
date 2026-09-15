@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { voidSchoolCommission } from "@/lib/partners/commission";
 import {
   manageSubscriptionLink,
   verifyPaystackSignature,
@@ -322,6 +323,7 @@ export async function POST(req: Request) {
           status?: string;
         };
         const customerCode = data.customer?.customer_code;
+        if (data.transaction?.reference) await voidSchoolCommission(admin, data.transaction.reference, "charge.dispute.create");
         console.error(
           "[dispute] chargeback opened",
           JSON.stringify({
@@ -386,6 +388,7 @@ export async function POST(req: Request) {
         };
         const reference = data.transaction?.reference ?? data.transaction_reference;
         if (!reference) break;
+        await voidSchoolCommission(admin, reference, "refund.processed");
 
         let applied = false;
         try {

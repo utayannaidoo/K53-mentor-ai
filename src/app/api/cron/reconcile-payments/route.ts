@@ -4,6 +4,8 @@ import { isPaystackConfigured } from "@/lib/env";
 import { listTransactions } from "@/lib/paystack/client";
 import { applyChargeOnce, normaliseTransaction } from "@/lib/paystack/apply";
 import { processPendingRefunds } from "@/lib/billing/pending-refunds";
+import { matureSchoolCommissions } from "@/lib/partners/commission";
+import { sendMonthlyStatements } from "@/lib/partners/statement-email";
 
 export const runtime = "nodejs";
 // Pages through Paystack sequentially and may apply several grants; take the
@@ -128,8 +130,17 @@ export async function GET(req: Request) {
     console.error("[refunds] retry pass crashed (rows keep their state)", err);
   }
 
+  const commissionsMatured = await matureSchoolCommissions(admin);
+  // After maturing, so a school's statement reflects what became payable
+  // tonight rather than last night's figures.
+  const statementsSent = await sendMonthlyStatements(admin).catch((err) => {
+    console.error("[partners] monthly statements crashed", err);
+    return 0;
+  });
   return Response.json({
     ok: true,
+    commissionsMatured,
+    statementsSent,
     windowDays: LOOKBACK_DAYS,
     scanned,
     repaired,

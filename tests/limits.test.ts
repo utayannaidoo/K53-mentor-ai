@@ -42,6 +42,12 @@ function startedDaysAgo(daysAgo: number): UserState {
 }
 
 describe("mocksRemaining", () => {
+  it("keeps the school trial daily allowances through day fourteen", () => {
+    const state = { ...startedDaysAgo(9), trialBonusDays: 7 };
+    expect(trialDaysRemaining(state)).toBe(5);
+    expect(trialExhausted(state)).toBe(false);
+    expect(poolRemaining(state, "tutor")).toBe(PLAN_MAP.free.limits.tutorMessages);
+  });
   it("free: one full mock over the whole free week", () => {
     const s = startedDaysAgo(1);
     expect(mocksRemaining(s, "full")).toBe(1);

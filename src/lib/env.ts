@@ -225,3 +225,31 @@ export const OPENAI_MODELS = {
   fast: process.env.OPENAI_MODEL_FAST ?? "gpt-4o-mini",
   smart: process.env.OPENAI_MODEL_SMART ?? "gpt-4o",
 };
+
+/**
+ * Boot audit for the driving-school partner programme.
+ *
+ * Both gaps below are silent in normal use and only surface at the worst
+ * moment: the first time the owner tries to open /admin, and the first time a
+ * school is emailed a statement link that resolves to a 404. Logged once per
+ * server instance alongside the Paystack Plan-code audit in the checkout route.
+ *
+ * Deliberately not a throw. Neither of these affects a learner or a payment —
+ * commissions keep accruing correctly with both unset — so refusing to boot
+ * over them would take the whole product down to protect an internal screen.
+ */
+export function auditPartnerConfig() {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
+  if (!process.env.ADMIN_EMAILS) {
+    console.error(
+      "[partners] ADMIN_EMAILS is not set, so nobody can open /admin and no partner " +
+        "can be paid. Commissions still accrue correctly in the meantime.",
+    );
+  }
+  if (!process.env.PARTNER_SECRET && !process.env.CRON_SECRET) {
+    console.error(
+      "[partners] Neither PARTNER_SECRET nor CRON_SECRET is set, so school statement " +
+        "links cannot be signed. Schools will have no way to see their own numbers.",
+    );
+  }
+}

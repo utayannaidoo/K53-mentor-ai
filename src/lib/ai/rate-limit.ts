@@ -372,6 +372,7 @@ export const ACCOUNT_DAILY_LIMIT = {
   /** Referral claims. The GET stays IP-limited only — it is a cheap read the
    *  dashboard makes on load, and a per-user cap there would break heavy use. */
   referral_claim: 20,
+  school_claim: 20,
 } as const;
 
 /**

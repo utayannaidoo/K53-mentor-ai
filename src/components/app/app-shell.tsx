@@ -67,6 +67,8 @@ const NAV: NavItem[] = [
 // promising the old numbers.
 const PREMIUM_UPSELL = `Unlock ${PLAN_MAP.premium.limits.questions} questions, ${PLAN_MAP.premium.limits.flashcards} flashcards, tutor help and scenarios each day.`;
 
+import { SchoolReferralConfirmation } from "@/components/account/school-referral";
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { ready, accountHydrated, isAuthed, state } = useStudyStore();
   const router = useRouter();
@@ -194,6 +196,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               input under the nav. The nudge matters most on the study hub,
               least on an immersive chat surface — hide it there. */}
           {pathname !== "/tutor" && <StreakBanner />}
+          {pathname !== "/tutor" && <SchoolReferralConfirmation />}
           {children}
         </main>
         <RankUpToast />

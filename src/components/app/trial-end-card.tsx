@@ -56,14 +56,15 @@ export function TrialEndCard({
 
   const allDone = trialExhausted(state);
   const daysLeft = trialDaysRemaining(state);
+  const trialLabel = state.trialBonusDays > 0 ? "free trial" : "free week";
   const remainingPools = (["questions", "flashcards", "tutor"] as TrialPool[]).filter(
     (p) => p !== feature && poolRemaining(state, p) > 0,
   );
   const headline = allDone
-    ? "Your free week is over"
+    ? `Your ${trialLabel} is over`
     : feature
       ? `That's today's free ${POOL_NOUN[feature]}`
-      : "Your free week";
+      : `Your ${trialLabel}`;
   // Hitting a daily cap is no longer the end of anything — say so, or the
   // learner reads a temporary limit as a permanent wall and churns.
   const remainingLine =
@@ -78,7 +79,7 @@ export function TrialEndCard({
           // the learner reads "free week is over" as a locked door.
           `${afterTrialCap("questions")} questions and ${afterTrialCap("flashcards")} flashcards stay free every day.`
         : Number.isFinite(daysLeft)
-          ? `Your allowance refills tomorrow — ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left of your free week.`
+          ? `Your allowance refills tomorrow — ${daysLeft} ${daysLeft === 1 ? "day" : "days"} left of your ${trialLabel}.`
           : null,
     ]
       .filter(Boolean)
