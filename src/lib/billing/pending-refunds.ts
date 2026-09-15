@@ -1,4 +1,5 @@
 import "server-only";
+import { voidMoneyBackCommission } from "@/lib/billing/subscription-cancel";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { refundTransaction, verifyTransaction } from "@/lib/paystack/client";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
@@ -267,6 +268,7 @@ async function markAttempt(admin: Admin, id: string, attempts: number, lastError
  * tier because of the old refund would take away something they paid for.
  */
 async function downgradeIfStillCurrentCharge(admin: Admin, row: PendingRefundRow) {
+  await voidMoneyBackCommission(admin, row.transaction_reference);
   const { error } = await admin
     .from("subscriptions")
     .update({

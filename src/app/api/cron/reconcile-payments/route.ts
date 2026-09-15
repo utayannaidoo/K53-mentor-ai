@@ -4,6 +4,7 @@ import { isPaystackConfigured } from "@/lib/env";
 import { listTransactions } from "@/lib/paystack/client";
 import { applyChargeOnce, normaliseTransaction } from "@/lib/paystack/apply";
 import { processPendingRefunds } from "@/lib/billing/pending-refunds";
+import { matureSchoolCommissions } from "@/lib/partners/commission";
 
 export const runtime = "nodejs";
 // Pages through Paystack sequentially and may apply several grants; take the
@@ -128,8 +129,10 @@ export async function GET(req: Request) {
     console.error("[refunds] retry pass crashed (rows keep their state)", err);
   }
 
+  const commissionsMatured = await matureSchoolCommissions(admin);
   return Response.json({
     ok: true,
+    commissionsMatured,
     windowDays: LOOKBACK_DAYS,
     scanned,
     repaired,

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/lib/ai/rate-limit";
 import { refundTransaction } from "@/lib/paystack/client";
-import { disableActiveSubscriptions, refundBlockedReason } from "@/lib/billing/subscription-cancel";
+import { disableActiveSubscriptions, refundBlockedReason, voidMoneyBackCommission } from "@/lib/billing/subscription-cancel";
 import { queuePendingRefund } from "@/lib/billing/pending-refunds";
 import { REFUND_PROCESSING_DAYS, PLAN_MAP } from "@/lib/billing/plans";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
@@ -214,6 +214,7 @@ export async function POST(req: Request) {
           customerNote: "Full refund of your most recent K53 Mentor payment.",
         });
         refunded = true;
+        await voidMoneyBackCommission(admin, refundTarget);
       } catch (err) {
         // Named loudly and WITH the reference: in live mode the usual refusal is
         // an account-level condition (insufficient balance after settlement

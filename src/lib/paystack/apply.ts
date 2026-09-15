@@ -1,4 +1,5 @@
 import "server-only";
+import { earnSchoolCommission } from "@/lib/partners/commission";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildPaymentReceiptEmail, buildPriceMismatchAlertEmail } from "@/lib/notify/templates";
@@ -366,6 +367,7 @@ export async function applyChargeSuccess(
     { onConflict: "user_id" },
   );
   if (grantError) throw new Error(`applyChargeSuccess: tier grant failed: ${grantError.message}`);
+  await earnSchoolCommission(admin, userId, data.reference, plan, meta.cycle ?? "monthly");
 
   // NOTE: `profiles.vehicle_code` is deliberately NOT touched here. One plan
   // covers every licence code, so paying changes what the learner can do, never
