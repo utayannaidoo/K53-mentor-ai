@@ -12,7 +12,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 const DAY_MS = 86_400_000;
 
 let subscriptionRow: { tier: string; status: string } | null = null;
-let profileRow: { onboarded_at: string | null; created_at: string | null } | null = null;
+let profileRow: { onboarded_at: string | null; created_at: string | null; trial_bonus_days?: number } | null = null;
 let adminAvailable = true;
 
 const singleRow = <T>(row: T) => ({
@@ -92,6 +92,11 @@ beforeEach(() => {
 });
 
 describe("coach spend follows the trial", () => {
+  it("uses the real coach on day ten after a school trial extension", async () => {
+    profileRow = { onboarded_at: null, created_at: new Date(Date.now()-9*DAY_MS).toISOString(), trial_bonus_days: 7 };
+    expect((await askRecap()).status).toBe(200);
+    expect(completeCoachText).toHaveBeenCalledTimes(1);
+  });
   it("calls the provider inside the free week", async () => {
     const res = await askRecap();
     expect(res.status).toBe(200);

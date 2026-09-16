@@ -25,7 +25,17 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
+      # The partner commission tests run against a real Postgres (WASM,
+      # test-only, installed outside the app so no production dependency is
+      # added). Without it they skip themselves and every money invariant —
+      # flat R20, the refund reversal, the payout — passes without executing.
+      # PARTNER_SQL_REQUIRED below turns that silent skip into a failure.
+      - name: Install the partner SQL runtime
+        run: npm install --prefix "$RUNNER_TEMP/k53-partner-sql" @electric-sql/pglite --no-save --no-audit --no-fund
       - run: npm test
+        env:
+          PARTNER_SQL_REQUIRED: "1"
+          PARTNER_SQL_RUNTIME: ${{ runner.temp }}/k53-partner-sql/node_modules/@electric-sql/pglite/dist/index.js
       - run: npm run build
       # Needs the build: axe runs over the prerendered HTML in .next.
       - run: npm run test:a11y

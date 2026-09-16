@@ -437,6 +437,26 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       } catch {
         /* private mode */
       }
+      // Independent of k53.ref: one signup may receive both rewards. Clear
+      // before requesting, then refresh after completion so the first hydrate
+      // racing the RPC cannot leave a seven-day banner on a fourteen-day trial.
+      try {
+        const school = window.localStorage.getItem("k53.school");
+        if (school) {
+          window.localStorage.removeItem("k53.school");
+          void fetch("/api/partners/claim", {
+            method: "POST", headers: { "content-type": "application/json" },
+            body: JSON.stringify({ code: school, source: "link" }),
+          }).then(async (res) => {
+            const result = await res.json();
+            if (!result.ok || cancelled) return;
+            window.sessionStorage.setItem("k53.school.confirmation", result.message);
+            window.dispatchEvent(new Event("k53:school-claimed"));
+            const account = await loadAccount(supabase, user);
+            if (!cancelled) setState((s) => hydrateAccountState(s, account, null, user.email ?? null));
+          }).catch(() => {});
+        }
+      } catch { /* private mode */ }
       try {
         // Account rows + the server's copy of study history in one round.
         const [account, progress] = await Promise.all([

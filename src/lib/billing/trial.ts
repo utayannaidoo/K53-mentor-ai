@@ -51,7 +51,7 @@ function trialStartedAt(state: UserState): number | null {
  */
 export function trialDaysRemaining(state: UserState, now = Date.now()): number {
   if (state.tier !== "free") return Infinity;
-  const days = PLAN_MAP.free.limits.trialDays ?? FREE_TRIAL_DAYS;
+  const days = (PLAN_MAP.free.limits.trialDays ?? FREE_TRIAL_DAYS) + (state.trialBonusDays === 7 ? 7 : 0);
   const started = trialStartedAt(state);
   // Nothing to anchor on yet (fresh device, wizard not finished) — treat the
   // week as untouched rather than expired. Never wall someone by accident.

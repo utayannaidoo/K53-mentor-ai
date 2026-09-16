@@ -23,6 +23,7 @@ const GROUPS = [
       { href: "/guides", label: "Guides" },
       { href: "/#faq", label: "FAQ" },
       { href: "/#how", label: "How it works" },
+      { href: "/for-driving-schools", label: "For driving schools" },
       { href: "/login", label: "Log in" },
     ],
   },

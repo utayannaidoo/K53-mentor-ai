@@ -212,6 +212,13 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
         /* private mode */
       }
     }
+    const school = new URLSearchParams(window.location.search).get("school");
+    if (school && /^[a-z0-9-]{6,16}$/i.test(school)) {
+      try {
+        // First touch wins, including while the learner has not signed in yet.
+        if (!window.localStorage.getItem("k53.school")) window.localStorage.setItem("k53.school", school.toLowerCase());
+      } catch { /* private mode */ }
+    }
   }, []);
 
   /** Where Supabase should send someone after they click an emailed link. */

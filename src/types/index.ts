@@ -377,6 +377,9 @@ export interface UserState {
   ownerEmail: string | null;
   onboarding: OnboardingData | null;
   tier: SubscriptionTier;
+  /** Server-owned school trial reward; local copy is display-only. */
+  trialBonusDays: number;
+  hasEverPaid: boolean;
   diagnostics: DiagnosticResult[];
   cardStates: Record<string, CardState>;
   attempts: QuestionAttempt[];

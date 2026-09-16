@@ -825,3 +825,76 @@ export function buildPlanEmail(input: {
       : {}),
   };
 }
+
+/**
+ * A driving school applied from /for-driving-schools. Internal alert — the
+ * school itself gets nothing until a human activates it in /admin and a code
+ * is issued, so this is the only thing that happens automatically.
+ */
+export function buildPartnerApplicationEmail(input: {
+  name: string;
+  contactName: string;
+  contactEmail: string;
+  contactPhone: string | null;
+  town: string | null;
+  learnersPerMonth: string | null;
+}): EmailContent {
+  const subject = `[K53 partners] ${input.name} applied`;
+  const lines = [
+    `A driving school applied to the referral programme.`,
+    ``,
+    `School:   ${input.name}`,
+    `Contact:  ${input.contactName}`,
+    `Email:    ${input.contactEmail}`,
+    `Phone:    ${input.contactPhone ?? "not given"}`,
+    `Town:     ${input.town ?? "not given"}`,
+    `Learners: ${input.learnersPerMonth ?? "not given"} per month`,
+    ``,
+    `It was created as PENDING, with no code. Nothing can be attributed or earned`,
+    `until you activate it in /admin/schools and issue a code.`,
+  ];
+  const html =
+    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
+    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
+  return { subject, html, text: lines.join("\n") };
+}
+
+/**
+ * A school's monthly statement. Deliberately thin: counts, money, and the link
+ * to its own live page. Nothing here identifies a learner — see
+ * `src/lib/partners/statement.ts` for why that boundary is in the query rather
+ * than in the template.
+ */
+export function buildPartnerStatementEmail(input: {
+  schoolName: string;
+  contactName: string;
+  signedUp: number;
+  converted: number;
+  pendingCents: number;
+  payableCents: number;
+  paidCents: number;
+  statementUrl: string;
+}): EmailContent {
+  const money = (cents: number) => `R${(cents / 100).toFixed(2)}`;
+  const first = input.contactName.trim().split(/\s+/)[0] || "there";
+  const subject = `Your K53 Mentor referrals — ${input.converted} subscribed`;
+  const body = [
+    `Hi ${first},`,
+    `Here's how ${input.schoolName} is doing on the K53 Mentor referral programme.`,
+    `${input.signedUp} learner${input.signedUp === 1 ? "" : "s"} signed up with your code, and ${input.converted} subscribed.`,
+    `${money(input.payableCents)} is ready to be paid, ${money(input.pendingCents)} is still in its 8-day hold, and ${money(input.paidCents)} has been paid to you so far.`,
+    `Your live numbers are always on your statement page — no login needed.`,
+  ];
+  const html = wrap(
+    body
+      .map(
+        (line, i) =>
+          `<p style="font-size:${i === 0 ? 15 : 14}px;line-height:1.6;color:#1d2724;margin:0 0 12px;">${esc(line)}</p>`,
+      )
+      .join(""),
+    "View your statement",
+    input.statementUrl,
+    "transactional",
+  );
+  return { subject, html, text: `${body.join("\n\n")}\n\n${input.statementUrl}` };
+}
