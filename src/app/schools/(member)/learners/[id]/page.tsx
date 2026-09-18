@@ -22,6 +22,9 @@ import { formatRand, learnerBalance, packageChoices, packageUsage } from "@/lib/
 import { PaymentList } from "@/components/schools/payment-list";
 import { RecordPaymentForm } from "@/components/schools/record-payment-form";
 import { sellPackage, setPackageStatus } from "@/app/schools/money-actions";
+import { learnerTestResults } from "@/lib/schools/pipeline";
+import { TEST_DOCUMENTS } from "@/lib/schools/test-day";
+import { recordTestResult, setDocuments } from "@/app/schools/enquiry-actions";
 import { longDay, schoolDay, clockTime } from "@/lib/schools/time";
 import {
   LICENCE_LABEL,
@@ -61,7 +64,7 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
   if (!detail) notFound();
   const { learner, lessons } = detail;
 
-  const [instructors, vehicles, learners, progress, focus, ledger, takenBy] = await Promise.all([
+  const [instructors, vehicles, learners, progress, focus, ledger, takenBy, results] = await Promise.all([
     schoolInstructors(school),
     schoolVehicles(school),
     schoolLearners(school),
@@ -69,7 +72,9 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
     latestFocus(school, learner.id),
     learnerLedger(school, learner.id),
     memberNamesByUser(school),
+    learnerTestResults(school, learner.id),
   ]);
+  const haveDocs = new Set(learner.documents ?? []);
   const balance = learnerBalance(learner.id, ledger.packages, ledger.payments, ledger.lessons).balanceCents;
   const choices = packageChoices(ledger.packages, ledger.lessons, new Map(), learner.id);
   const canCorrect = school.access === "full" && school.role !== "instructor";
@@ -210,6 +215,109 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
             );
           })}
         </Card>
+      </div>
+
+      {/* ── Test day ────────────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-display text-base font-semibold">Test day</h2>
+          <p className="text-sm text-muted-foreground">
+            {learner.test_date
+              ? `${formatDate(learner.test_date)}${learner.test_centre ? ` · ${learner.test_centre}` : ""}`
+              : "No test booked"}
+          </p>
+        </div>
+        <Card className={cn(glass, "p-5")}>
+          {canWrite ? (
+            <ActionForm action={setDocuments} submitLabel="Save checklist" variant="secondary" resetOnSuccess={false}>
+              <input type="hidden" name="learner_id" value={learner.id} />
+              <fieldset className="space-y-1">
+                <legend className="mb-1 text-2xs uppercase tracking-wide text-muted-foreground">
+                  Bring on the day · {haveDocs.size} of {TEST_DOCUMENTS.length} ready
+                </legend>
+                {TEST_DOCUMENTS.map((doc) => (
+                  <label key={doc.id} className="flex min-h-10 cursor-pointer items-center gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      name="documents"
+                      value={doc.id}
+                      defaultChecked={haveDocs.has(doc.id)}
+                      className="size-5 shrink-0 accent-primary"
+                    />
+                    <span>{doc.label}</span>
+                  </label>
+                ))}
+              </fieldset>
+            </ActionForm>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {haveDocs.size} of {TEST_DOCUMENTS.length} documents ready.
+            </p>
+          )}
+        </Card>
+
+        {results.length > 0 ? (
+          <Card className={cn(glass, "divide-y divide-border/50")}>
+            {results.map((r) => (
+              <div key={r.id} className="p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="min-w-0 flex-1 font-medium">
+                    {r.test_type === "drivers" ? "Driver’s test" : "Learner’s test"}
+                  </span>
+                  <Badge variant={r.result === "passed" ? "success" : "danger"}>{r.result}</Badge>
+                </div>
+                <p className="mt-1 text-2xs text-muted-foreground">
+                  {[formatDate(r.taken_on), r.centre, r.notes].filter(Boolean).join(" · ")}
+                </p>
+              </div>
+            ))}
+          </Card>
+        ) : null}
+
+        {canWrite ? (
+          <details className="group">
+            <summary className="cursor-pointer list-none">
+              <span className={cn(buttonVariants({ variant: "secondary" }), "press")}>Record a test result</span>
+            </summary>
+            <Card className={cn(glass, "mt-3 p-5")}>
+              <ActionForm action={recordTestResult} submitLabel="Record result" pendingLabel="Saving…">
+                <input type="hidden" name="learner_id" value={learner.id} />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <SelectField
+                    label="Test"
+                    name="test_type"
+                    defaultValue={learner.stage === "learners" ? "learners" : "drivers"}
+                    options={[
+                      { value: "drivers", label: "Driver’s licence" },
+                      { value: "learners", label: "Learner’s licence" },
+                    ]}
+                  />
+                  <SelectField
+                    label="Result"
+                    name="result"
+                    defaultValue="passed"
+                    options={[
+                      { value: "passed", label: "Passed" },
+                      { value: "failed", label: "Failed" },
+                    ]}
+                  />
+                  <Field label="Date" name="taken_on" type="date" defaultValue={learner.test_date ?? today} required />
+                  <Field label="Testing centre" name="centre" defaultValue={learner.test_centre} />
+                  <SelectField
+                    label="Prepared by"
+                    name="instructor_id"
+                    defaultValue={learner.assigned_instructor_id ?? ""}
+                    options={[
+                      { value: "", label: "—" },
+                      ...instructors.map((i) => ({ value: i.id, label: i.displayName })),
+                    ]}
+                  />
+                  <Field label="Notes" name="notes" placeholder="e.g. Rolled back on the incline" />
+                </div>
+              </ActionForm>
+            </Card>
+          </details>
+        ) : null}
       </div>
 
       {/* ── Money ───────────────────────────────────────────────────────── */}

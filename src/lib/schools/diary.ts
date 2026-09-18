@@ -38,7 +38,7 @@ import {
  */
 
 const LEARNER_COLUMNS =
-  "id, first_name, last_name, phone, email, licence_code, stage, status, assigned_instructor_id, test_date, test_centre, notes, created_at";
+  "id, first_name, last_name, phone, email, licence_code, stage, status, assigned_instructor_id, test_date, test_centre, notes, documents, created_at";
 const LESSON_COLUMNS =
   "id, learner_id, instructor_id, vehicle_id, starts_at, ends_at, kind, status, pickup_address, package_id, price_cents";
 const VEHICLE_COLUMNS =

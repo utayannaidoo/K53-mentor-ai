@@ -1,6 +1,7 @@
 import type { SchoolContext } from "@/lib/schools/auth";
 import type { Instructor, Learner, Lesson, LessonModule, LessonNote, Vehicle } from "@/lib/schools/diary-types";
 import type { PackageRow, PaymentRow } from "@/lib/schools/money";
+import type { Enquiry, TestResult } from "@/lib/schools/test-day";
 import { schoolDay, shiftDay, zonedInstant } from "@/lib/schools/time";
 
 /**
@@ -106,6 +107,7 @@ function learner(
     test_date: testDate,
     test_centre: testCentre,
     notes: null,
+    documents: id === "demo-thabo" ? ["id_copy", "learners_licence", "eye_test"] : [],
     created_at: created,
   };
 }
@@ -213,3 +215,57 @@ function payment(
     created_at: `${on}T09:00:00Z`,
   };
 }
+
+/** Two people who asked about lessons, one still waiting for a call back. */
+export const DEMO_ENQUIRIES: Enquiry[] = [
+  {
+    id: "demo-enq1",
+    name: "Lindiwe Zulu",
+    phone: "0827771234",
+    email: null,
+    source: "whatsapp",
+    licence_code: "8",
+    message: "How much for 10 lessons? I have my learner's already.",
+    status: "new",
+    next_follow_up_on: null,
+    converted_learner_id: null,
+    created_at: "2026-09-17T16:20:00Z",
+  },
+  {
+    id: "demo-enq2",
+    name: "Johan Botha",
+    phone: "0763334444",
+    email: null,
+    source: "phone",
+    licence_code: "A",
+    message: "Wants weekend motorbike lessons.",
+    status: "contacted",
+    next_follow_up_on: "2026-09-25",
+    converted_learner_id: null,
+    created_at: "2026-09-12T09:05:00Z",
+  },
+];
+
+/** Kyle passed his driver's on the second attempt. */
+export const DEMO_TEST_RESULTS: TestResult[] = [
+  {
+    id: "demo-tr1",
+    learner_id: "demo-kyle",
+    test_type: "drivers",
+    taken_on: "2026-08-19",
+    centre: "Pinetown",
+    result: "failed",
+    instructor_id: "demo-owner",
+    notes: "Rolled back on the incline start.",
+  },
+  {
+    id: "demo-tr2",
+    learner_id: "demo-kyle",
+    test_type: "drivers",
+    taken_on: "2026-09-02",
+    centre: "Pinetown",
+    result: "passed",
+    instructor_id: "demo-owner",
+    notes: null,
+  },
+];

@@ -5,6 +5,9 @@ import { cn, glass } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 import { currentSchool } from "@/lib/schools/auth";
 import { DEMO_SCHOOL } from "@/lib/schools/demo";
+import { schoolEnquiries } from "@/lib/schools/pipeline";
+import { isDueToday } from "@/lib/schools/test-day";
+import { schoolDay } from "@/lib/schools/time";
 
 export const metadata: Metadata = { title: "More" };
 
@@ -15,7 +18,14 @@ export const metadata: Metadata = { title: "More" };
  */
 export default async function SchoolMore() {
   const school = (isSupabaseConfigured ? await currentSchool() : DEMO_SCHOOL)!;
+  const today = schoolDay(new Date(), school.timezone);
+  const due = (await schoolEnquiries(school, ["new", "contacted"])).filter((e) => isDueToday(e, today)).length;
   const items = [
+    {
+      href: "/schools/enquiries",
+      title: due > 0 ? `Enquiries · ${due} to call back` : "Enquiries",
+      body: "People who asked about lessons and haven’t signed up yet.",
+    },
     {
       href: "/schools/vehicles",
       title: "Vehicles",

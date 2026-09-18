@@ -26,7 +26,7 @@ const TABS: SchoolTab[] = [
     href: "/schools/more",
     label: "More",
     match: "/schools/more",
-    also: ["/schools/vehicles", "/schools/settings"],
+    also: ["/schools/vehicles", "/schools/settings", "/schools/enquiries"],
   },
 ];
 

@@ -28,6 +28,8 @@ export interface Learner {
   test_date: string | null;
   test_centre: string | null;
   notes: string | null;
+  /** Test-day documents already gathered (0039; see test-day.ts). */
+  documents: string[];
   created_at: string;
 }
 
