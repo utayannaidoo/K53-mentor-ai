@@ -1,5 +1,5 @@
 import type { SchoolContext } from "@/lib/schools/auth";
-import type { Instructor, Learner, Lesson, Vehicle } from "@/lib/schools/diary-types";
+import type { Instructor, Learner, Lesson, LessonModule, LessonNote, Vehicle } from "@/lib/schools/diary-types";
 import { schoolDay, shiftDay, zonedInstant } from "@/lib/schools/time";
 
 /**
@@ -131,3 +131,34 @@ function lesson(
     pickup_address: pickup,
   };
 }
+
+/** Thabo's completed morning lesson, recorded the way an instructor would. */
+export const DEMO_NOTES: LessonNote[] = [
+  {
+    lesson_id: "demo-l1",
+    summary: "Good control on the incline. Alley dock still needs three corrections.",
+    next_focus: "Alley docking — find the reference point at the first pole",
+    learner_visible: false,
+    updated_at: created,
+  },
+];
+
+export const DEMO_LESSON_MODULES: Record<string, LessonModule[]> = {
+  "demo-l1": [
+    { module_id: "alley_docking", rating: 2, faults: ["Excessive shunting (more corrections than allowed)"] },
+    { module_id: "incline_start", rating: 3, faults: [] },
+  ],
+};
+
+/** Thabo's grid: the latest rating per manoeuvre across all his lessons. */
+export const DEMO_PROGRESS: Record<string, { module_id: string; rating: 1 | 2 | 3; faults: string[]; lesson_at: string }[]> = {
+  "demo-thabo": [
+    { module_id: "vehicle_inspection", rating: 3, faults: [], lesson_at: created },
+    { module_id: "mirror_blindspot", rating: 3, faults: [], lesson_at: created },
+    { module_id: "moving_off", rating: 3, faults: [], lesson_at: created },
+    { module_id: "incline_start", rating: 3, faults: [], lesson_at: created },
+    { module_id: "parallel_parking", rating: 2, faults: ["Not checking blind spots before reversing"], lesson_at: created },
+    { module_id: "alley_docking", rating: 2, faults: ["Excessive shunting (more corrections than allowed)"], lesson_at: created },
+    { module_id: "three_point_turn", rating: 1, faults: [], lesson_at: created },
+  ],
+};

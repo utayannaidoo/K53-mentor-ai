@@ -9,11 +9,14 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { currentSchool } from "@/lib/schools/auth";
 import { DEMO_SCHOOL } from "@/lib/schools/demo";
 import {
+  latestFocus,
+  learnerProgress,
   learnerWithLessons,
   schoolInstructors,
   schoolLearners,
   schoolVehicles,
 } from "@/lib/schools/diary";
+import { modulesForLicence, RATING_LABEL, readiness, type Rating } from "@/lib/schools/modules";
 import { longDay, schoolDay, clockTime } from "@/lib/schools/time";
 import {
   LICENCE_LABEL,
@@ -35,9 +38,16 @@ export const metadata: Metadata = { title: "Learner" };
  * One learner: who they are, what's next, and everything that has happened.
  *
  * "What's next" leads, because it is the question an instructor asks of this
- * page most — the next lesson, with the car and the pickup. The K53 progress
- * grid and lesson notes join it in the next slice.
+ * page most — the next lesson, with the car, the pickup, and what the last
+ * instructor said it should start with. The K53 grid below it is the latest
+ * rating for every manoeuvre on this learner's licence.
  */
+
+const RATING_VARIANT: Record<Rating, "secondary" | "warning" | "success"> = {
+  1: "secondary",
+  2: "warning",
+  3: "success",
+};
 export default async function LearnerCard({ params }: { params: Promise<{ id: string }> }) {
   const school = (isSupabaseConfigured ? await currentSchool() : DEMO_SCHOOL)!;
   const { id } = await params;
@@ -46,11 +56,16 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
   if (!detail) notFound();
   const { learner, lessons } = detail;
 
-  const [instructors, vehicles, learners] = await Promise.all([
+  const [instructors, vehicles, learners, progress, focus] = await Promise.all([
     schoolInstructors(school),
     schoolVehicles(school),
     schoolLearners(school),
+    learnerProgress(school, learner.id),
+    latestFocus(school, learner.id),
   ]);
+  const catalogue = modulesForLicence(learner.licence_code);
+  const progressById = new Map(progress.map((p) => [p.module_id, p]));
+  const score = readiness(learner.licence_code, progress);
   const upcoming = nextLesson(lessons);
   const name = learnerName(learner);
   const assigned = instructors.find((i) => i.id === learner.assigned_instructor_id);
@@ -98,6 +113,12 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
         ) : (
           <p className="text-sm text-muted-foreground">Nothing booked yet.</p>
         )}
+        {focus ? (
+          <p className="border-t border-border/50 pt-2 text-sm">
+            <span className="text-muted-foreground">Starts with: </span>
+            {focus.nextFocus}
+          </p>
+        ) : null}
       </Card>
 
       {/* ── At a glance ─────────────────────────────────────────────────── */}
@@ -147,6 +168,39 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
         </details>
       ) : null}
 
+      {/* ── K53 progress ────────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-display text-base font-semibold">K53 manoeuvres</h2>
+          <p className="text-sm text-muted-foreground">
+            <span className="font-semibold tabular-nums text-foreground">
+              {score.ready} of {score.total}
+            </span>{" "}
+            test-ready
+          </p>
+        </div>
+        <Card className={cn(glass, "divide-y divide-border/50")}>
+          {catalogue.map((module) => {
+            const row = progressById.get(module.id);
+            return (
+              <div key={module.id} className="p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="min-w-0 flex-1 font-medium">{module.name}</span>
+                  {row ? (
+                    <Badge variant={RATING_VARIANT[row.rating]}>{RATING_LABEL[row.rating]}</Badge>
+                  ) : (
+                    <span className="text-2xs text-muted-foreground">Not started</span>
+                  )}
+                </div>
+                {row && row.faults.length > 0 && row.rating < 3 ? (
+                  <p className="mt-1 text-2xs text-muted-foreground">{row.faults.join(" · ")}</p>
+                ) : null}
+              </div>
+            );
+          })}
+        </Card>
+      </div>
+
       {/* ── History ─────────────────────────────────────────────────────── */}
       <div className="space-y-3">
         <h2 className="font-display text-base font-semibold">Lessons</h2>
@@ -176,7 +230,7 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
         <h2 className="font-display text-base font-semibold">Details</h2>
         <Card className={cn(glass, "p-5")}>
           {canWrite ? (
-            <ActionForm action={updateLearner} submitLabel="Save" pendingLabel="Saving…">
+            <ActionForm action={updateLearner} submitLabel="Save" pendingLabel="Saving…" resetOnSuccess={false}>
               <input type="hidden" name="id" value={learner.id} />
               <div className="grid gap-4 sm:grid-cols-2">
                 <SelectField

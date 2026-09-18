@@ -47,6 +47,9 @@ export function LessonRow({
     ? shortDateTime(lesson.starts_at, timezone)
     : `${clockTime(lesson.starts_at, timezone)}–${clockTime(lesson.ends_at, timezone)}`;
   const cancelled = lesson.status === "cancelled_learner" || lesson.status === "cancelled_school";
+  // Only something that happened (or is about to) has a record. Blocked time
+  // has no learner; a cancellation or no-show has nothing to write down.
+  const recordable = Boolean(lesson.learner_id) && !cancelled && lesson.status !== "no_show";
   const firstName = lesson.learnerName?.split(" ")[0] ?? "";
   const wa = lesson.status === "scheduled"
     ? whatsappLink(
@@ -88,9 +91,25 @@ export function LessonRow({
       {meta.length > 0 ? (
         <p className="text-2xs text-muted-foreground">{meta.join(" · ")}</p>
       ) : null}
+      {recordable && lesson.status === "completed" ? (
+        <Link
+          href={`/schools/lessons/${lesson.id}`}
+          className="inline-flex min-h-10 items-center text-sm font-medium text-primary hover:underline"
+        >
+          Lesson record →
+        </Link>
+      ) : null}
 
       {lesson.status === "scheduled" && (canEdit || wa) ? (
         <div className="flex flex-wrap items-start gap-2">
+          {canEdit && recordable ? (
+            <Link
+              href={`/schools/lessons/${lesson.id}`}
+              className={cn(buttonVariants({ variant: "default" }), "press")}
+            >
+              Record
+            </Link>
+          ) : null}
           {canEdit ? (
             <>
               <StatusButton id={lesson.id} status="completed" label="Done" variant="secondary" />

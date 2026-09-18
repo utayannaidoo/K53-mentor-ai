@@ -60,6 +60,20 @@ export interface Instructor {
   role: "owner" | "instructor" | "assistant";
 }
 
+export interface LessonNote {
+  lesson_id: string;
+  summary: string;
+  next_focus: string | null;
+  learner_visible: boolean;
+  updated_at: string;
+}
+
+export interface LessonModule {
+  module_id: string;
+  rating: 1 | 2 | 3;
+  faults: string[];
+}
+
 /** A lesson with the names a human needs to read it, already resolved. */
 export interface DiaryEntry extends Lesson {
   learnerName: string | null;

@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { requireSchool } from "@/lib/schools/auth";
+import { isModuleFor } from "@/lib/schools/modules";
+import { rpcMessage } from "@/lib/schools/rpc-message";
 import { classifyDiaryError, diaryErrorMessage } from "@/lib/schools/diary-errors";
 import { clockTime, isClockTime, isIsoDay, zonedInstant } from "@/lib/schools/time";
 import type {
@@ -280,4 +282,67 @@ export async function setLessonStatus(
     cancelled_school: "Cancelled. The slot is free again.",
   };
   return { ok: true, message: said[status] };
+}
+
+// ── The lesson record ────────────────────────────────────────────────────────
+
+/**
+ * Save what happened in a lesson: the summary, the next focus, and each K53
+ * manoeuvre covered with its rating and faults.
+ *
+ * The form names each manoeuvre's inputs `rating:<module_id>` (1–3, or empty
+ * for "not covered") and `fault:<module_id>` (repeated). Module ids are
+ * checked against the learner's own licence here, because the database only
+ * checks their shape; the permission rules live in record_lesson_assessment
+ * (0037), which this calls through the signed-in user's own client.
+ */
+export async function recordLesson(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  if (!isSupabaseConfigured) return DEMO_REFUSAL;
+  const guard = await requireSchool({ write: true });
+  if (!guard.ok) return { ok: false, message: guard.message };
+  const session = await userClient();
+  if (!session) return { ok: false, message: "Sign in again to continue." };
+
+  const lessonId = text(form, "lesson_id", 40);
+  const licence = text(form, "licence_code", 4) as LicenceCode;
+  if (!LICENCE_CODES.includes(licence)) return { ok: false, message: "That learner's licence code is unknown." };
+
+  const modules: { module_id: string; rating: number; faults: string[] }[] = [];
+  for (const [key, value] of form.entries()) {
+    if (!key.startsWith("rating:")) continue;
+    const moduleId = key.slice("rating:".length);
+    const rating = Number(value);
+    if (!rating) continue; // "not covered"
+    if (![1, 2, 3].includes(rating) || !isModuleFor(licence, moduleId)) {
+      return { ok: false, message: "One of the manoeuvres isn't part of this learner's licence." };
+    }
+    const faults = form
+      .getAll(`fault:${moduleId}`)
+      .map((f) => String(f).trim().slice(0, 200))
+      .filter(Boolean)
+      .slice(0, 20);
+    modules.push({ module_id: moduleId, rating, faults });
+  }
+
+  const { error } = await session.supabase.rpc("record_lesson_assessment", {
+    p_lesson: lessonId,
+    p_summary: text(form, "summary", 4000),
+    p_next_focus: text(form, "next_focus", 500),
+    p_learner_visible: form.get("learner_visible") === "on",
+    p_modules: modules,
+    p_mark_completed: true,
+  });
+  if (error) {
+    if (error.code !== "P0001") console.error("[schools] record lesson failed", error.code, error.message);
+    return { ok: false, message: rpcMessage(error, "Could not save the lesson record.") };
+  }
+  refresh(`/schools/lessons/${lessonId}`);
+  const ready = modules.filter((m) => m.rating === 3).length;
+  return {
+    ok: true,
+    message:
+      modules.length === 0
+        ? "Saved."
+        : `Saved — ${modules.length} ${modules.length === 1 ? "manoeuvre" : "manoeuvres"} recorded${ready ? `, ${ready} test-ready` : ""}.`,
+  };
 }

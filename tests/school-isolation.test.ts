@@ -48,6 +48,37 @@ describe.skipIf(!hasPartnerDb)("school workspace isolation (0035)", () => {
     }
   }, 60_000);
 
+  it("lets only the right instructor record a lesson, and keeps the grid on the latest rating (0037)", async () => {
+    const db = await schoolDb();
+    try {
+      const verdict = await runIsolationScript(db, "supabase/tests/school_lesson_record.sql");
+      expect(verdict).toMatch(/^RECORD PASSED: \d+ checks \(rolled back\)$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if the progress view stops preferring the latest lesson", async () => {
+    // Swap the view for one that takes the EARLIEST rating: the check that an
+    // old lesson's edit cannot overwrite a newer rating must then fail.
+    const db = await schoolDb();
+    try {
+      await db.exec(`
+        create or replace view public.school_learner_progress with (security_invoker = true) as
+        select distinct on (lm.school_id, l.learner_id, lm.module_id)
+          lm.school_id, l.learner_id, lm.module_id, lm.rating, lm.faults, lm.lesson_id, l.starts_at as lesson_at
+        from public.school_lesson_modules lm
+        join public.school_lessons l on l.id = lm.lesson_id and l.school_id = lm.school_id
+        where l.status not in ('cancelled_learner', 'cancelled_school', 'no_show')
+        order by lm.school_id, l.learner_id, lm.module_id, l.starts_at asc, lm.assessed_at asc;
+      `);
+      const verdict = await runIsolationScript(db, "supabase/tests/school_lesson_record.sql");
+      expect(verdict).toMatch(/^RECORD FAILED: .*alley docking/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
   it("fails loudly if the double-booking guard is ever dropped", async () => {
     // The diary check passing on its first run proves nothing on its own; this
     // proves it is watching. Remove the constraint and the verdict must flip.
