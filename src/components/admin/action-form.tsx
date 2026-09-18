@@ -5,7 +5,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import type { ActionResult } from "@/app/admin/actions";
+import type { ActionResult } from "@/lib/forms/action-result";
 
 /**
  * The one form wrapper every admin mutation uses.

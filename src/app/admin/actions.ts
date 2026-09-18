@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/partners/admin-auth";
+import type { ActionResult } from "@/lib/forms/action-result";
 import { validSchoolCode, normaliseSchoolCode } from "@/lib/partners/codes";
 import { PAYOUT_MINIMUM_CENTS } from "@/lib/partners/admin-data";
 
@@ -12,11 +13,6 @@ import { PAYOUT_MINIMUM_CENTS } from "@/lib/partners/admin-data";
  * public POST endpoint wearing a form's clothes, and the check on the page is
  * about what gets *drawn*, not about what may be *done*.
  */
-
-export interface ActionResult {
-  ok: boolean;
-  message: string;
-}
 
 async function guard(): Promise<ReturnType<typeof createAdminClient> | null> {
   if (!(await isAdmin())) return null;
