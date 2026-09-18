@@ -11,6 +11,7 @@ import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildPaymentFailedEmail, buildDisputeAlertEmail } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
 import { SUPPORT_EMAIL } from "@/lib/constants";
+import { eventPlanCode, routeSchoolEvent, SchoolBillingError } from "@/lib/billing/school-billing";
 
 export const runtime = "nodejs";
 
@@ -31,6 +32,13 @@ export const runtime = "nodejs";
  * against the row's stored provider_subscription_id before anything is
  * written. On mismatch the event is logged loudly and skipped — acknowledged
  * with 200 so Paystack stops redelivering an event that will never match.
+ *
+ * Two products share this endpoint. Each lifecycle handler first asks
+ * routeSchoolEvent whether the event belongs to a driving school's
+ * subscription (src/lib/billing/school-billing.ts); if so it is applied to
+ * school_subscriptions and the learner handling below never runs. Until
+ * school plan codes are configured that check answers "learner" without
+ * querying, so the learner behaviour here is exactly what it was.
  */
 
 interface SubscriptionEventData {
@@ -124,6 +132,13 @@ export async function POST(req: Request) {
         const customerCode = data.customer?.customer_code;
         if (!customerCode) break;
 
+        const failedFor = await routeSchoolEvent(admin, "invoice.payment_failed", {
+          subscriptionCode: data.subscription?.subscription_code ?? data.subscription_code,
+          planCode: eventPlanCode(payload.data),
+          customerCode,
+        });
+        if (failedFor === "school") break;
+
         // Identity guard, identical rule to subscription.disable below:
         // resolve our row first, and when BOTH the event and the row name a
         // subscription, they must agree before anything is written. A failed
@@ -213,6 +228,13 @@ export async function POST(req: Request) {
         const customerCode = data.customer?.customer_code;
         if (!customerCode) break;
 
+        const disabledFor = await routeSchoolEvent(admin, "subscription.disable", {
+          subscriptionCode: data.subscription_code,
+          planCode: eventPlanCode(payload.data),
+          customerCode,
+        });
+        if (disabledFor === "school") break;
+
         const { data: row } = await admin
           .from("subscriptions")
           .select("current_period_end, provider_subscription_id")
@@ -263,6 +285,13 @@ export async function POST(req: Request) {
         const data = payload.data as SubscriptionEventData;
         const customerCode = data.customer?.customer_code;
         if (!customerCode) break;
+
+        const endingFor = await routeSchoolEvent(admin, "subscription.not_renew", {
+          subscriptionCode: data.subscription_code,
+          planCode: eventPlanCode(payload.data),
+          customerCode,
+        });
+        if (endingFor === "school") break;
 
         // Identity guard, identical rule to subscription.disable above: a
         // not_renew naming some other subscription must never flag this row
@@ -346,6 +375,11 @@ export async function POST(req: Request) {
           });
           await sendEmail({ to: SUPPORT_EMAIL, ...alert }).catch(() => {});
         }
+        const disputedFor = await routeSchoolEvent(admin, "charge.dispute.create", {
+          reference: data.transaction?.reference,
+          customerCode,
+        });
+        if (disputedFor === "school") break;
         if (!customerCode) break;
         const { error } = await admin
           .from("subscriptions")
@@ -394,7 +428,16 @@ export async function POST(req: Request) {
         try {
           const tx = await verifyTransaction(reference);
           const customerCode = tx.customer?.customer_code;
-          if (customerCode && tx.plan) {
+          const refundedFor = await routeSchoolEvent(admin, "refund.processed", {
+            planCode: typeof tx.plan === "string" ? tx.plan : tx.plan?.plan_code,
+            customerCode,
+            reference,
+          });
+          if (refundedFor === "school") {
+            // A school's money came back: its plan ends now. Never the owner's
+            // learner tier, which the customer-keyed downgrade below would hit.
+            applied = true;
+          } else if (customerCode && tx.plan) {
             const { error } = await admin
               .from("subscriptions")
               .update({
@@ -411,7 +454,16 @@ export async function POST(req: Request) {
             applied = true;
           }
         } catch (err) {
+          // A school refund that failed to apply must be retried, not fall
+          // through to the learner fallback below and be acknowledged.
+          if (err instanceof SchoolBillingError) throw err;
           console.error("paystack webhook: refund lookup failed, falling back", err);
+        }
+
+        // Paystack unreachable: a school's FIRST charge is still findable by
+        // the reference its grant recorded, exactly like the learner fallback.
+        if (!applied && (await routeSchoolEvent(admin, "refund.processed", { reference })) === "school") {
+          applied = true;
         }
 
         if (!applied) {

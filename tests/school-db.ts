@@ -45,7 +45,7 @@ export async function schoolDb(): Promise<TestDb> {
 
     -- The learner tables 0033 and 0035 touch, with only the columns they use.
     create table public.profiles (
-      id uuid primary key references auth.users, full_name text, email text,
+      id uuid primary key references auth.users on delete cascade, full_name text, email text,
       referral_code text, referred_by uuid
     );
     create table public.streaks (user_id uuid primary key, cp int);
@@ -85,6 +85,8 @@ export async function schoolDb(): Promise<TestDb> {
     "0037_school_lesson_record.sql",
     "0038_school_money.sql",
     "0039_school_enquiries_tests.sql",
+    "0040_school_billing_periods.sql",
+    "0041_school_account_deletion.sql",
   ]) {
     await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
   }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/lib/paystack/client", () => ({
   fetchCustomer: vi.fn(),
@@ -28,7 +28,7 @@ describe("disableActiveSubscriptions", () => {
   it("disables every active subscription and returns the count", async () => {
     vi.mocked(fetchCustomer).mockResolvedValue(customer(["active", "active", "cancelled"]) as never);
 
-    const n = await disableActiveSubscriptions("CUS_x");
+    const n = await disableActiveSubscriptions("CUS_x", "everything");
 
     expect(n).toBe(2);
     expect(disableSubscription).toHaveBeenCalledTimes(2);
@@ -43,7 +43,7 @@ describe("disableActiveSubscriptions", () => {
     // cancel report "no active subscription found" — observed in production.
     vi.mocked(fetchCustomer).mockResolvedValue(customer(["non-renewing", "active", "cancelled"]) as never);
 
-    const n = await disableActiveSubscriptions("CUS_x");
+    const n = await disableActiveSubscriptions("CUS_x", "everything");
 
     expect(n).toBe(2);
     expect(disableSubscription).toHaveBeenCalledWith("SUB_0", "tok_0");
@@ -53,14 +53,50 @@ describe("disableActiveSubscriptions", () => {
 
   it("returns 0 and disables nothing when none are active", async () => {
     vi.mocked(fetchCustomer).mockResolvedValue(customer(["cancelled"]) as never);
-    expect(await disableActiveSubscriptions("CUS_x")).toBe(0);
+    expect(await disableActiveSubscriptions("CUS_x", "everything")).toBe(0);
     expect(disableSubscription).not.toHaveBeenCalled();
   });
 
   it("propagates a disable failure so the caller won't proceed as if billing stopped", async () => {
     vi.mocked(fetchCustomer).mockResolvedValue(customer(["active"]) as never);
     vi.mocked(disableSubscription).mockRejectedValue(new Error("paystack 502"));
-    await expect(disableActiveSubscriptions("CUS_x")).rejects.toThrow();
+    await expect(disableActiveSubscriptions("CUS_x", "everything")).rejects.toThrow();
+  });
+});
+
+describe("disableActiveSubscriptions scope (one customer, two products)", () => {
+  // Paystack keys customers on email, so a driving-school owner who also
+  // studies is ONE customer with a learner plan and a school plan.
+  const both = {
+    customer_code: "CUS_owner",
+    email: "owner@example.com",
+    subscriptions: [
+      { subscription_code: "SUB_premium", email_token: "tok_p", status: "active", plan: { plan_code: "PLN_premium" } },
+      { subscription_code: "SUB_school", email_token: "tok_s", status: "active", plan: { plan_code: "PLN_school_team" } },
+      { subscription_code: "SUB_mystery", email_token: "tok_m", status: "active", plan: {} },
+    ],
+  };
+  const saved = process.env.PAYSTACK_PLAN_SCHOOL_TEAM_MONTHLY;
+  beforeEach(() => {
+    process.env.PAYSTACK_PLAN_SCHOOL_TEAM_MONTHLY = "PLN_school_team";
+    vi.mocked(fetchCustomer).mockResolvedValue(both as never);
+  });
+  afterEach(() => {
+    if (saved === undefined) delete process.env.PAYSTACK_PLAN_SCHOOL_TEAM_MONTHLY;
+    else process.env.PAYSTACK_PLAN_SCHOOL_TEAM_MONTHLY = saved;
+  });
+
+  it("cancelling Premium leaves the owner's school plan running", async () => {
+    expect(await disableActiveSubscriptions("CUS_owner", "learner")).toBe(2);
+    expect(disableSubscription).toHaveBeenCalledWith("SUB_premium", "tok_p");
+    // An unidentifiable plan is still stopped, exactly as before school plans existed.
+    expect(disableSubscription).toHaveBeenCalledWith("SUB_mystery", "tok_m");
+    expect(disableSubscription).not.toHaveBeenCalledWith("SUB_school", "tok_s");
+  });
+
+  it("deleting the account stops every plan, the school's included", async () => {
+    expect(await disableActiveSubscriptions("CUS_owner", "everything")).toBe(3);
+    expect(disableSubscription).toHaveBeenCalledWith("SUB_school", "tok_s");
   });
 });
 

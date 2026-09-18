@@ -64,6 +64,8 @@ export interface Instructor {
   id: string;
   displayName: string;
   role: "owner" | "instructor" | "assistant";
+  /** No longer on the team: removed, or their account was deleted. */
+  former?: boolean;
 }
 
 export interface LessonNote {

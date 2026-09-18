@@ -116,6 +116,38 @@ describe("accessFromSubscription", () => {
   });
 });
 
+describe("accessFromSubscription on a paid plan (mirrors 0040)", () => {
+  const now = Date.parse("2026-09-18T12:00:00Z");
+  const paid = (over: Record<string, unknown>) => ({
+    plan: "team",
+    status: "active",
+    seats: 5,
+    trial_ends_at: null,
+    cancel_at_period_end: false,
+    current_period_end: "2026-10-18T12:00:00Z",
+    ...over,
+  });
+
+  it("keeps a cancelled school writable until the date it was told, then not a moment longer", async () => {
+    const { accessFromSubscription } = await load();
+    expect(accessFromSubscription(paid({ cancel_at_period_end: true }), now)).toBe("full");
+    expect(
+      accessFromSubscription(paid({ cancel_at_period_end: true, current_period_end: "2026-09-18T11:59:00Z" }), now),
+    ).toBe("read_only");
+  });
+
+  it("gives a renewing school three days' slack for a card retry, then goes read-only", async () => {
+    const { accessFromSubscription } = await load();
+    expect(accessFromSubscription(paid({ current_period_end: "2026-09-16T12:00:00Z" }), now)).toBe("full");
+    expect(accessFromSubscription(paid({ current_period_end: "2026-09-15T11:00:00Z" }), now)).toBe("read_only");
+  });
+
+  it("keeps a just-paid school writable before its period end has been recorded", async () => {
+    const { accessFromSubscription } = await load();
+    expect(accessFromSubscription(paid({ current_period_end: null }), now)).toBe("full");
+  });
+});
+
 describe("currentSchool", () => {
   it("is null for a signed-out visitor", async () => {
     user = null;

@@ -49,19 +49,32 @@ async function client() {
   return isSupabaseConfigured ? await createClient() : null;
 }
 
-export async function schoolInstructors(school: SchoolContext): Promise<Instructor[]> {
+/**
+ * The school's teachers. Pickers want only the current team; naming the
+ * instructor on a lesson wants everyone who ever taught one — someone removed,
+ * or whose account was deleted (0041), still taught last month's lessons.
+ */
+export async function schoolInstructors(
+  school: SchoolContext,
+  options: { includeFormer?: boolean } = {},
+): Promise<Instructor[]> {
   const supabase = await client();
   if (!supabase) return DEMO_INSTRUCTORS;
-  const { data } = await supabase
+  let query = supabase
     .from("school_members")
-    .select("id, display_name, role")
-    .eq("school_id", school.schoolId)
-    .eq("status", "active")
-    .order("created_at", { ascending: true });
-  return ((data ?? []) as { id: string; display_name: string; role: Instructor["role"] }[])
+    .select("id, display_name, role, status")
+    .eq("school_id", school.schoolId);
+  if (!options.includeFormer) query = query.eq("status", "active");
+  const { data } = await query.order("created_at", { ascending: true });
+  return ((data ?? []) as { id: string; display_name: string; role: Instructor["role"]; status: string }[])
     // Office staff do not teach, so they never appear in a lesson's instructor list.
     .filter((m) => m.role !== "assistant")
-    .map((m) => ({ id: m.id, displayName: m.display_name?.trim() || "Unnamed", role: m.role }));
+    .map((m) => ({
+      id: m.id,
+      displayName: m.display_name?.trim() || "Unnamed",
+      role: m.role,
+      ...(m.status === "active" ? {} : { former: true }),
+    }));
 }
 
 export async function schoolVehicles(school: SchoolContext): Promise<Vehicle[]> {
@@ -93,6 +106,12 @@ export async function schoolLearners(
   return (data ?? []) as Learner[];
 }
 
+/** "Sipho", or "Sipho (left)" for a lesson whose instructor has since gone. */
+function instructorLabel(instructor: Instructor | undefined): string {
+  if (!instructor) return "Unassigned";
+  return instructor.former ? `${instructor.displayName} (left)` : instructor.displayName;
+}
+
 /** Resolves ids to names, so a screen never shows a UUID. */
 function toEntries(
   lessons: Lesson[],
@@ -110,7 +129,7 @@ function toEntries(
       ...lesson,
       learnerName: learner ? learnerName(learner) : null,
       learnerPhone: learner?.phone ?? null,
-      instructorName: instructorById.get(lesson.instructor_id)?.displayName ?? "Unassigned",
+      instructorName: instructorLabel(instructorById.get(lesson.instructor_id)),
       vehicleLabel: vehicle ? vehicleLabel(vehicle) : null,
     };
   });
@@ -161,7 +180,7 @@ export async function diaryForDay(
   const learnerIds = [...new Set(lessons.map((l) => l.learner_id).filter((id): id is string => !!id))];
   const [learners, instructors, vehicles] = await Promise.all([
     learnersById(school, learnerIds),
-    schoolInstructors(school),
+    schoolInstructors(school, { includeFormer: true }),
     schoolVehicles(school),
   ]);
   return toEntries(lessons, learners, instructors, vehicles);
@@ -201,7 +220,7 @@ export async function learnerWithLessons(
   if (!learner) return null;
 
   const [instructors, vehicles] = await Promise.all([
-    schoolInstructors(school),
+    schoolInstructors(school, { includeFormer: true }),
     schoolVehicles(school),
   ]);
   lessons.sort((a, b) => b.starts_at.localeCompare(a.starts_at));
@@ -253,7 +272,7 @@ export async function lessonRecord(
 
   const [learners, instructors, vehicles] = await Promise.all([
     learnersById(school, [lesson.learner_id]),
-    schoolInstructors(school),
+    schoolInstructors(school, { includeFormer: true }),
     schoolVehicles(school),
   ]);
   const learner = learners[0];

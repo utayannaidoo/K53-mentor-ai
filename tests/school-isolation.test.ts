@@ -112,6 +112,75 @@ describe.skipIf(!hasPartnerDb)("school workspace isolation (0035)", () => {
     }
   }, 60_000);
 
+  it("keeps a paid school writable exactly as long as it is paid for (0040)", async () => {
+    const db = await schoolDb();
+    try {
+      const verdict = await runIsolationScript(db, "supabase/tests/school_billing_periods.sql");
+      expect(verdict).toMatch(/^PERIODS PASSED: \d+ checks \(rolled back\)$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if the paid-period rule is ever reverted to status alone", async () => {
+    // 0035's original helper looked only at status; a cancelled school then
+    // stayed writable forever. Put it back and the period checks must fail.
+    const db = await schoolDb();
+    try {
+      await db.exec(`
+        create or replace function public.my_writable_school_ids() returns setof uuid
+        language sql stable security definer set search_path = public as $$
+          select m.school_id from public.school_members m
+          join public.school_subscriptions s on s.school_id = m.school_id
+          where m.user_id = (select auth.uid()) and m.status = 'active'
+            and (s.status in ('active','past_due') or (s.status = 'trialing' and s.trial_ends_at > now()))
+        $$;
+      `);
+      const verdict = await runIsolationScript(db, "supabase/tests/school_billing_periods.sql");
+      expect(verdict).toMatch(/^PERIODS FAILED: .*after its period ended/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("lets an instructor delete their account and keeps everything they did with the school (0041)", async () => {
+    const db = await schoolDb();
+    try {
+      const verdict = await runIsolationScript(db, "supabase/tests/school_account_deletion.sql");
+      expect(verdict).toMatch(/^ERASURE PASSED: \d+ checks \(rolled back\)$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if a school table ever blocks deleting a user again", async () => {
+    // The shape 0035–0039 shipped with: a bare `references auth.users`. Put one
+    // back and both the structural check and the real delete must object.
+    const db = await schoolDb();
+    try {
+      await db.exec(`
+        alter table public.school_payments drop constraint school_payments_received_by_fkey,
+          add constraint school_payments_received_by_fkey foreign key (received_by) references auth.users;
+      `);
+      const verdict = await runIsolationScript(db, "supabase/tests/school_account_deletion.sql");
+      expect(verdict).toMatch(/^ERASURE FAILED: .*block account deletion: school_payments/);
+      expect(verdict).toMatch(/could not delete their account/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if an owner can ever be erased out from under their school", async () => {
+    const db = await schoolDb();
+    try {
+      await db.exec("drop trigger school_members_detached on public.school_members");
+      const verdict = await runIsolationScript(db, "supabase/tests/school_account_deletion.sql");
+      expect(verdict).toMatch(/^ERASURE FAILED: .*owner was erased out from under their school/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
   it("fails loudly if the double-booking guard is ever dropped", async () => {
     // The diary check passing on its first run proves nothing on its own; this
     // proves it is watching. Remove the constraint and the verdict must flip.

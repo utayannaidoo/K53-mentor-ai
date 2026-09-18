@@ -67,8 +67,30 @@ export function SchoolShell({
               "rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-2xs text-foreground",
             )}
           >
-            Your subscription has lapsed. Everything is still here and still readable — you just
-            can&apos;t add or change anything until it is reactivated.
+            {school.status === "trialing" ? "Your free trial has ended." : "Your subscription has lapsed."}{" "}
+            Everything is still here and still readable — you just can&apos;t add or change anything
+            until{" "}
+            {school.role === "owner" ? (
+              <Link href="/schools/settings#plan" className="font-medium underline underline-offset-2">
+                you choose a plan
+              </Link>
+            ) : (
+              "the owner chooses a plan"
+            )}
+            .
+          </p>
+        </div>
+      ) : school.status === "past_due" && school.role === "owner" ? (
+        <div className="mx-auto max-w-3xl px-4 pt-4 sm:px-6">
+          <p
+            role="status"
+            className="rounded-md border border-warning/40 bg-warning/10 px-3 py-2 text-2xs text-foreground"
+          >
+            Your last payment didn&apos;t go through. Nothing has stopped working —{" "}
+            <Link href="/schools/settings#plan" className="font-medium underline underline-offset-2">
+              put a new card on the plan
+            </Link>{" "}
+            so Paystack can try again.
           </p>
         </div>
       ) : null}

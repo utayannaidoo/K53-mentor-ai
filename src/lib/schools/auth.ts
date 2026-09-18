@@ -30,6 +30,10 @@ export interface SchoolContext {
   status: string;
   seats: number;
   trialEndsAt: string | null;
+  /** A paid plan told to stop renewing: it runs to currentPeriodEnd, then ends. */
+  cancelAtPeriodEnd: boolean;
+  /** When the paid-for period runs out. Null on a trial, or before it is recorded. */
+  currentPeriodEnd: string | null;
   partnerSchoolId: string | null;
   /** Active owner + instructor members. Compared against `seats`. */
   seatsUsed: number;
@@ -59,23 +63,35 @@ interface SubscriptionRow {
   status: string;
   seats: number;
   trial_ends_at: string | null;
+  cancel_at_period_end?: boolean | null;
+  current_period_end?: string | null;
 }
+
+/** Slack past a paid period's end, matching EXPIRY_GRACE_MS in tier-rule.ts. */
+const PAID_GRACE_MS = 3 * 86_400_000;
 
 /**
  * Whether a subscription row permits writes.
  *
- * Deliberately mirrors `my_writable_school_ids()` in 0035. A missing row, an
- * expired trial or an unreadable value all resolve to read-only: the school
- * keeps every page and loses every save.
+ * Deliberately mirrors `my_writable_school_ids()` (0040), which follows the
+ * learner app's expiry rule in src/lib/billing/tier-rule.ts. A missing row, an
+ * expired trial, a cancelled plan past its paid-for date, or an unreadable
+ * value all resolve to read-only: the school keeps every page and loses every
+ * save.
  */
-export function accessFromSubscription(sub: SubscriptionRow | null): SchoolAccess {
+export function accessFromSubscription(sub: SubscriptionRow | null, now = Date.now()): SchoolAccess {
   if (!sub) return "read_only";
-  if (sub.status === "active" || sub.status === "past_due") return "full";
   if (sub.status === "trialing") {
     const ends = sub.trial_ends_at ? Date.parse(sub.trial_ends_at) : NaN;
-    if (Number.isFinite(ends) && ends > Date.now()) return "full";
+    return Number.isFinite(ends) && ends > now ? "full" : "read_only";
   }
-  return "read_only";
+  if (sub.status !== "active" && sub.status !== "past_due") return "read_only";
+  const periodEnd = sub.current_period_end ? Date.parse(sub.current_period_end) : NaN;
+  if (Number.isFinite(periodEnd)) {
+    if (sub.cancel_at_period_end && now >= periodEnd) return "read_only";
+    if (now >= periodEnd + PAID_GRACE_MS) return "read_only";
+  }
+  return "full";
 }
 
 /**
@@ -116,7 +132,7 @@ export async function currentSchool(): Promise<SchoolContext | null> {
       .maybeSingle(),
     supabase
       .from("school_subscriptions")
-      .select("plan, status, seats, trial_ends_at")
+      .select("plan, status, seats, trial_ends_at, cancel_at_period_end, current_period_end")
       .eq("school_id", member.school_id)
       .maybeSingle(),
     supabase
@@ -142,6 +158,8 @@ export async function currentSchool(): Promise<SchoolContext | null> {
     status: sub?.status ?? "canceled",
     seats: sub?.seats ?? 1,
     trialEndsAt: sub?.trial_ends_at ?? null,
+    cancelAtPeriodEnd: sub?.cancel_at_period_end ?? false,
+    currentPeriodEnd: sub?.current_period_end ?? null,
     partnerSchoolId: school.partner_school_id,
     seatsUsed: seatResult.count ?? 0,
     timezone: school.timezone || "Africa/Johannesburg",

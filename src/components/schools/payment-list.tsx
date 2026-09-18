@@ -57,7 +57,9 @@ export function PaymentList({
             <p className="text-2xs text-muted-foreground">
               {[
                 formatDate(payment.received_on),
-                takenBy.get(payment.received_by) ? `taken by ${takenBy.get(payment.received_by)}` : null,
+                payment.received_by && takenBy.get(payment.received_by)
+                  ? `taken by ${takenBy.get(payment.received_by)}`
+                  : null,
                 payment.reference ? `ref ${payment.reference}` : null,
                 payment.note,
               ]

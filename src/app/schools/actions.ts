@@ -234,6 +234,40 @@ export async function removeMember(
   return { ok: true, message: "Removed. Their lessons stay on the diary as a record." };
 }
 
+/**
+ * Hand the school to another active member. The RPC demotes the current owner
+ * to instructor and promotes the new one in a single transaction, so the
+ * one-active-owner index never sees two owners or none.
+ *
+ * Billing does NOT move with it: a running plan keeps charging the card that
+ * bought it until the new owner chooses a plan of their own, at which point
+ * the grant stops the old one (stopPreviousPayer in school-billing.ts). The
+ * confirm on the button says so.
+ */
+export async function transferOwnership(
+  _prev: ActionResult | null,
+  form: FormData,
+): Promise<ActionResult> {
+  if (!isSupabaseConfigured) return DEMO_REFUSAL;
+  const guard = await requireSchool({ roles: ["owner"] });
+  if (!guard.ok) return { ok: false, message: guard.message };
+  const userId = await currentUserId();
+  const admin = createAdminClient();
+  if (!admin || !userId) return NOT_CONFIGURED;
+
+  const { error } = await admin.rpc("transfer_school_ownership", {
+    p_user: userId,
+    p_school: guard.school.schoolId,
+    p_member: String(form.get("id") ?? ""),
+  });
+  if (error) {
+    console.error("[schools] transfer ownership failed", error.message);
+    return { ok: false, message: rpcMessage(error, "Could not hand the school over.") };
+  }
+  refresh();
+  return { ok: true, message: "Done. They own the school now, and you're an instructor." };
+}
+
 /** Used by the join page to decide what to draw before anything is submitted. */
 export async function hasSchool(): Promise<boolean> {
   return (await currentSchool()) !== null;

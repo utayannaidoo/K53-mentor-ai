@@ -38,7 +38,8 @@ export interface PaymentRow {
   method: PaymentMethod;
   reference: string | null;
   received_on: string;
-  received_by: string;
+  /** Null once the person who took it has deleted their account (0041). */
+  received_by: string | null;
   note: string | null;
   voided_at: string | null;
   void_reason: string | null;

@@ -106,10 +106,11 @@ export async function memberNamesByUser(school: SchoolContext): Promise<Map<stri
     .from("school_members")
     .select("user_id, display_name")
     .eq("school_id", school.schoolId);
+  // A member whose account was deleted keeps their row with no user id (0041);
+  // payments they took no longer point at anyone, so they have nothing to map.
   return new Map(
-    ((data ?? []) as { user_id: string; display_name: string }[]).map((m) => [
-      m.user_id,
-      m.display_name?.trim() || "Unnamed",
-    ]),
+    ((data ?? []) as { user_id: string | null; display_name: string }[])
+      .filter((m): m is { user_id: string; display_name: string } => Boolean(m.user_id))
+      .map((m) => [m.user_id, m.display_name?.trim() || "Unnamed"]),
   );
 }

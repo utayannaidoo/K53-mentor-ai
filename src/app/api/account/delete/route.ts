@@ -6,6 +6,7 @@ import { refundTransaction } from "@/lib/paystack/client";
 import { disableActiveSubscriptions, refundEligible } from "@/lib/billing/subscription-cancel";
 import { verifyDeletionCode } from "@/lib/account/deletion-code";
 import { forgetPlanLead } from "@/lib/leads/plan-lead-store";
+import { ownedSchool } from "@/lib/schools/ownership";
 
 export const runtime = "nodejs";
 
@@ -114,7 +115,20 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── 2. Cancel any live subscription, then (best-effort) refund ──────────────
+  // ── 2. A driving-school owner hands the school on first ────────────────────
+  // Erasing the owner would leave a school's diary, cash book and learner
+  // records with nobody able to manage, bill or close them, so the database
+  // refuses it (0041). Ask BEFORE touching billing: finding out at the erase
+  // step below would come after every subscription had already been stopped.
+  const school = await ownedSchool(admin, user.id);
+  if (school === "unknown") {
+    return Response.json({ error: "Deletion failed — please try again." }, { status: 502 });
+  }
+  if (school) {
+    return Response.json({ error: "owns_school", school: school.name }, { status: 409 });
+  }
+
+  // ── 3. Cancel any live subscription, then (best-effort) refund ──────────────
   const { data } = await supabase
     .from("subscriptions")
     .select("tier, provider_customer_id, last_charge_reference, paid_at, money_back_used")
@@ -131,7 +145,9 @@ export async function POST(req: Request) {
 
   if (customerCode && isPaystackConfigured) {
     try {
-      await disableActiveSubscriptions(customerCode);
+      // "everything": nobody's card is charged after they have left, including
+      // for a driving school they once paid for and have since handed on.
+      await disableActiveSubscriptions(customerCode, "everything");
     } catch (err) {
       // Billing might still be live — do NOT erase the account, or Paystack
       // keeps charging a card with no account behind it. The user retries.
@@ -163,7 +179,7 @@ export async function POST(req: Request) {
     }
   }
 
-  // ── 3. Erase ────────────────────────────────────────────────────────────────
+  // ── 4. Erase ────────────────────────────────────────────────────────────────
   const { error } = await admin.auth.admin.deleteUser(user.id);
   if (error) {
     console.error("account/delete failed", error.message);

@@ -24,6 +24,8 @@ export const DEMO_SCHOOL: SchoolContext = {
   status: "trialing",
   seats: SCHOOL_TRIAL_SEATS,
   trialEndsAt: new Date(Date.now() + SCHOOL_TRIAL_DAYS * 86_400_000).toISOString(),
+  cancelAtPeriodEnd: false,
+  currentPeriodEnd: null,
   partnerSchoolId: null,
   seatsUsed: 2,
   timezone: "Africa/Johannesburg",

@@ -6,6 +6,7 @@ import { buildPaymentReceiptEmail, buildPriceMismatchAlertEmail } from "@/lib/no
 import { PLAN_MAP } from "@/lib/billing/plans";
 import { checkChargeAmount } from "@/lib/billing/charge-amount";
 import { SUPPORT_EMAIL } from "@/lib/constants";
+import { applySchoolCharge, applySchoolRenewal, isSchoolPlanCode } from "@/lib/billing/school-billing";
 import {
   fetchCustomer,
   disableSubscription,
@@ -246,7 +247,20 @@ export async function applyChargeSuccess(
 ): Promise<void> {
   const meta = data.metadata ?? {};
   const userId = meta.user_id;
+
+  // K53 Mentor for Schools shares this Paystack account, webhook and ledger,
+  // but is never granted through `subscriptions` — see
+  // src/lib/billing/school-billing.ts. A school checkout says so in its own
+  // metadata; routed first so nothing below can mistake it for a learner's.
+  if (meta.kind === "school_subscription") return applySchoolCharge(admin, data);
+
     if (!userId) {
+      // A renewal of a SCHOOL plan must not reach the learner update below:
+      // that update is keyed on the customer code, and an owner who also pays
+      // for Premium is one Paystack customer with two products — it would
+      // re-point their learner money-back anchor at a school charge. False for
+      // every code while no school plans are configured.
+      if (isSchoolPlanCode(data.plan?.plan_code)) return applySchoolRenewal(admin, data);
       // Renewal charges don't carry our checkout metadata. A successful plan
       // charge for a known customer clears any past_due grace state.
       //
@@ -511,7 +525,10 @@ export async function applyChargeSuccess(
       );
       return false;
     }
-    return code !== paidPlanCode;
+    // Different plan AND the same product. A school plan on the same
+    // customer (an owner who is also a learner) is the other product, never a
+    // superseded learner plan — disabling it would cancel their school.
+    return code !== paidPlanCode && !isSchoolPlanCode(code);
   });
   for (const s of stale) {
     console.error(

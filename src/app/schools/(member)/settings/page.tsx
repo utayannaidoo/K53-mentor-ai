@@ -1,14 +1,18 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn, glass, glassSubtle, formatDate } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
-import { currentSchool } from "@/lib/schools/auth";
+import { currentSchool, type SchoolContext } from "@/lib/schools/auth";
+import { SCHOOL_ANNUAL_MONTHS_CHARGED, SCHOOL_PLANS, SCHOOL_PLAN_MAP, type SchoolPlanId } from "@/lib/billing/school-plans";
+import { isSchoolBillingConfigured } from "@/lib/billing/school-billing";
+import { SchoolBillingActions, SchoolBillingReturn, SchoolPlanPicker } from "@/components/schools/plan-picker";
 import { DEMO_INSTRUCTORS, DEMO_SCHOOL } from "@/lib/schools/demo";
 import { schoolTeam } from "@/lib/schools/members";
 import { ActionForm, Field } from "@/components/admin/action-form";
-import { inviteMember, revokeInvite, removeMember, linkPartnerCode } from "@/app/schools/actions";
+import { inviteMember, revokeInvite, removeMember, linkPartnerCode, transferOwnership } from "@/app/schools/actions";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -17,6 +21,23 @@ const ROLE_LABEL: Record<string, string> = {
   instructor: "Instructor",
   assistant: "Office",
 };
+
+/** The third plan tile: the one date or state an owner needs to know about. */
+function planStanding(school: SchoolContext): { label: string; value: string; alert?: boolean } {
+  if (school.status === "trialing") {
+    return school.access === "full" && school.trialEndsAt
+      ? { label: "Trial ends", value: formatDate(school.trialEndsAt) }
+      : { label: "Trial", value: "Ended", alert: true };
+  }
+  if (school.status === "past_due") return { label: "Payment", value: "Failed", alert: true };
+  if (school.status === "active" && school.access === "full") {
+    if (school.cancelAtPeriodEnd) {
+      return { label: "Ends", value: school.currentPeriodEnd ? formatDate(school.currentPeriodEnd) : "Soon" };
+    }
+    return { label: "Renews", value: school.currentPeriodEnd ? formatDate(school.currentPeriodEnd) : "Monthly" };
+  }
+  return { label: "Plan", value: "Ended", alert: true };
+}
 
 export default async function SchoolSettings() {
   const school = (isSupabaseConfigured ? await currentSchool() : DEMO_SCHOOL)!;
@@ -45,6 +66,20 @@ export default async function SchoolSettings() {
       };
 
   const overSeats = school.seatsUsed > school.seats;
+  const paidPlan = SCHOOL_PLAN_MAP[school.plan as SchoolPlanId];
+  const planName = paidPlan?.name ?? "Free trial";
+  // A paid plan still billing, or told to stop but not yet over.
+  const paidRunning = Boolean(paidPlan) && (school.status === "active" || school.status === "past_due");
+  const standing = planStanding(school);
+  // The demo shows the picker so it can be seen; choosing explains itself there.
+  const billingOpen = !isSupabaseConfigured || isSchoolBillingConfigured();
+  const pickerIntro = paidRunning
+    ? school.cancelAtPeriodEnd
+      ? `Your plan stops renewing${school.currentPeriodEnd ? ` on ${formatDate(school.currentPeriodEnd)}` : ""}. Choose a plan to keep going — it starts a new billing period today.`
+      : "Switching starts the new plan today and stops the old one renewing. Paid by card through Paystack."
+    : school.status === "trialing" && school.access === "full"
+      ? `Your free trial runs${school.trialEndsAt ? ` until ${formatDate(school.trialEndsAt)}` : ""}. You're only charged from the day you choose a plan, by card through Paystack.`
+      : "Choose a plan to make the workspace editable again. Everything you recorded is still here.";
 
   return (
     <div className="space-y-8">
@@ -56,12 +91,15 @@ export default async function SchoolSettings() {
       </div>
 
       {/* ── Plan ───────────────────────────────────────────────────────── */}
-      <div className="space-y-3">
+      <div id="plan" className="scroll-mt-20 space-y-3">
         <h2 className="font-display text-base font-semibold">Plan</h2>
+        <Suspense fallback={null}>
+          <SchoolBillingReturn />
+        </Suspense>
         <div className="grid gap-3 sm:grid-cols-3">
           <Card className={cn(glassSubtle, "p-4")}>
             <p className="text-2xs uppercase tracking-wide text-muted-foreground">Plan</p>
-            <p className="mt-1 font-display text-2xl font-semibold capitalize">{school.plan}</p>
+            <p className="mt-1 font-display text-2xl font-semibold">{planName}</p>
           </Card>
           <Card className={cn(glassSubtle, "p-4")}>
             <p className="text-2xs uppercase tracking-wide text-muted-foreground">Seats used</p>
@@ -75,13 +113,9 @@ export default async function SchoolSettings() {
             </p>
           </Card>
           <Card className={cn(glassSubtle, "p-4")}>
-            <p className="text-2xs uppercase tracking-wide text-muted-foreground">
-              {school.status === "trialing" ? "Trial ends" : "Status"}
-            </p>
-            <p className="mt-1 font-display text-2xl font-semibold">
-              {school.status === "trialing" && school.trialEndsAt
-                ? formatDate(school.trialEndsAt)
-                : school.status}
+            <p className="text-2xs uppercase tracking-wide text-muted-foreground">{standing.label}</p>
+            <p className={cn("mt-1 font-display text-2xl font-semibold", standing.alert && "text-danger")}>
+              {standing.value}
             </p>
           </Card>
         </div>
@@ -91,6 +125,46 @@ export default async function SchoolSettings() {
             working — you just can&apos;t invite anyone new until the plan covers them.
           </Card>
         ) : null}
+
+        {isOwner ? (
+          <Card className={cn(glass, "space-y-4 p-5")}>
+            <div>
+              <h3 className="font-display text-base font-semibold">
+                {paidRunning ? "Change plan" : "Choose a plan"}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">{pickerIntro}</p>
+            </div>
+            {billingOpen ? (
+              <SchoolPlanPicker
+                plans={SCHOOL_PLANS}
+                currentPlan={paidRunning ? school.plan : ""}
+                seatsUsed={school.seatsUsed}
+                annualMonths={SCHOOL_ANNUAL_MONTHS_CHARGED}
+              />
+            ) : (
+              <p className="text-sm">
+                Paid plans aren&apos;t open yet. Nothing is charged until you choose one, and
+                everything you record now carries over.
+              </p>
+            )}
+            {paidRunning ? (
+              <div className="space-y-2 border-t border-border/50 pt-4">
+                {school.status === "past_due" ? (
+                  <p className="text-sm text-danger">
+                    Your last payment didn&apos;t go through. Put a new card on the plan and Paystack
+                    will try again — the workspace keeps working in the meantime.
+                  </p>
+                ) : null}
+                <SchoolBillingActions
+                  cancelAtPeriodEnd={school.cancelAtPeriodEnd}
+                  periodEnd={school.currentPeriodEnd ? formatDate(school.currentPeriodEnd) : null}
+                />
+              </div>
+            ) : null}
+          </Card>
+        ) : (
+          <p className="text-sm text-muted-foreground">Only the school owner can change the plan.</p>
+        )}
       </div>
 
       {/* ── Team ───────────────────────────────────────────────────────── */}
@@ -109,15 +183,30 @@ export default async function SchoolSettings() {
                 {ROLE_LABEL[member.role] ?? member.role}
               </Badge>
               {isOwner && !member.isSelf && member.role !== "owner" ? (
-                <ActionForm
-                  action={removeMember}
-                  submitLabel="Remove"
-                  variant="ghost"
-                  className="space-y-0"
-                  confirm="Remove this person? They lose access immediately. Their lessons stay on the diary as a record."
-                >
-                  <input type="hidden" name="id" value={member.id} />
-                </ActionForm>
+                <>
+                  <ActionForm
+                    action={transferOwnership}
+                    submitLabel="Make owner"
+                    variant="ghost"
+                    className="space-y-0"
+                    confirm={`Make ${member.displayName} the owner? They take over the team, the plan and the settings, and you become an instructor. ${
+                      paidRunning
+                        ? "The current plan keeps charging your card until they choose a plan of their own."
+                        : "They choose and pay for the plan from now on."
+                    }`}
+                  >
+                    <input type="hidden" name="id" value={member.id} />
+                  </ActionForm>
+                  <ActionForm
+                    action={removeMember}
+                    submitLabel="Remove"
+                    variant="ghost"
+                    className="space-y-0"
+                    confirm="Remove this person? They lose access immediately. Their lessons stay on the diary as a record."
+                  >
+                    <input type="hidden" name="id" value={member.id} />
+                  </ActionForm>
+                </>
               ) : null}
             </div>
           ))}

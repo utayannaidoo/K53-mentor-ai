@@ -2,6 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { voidSchoolCommission } from "@/lib/partners/commission";
 import { fetchCustomer, disableSubscription } from "@/lib/paystack/client";
+import { isSchoolPlanCode } from "@/lib/billing/school-billing";
 import { MONEY_BACK_DAYS } from "@/lib/billing/refund-policy";
 
 // Re-exported so server callers keep importing it from here, but declared in
@@ -95,12 +96,28 @@ export function refundEligible(ctx: RefundContext): boolean {
  * THROWS if any disable fails: the caller must then treat billing as still live
  * and NOT proceed as if it stopped (in particular, must not delete the account),
  * so a retry can finish the job.
+ *
+ * SCOPE is the caller's decision, and it is required so nobody makes it by
+ * accident. One Paystack customer can carry both products — Paystack keys
+ * customers on email, so a driving-school owner who also studies is one
+ * customer with a learner plan AND a school plan. Cancelling Premium passes
+ * "learner", which leaves every KNOWN school plan running (an unidentifiable
+ * plan is still disabled, exactly as before school plans existed). Deleting
+ * the account passes "everything": the person is leaving, and no card of
+ * theirs may keep being charged, including for a school they have handed on.
  */
-export async function disableActiveSubscriptions(customerCode: string): Promise<number> {
+export async function disableActiveSubscriptions(
+  customerCode: string,
+  scope: "learner" | "everything",
+): Promise<number> {
   const customer = await fetchCustomer(customerCode);
-  const live = customer.subscriptions.filter(
-    (s) => s.status === "active" || s.status === "non-renewing",
-  );
+  const live = customer.subscriptions.filter((s) => {
+    if (s.status !== "active" && s.status !== "non-renewing") return false;
+    if (scope === "everything") return true;
+    const plan = s.plan;
+    const code = typeof plan === "string" ? plan : plan?.plan_code;
+    return !isSchoolPlanCode(code);
+  });
   for (const s of live) {
     await disableSubscription(s.subscription_code, s.email_token);
   }

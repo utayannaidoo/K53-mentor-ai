@@ -53,9 +53,16 @@ export default async function SchoolReports() {
     schoolLedger(school),
     schoolTestResults(school, quarterAgo),
     schoolLearners(school),
-    schoolInstructors(school),
+    schoolInstructors(school, { includeFormer: true }),
     schoolProgress(school),
   ]);
+  // Someone who left this month still taught this month: keep a former
+  // instructor in the comparison while they have anything in its windows.
+  const compared = instructors.filter((i) => {
+    if (!i.former) return true;
+    const theirs = lessonStats(facts.filter((f) => f.instructor_id === i.id), monthAgo, tomorrow);
+    return theirs.taught + theirs.noShows > 0 || results.some((r) => r.instructor_id === i.id);
+  });
 
   const week = lessonStats(facts, weekStart, weekEnd);
   const last30 = lessonStats(facts, monthAgo, tomorrow);
@@ -123,7 +130,7 @@ export default async function SchoolReports() {
       <div className="space-y-3">
         <h2 className="font-display text-base font-semibold">By instructor · last 30 days</h2>
         <Card className={cn(glass, "divide-y divide-border/50")}>
-          {instructors.map((instructor) => {
+          {compared.map((instructor) => {
             const mine = lessonStats(
               facts.filter((f) => f.instructor_id === instructor.id),
               monthAgo,
@@ -136,7 +143,10 @@ export default async function SchoolReports() {
             );
             return (
               <div key={instructor.id} className="p-4">
-                <p className="font-medium">{instructor.displayName}</p>
+                <p className="font-medium">
+                  {instructor.displayName}
+                  {instructor.former ? <span className="ml-2 text-2xs text-muted-foreground">left</span> : null}
+                </p>
                 <p className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-2xs text-muted-foreground tabular-nums">
                   <span>{mine.taught} taught</span>
                   <span>{mine.noShows} no-shows ({percent(mine.noShowRate)})</span>

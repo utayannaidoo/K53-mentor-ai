@@ -27,6 +27,8 @@ export function reportCheckoutFailure(args: {
   /** Who could not pay, so they can be followed up. */
   userId?: string;
   err?: unknown;
+  /** Which product's checkout broke. Learner unless a driving school said otherwise. */
+  product?: "learner" | "school";
 }): void {
   const detail =
     args.reason === "plan_code_missing"
@@ -53,7 +55,9 @@ export function reportCheckoutFailure(args: {
     everyMs: CHECKOUT_ALERT_EVERY_MS,
     subject: `[K53 ops] Checkout is failing — nobody can pay (${args.plan})`,
     lines: [
-      `A learner tried to subscribe and could not.`,
+      args.product === "school"
+        ? `A driving school tried to subscribe and could not.`
+        : `A learner tried to subscribe and could not.`,
       ``,
       `Plan:        ${args.plan} ${args.cycle}`,
       `Environment: ${environmentLabel()}`,
