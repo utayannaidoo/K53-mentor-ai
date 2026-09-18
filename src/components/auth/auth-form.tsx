@@ -15,7 +15,7 @@ import { isPasswordValid } from "@/lib/auth/password";
 import { checkAuthAttempt, recordAuthResult, type ThrottleSurface } from "@/lib/auth/client-throttle";
 import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
 import { shouldShowSessionDisagreement } from "@/lib/auth/session-disagreement";
-import { safeNextPath } from "@/lib/auth/safe-next";
+import { isSchoolWorkspacePath, safeNextPath } from "@/lib/auth/safe-next";
 import { PasswordRequirements } from "@/components/auth/password-requirements";
 import { TurnstileChallenge, useTurnstile } from "@/components/auth/turnstile";
 import { buildAuthCaptchaOptions, shouldBlockSubmit } from "@/lib/auth/captcha";
@@ -115,6 +115,10 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     // account that skipped straight to a deep link would land on a page it has
     // no context for (or, for licence-prep, no plan for).
     const next = safeNextPath(p.get("next"));
+    // The school workspace has its own gate and no learner onboarding, so it
+    // skips the /continue hop (which would mount the whole study app to
+    // decide nothing).
+    if (next && isSchoolWorkspacePath(next)) return next;
     return next ? `/continue?next=${encodeURIComponent(next)}` : "/continue";
   }
 

@@ -1,3 +1,5 @@
+import { isSchoolWorkspacePath } from "@/lib/auth/safe-next";
+
 export interface FirstRunRouteState {
   hasOnboarded: boolean;
   hasDiagnostic: boolean;
@@ -16,6 +18,9 @@ export interface FirstRunRouteState {
  * chose "study first" receive the one-question introduction.
  */
 export function postAuthFirstRunDestination(state: FirstRunRouteState): string {
+  // A driving school signing up to run its workspace skips the learner funnel
+  // entirely — see isSchoolWorkspacePath.
+  if (isSchoolWorkspacePath(state.next)) return state.next!;
   if (!state.hasOnboarded) return "/onboarding";
   if (!state.hasDiagnostic && !state.diagnosticSkippedAt) return "/diagnostic";
   if (state.hasDiagnostic) return state.next ?? "/dashboard";

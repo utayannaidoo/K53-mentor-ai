@@ -14,6 +14,7 @@ import {
 } from "@/lib/schools/invites";
 import type { ActionResult } from "@/lib/forms/action-result";
 import { rpcMessage } from "@/lib/schools/rpc-message";
+import { SCHOOL_TRIAL_DAYS, SCHOOL_TRIAL_SEATS } from "@/lib/billing/school-plans";
 
 /**
  * Every school workspace mutation.
@@ -26,12 +27,8 @@ import { rpcMessage } from "@/lib/schools/rpc-message";
  * security boundary.
  */
 
-const TRIAL_DAYS = 30;
-/**
- * The instructor ceiling during a trial — the largest self-serve band, so no
- * school hits a wall while evaluating. A paid plan sets the real number.
- */
-const TRIAL_SEATS = 15;
+const TRIAL_DAYS = SCHOOL_TRIAL_DAYS;
+const TRIAL_SEATS = SCHOOL_TRIAL_SEATS;
 
 /**
  * Demo mode has no database and no session, so nothing can be saved. Every

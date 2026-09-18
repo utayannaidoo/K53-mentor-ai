@@ -8,7 +8,7 @@ import {
   isSupabaseConfigured,
   supabaseConfig,
 } from "@/lib/env";
-import { safeNextPath } from "@/lib/auth/safe-next";
+import { isSchoolWorkspacePath, safeNextPath } from "@/lib/auth/safe-next";
 
 // A hosted deploy missing Supabase would silently skip every check below.
 assertSupabaseConfiguredInProduction();
@@ -144,8 +144,8 @@ export function signedInAuthPageDest(params: URLSearchParams): {
     // gate and no onboarding prerequisite, so sending an owner through
     // /continue would funnel them into learner onboarding they do not need.
     // `next` still carries its query string here, so split before assigning.
-    const [nextPath, nextQuery] = splitPath(next);
-    if (nextPath === "/schools" || nextPath.startsWith("/schools/")) {
+    if (isSchoolWorkspacePath(next)) {
+      const [nextPath, nextQuery] = splitPath(next);
       return { pathname: nextPath, search: nextQuery };
     }
     return { pathname: "/continue", search: `?next=${encodeURIComponent(next)}` };

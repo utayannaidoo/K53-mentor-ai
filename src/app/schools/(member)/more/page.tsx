@@ -21,6 +21,15 @@ export default async function SchoolMore() {
   const today = schoolDay(new Date(), school.timezone);
   const due = (await schoolEnquiries(school, ["new", "contacted"])).filter((e) => isDueToday(e, today)).length;
   const items = [
+    ...(school.role === "instructor"
+      ? []
+      : [
+          {
+            href: "/schools/reports",
+            title: "Reports",
+            body: "Lessons, money, no-shows, test-ready learners and your pass rate.",
+          },
+        ]),
     {
       href: "/schools/enquiries",
       title: due > 0 ? `Enquiries · ${due} to call back` : "Enquiries",

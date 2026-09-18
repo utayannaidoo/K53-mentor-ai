@@ -1,4 +1,5 @@
 import type { SchoolContext } from "@/lib/schools/auth";
+import { SCHOOL_TRIAL_DAYS, SCHOOL_TRIAL_SEATS } from "@/lib/billing/school-plans";
 import type { Instructor, Learner, Lesson, LessonModule, LessonNote, Vehicle } from "@/lib/schools/diary-types";
 import type { PackageRow, PaymentRow } from "@/lib/schools/money";
 import type { Enquiry, TestResult } from "@/lib/schools/test-day";
@@ -21,8 +22,8 @@ export const DEMO_SCHOOL: SchoolContext = {
   access: "full",
   plan: "trial",
   status: "trialing",
-  seats: 15,
-  trialEndsAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+  seats: SCHOOL_TRIAL_SEATS,
+  trialEndsAt: new Date(Date.now() + SCHOOL_TRIAL_DAYS * 86_400_000).toISOString(),
   partnerSchoolId: null,
   seatsUsed: 2,
   timezone: "Africa/Johannesburg",

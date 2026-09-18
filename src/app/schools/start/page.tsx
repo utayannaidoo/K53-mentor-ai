@@ -7,6 +7,7 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { currentSchool } from "@/lib/schools/auth";
 import { ActionForm, Field } from "@/components/admin/action-form";
 import { createSchoolWorkspace } from "@/app/schools/actions";
+import { SCHOOL_TRIAL_DAYS } from "@/lib/billing/school-plans";
 
 export const metadata: Metadata = { title: "Set up your school" };
 export const dynamic = "force-dynamic";
@@ -31,7 +32,7 @@ export default async function StartSchool() {
             Set up your school
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Your diary, your learners and your money in one place. 30 days free, no card.
+            Your diary, your learners and your money in one place. {SCHOOL_TRIAL_DAYS} days free, no card.
           </p>
         </div>
 

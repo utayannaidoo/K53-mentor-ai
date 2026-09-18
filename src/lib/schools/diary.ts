@@ -13,6 +13,7 @@ import {
 } from "@/lib/schools/demo";
 import { dayBounds } from "@/lib/schools/time";
 import type { ProgressRow } from "@/lib/schools/modules";
+import type { LessonFact } from "@/lib/schools/reports";
 import {
   learnerName,
   vehicleLabel,
@@ -309,4 +310,42 @@ export async function latestFocus(
   );
   const latest = recent.find((l) => withFocus.get(l.id));
   return latest ? { nextFocus: withFocus.get(latest.id)!, lessonAt: latest.starts_at } : null;
+}
+
+/** The bare facts of every booking starting in [fromIso, toIso) — for reports. */
+export async function lessonFactsBetween(
+  school: SchoolContext,
+  fromIso: string,
+  toIso: string,
+): Promise<LessonFact[]> {
+  const supabase = await client();
+  if (!supabase) {
+    return demoLessons()
+      .filter((l) => l.starts_at >= fromIso && l.starts_at < toIso)
+      .map(({ instructor_id, learner_id, status, kind, starts_at }) => ({ instructor_id, learner_id, status, kind, starts_at }));
+  }
+  const { data } = await supabase
+    .from("school_lessons")
+    .select("instructor_id, learner_id, status, kind, starts_at")
+    .eq("school_id", school.schoolId)
+    .gte("starts_at", fromIso)
+    .lt("starts_at", toIso);
+  return (data ?? []) as LessonFact[];
+}
+
+/** Every learner's latest rating per manoeuvre — for the test-ready count. */
+export async function schoolProgress(
+  school: SchoolContext,
+): Promise<(ProgressRow & { learner_id: string })[]> {
+  const supabase = await client();
+  if (!supabase) {
+    return Object.entries(DEMO_PROGRESS).flatMap(([learner_id, rows]) =>
+      rows.map((row) => ({ ...row, learner_id })),
+    );
+  }
+  const { data } = await supabase
+    .from("school_learner_progress")
+    .select("learner_id, module_id, rating, faults, lesson_at")
+    .eq("school_id", school.schoolId);
+  return (data ?? []) as (ProgressRow & { learner_id: string })[];
 }
