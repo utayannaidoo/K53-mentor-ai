@@ -7,6 +7,9 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { currentSchool } from "@/lib/schools/auth";
 import { DEMO_SCHOOL } from "@/lib/schools/demo";
 import { diaryForDay, schoolInstructors, schoolLearners, schoolVehicles } from "@/lib/schools/diary";
+import { schoolLedger } from "@/lib/schools/ledger";
+import { packageChoices } from "@/lib/schools/money";
+import { learnerName } from "@/lib/schools/diary-types";
 import { isIsoDay, longDay, schoolDay, shiftDay } from "@/lib/schools/time";
 import { LessonRow } from "@/components/schools/lesson-row";
 import { BookLessonForm } from "@/components/schools/book-lesson-form";
@@ -33,12 +36,18 @@ export default async function SchoolDiary({
   const isInstructor = school.role === "instructor";
   const showEveryone = !isInstructor || params.who === "all";
 
-  const [entries, learners, instructors, vehicles] = await Promise.all([
+  const [entries, learners, instructors, vehicles, ledger] = await Promise.all([
     diaryForDay(school, day, showEveryone ? undefined : school.memberId),
     schoolLearners(school),
     schoolInstructors(school),
     schoolVehicles(school),
+    schoolLedger(school),
   ]);
+  const packageOptions = packageChoices(
+    ledger.packages,
+    ledger.lessons,
+    new Map(learners.map((l) => [l.id, learnerName(l)])),
+  );
 
   const heading =
     day === today ? "Today" : day === shiftDay(today, 1) ? "Tomorrow" : day === shiftDay(today, -1) ? "Yesterday" : longDay(day);
@@ -148,6 +157,7 @@ export default async function SchoolDiary({
               vehicles={vehicles}
               day={day}
               defaultTime={defaultTime}
+              packageOptions={packageOptions}
             />
           </Card>
         </details>

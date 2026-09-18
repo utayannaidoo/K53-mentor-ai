@@ -26,6 +26,7 @@ export function BookLessonForm({
   day,
   defaultTime,
   defaultLearnerId,
+  packageOptions = [],
 }: {
   school: SchoolContext;
   learners: Learner[];
@@ -34,6 +35,8 @@ export function BookLessonForm({
   day: string;
   defaultTime: string;
   defaultLearnerId?: string;
+  /** Packages this booking can draw from, already labelled ("Thabo · 10 lessons, 6 left"). */
+  packageOptions?: { value: string; label: string }[];
 }) {
   const bookable = learners.filter((l) => l.status !== "passed" && l.status !== "left");
   const activeVehicles = vehicles.filter((v) => v.status === "active");
@@ -93,6 +96,18 @@ export function BookLessonForm({
           required
         />
         <Field label="Pickup address" name="pickup_address" placeholder="Where to fetch them" />
+        <SelectField
+          label="Pay from"
+          name="package_id"
+          defaultValue={packageOptions.length === 1 && defaultLearnerId ? packageOptions[0].value : ""}
+          options={[{ value: "", label: "No package — price below" }, ...packageOptions]}
+        />
+        <Field
+          label="Price (R)"
+          name="price"
+          placeholder="e.g. 350"
+          hint="Charged once the lesson happens. Leave blank if it's on a package."
+        />
       </div>
     </ActionForm>
   );

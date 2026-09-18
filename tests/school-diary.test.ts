@@ -73,6 +73,8 @@ describe("nextLesson", () => {
     kind: "lesson",
     status,
     pickup_address: null,
+    package_id: null,
+    price_cents: null,
     learnerName: "Thabo",
     learnerPhone: null,
     instructorName: "Sipho",

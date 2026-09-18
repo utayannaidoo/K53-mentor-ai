@@ -19,10 +19,15 @@ import type { SchoolContext } from "@/lib/schools/auth";
  * a tab that leads nowhere is worse than a missing tab.
  */
 const TABS: SchoolTab[] = [
-  { href: "/schools", label: "Diary", match: "/schools", exact: true },
+  { href: "/schools", label: "Diary", match: "/schools", exact: true, also: ["/schools/lessons"] },
   { href: "/schools/learners", label: "Learners", match: "/schools/learners" },
-  { href: "/schools/vehicles", label: "Vehicles", match: "/schools/vehicles" },
-  { href: "/schools/settings", label: "Settings", match: "/schools/settings" },
+  { href: "/schools/money", label: "Money", match: "/schools/money" },
+  {
+    href: "/schools/more",
+    label: "More",
+    match: "/schools/more",
+    also: ["/schools/vehicles", "/schools/settings"],
+  },
 ];
 
 export function SchoolShell({

@@ -1,5 +1,6 @@
 import type { SchoolContext } from "@/lib/schools/auth";
 import type { Instructor, Learner, Lesson, LessonModule, LessonNote, Vehicle } from "@/lib/schools/diary-types";
+import type { PackageRow, PaymentRow } from "@/lib/schools/money";
 import { schoolDay, shiftDay, zonedInstant } from "@/lib/schools/time";
 
 /**
@@ -71,11 +72,13 @@ export function demoLessons(): Lesson[] {
   const today = schoolDay(new Date(), tz);
   const tomorrow = shiftDay(today, 1);
   return [
-    lesson("demo-l1", today, "08:00", 60, "demo-thabo", "demo-sipho", "demo-polo", "completed", "12 Jan Smuts Ave"),
-    lesson("demo-l2", today, "10:00", 60, "demo-ayanda", "demo-owner", "demo-polo", "scheduled", "Menlyn Mall, main entrance"),
-    lesson("demo-l3", today, "11:30", 90, "demo-pieter", "demo-sipho", "demo-bike", "scheduled", "Yard"),
-    lesson("demo-l4", today, "14:00", 60, "demo-thabo", "demo-sipho", "demo-polo", "scheduled", "12 Jan Smuts Ave"),
-    lesson("demo-l5", tomorrow, "09:00", 60, "demo-ayanda", "demo-owner", "demo-polo", "scheduled", "Menlyn Mall, main entrance"),
+    lesson("demo-l1", today, "08:00", 60, "demo-thabo", "demo-sipho", "demo-polo", "completed", "12 Jan Smuts Ave", "demo-pkg"),
+    lesson("demo-l2", today, "10:00", 60, "demo-ayanda", "demo-owner", "demo-polo", "scheduled", "Menlyn Mall, main entrance", null, 35000),
+    lesson("demo-l3", today, "11:30", 90, "demo-pieter", "demo-sipho", "demo-bike", "scheduled", "Yard", null, 45000),
+    lesson("demo-l4", today, "14:00", 60, "demo-thabo", "demo-sipho", "demo-polo", "scheduled", "12 Jan Smuts Ave", "demo-pkg"),
+    lesson("demo-l5", tomorrow, "09:00", 60, "demo-ayanda", "demo-owner", "demo-polo", "scheduled", "Menlyn Mall, main entrance", null, 35000),
+    lesson("demo-l6", shiftDay(today, -2), "15:00", 60, "demo-ayanda", "demo-owner", "demo-polo", "completed", "Menlyn Mall, main entrance", null, 35000),
+    lesson("demo-l7", shiftDay(today, -1), "15:00", 60, "demo-ayanda", "demo-owner", "demo-polo", "no_show", "Menlyn Mall, main entrance", null, 35000),
   ];
 }
 
@@ -117,6 +120,8 @@ function lesson(
   vehicleId: string,
   status: Lesson["status"],
   pickup: string,
+  packageId: string | null = null,
+  priceCents: number | null = null,
 ): Lesson {
   const start = zonedInstant(day, time, DEMO_SCHOOL.timezone);
   return {
@@ -129,6 +134,8 @@ function lesson(
     kind: "lesson",
     status,
     pickup_address: pickup,
+    package_id: packageId,
+    price_cents: priceCents,
   };
 }
 
@@ -162,3 +169,47 @@ export const DEMO_PROGRESS: Record<string, { module_id: string; rating: 1 | 2 | 
     { module_id: "three_point_turn", rating: 1, faults: [], lesson_at: created },
   ],
 };
+
+/** Thabo bought a 10-lesson package and has paid part of it. */
+export const DEMO_PACKAGES: PackageRow[] = [
+  {
+    id: "demo-pkg",
+    learner_id: "demo-thabo",
+    name: "10 lessons",
+    lessons_included: 10,
+    price_cents: 280000,
+    status: "active",
+    sold_on: "2026-09-01",
+    expires_on: null,
+  },
+];
+
+export const DEMO_PAYMENTS: PaymentRow[] = [
+  payment("demo-pay1", "demo-thabo", "demo-pkg", 150000, "eft", "2026-09-01", "THABO NKOSI 10L"),
+  payment("demo-pay2", "demo-ayanda", null, 35000, "cash", "2026-09-10", null),
+];
+
+function payment(
+  id: string,
+  learnerId: string,
+  packageId: string | null,
+  cents: number,
+  method: PaymentRow["method"],
+  on: string,
+  reference: string | null,
+): PaymentRow {
+  return {
+    id,
+    learner_id: learnerId,
+    package_id: packageId,
+    amount_cents: cents,
+    method,
+    reference,
+    received_on: on,
+    received_by: "demo-owner",
+    note: null,
+    voided_at: null,
+    void_reason: null,
+    created_at: `${on}T09:00:00Z`,
+  };
+}

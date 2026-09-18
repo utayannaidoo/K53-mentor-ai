@@ -17,6 +17,11 @@ import {
   schoolVehicles,
 } from "@/lib/schools/diary";
 import { modulesForLicence, RATING_LABEL, readiness, type Rating } from "@/lib/schools/modules";
+import { learnerLedger, memberNamesByUser } from "@/lib/schools/ledger";
+import { formatRand, learnerBalance, packageChoices, packageUsage } from "@/lib/schools/money";
+import { PaymentList } from "@/components/schools/payment-list";
+import { RecordPaymentForm } from "@/components/schools/record-payment-form";
+import { sellPackage, setPackageStatus } from "@/app/schools/money-actions";
 import { longDay, schoolDay, clockTime } from "@/lib/schools/time";
 import {
   LICENCE_LABEL,
@@ -56,13 +61,18 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
   if (!detail) notFound();
   const { learner, lessons } = detail;
 
-  const [instructors, vehicles, learners, progress, focus] = await Promise.all([
+  const [instructors, vehicles, learners, progress, focus, ledger, takenBy] = await Promise.all([
     schoolInstructors(school),
     schoolVehicles(school),
     schoolLearners(school),
     learnerProgress(school, learner.id),
     latestFocus(school, learner.id),
+    learnerLedger(school, learner.id),
+    memberNamesByUser(school),
   ]);
+  const balance = learnerBalance(learner.id, ledger.packages, ledger.payments, ledger.lessons).balanceCents;
+  const choices = packageChoices(ledger.packages, ledger.lessons, new Map(), learner.id);
+  const canCorrect = school.access === "full" && school.role !== "instructor";
   const catalogue = modulesForLicence(learner.licence_code);
   const progressById = new Map(progress.map((p) => [p.module_id, p]));
   const score = readiness(learner.licence_code, progress);
@@ -163,6 +173,7 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
               day={today}
               defaultTime="08:00"
               defaultLearnerId={learner.id}
+              packageOptions={choices}
             />
           </Card>
         </details>
@@ -199,6 +210,118 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
             );
           })}
         </Card>
+      </div>
+
+      {/* ── Money ───────────────────────────────────────────────────────── */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-display text-base font-semibold">Money</h2>
+          <p
+            className={cn(
+              "font-display text-base font-semibold tabular-nums",
+              balance > 0 ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            {balance > 0 ? `Owes ${formatRand(balance)}` : balance < 0 ? `In credit ${formatRand(-balance)}` : "Paid up"}
+          </p>
+        </div>
+
+        {ledger.packages.length > 0 ? (
+          <Card className={cn(glass, "divide-y divide-border/50")}>
+            {ledger.packages.map((pkg) => {
+              const usage = packageUsage(pkg, ledger.lessons);
+              return (
+                <div key={pkg.id} className="space-y-2 p-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="min-w-0 flex-1 font-medium">{pkg.name}</span>
+                    <span className="tabular-nums">{formatRand(pkg.price_cents)}</span>
+                    {pkg.status !== "active" ? <Badge variant="secondary">{pkg.status}</Badge> : null}
+                  </div>
+                  <p className="text-2xs text-muted-foreground">
+                    {[
+                      `${usage.used} used`,
+                      usage.booked ? `${usage.booked} booked` : null,
+                      usage.left !== null ? `${usage.left} left` : null,
+                      `sold ${formatDate(pkg.sold_on)}`,
+                      pkg.expires_on ? `expires ${formatDate(pkg.expires_on)}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </p>
+                  {canCorrect ? (
+                    <ActionForm
+                      action={setPackageStatus}
+                      submitLabel="Update"
+                      variant="ghost"
+                      className="flex flex-wrap items-end gap-2 space-y-0"
+                      resetOnSuccess={false}
+                    >
+                      <input type="hidden" name="id" value={pkg.id} />
+                      <SelectField
+                        label="Status"
+                        name="status"
+                        defaultValue={pkg.status}
+                        className="min-w-40"
+                        options={[
+                          { value: "active", label: "Active" },
+                          { value: "used", label: "Used up" },
+                          { value: "expired", label: "Expired" },
+                          { value: "refunded", label: "Refunded" },
+                        ]}
+                      />
+                    </ActionForm>
+                  ) : null}
+                </div>
+              );
+            })}
+          </Card>
+        ) : null}
+
+        {ledger.payments.length > 0 ? (
+          <Card className={cn(glass, "divide-y divide-border/50")}>
+            <PaymentList
+              payments={ledger.payments}
+              learnerNames={new Map([[learner.id, name]])}
+              takenBy={takenBy}
+              canVoid={canCorrect}
+              showLearner={false}
+            />
+          </Card>
+        ) : ledger.packages.length === 0 ? (
+          <Card className={cn(glassSubtle, "p-6 text-sm text-muted-foreground")}>
+            No packages or payments yet.
+          </Card>
+        ) : null}
+
+        {canWrite ? (
+          <div className="flex flex-wrap gap-2">
+            <details className="group w-full">
+              <summary className="cursor-pointer list-none">
+                <span className={cn(buttonVariants({ variant: "secondary" }), "press")}>Record a payment</span>
+              </summary>
+              <Card className={cn(glass, "mt-3 p-5")}>
+                <RecordPaymentForm learnerId={learner.id} packageOptions={choices} today={today} />
+              </Card>
+            </details>
+            <details className="group w-full">
+              <summary className="cursor-pointer list-none">
+                <span className={cn(buttonVariants({ variant: "secondary" }), "press")}>Sell a package</span>
+              </summary>
+              <Card className={cn(glass, "mt-3 p-5")}>
+                <ActionForm action={sellPackage} submitLabel="Add package" pendingLabel="Adding…">
+                  <input type="hidden" name="learner_id" value={learner.id} />
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field label="Name" name="name" placeholder="e.g. 10 lessons" required />
+                    <Field label="Price (R)" name="price" placeholder="e.g. 2800" required />
+                    <Field label="Lessons included" name="lessons_included" type="number" placeholder="10" hint="Leave blank for an open amount." />
+                    <Field label="Sold on" name="sold_on" type="date" defaultValue={today} required />
+                    <Field label="Expires (optional)" name="expires_on" type="date" />
+                  </div>
+                </ActionForm>
+              </Card>
+            </details>
+          </div>
+        ) : null}
       </div>
 
       {/* ── History ─────────────────────────────────────────────────────── */}

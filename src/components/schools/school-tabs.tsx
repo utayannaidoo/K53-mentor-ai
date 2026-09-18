@@ -14,6 +14,8 @@ export interface SchoolTab {
    * prefix of every other tab, so a prefix match would light it up everywhere.
    */
   exact?: boolean;
+  /** Other sections that live under this tab, e.g. "More" owns Vehicles. */
+  also?: string[];
 }
 
 /**
@@ -35,8 +37,11 @@ export function SchoolTabs({ tabs }: { tabs: SchoolTab[] }) {
     >
       <ul className="mx-auto flex max-w-3xl">
         {tabs.map((tab) => {
-          const active =
-            pathname === tab.match || (!tab.exact && pathname.startsWith(`${tab.match}/`));
+          const active = [tab.match, ...(tab.also ?? [])].some(
+            (prefix, index) =>
+              pathname === prefix ||
+              ((index > 0 || !tab.exact) && pathname.startsWith(`${prefix}/`)),
+          );
           return (
             <li key={tab.href} className="flex-1">
               <Link

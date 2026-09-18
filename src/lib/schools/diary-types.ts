@@ -52,6 +52,10 @@ export interface Lesson {
   kind: LessonKind;
   status: LessonStatus;
   pickup_address: string | null;
+  /** Paid from this package, or… */
+  package_id: string | null;
+  /** …charged at this price. Never both (0038). */
+  price_cents: number | null;
 }
 
 export interface Instructor {

@@ -8,6 +8,7 @@ import { isModuleFor } from "@/lib/schools/modules";
 import { rpcMessage } from "@/lib/schools/rpc-message";
 import { classifyDiaryError, diaryErrorMessage } from "@/lib/schools/diary-errors";
 import { clockTime, isClockTime, isIsoDay, zonedInstant } from "@/lib/schools/time";
+import { parseRand } from "@/lib/schools/money";
 import type {
   LearnerStatus,
   LessonKind,
@@ -199,6 +200,16 @@ export async function bookLesson(_prev: ActionResult | null, form: FormData): Pr
   const start = zonedInstant(day, time, school.timezone);
   const end = new Date(start.getTime() + minutes * 60_000);
 
+  // How it's paid for: from a package, or at a price — never both (0038).
+  // Blocked time has no learner, so it is never paid for.
+  const packageId = kind === "block" ? null : optional(form, "package_id", 40);
+  const priceText = kind === "block" ? "" : text(form, "price", 20);
+  const priceCents = priceText ? parseRand(priceText) : null;
+  if (priceText && priceCents === null) return { ok: false, message: "Enter the lesson price, e.g. 350." };
+  if (packageId && priceCents !== null) {
+    return { ok: false, message: "Pay from the package or at a price — not both." };
+  }
+
   const { error } = await session.supabase.from("school_lessons").insert({
     school_id: school.schoolId,
     learner_id: kind === "block" ? null : learnerId,
@@ -208,10 +219,15 @@ export async function bookLesson(_prev: ActionResult | null, form: FormData): Pr
     ends_at: end.toISOString(),
     kind,
     pickup_address: optional(form, "pickup_address", 200),
+    package_id: packageId,
+    price_cents: priceCents,
     created_by: session.userId,
   });
 
   if (error) {
+    if (error.code === "23503" && error.message.includes("package")) {
+      return { ok: false, message: "That package belongs to a different learner." };
+    }
     const kindOfError = classifyDiaryError(error);
     if (kindOfError === "instructor_clash") {
       // Name the clash: "already booked at 14:00" is something a person can

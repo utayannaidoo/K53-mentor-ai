@@ -79,6 +79,29 @@ describe.skipIf(!hasPartnerDb)("school workspace isolation (0035)", () => {
     }
   }, 60_000);
 
+  it("keeps payments append-only and packages with their own learner (0038)", async () => {
+    const db = await schoolDb();
+    try {
+      const verdict = await runIsolationScript(db, "supabase/tests/school_money.sql");
+      expect(verdict).toMatch(/^MONEY PASSED: \d+ checks \(rolled back\)$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if a signed-in user is ever allowed to edit a payment", async () => {
+    const db = await schoolDb();
+    try {
+      await db.exec("grant update (amount_cents) on public.school_payments to authenticated");
+      await db.exec(`create policy school_payments_update on public.school_payments for update
+        using (school_id in (select public.my_school_ids()))`);
+      const verdict = await runIsolationScript(db, "supabase/tests/school_money.sql");
+      expect(verdict).toMatch(/^MONEY FAILED: .*payment amount was edited/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
   it("fails loudly if the double-booking guard is ever dropped", async () => {
     // The diary check passing on its first run proves nothing on its own; this
     // proves it is watching. Remove the constraint and the verdict must flip.
