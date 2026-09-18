@@ -33,6 +33,10 @@ export interface SchoolContext {
   partnerSchoolId: string | null;
   /** Active owner + instructor members. Compared against `seats`. */
   seatsUsed: number;
+  /** IANA zone every date and time in the workspace is shown in. */
+  timezone: string;
+  /** What a new booking defaults to. */
+  defaultLessonMinutes: number;
 }
 
 interface MemberRow {
@@ -46,6 +50,8 @@ interface SchoolRow {
   name: string;
   slug: string;
   partner_school_id: string | null;
+  timezone: string | null;
+  default_lesson_minutes: number | null;
 }
 
 interface SubscriptionRow {
@@ -105,7 +111,7 @@ export async function currentSchool(): Promise<SchoolContext | null> {
   const [schoolResult, subscriptionResult, seatResult] = await Promise.all([
     supabase
       .from("schools")
-      .select("id, name, slug, partner_school_id")
+      .select("id, name, slug, partner_school_id, timezone, default_lesson_minutes")
       .eq("id", member.school_id)
       .maybeSingle(),
     supabase
@@ -138,6 +144,8 @@ export async function currentSchool(): Promise<SchoolContext | null> {
     trialEndsAt: sub?.trial_ends_at ?? null,
     partnerSchoolId: school.partner_school_id,
     seatsUsed: seatResult.count ?? 0,
+    timezone: school.timezone || "Africa/Johannesburg",
+    defaultLessonMinutes: school.default_lesson_minutes ?? 60,
   };
 }
 
@@ -156,7 +164,13 @@ export async function requireSchool(options?: {
   const school = await currentSchool();
   if (!school) return { ok: false, message: "You are not signed in to a school." };
   if (options?.roles && !options.roles.includes(school.role)) {
-    return { ok: false, message: "Only the school owner can do that." };
+    const onlyOwner = options.roles.length === 1 && options.roles[0] === "owner";
+    return {
+      ok: false,
+      message: onlyOwner
+        ? "Only the school owner can do that."
+        : "Only the owner or office staff can do that.",
+    };
   }
   if (options?.write && school.access !== "full") {
     return {

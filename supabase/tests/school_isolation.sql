@@ -30,6 +30,8 @@ declare
   school_b uuid;
   teacher_member uuid;
   n int;
+  t text;
+  col record;
   passed int := 0;
   failures text[] := '{}';
 begin
@@ -106,15 +108,8 @@ begin
   exception when insufficient_privilege then passed := passed + 1;
   end;
 
-  -- Supabase's default privileges grant everything, TRUNCATE included, on
-  -- every new public table. TRUNCATE ignores RLS entirely, so these three
-  -- only pass if 0035 revoked the defaults before granting.
-  begin
-    truncate public.school_members;
-    failures := array_append(failures, 'a signed-in user could TRUNCATE school_members');
-  exception when insufficient_privilege then passed := passed + 1;
-  end;
-
+  -- These two only pass if 0035 revoked Supabase's grant-everything defaults
+  -- before granting. The privilege audit at the end covers every table.
   begin
     delete from public.schools where id = school_a;
     failures := array_append(failures, 'an owner could DELETE their school row directly');
@@ -240,6 +235,46 @@ begin
   select count(*) into n from public.school_members
    where school_id = school_a and role = 'owner' and user_id = teacher;
   if n = 1 then passed := passed + 1; else failures := array_append(failures, 'ownership did not move to the new owner'); end if;
+
+  -- ── Privilege audit over EVERY school table, present and future ──────────
+  -- Supabase grants every privilege on every new public table to anon and
+  -- authenticated by default, TRUNCATE included — and TRUNCATE ignores RLS.
+  -- Each migration must revoke those before granting. This loops over whatever
+  -- school tables exist, so a later slice that forgets fails here without
+  -- anyone remembering to add a check. It reads the grants directly rather
+  -- than attempting the operation, because a foreign key or a trigger can make
+  -- an attempt fail for an unrelated reason and hide a privilege that exists.
+  for t in
+    select c.relname::text from pg_class c join pg_namespace ns on ns.oid = c.relnamespace
+     where ns.nspname = 'public' and c.relkind = 'r'
+       and (c.relname = 'schools' or c.relname like 'school\_%')
+  loop
+    if (select relrowsecurity from pg_class where oid = format('public.%I', t)::regclass) then
+      passed := passed + 1;
+    else
+      failures := array_append(failures, format('RLS is off on %s', t));
+    end if;
+    if has_table_privilege('authenticated', format('public.%I', t), 'TRUNCATE') then
+      failures := array_append(failures, format('authenticated can TRUNCATE %s', t));
+    else passed := passed + 1; end if;
+    if has_table_privilege('authenticated', format('public.%I', t), 'DELETE') then
+      failures := array_append(failures, format('authenticated can DELETE from %s', t));
+    else passed := passed + 1; end if;
+    if has_table_privilege('anon', format('public.%I', t), 'SELECT,INSERT,UPDATE,DELETE,TRUNCATE') then
+      failures := array_append(failures, format('anon holds a privilege on %s', t));
+    else passed := passed + 1; end if;
+    -- Moving a row to another school, or rewriting who created it, must be
+    -- impossible for a browser, whatever the policies say.
+    for col in
+      select a.attname::text as name from pg_attribute a
+       where a.attrelid = format('public.%I', t)::regclass
+         and a.attname in ('school_id', 'created_by') and not a.attisdropped
+    loop
+      if has_column_privilege('authenticated', format('public.%I', t), col.name, 'UPDATE') then
+        failures := array_append(failures, format('authenticated can UPDATE %s.%s', t, col.name));
+      else passed := passed + 1; end if;
+    end loop;
+  end loop;
 
   -- ── Verdict. Always an exception, so everything above is rolled back. ─────
   if coalesce(array_length(failures, 1), 0) = 0 then

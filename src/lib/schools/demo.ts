@@ -1,4 +1,6 @@
 import type { SchoolContext } from "@/lib/schools/auth";
+import type { Instructor, Learner, Lesson, Vehicle } from "@/lib/schools/diary-types";
+import { schoolDay, shiftDay, zonedInstant } from "@/lib/schools/time";
 
 /**
  * What `/schools` renders with no Supabase configured.
@@ -10,7 +12,7 @@ import type { SchoolContext } from "@/lib/schools/auth";
  */
 export const DEMO_SCHOOL: SchoolContext = {
   schoolId: "demo-school",
-  memberId: "demo-member",
+  memberId: "demo-owner",
   name: "Demo Driving School",
   slug: "demo-driving-school",
   role: "owner",
@@ -20,5 +22,112 @@ export const DEMO_SCHOOL: SchoolContext = {
   seats: 15,
   trialEndsAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   partnerSchoolId: null,
-  seatsUsed: 1,
+  seatsUsed: 2,
+  timezone: "Africa/Johannesburg",
+  defaultLessonMinutes: 60,
 };
+
+export const DEMO_INSTRUCTORS: Instructor[] = [
+  { id: "demo-owner", displayName: "You", role: "owner" },
+  { id: "demo-sipho", displayName: "Sipho", role: "instructor" },
+];
+
+const created = "2026-09-01T08:00:00Z";
+
+export const DEMO_LEARNERS: Learner[] = [
+  learner("demo-thabo", "Thabo", "Nkosi", "0821234567", "8", "active", "demo-sipho", "2026-10-14", "Waltloo"),
+  learner("demo-ayanda", "Ayanda", "Dlamini", "0839876543", "8", "active", "demo-owner", null, null),
+  learner("demo-pieter", "Pieter", "van Wyk", "0725550101", "A", "active", "demo-sipho", null, null),
+  learner("demo-naledi", "Naledi", "Mokoena", "0614442222", "8", "enquiry", null, null, null),
+  learner("demo-kyle", "Kyle", "Naidoo", "0791112233", "8", "passed", "demo-owner", "2026-09-02", "Pinetown"),
+];
+
+export const DEMO_VEHICLES: Vehicle[] = [
+  {
+    id: "demo-polo",
+    registration: "ND 123-456",
+    make: "VW",
+    model: "Polo Vivo",
+    vehicle_group: "car",
+    transmission: "manual",
+    licence_disc_expires_on: "2027-03-31",
+    status: "active",
+  },
+  {
+    id: "demo-bike",
+    registration: "ND 777-001",
+    make: "Honda",
+    model: "CB125F",
+    vehicle_group: "motorcycle",
+    transmission: "manual",
+    licence_disc_expires_on: "2026-11-30",
+    status: "active",
+  },
+];
+
+/** A believable day's diary, relative to whatever "today" is at request time. */
+export function demoLessons(): Lesson[] {
+  const tz = DEMO_SCHOOL.timezone;
+  const today = schoolDay(new Date(), tz);
+  const tomorrow = shiftDay(today, 1);
+  return [
+    lesson("demo-l1", today, "08:00", 60, "demo-thabo", "demo-sipho", "demo-polo", "completed", "12 Jan Smuts Ave"),
+    lesson("demo-l2", today, "10:00", 60, "demo-ayanda", "demo-owner", "demo-polo", "scheduled", "Menlyn Mall, main entrance"),
+    lesson("demo-l3", today, "11:30", 90, "demo-pieter", "demo-sipho", "demo-bike", "scheduled", "Yard"),
+    lesson("demo-l4", today, "14:00", 60, "demo-thabo", "demo-sipho", "demo-polo", "scheduled", "12 Jan Smuts Ave"),
+    lesson("demo-l5", tomorrow, "09:00", 60, "demo-ayanda", "demo-owner", "demo-polo", "scheduled", "Menlyn Mall, main entrance"),
+  ];
+}
+
+function learner(
+  id: string,
+  first: string,
+  last: string,
+  phone: string,
+  code: Learner["licence_code"],
+  status: Learner["status"],
+  instructor: string | null,
+  testDate: string | null,
+  testCentre: string | null,
+): Learner {
+  return {
+    id,
+    first_name: first,
+    last_name: last,
+    phone,
+    email: null,
+    licence_code: code,
+    stage: "drivers",
+    status,
+    assigned_instructor_id: instructor,
+    test_date: testDate,
+    test_centre: testCentre,
+    notes: null,
+    created_at: created,
+  };
+}
+
+function lesson(
+  id: string,
+  day: string,
+  time: string,
+  minutes: number,
+  learnerId: string,
+  instructorId: string,
+  vehicleId: string,
+  status: Lesson["status"],
+  pickup: string,
+): Lesson {
+  const start = zonedInstant(day, time, DEMO_SCHOOL.timezone);
+  return {
+    id,
+    learner_id: learnerId,
+    instructor_id: instructorId,
+    vehicle_id: vehicleId,
+    starts_at: start.toISOString(),
+    ends_at: new Date(start.getTime() + minutes * 60_000).toISOString(),
+    kind: "lesson",
+    status,
+    pickup_address: pickup,
+  };
+}

@@ -5,7 +5,7 @@ import { cn, glass, glassSubtle, formatDate } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { currentSchool } from "@/lib/schools/auth";
-import { DEMO_SCHOOL } from "@/lib/schools/demo";
+import { DEMO_INSTRUCTORS, DEMO_SCHOOL } from "@/lib/schools/demo";
 import { schoolTeam } from "@/lib/schools/members";
 import { ActionForm, Field } from "@/components/admin/action-form";
 import { inviteMember, revokeInvite, removeMember, linkPartnerCode } from "@/app/schools/actions";
@@ -33,7 +33,16 @@ export default async function SchoolSettings() {
 
   const team = isSupabaseConfigured
     ? await schoolTeam(school.schoolId, viewerId)
-    : { members: [{ id: "demo", role: school.role, displayName: "You", createdAt: new Date().toISOString(), isSelf: true }], invites: [] };
+    : {
+        members: DEMO_INSTRUCTORS.map((i) => ({
+          id: i.id,
+          role: i.role,
+          displayName: i.displayName,
+          createdAt: new Date().toISOString(),
+          isSelf: i.id === school.memberId,
+        })),
+        invites: [],
+      };
 
   const overSeats = school.seatsUsed > school.seats;
 

@@ -1,7 +1,7 @@
 import { readFileSync, existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 // Test-only PostgreSQL WASM runtime, installed outside the app. CI sets
 // PARTNER_SQL_RUNTIME to its module path; no production dependency is added.
@@ -31,10 +31,22 @@ export interface TestDb {
   query<T = Record<string, unknown>>(sql: string, args?: unknown[]): Promise<{ rows: T[] }>;
   close(): Promise<void>;
 }
-/** An empty in-process Postgres, for harnesses that build their own schema. */
-export async function freshPglite(): Promise<TestDb> {
+/**
+ * An empty in-process Postgres, for harnesses that build their own schema.
+ *
+ * `contrib` names PGlite contrib extensions to make available (e.g.
+ * "btree_gist"); they ship inside the same runtime package, so this adds no
+ * dependency. The SQL still has to `create extension` them, as in production.
+ */
+export async function freshPglite(contrib: string[] = []): Promise<TestDb> {
   const { PGlite } = await import(/* @vite-ignore */ pathToFileURL(runtime).href);
-  return new PGlite() as TestDb;
+  const extensions: Record<string, unknown> = {};
+  for (const name of contrib) {
+    const modulePath = join(dirname(runtime), "contrib", `${name}.js`);
+    const mod = await import(/* @vite-ignore */ pathToFileURL(modulePath).href);
+    extensions[name] = mod[name];
+  }
+  return new PGlite({ extensions }) as TestDb;
 }
 export async function partnerDb(): Promise<TestDb> {
   const db = await freshPglite();

@@ -9,6 +9,11 @@ export interface SchoolTab {
   label: string;
   /** Active when the path equals this or starts with `${match}/`. */
   match: string;
+  /**
+   * Active only on an exact match. The diary lives at `/schools` itself, the
+   * prefix of every other tab, so a prefix match would light it up everywhere.
+   */
+  exact?: boolean;
 }
 
 /**
@@ -30,7 +35,8 @@ export function SchoolTabs({ tabs }: { tabs: SchoolTab[] }) {
     >
       <ul className="mx-auto flex max-w-3xl">
         {tabs.map((tab) => {
-          const active = pathname === tab.match || pathname.startsWith(`${tab.match}/`);
+          const active =
+            pathname === tab.match || (!tab.exact && pathname.startsWith(`${tab.match}/`));
           return (
             <li key={tab.href} className="flex-1">
               <Link

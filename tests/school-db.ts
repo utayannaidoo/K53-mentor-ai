@@ -21,8 +21,11 @@ export { hasPartnerDb } from "./partner-db";
  *     recreates them, and the isolation checks fail if 0035 stops revoking.
  */
 export async function schoolDb(): Promise<TestDb> {
-  const db = await freshPglite();
+  const db = await freshPglite(["btree_gist"]);
   await db.exec(`
+    -- Supabase installs extensions into their own schema; 0036 relies on it.
+    create schema extensions;
+
     create role anon nologin;
     create role authenticated nologin;
     create role service_role nologin bypassrls;
@@ -78,6 +81,7 @@ export async function schoolDb(): Promise<TestDb> {
     "0033_driving_school_partners.sql",
     "0034_partner_payout_offset.sql",
     "0035_school_workspaces.sql",
+    "0036_school_diary.sql",
   ]) {
     await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
   }
@@ -85,14 +89,17 @@ export async function schoolDb(): Promise<TestDb> {
 }
 
 /**
- * Runs `supabase/tests/school_isolation.sql` and returns its verdict line.
+ * Runs one of the `supabase/tests/*.sql` check scripts and returns its verdict.
  *
- * The script always ends in an exception — that is how it guarantees nothing
+ * Each script always ends in an exception — that is how it guarantees nothing
  * it created survives, even when run against production — so the verdict
  * arrives as the error message rather than a result.
  */
-export async function runIsolationScript(db: TestDb): Promise<string> {
-  const script = readFileSync("supabase/tests/school_isolation.sql", "utf8");
+export async function runIsolationScript(
+  db: TestDb,
+  file = "supabase/tests/school_isolation.sql",
+): Promise<string> {
+  const script = readFileSync(file, "utf8");
   try {
     await db.exec(script);
     return "NO VERDICT: the script finished without raising, so nothing was rolled back";

@@ -38,6 +38,31 @@ describe.skipIf(!hasPartnerDb)("school workspace isolation (0035)", () => {
     }
   }, 60_000);
 
+  it("keeps the diary free of double-bookings and inside its own school (0036)", async () => {
+    const db = await schoolDb();
+    try {
+      const verdict = await runIsolationScript(db, "supabase/tests/school_diary.sql");
+      expect(verdict).toMatch(/^DIARY PASSED: \d+ checks \(rolled back\)$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if the double-booking guard is ever dropped", async () => {
+    // The diary check passing on its first run proves nothing on its own; this
+    // proves it is watching. Remove the constraint and the verdict must flip.
+    const db = await schoolDb();
+    try {
+      await db.exec(
+        "alter table public.school_lessons drop constraint school_lessons_no_instructor_overlap",
+      );
+      const verdict = await runIsolationScript(db, "supabase/tests/school_diary.sql");
+      expect(verdict).toMatch(/^DIARY FAILED: .*same instructor was booked twice/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
   it("fails loudly if 0035 stops revoking Supabase's default grants", async () => {
     // Proves the check has teeth: hand a signed-in user the TRUNCATE that
     // Supabase's defaults would have given them, and the verdict must flip.
