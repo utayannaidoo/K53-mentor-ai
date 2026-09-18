@@ -17,7 +17,7 @@ export const DEMO_SCHOOL: SchoolContext = {
   access: "full",
   plan: "trial",
   status: "trialing",
-  seats: 1,
+  seats: 15,
   trialEndsAt: new Date(Date.now() + 30 * 86_400_000).toISOString(),
   partnerSchoolId: null,
   seatsUsed: 1,

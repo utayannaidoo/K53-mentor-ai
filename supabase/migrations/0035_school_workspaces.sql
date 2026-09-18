@@ -122,18 +122,28 @@ create index school_subscriptions_provider_sub on public.school_subscriptions(pr
 
 -- ── The three helpers every tenant policy is built on ───────────────────────
 --
--- NOTE 1 — why these are parameterless.
--- A scalar subquery over a parameterless STABLE function is hoisted by the
--- planner into an InitPlan and evaluated ONCE per query. That is the same
--- mechanism 0015 bought by rewriting auth.uid() as (select auth.uid()).
--- Taking school_id as an argument would defeat it and re-evaluate per row.
+-- NOTE 1 — why these are parameterless and return a set.
+-- Policies use them as `school_id in (select public.my_school_ids())`. That
+-- subquery references nothing from the outer row, so the planner runs it ONCE
+-- per query as a hashed subplan and probes it per row — the same once-per-
+-- query property 0015 bought by rewriting auth.uid() as (select auth.uid()).
+-- Taking school_id as an argument would make it correlated and re-run per row.
+--
+-- (An earlier draft returned uuid[] and compared with ANY over a doubly
+-- parenthesised SELECT, on the belief that the extra parentheses make it an
+-- array expression. They do not: a parenthesised SELECT is still a subquery,
+-- so it compared uuid against uuid[] and the policy failed to create. The
+-- in-process isolation test in tests/school-isolation.test.ts caught it.
+-- Keep the IN form.)
 --
 -- NOTE 2 — why these are SECURITY DEFINER, and why that prevents recursion.
 -- my_school_ids() reads school_members. The SELECT policy on school_members
 -- calls my_school_ids(). That is only not infinite recursion (42P17) because
--- SECURITY DEFINER makes the function read the table with RLS bypassed.
--- Writing the same test inline as `exists (select 1 from school_members ...)`
--- inside the policy WILL recurse. Do not.
+-- SECURITY DEFINER runs the function as its owner, which in production is
+-- `postgres` with BYPASSRLS — and because a SECURITY DEFINER SQL function is
+-- never inlined into the calling query, where it would run as the caller and
+-- hit the policy again. Writing the same test inline as
+-- `exists (select 1 from school_members ...)` inside the policy WILL recurse.
 --
 -- NOTE 3 — these three are granted to `authenticated`, unlike every other
 -- function in this database. They have to be: they run inside policies. It is
@@ -142,19 +152,18 @@ create index school_subscriptions_provider_sub on public.school_subscriptions(pr
 -- execute from authenticated WILL lock every school out of its own diary.
 -- These three belong on that pass's skip list.
 
-create function public.my_school_ids() returns uuid[]
+create function public.my_school_ids() returns setof uuid
 language sql stable security definer set search_path = public as $$
-  select coalesce(array_agg(school_id), '{}'::uuid[])
-  from public.school_members
+  select school_id from public.school_members
   where user_id = (select auth.uid()) and status = 'active'
 $$;
 
 -- The paywall, in the database rather than in a component. A school whose
 -- trial has lapsed keeps every read and loses every write: their diary is
 -- their business record, and holding it hostage is not a billing strategy.
-create function public.my_writable_school_ids() returns uuid[]
+create function public.my_writable_school_ids() returns setof uuid
 language sql stable security definer set search_path = public as $$
-  select coalesce(array_agg(m.school_id), '{}'::uuid[])
+  select m.school_id
   from public.school_members m
   join public.school_subscriptions s on s.school_id = m.school_id
   where m.user_id = (select auth.uid()) and m.status = 'active'
@@ -172,10 +181,8 @@ $$;
 
 -- ── Policies ────────────────────────────────────────────────────────────────
 -- Every tenant policy in this product is the same shape:
---   using (school_id = any ((select public.my_school_ids())))
--- Mind the DOUBLE parentheses. The inner pair makes it a scalar subquery of
--- type uuid[], so `= ANY(array)` applies. A single pair parses as
--- `= ANY(subquery)`, which is a different operator and will not behave.
+--   using (school_id in (select public.my_school_ids()))
+-- See NOTE 1 for why it is IN over a set, and not ANY over an array.
 
 alter table public.schools enable row level security;
 alter table public.school_members enable row level security;
@@ -183,25 +190,25 @@ alter table public.school_invites enable row level security;
 alter table public.school_subscriptions enable row level security;
 
 create policy "school_read" on public.schools for select
-  using (id = any ((select public.my_school_ids())));
+  using (id in (select public.my_school_ids()));
 -- Only the owner edits the school record, and only while it is writable.
 create policy "school_update" on public.schools for update
-  using (id = any ((select public.my_writable_school_ids()))
+  using (id in (select public.my_writable_school_ids())
          and public.school_role(id) = 'owner')
-  with check (id = any ((select public.my_writable_school_ids()))
+  with check (id in (select public.my_writable_school_ids())
               and public.school_role(id) = 'owner');
 
--- Read your own membership row even before the array is populated, so a
--- freshly accepted invite can render something.
+-- Your own membership row is always readable, so a freshly accepted invite
+-- can render something even before anything else resolves.
 create policy "school_members_read" on public.school_members for select
   using (user_id = (select auth.uid())
-         or school_id = any ((select public.my_school_ids())));
+         or school_id in (select public.my_school_ids()));
 -- Deliberately no INSERT/UPDATE/DELETE policy. Role is a privilege: a policy
 -- permitting UPDATE here would let any instructor make themselves owner.
 -- Membership changes go through the definer RPCs below.
 
 create policy "school_subscriptions_read" on public.school_subscriptions for select
-  using (school_id = any ((select public.my_school_ids())));
+  using (school_id in (select public.my_school_ids()));
 -- No write policies, mirroring `subscriptions` after 0004. Money is written by
 -- the webhook with the service role and by nothing else.
 
@@ -232,9 +239,13 @@ end; $$;
 -- One transaction: the school, its owner, and a trial subscription. Role
 -- assignment must never be a client write, which is the whole reason this is
 -- a function and not three inserts from a server action.
+-- The trial seat ceiling is generous on purpose. A trial exists so a school
+-- can try the product with its whole team; at 1 seat the owner fills it and
+-- cannot invite a single instructor, which makes the team features untestable
+-- during the one period meant for evaluating them.
 create function public.create_school_for_owner(
   p_user uuid, p_name text, p_town text default null, p_province text default null,
-  p_phone text default null, p_trial_days int default 30
+  p_phone text default null, p_trial_days int default 30, p_trial_seats int default 15
 ) returns uuid language plpgsql security definer set search_path = public as $$
 declare new_id uuid;
 begin
@@ -258,7 +269,8 @@ begin
             coalesce((select full_name from public.profiles where id = p_user), ''));
 
   insert into public.school_subscriptions (school_id, plan, status, seats, trial_ends_at)
-    values (new_id, 'trial', 'trialing', 1, now() + make_interval(days => p_trial_days));
+    values (new_id, 'trial', 'trialing', greatest(1, least(p_trial_seats, 100)),
+            now() + make_interval(days => p_trial_days));
 
   return new_id;
 end; $$;
@@ -349,7 +361,7 @@ begin
    where (p_token_hash is not null and token_hash = p_token_hash)
       or (p_short_code is not null and short_code = upper(btrim(p_short_code)))
    limit 1;
-  if inv is null then raise exception 'That invite could not be found'; end if;
+  if not found then raise exception 'That invite could not be found'; end if;
   if inv.revoked_at is not null then raise exception 'That invite was cancelled'; end if;
   if inv.accepted_at is not null then raise exception 'That invite has already been used'; end if;
   if inv.expires_at <= now() then raise exception 'That invite has expired'; end if;
@@ -441,7 +453,7 @@ begin
   end if;
   select * into incoming from public.school_members
    where id = p_member and school_id = p_school and status = 'active';
-  if incoming is null then raise exception 'That person is not an active member'; end if;
+  if not found then raise exception 'That person is not an active member'; end if;
   if incoming.user_id = p_user then return true; end if;
 
   update public.school_members set role = 'instructor'
@@ -451,22 +463,26 @@ begin
 end; $$;
 
 -- ── Grants ──────────────────────────────────────────────────────────────────
--- Tables: the four tenant tables keep their policies for `authenticated` and
--- grant the service role everything. Note this differs from 0033, where the
--- partner tables have RLS on and NO policies — these tables are read by the
--- browser, so they need both the grant and the policies above.
+-- Revoke EVERYTHING first. This project's default privileges grant
+-- `arwdDxtm` on every new public table to anon AND authenticated — insert,
+-- update, delete and TRUNCATE included, and TRUNCATE is not subject to RLS.
+-- Granting on top of those defaults would also make the column-limited UPDATE
+-- below meaningless, because a table-wide grant overrides column grants (the
+-- trap 0020 documents). So: strip to nothing, then grant exactly what the
+-- browser needs. Policies then decide which rows.
 do $$ declare t text; f record; begin
-  foreach t in array array['schools','school_members','school_subscriptions'] loop
-    execute format('grant select on public.%I to authenticated',t);
+  foreach t in array array['schools','school_members','school_subscriptions','school_invites'] loop
+    execute format('revoke all on public.%I from public, anon, authenticated',t);
     execute format('grant all on public.%I to service_role',t);
   end loop;
-  -- schools.update is policy-gated to the owner; the column grant is table-wide
-  -- because column-level revokes do not override a table-level grant (0020).
-  execute 'grant update (name, town, province, phone, email, default_lesson_minutes) on public.schools to authenticated';
 
-  -- Never readable by a browser: it holds token_hash.
-  execute 'revoke all on public.school_invites from public, anon, authenticated';
-  execute 'grant all on public.school_invites to service_role';
+  -- Signed-in users read their own tenant's rows (policies above) and nothing
+  -- else. anon gets nothing at all. school_invites gets nothing for anyone but
+  -- the service role: it holds token_hash.
+  execute 'grant select on public.schools, public.school_members, public.school_subscriptions to authenticated';
+  -- The owner may edit these columns of their school record, and only these;
+  -- the school_update policy decides whether they are the owner.
+  execute 'grant update (name, town, province, phone, email, default_lesson_minutes) on public.schools to authenticated';
 
   -- Every RPC is service-role only and reached through a server action that
   -- re-checks the caller itself.

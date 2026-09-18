@@ -27,6 +27,11 @@ import { rpcMessage } from "@/lib/schools/rpc-message";
  */
 
 const TRIAL_DAYS = 30;
+/**
+ * The instructor ceiling during a trial — the largest self-serve band, so no
+ * school hits a wall while evaluating. A paid plan sets the real number.
+ */
+const TRIAL_SEATS = 15;
 
 /**
  * Demo mode has no database and no session, so nothing can be saved. Every
@@ -80,6 +85,7 @@ export async function createSchoolWorkspace(
     p_province: String(form.get("province") ?? "").trim() || null,
     p_phone: String(form.get("phone") ?? "").trim() || null,
     p_trial_days: TRIAL_DAYS,
+    p_trial_seats: TRIAL_SEATS,
   });
   if (error) {
     console.error("[schools] create workspace failed", error.message);

@@ -31,9 +31,13 @@ export interface TestDb {
   query<T = Record<string, unknown>>(sql: string, args?: unknown[]): Promise<{ rows: T[] }>;
   close(): Promise<void>;
 }
-export async function partnerDb(): Promise<TestDb> {
+/** An empty in-process Postgres, for harnesses that build their own schema. */
+export async function freshPglite(): Promise<TestDb> {
   const { PGlite } = await import(/* @vite-ignore */ pathToFileURL(runtime).href);
-  const db: TestDb = new PGlite();
+  return new PGlite() as TestDb;
+}
+export async function partnerDb(): Promise<TestDb> {
+  const db = await freshPglite();
   await db.exec(`
     create role anon; create role authenticated; create role service_role bypassrls;
     create schema auth;
