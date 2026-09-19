@@ -268,6 +268,41 @@ export async function transferOwnership(
   return { ok: true, message: "Done. They own the school now, and you're an instructor." };
 }
 
+/**
+ * Bank transfer or credit, for referral commission not yet settled. Credit
+ * already earned stays credit: there is no path from credit back to cash.
+ */
+export async function setCommissionMode(
+  _prev: ActionResult | null,
+  form: FormData,
+): Promise<ActionResult> {
+  if (!isSupabaseConfigured) return DEMO_REFUSAL;
+  const guard = await requireSchool({ roles: ["owner"] });
+  if (!guard.ok) return { ok: false, message: guard.message };
+  const userId = await currentUserId();
+  const admin = createAdminClient();
+  if (!admin || !userId) return NOT_CONFIGURED;
+
+  const mode = form.get("mode") === "credit" ? "credit" : "eft";
+  const { error } = await admin.rpc("set_school_commission_mode", {
+    p_user: userId,
+    p_school: guard.school.schoolId,
+    p_mode: mode,
+  });
+  if (error) {
+    console.error("[schools] commission mode failed", error.message);
+    return { ok: false, message: rpcMessage(error, "Could not change how commission is paid.") };
+  }
+  refresh();
+  return {
+    ok: true,
+    message:
+      mode === "credit"
+        ? "Done. New commission goes toward your plan from tonight."
+        : "Done. New commission is paid to your bank account again.",
+  };
+}
+
 /** Used by the join page to decide what to draw before anything is submitted. */
 export async function hasSchool(): Promise<boolean> {
   return (await currentSchool()) !== null;

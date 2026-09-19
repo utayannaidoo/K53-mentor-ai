@@ -6,6 +6,7 @@ import { applyChargeOnce, normaliseTransaction } from "@/lib/paystack/apply";
 import { processPendingRefunds } from "@/lib/billing/pending-refunds";
 import { matureSchoolCommissions } from "@/lib/partners/commission";
 import { sendMonthlyStatements } from "@/lib/partners/statement-email";
+import { accrueSchoolCredit } from "@/lib/billing/school-credit";
 
 export const runtime = "nodejs";
 // Pages through Paystack sequentially and may apply several grants; take the
@@ -131,6 +132,13 @@ export async function GET(req: Request) {
   }
 
   const commissionsMatured = await matureSchoolCommissions(admin);
+  // Straight after maturing, so a school that takes its commission as credit
+  // (0042) has tonight's payable amount credited before its statement goes.
+  // Never throws: a product that isn't live must not fail the payment check.
+  const schoolCreditCents = await accrueSchoolCredit(admin).catch((err) => {
+    console.error("[school-credit] accrual crashed", err);
+    return 0;
+  });
   // After maturing, so a school's statement reflects what became payable
   // tonight rather than last night's figures.
   const statementsSent = await sendMonthlyStatements(admin).catch((err) => {
@@ -140,6 +148,7 @@ export async function GET(req: Request) {
   return Response.json({
     ok: true,
     commissionsMatured,
+    schoolCreditCents,
     statementsSent,
     windowDays: LOOKBACK_DAYS,
     scanned,

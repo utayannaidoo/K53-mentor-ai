@@ -458,10 +458,40 @@ export async function routeSchoolEvent(
 ): Promise<"school" | "learner"> {
   const target = await findSchoolEventTarget(admin, evidence);
   if (target) {
+    // A month paid for with referral credit is refunded on purpose (0042):
+    // the plan carries on. Every other refund ends it.
+    if (event === "refund.processed" && evidence.reference && (await isCreditRedemption(admin, evidence.reference))) {
+      return "school";
+    }
     await applySchoolLifecycle(admin, event, target, evidence.subscriptionCode);
     return "school";
   }
   return isSchoolPlanCode(evidence.planCode) ? "school" : "learner";
+}
+
+/** Postgres and PostgREST's two ways of saying "that table does not exist". */
+const MISSING_TABLE = new Set(["42P01", "PGRST205"]);
+
+/**
+ * Whether a refunded school charge was paid for with referral credit — a free
+ * month, not the end of the plan (see src/lib/billing/school-credit.ts). A
+ * redemption that was later reversed does not count. No ledger table (0042
+ * not applied) means no redemption can exist; any other failure throws, so the
+ * refund event is retried rather than guessed at — guessing wrong either ends
+ * a plan that was paid for or keeps one that was refunded.
+ */
+export async function isCreditRedemption(admin: SupabaseClient, reference: string): Promise<boolean> {
+  const { data, error } = await admin
+    .from("school_credit_ledger")
+    .select("id, kind, reverses")
+    .eq("charge_reference", reference);
+  if (error) {
+    if (error.code && MISSING_TABLE.has(error.code)) return false;
+    throw new SchoolBillingError(`credit redemption lookup failed: ${error.message}`);
+  }
+  const rows = (data ?? []) as { id: string; kind: string; reverses: string | null }[];
+  const reversed = new Set(rows.filter((r) => r.kind === "reversed").map((r) => r.reverses));
+  return rows.some((r) => r.kind === "redeemed" && !reversed.has(r.id));
 }
 
 /**

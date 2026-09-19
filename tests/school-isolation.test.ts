@@ -181,6 +181,36 @@ describe.skipIf(!hasPartnerDb)("school workspace isolation (0035)", () => {
     }
   }, 60_000);
 
+  it("settles commission into credit once, spends it only on the school's own bill, and keeps the books (0042)", async () => {
+    const db = await schoolDb();
+    try {
+      const verdict = await runIsolationScript(db, "supabase/tests/school_commission_credit.sql");
+      expect(verdict).toMatch(/^CREDIT PASSED: \d+ checks \(rolled back\)$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if credit could ever pay for the same charge twice", async () => {
+    // Take out the double-spend guard and the check must notice.
+    const db = await schoolDb();
+    try {
+      const fn = await db.query<{ src: string }>(
+        "select pg_get_functiondef('public.redeem_school_credit(uuid,text,int,text)'::regprocedure) as src",
+      );
+      const loosened = fn.rows[0].src.replace(
+        "raise exception 'That charge has already been paid for with credit';",
+        "null;",
+      );
+      expect(loosened).not.toBe(fn.rows[0].src);
+      await db.exec(loosened);
+      const verdict = await runIsolationScript(db, "supabase/tests/school_commission_credit.sql");
+      expect(verdict).toMatch(/^CREDIT FAILED: .*paid for with credit twice/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
   it("fails loudly if the double-booking guard is ever dropped", async () => {
     // The diary check passing on its first run proves nothing on its own; this
     // proves it is watching. Remove the constraint and the verdict must flip.

@@ -6,7 +6,23 @@ import { partnerSnapshot, summarise, rand, maskAccount } from "@/lib/partners/ad
 import { statementUrl } from "@/lib/partners/statement-token";
 import { SITE_URL } from "@/lib/constants";
 import { ActionForm, Field } from "@/components/admin/action-form";
-import { setSchoolStatus, updateSchool, rotateCode, releaseHeld } from "@/app/admin/actions";
+import {
+  setSchoolStatus,
+  updateSchool,
+  rotateCode,
+  releaseHeld,
+  convertToCredit,
+  redeemCredit,
+} from "@/app/admin/actions";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { SCHOOL_PLAN_MAP, type SchoolPlanId } from "@/lib/billing/school-plans";
+import { linkedWorkspaces, periodCostCents, schoolCreditLedger } from "@/lib/billing/school-credit";
+
+const CREDIT_KIND: Record<string, string> = {
+  earned: "Earned",
+  redeemed: "Paid a charge",
+  reversed: "Put back",
+};
 
 const COMMISSION_STATUS = {
   pending: "secondary",
@@ -29,6 +45,13 @@ export default async function SchoolDetail({ params }: { params: Promise<{ id: s
   const payouts = snapshot.payouts.filter((p) => p.school_id === id);
   const converted = new Set(commissions.map((c) => c.user_id));
   const statement = activeCode ? statementUrl(activeCode.code) : null;
+
+  // The K53 Mentor for Schools workspace this partner linked, if any: how its
+  // commission is settled, and the credit that has bought.
+  const db = createAdminClient();
+  const workspace = db ? ((await linkedWorkspaces(db)).get(id) ?? null) : null;
+  const credit = db && workspace ? await schoolCreditLedger(db, workspace.schoolId) : [];
+  const periodCost = workspace ? periodCostCents(workspace) : null;
 
   return (
     <div className="space-y-8">
@@ -196,6 +219,84 @@ export default async function SchoolDetail({ params }: { params: Promise<{ id: s
           </div>
         </ActionForm>
       </Card>
+
+      {workspace ? (
+        <Card className={cn(glass, "space-y-4 p-5")}>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display text-base font-semibold">K53 Mentor for Schools</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Linked workspace <span className="font-medium text-foreground">{workspace.name}</span> ·{" "}
+                {SCHOOL_PLAN_MAP[workspace.plan as SchoolPlanId]?.name ?? "trial"} · {workspace.status}
+              </p>
+            </div>
+            <Badge variant={workspace.commissionMode === "credit" ? "success" : "outline"}>
+              {workspace.commissionMode === "credit" ? "commission as credit" : "commission by EFT"}
+            </Badge>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className={cn(glassSubtle, "rounded-md p-4")}>
+              <p className="text-2xs uppercase tracking-wide text-muted-foreground">Credit</p>
+              <p className="mt-1 font-display text-xl font-semibold tabular-nums">{rand(workspace.creditCents)}</p>
+            </div>
+            <div className={cn(glassSubtle, "rounded-md p-4")}>
+              <p className="text-2xs uppercase tracking-wide text-muted-foreground">One payment costs</p>
+              <p className="mt-1 font-display text-xl font-semibold tabular-nums">
+                {periodCost === null ? "—" : rand(periodCost)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {workspace.commissionMode === "credit" && summary.payableCents > 0 ? (
+              <ActionForm
+                action={convertToCredit}
+                submitLabel={`Credit ${rand(Math.max(0, summary.netPayableCents))} now`}
+                variant="secondary"
+                className="space-y-0"
+              >
+                <input type="hidden" name="partner" value={school.id} />
+                <input type="hidden" name="workspace" value={workspace.schoolId} />
+              </ActionForm>
+            ) : null}
+            {periodCost !== null && workspace.lastChargeReference && workspace.creditCents >= periodCost ? (
+              <ActionForm
+                action={redeemCredit}
+                submitLabel={`Pay ${workspace.lastChargeReference} from credit`}
+                variant="secondary"
+                className="space-y-0"
+                confirm={`Refund ${rand(periodCost)} of charge ${workspace.lastChargeReference} through Paystack and take it from this school's credit? Their plan carries on as normal.`}
+              >
+                <input type="hidden" name="partner" value={school.id} />
+                <input type="hidden" name="workspace" value={workspace.schoolId} />
+              </ActionForm>
+            ) : null}
+          </div>
+          {periodCost !== null && workspace.creditCents > 0 && workspace.creditCents < periodCost ? (
+            <p className="text-2xs text-muted-foreground">
+              Credit covers a payment once it reaches {rand(periodCost)}.
+            </p>
+          ) : null}
+
+          {credit.length > 0 ? (
+            <div className="divide-y divide-border/50 border-t border-border/50">
+              {credit.map((entry) => (
+                <div key={entry.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+                  <span className="tabular-nums text-muted-foreground">
+                    {new Date(entry.createdAt).toLocaleDateString("en-ZA")}
+                  </span>
+                  <span>{CREDIT_KIND[entry.kind] ?? entry.kind}</span>
+                  {entry.note ? <span className="text-2xs text-muted-foreground">{entry.note}</span> : null}
+                  <span className="ml-auto font-semibold tabular-nums">
+                    {entry.amountCents < 0 ? `−${rand(-entry.amountCents)}` : rand(entry.amountCents)}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </Card>
+      ) : null}
 
       <section className="space-y-3">
         <h2 className="font-display text-base font-semibold">Learners ({referrals.length})</h2>

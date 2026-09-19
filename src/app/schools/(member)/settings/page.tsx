@@ -7,12 +7,23 @@ import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { currentSchool, type SchoolContext } from "@/lib/schools/auth";
 import { SCHOOL_ANNUAL_MONTHS_CHARGED, SCHOOL_PLANS, SCHOOL_PLAN_MAP, type SchoolPlanId } from "@/lib/billing/school-plans";
-import { isSchoolBillingConfigured } from "@/lib/billing/school-billing";
+import { isSchoolBillingConfigured, schoolChargeCents, schoolPlanFromCode } from "@/lib/billing/school-billing";
 import { SchoolBillingActions, SchoolBillingReturn, SchoolPlanPicker } from "@/components/schools/plan-picker";
 import { DEMO_INSTRUCTORS, DEMO_SCHOOL } from "@/lib/schools/demo";
 import { schoolTeam } from "@/lib/schools/members";
 import { ActionForm, Field } from "@/components/admin/action-form";
-import { inviteMember, revokeInvite, removeMember, linkPartnerCode, transferOwnership } from "@/app/schools/actions";
+import {
+  inviteMember,
+  revokeInvite,
+  removeMember,
+  linkPartnerCode,
+  transferOwnership,
+  setCommissionMode,
+} from "@/app/schools/actions";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { schoolStatementById } from "@/lib/partners/statement";
+import { schoolCreditLedger } from "@/lib/billing/school-credit";
+import { formatRand } from "@/lib/schools/money";
 
 export const metadata: Metadata = { title: "Settings" };
 
@@ -66,11 +77,35 @@ export default async function SchoolSettings() {
       };
 
   const overSeats = school.seatsUsed > school.seats;
+
+  // Referral earnings, for an owner whose workspace is linked to a partner
+  // code. Read with the service role, and only after the owner check above:
+  // the statement is counts and totals, never who the learners were.
+  const linkedPartner = isOwner && isSupabaseConfigured ? school.partnerSchoolId : null;
+  const [statement, creditEntries] = linkedPartner
+    ? await Promise.all([
+        schoolStatementById(linkedPartner),
+        (() => {
+          const admin = createAdminClient();
+          return admin ? schoolCreditLedger(admin, school.schoolId, 6) : Promise.resolve([]);
+        })(),
+      ])
+    : [null, []];
   const paidPlan = SCHOOL_PLAN_MAP[school.plan as SchoolPlanId];
   const planName = paidPlan?.name ?? "Free trial";
   // A paid plan still billing, or told to stop but not yet over.
   const paidRunning = Boolean(paidPlan) && (school.status === "active" || school.status === "past_due");
   const standing = planStanding(school);
+  // What the credit does next, in one sentence. One payment is a month, or a
+  // year on yearly billing — credit only ever covers whole payments.
+  const billed = paidRunning ? schoolPlanFromCode(school.planCode) : null;
+  const paymentCents = billed ? schoolChargeCents(billed.plan, billed.cycle) : null;
+  const creditLine =
+    paymentCents === null
+      ? `You have ${formatRand(school.creditCents)} of credit. It starts paying for your plan once you're on a paid one.`
+      : school.creditCents >= paymentCents
+        ? `You have ${formatRand(school.creditCents)} of credit, enough to cover a ${formatRand(paymentCents)} payment. We refund a payment from it for you.`
+        : `You have ${formatRand(school.creditCents)} of credit. Once it reaches ${formatRand(paymentCents)}, one payment on your plan, we refund a payment from it.`;
   // The demo shows the picker so it can be seen; choosing explains itself there.
   const billingOpen = !isSupabaseConfigured || isSchoolBillingConfigured();
   const pickerIntro = paidRunning
@@ -270,6 +305,80 @@ export default async function SchoolSettings() {
           </Card>
         ) : null}
       </div>
+
+      {/* ── Referral earnings ──────────────────────────────────────────── */}
+      {isOwner && school.partnerSchoolId !== null ? (
+        <div className="space-y-3">
+          <h2 className="font-display text-base font-semibold">Referral earnings</h2>
+          {statement ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <Card className={cn(glassSubtle, "p-4")}>
+                <p className="text-2xs uppercase tracking-wide text-muted-foreground">Learners who paid</p>
+                <p className="mt-1 font-display text-2xl font-semibold tabular-nums">{statement.converted}</p>
+              </Card>
+              <Card className={cn(glassSubtle, "p-4")}>
+                <p className="text-2xs uppercase tracking-wide text-muted-foreground">On hold</p>
+                <p className="mt-1 font-display text-2xl font-semibold tabular-nums">
+                  {formatRand(statement.pendingCents)}
+                </p>
+              </Card>
+              <Card className={cn(glassSubtle, "p-4")}>
+                <p className="text-2xs uppercase tracking-wide text-muted-foreground">
+                  {school.commissionMode === "credit" ? "Credit" : "Paid to you"}
+                </p>
+                <p className="mt-1 font-display text-2xl font-semibold tabular-nums">
+                  {formatRand(school.commissionMode === "credit" ? school.creditCents : statement.paidCents)}
+                </p>
+              </Card>
+            </div>
+          ) : null}
+          <Card className={cn(glass, "space-y-4 p-5")}>
+            <p className="text-sm text-muted-foreground">
+              Every learner you refer who pays earns you commission, once per learner. It waits
+              out the learner&apos;s money-back period first, then reaches you however you choose
+              here. Credit pays for this plan and can&apos;t be paid out as cash.
+            </p>
+            <ActionForm action={setCommissionMode} submitLabel="Save" pendingLabel="Saving…">
+              <div className="space-y-1.5">
+                <label htmlFor="commission-mode" className="block text-sm font-medium">
+                  Take commission as
+                </label>
+                <select
+                  id="commission-mode"
+                  name="mode"
+                  defaultValue={school.commissionMode}
+                  className="flex h-10 w-full rounded-md border border-border/70 bg-background/60 px-3 py-2 text-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring/60"
+                >
+                  <option value="eft">Bank transfer, paid monthly</option>
+                  <option value="credit">Credit toward this plan</option>
+                </select>
+              </div>
+            </ActionForm>
+            {school.commissionMode === "credit" ? (
+              <p className="text-sm">{creditLine}</p>
+            ) : null}
+            {creditEntries.length > 0 ? (
+              <div className="divide-y divide-border/50 border-t border-border/50">
+                {creditEntries.map((entry) => (
+                  <div key={entry.id} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+                    <span className="tabular-nums text-muted-foreground">{formatDate(entry.createdAt)}</span>
+                    <span>
+                      {entry.kind === "earned"
+                        ? "Commission credited"
+                        : entry.kind === "redeemed"
+                          ? "Paid for your plan"
+                          : "Put back"}
+                    </span>
+                    <span className="ml-auto font-semibold tabular-nums">
+                      {entry.amountCents < 0 ? `−${formatRand(-entry.amountCents)}` : formatRand(entry.amountCents)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+          </Card>
+        </div>
+      ) : null}
 
       {/* ── Referral code ──────────────────────────────────────────────── */}
       {isOwner && school.partnerSchoolId === null ? (

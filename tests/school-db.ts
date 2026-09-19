@@ -87,6 +87,7 @@ export async function schoolDb(): Promise<TestDb> {
     "0039_school_enquiries_tests.sql",
     "0040_school_billing_periods.sql",
     "0041_school_account_deletion.sql",
+    "0042_school_commission_credit.sql",
   ]) {
     await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
   }

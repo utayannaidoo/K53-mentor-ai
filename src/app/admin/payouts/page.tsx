@@ -12,14 +12,22 @@ import {
 } from "@/lib/partners/admin-data";
 import { ActionForm, Field } from "@/components/admin/action-form";
 import { markPaid } from "@/app/admin/actions";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { creditModePartners, linkedWorkspaces } from "@/lib/billing/school-credit";
 
 export default async function AdminPayouts() {
   const snapshot = await partnerSnapshot();
   const summaries = snapshot ? summarise(snapshot) : [];
+  const admin = createAdminClient();
+  const inCredit = admin ? creditModePartners(await linkedWorkspaces(admin)) : new Set<string>();
   // Anything with a balance, including the ones fully cancelled by a clawback —
   // those still need settling, and hiding them is what made them invisible.
-  const queue = summaries
-    .filter((s) => s.payableCents > 0)
+  // Except a school that takes its commission as credit: that settles into its
+  // plan overnight, and paying it by EFT as well would pay it twice over.
+  const withBalance = summaries.filter((s) => s.payableCents > 0);
+  const creditOnly = withBalance.filter((s) => inCredit.has(s.school.id));
+  const queue = withBalance
+    .filter((s) => !inCredit.has(s.school.id))
     .sort((a, b) => b.netPayableCents - a.netPayableCents);
   const totalNet = queue.reduce((sum, s) => sum + Math.max(0, s.netPayableCents), 0);
   const payable = queue.filter((s) => s.clearsMinimum);
@@ -41,6 +49,15 @@ export default async function AdminPayouts() {
           </a>
         )}
       </div>
+
+      {creditOnly.length > 0 ? (
+        <p className="text-sm text-muted-foreground">
+          {creditOnly.map((s) => s.school.name).join(", ")}{" "}
+          {creditOnly.length === 1 ? "takes its" : "take their"} commission as credit toward{" "}
+          {creditOnly.length === 1 ? "its" : "their"} K53 Mentor for Schools plan. It is settled
+          overnight, not paid by EFT.
+        </p>
+      ) : null}
 
       {queue.length === 0 ? (
         <Card className={cn(glassSubtle, "p-6 text-sm text-muted-foreground")}>

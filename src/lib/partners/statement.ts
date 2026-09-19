@@ -34,8 +34,34 @@ export async function schoolStatement(code: string): Promise<SchoolStatement | n
   // A revoked code still opens the statement it belongs to: a school whose code
   // was rotated should not lose sight of money it has already earned.
   if (!codeRow) return null;
-  const { school_id: schoolId } = codeRow as { school_id: string; code: string };
+  const row = codeRow as { school_id: string; code: string };
+  return statementFor(admin, row.school_id, row.code);
+}
 
+/**
+ * The same statement, reached from a K53 Mentor for Schools workspace linked
+ * to this partner (schools.partner_school_id) instead of from the code in a
+ * statement link. The second front door to one privacy boundary: the caller
+ * must already have checked that the viewer owns the linked workspace.
+ */
+export async function schoolStatementById(partnerSchoolId: string): Promise<SchoolStatement | null> {
+  const admin = createAdminClient();
+  if (!admin) return null;
+  const { data: codes } = await admin
+    .from("partner_school_codes")
+    .select("code, status, created_at")
+    .eq("school_id", partnerSchoolId)
+    .order("created_at", { ascending: false });
+  const list = (codes ?? []) as { code: string; status: string }[];
+  const code = (list.find((c) => c.status === "active") ?? list[0])?.code ?? "";
+  return statementFor(admin, partnerSchoolId, code);
+}
+
+async function statementFor(
+  admin: NonNullable<ReturnType<typeof createAdminClient>>,
+  schoolId: string,
+  code: string,
+): Promise<SchoolStatement | null> {
   const [school, referrals, commissions, payouts] = await Promise.all([
     admin.from("partner_schools").select("name,status").eq("id", schoolId).maybeSingle(),
     admin.from("school_referrals").select("id", { count: "exact", head: true }).eq("school_id", schoolId),
@@ -60,7 +86,7 @@ export async function schoolStatement(code: string): Promise<SchoolStatement | n
 
   return {
     name: (school.data as { name: string }).name,
-    code: (codeRow as { code: string }).code,
+    code,
     status: (school.data as { status: string }).status,
     signedUp: referrals.count ?? 0,
     // Void commissions are conversions that were refunded. They are counted as

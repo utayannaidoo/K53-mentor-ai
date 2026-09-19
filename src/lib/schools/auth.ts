@@ -27,6 +27,8 @@ export interface SchoolContext {
   role: SchoolRole;
   access: SchoolAccess;
   plan: string;
+  /** The Paystack Plan code being billed; null on a trial. Says monthly or yearly. */
+  planCode: string | null;
   status: string;
   seats: number;
   trialEndsAt: string | null;
@@ -35,6 +37,10 @@ export interface SchoolContext {
   /** When the paid-for period runs out. Null on a trial, or before it is recorded. */
   currentPeriodEnd: string | null;
   partnerSchoolId: string | null;
+  /** How partner-programme commission is settled: bank transfer, or credit (0042). */
+  commissionMode: "eft" | "credit";
+  /** Referral credit not yet spent on the school's own plan. */
+  creditCents: number;
   /** Active owner + instructor members. Compared against `seats`. */
   seatsUsed: number;
   /** IANA zone every date and time in the workspace is shown in. */
@@ -54,17 +60,20 @@ interface SchoolRow {
   name: string;
   slug: string;
   partner_school_id: string | null;
+  commission_mode: string | null;
   timezone: string | null;
   default_lesson_minutes: number | null;
 }
 
 interface SubscriptionRow {
   plan: string;
+  plan_code?: string | null;
   status: string;
   seats: number;
   trial_ends_at: string | null;
   cancel_at_period_end?: boolean | null;
   current_period_end?: string | null;
+  credit_cents?: number | null;
 }
 
 /** Slack past a paid period's end, matching EXPIRY_GRACE_MS in tier-rule.ts. */
@@ -127,12 +136,12 @@ export async function currentSchool(): Promise<SchoolContext | null> {
   const [schoolResult, subscriptionResult, seatResult] = await Promise.all([
     supabase
       .from("schools")
-      .select("id, name, slug, partner_school_id, timezone, default_lesson_minutes")
+      .select("id, name, slug, partner_school_id, commission_mode, timezone, default_lesson_minutes")
       .eq("id", member.school_id)
       .maybeSingle(),
     supabase
       .from("school_subscriptions")
-      .select("plan, status, seats, trial_ends_at, cancel_at_period_end, current_period_end")
+      .select("plan, plan_code, status, seats, trial_ends_at, cancel_at_period_end, current_period_end, credit_cents")
       .eq("school_id", member.school_id)
       .maybeSingle(),
     supabase
@@ -155,12 +164,15 @@ export async function currentSchool(): Promise<SchoolContext | null> {
     role: member.role,
     access: accessFromSubscription(sub),
     plan: sub?.plan ?? "trial",
+    planCode: sub?.plan_code ?? null,
     status: sub?.status ?? "canceled",
     seats: sub?.seats ?? 1,
     trialEndsAt: sub?.trial_ends_at ?? null,
     cancelAtPeriodEnd: sub?.cancel_at_period_end ?? false,
     currentPeriodEnd: sub?.current_period_end ?? null,
     partnerSchoolId: school.partner_school_id,
+    commissionMode: school.commission_mode === "credit" ? "credit" : "eft",
+    creditCents: sub?.credit_cents ?? 0,
     seatsUsed: seatResult.count ?? 0,
     timezone: school.timezone || "Africa/Johannesburg",
     defaultLessonMinutes: school.default_lesson_minutes ?? 60,

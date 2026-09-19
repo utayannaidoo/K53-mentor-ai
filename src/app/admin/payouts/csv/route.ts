@@ -1,5 +1,7 @@
 import { isAdmin } from "@/lib/partners/admin-auth";
 import { partnerSnapshot, summarise, PAYOUT_MINIMUM_CENTS } from "@/lib/partners/admin-data";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { creditModePartners, linkedWorkspaces } from "@/lib/billing/school-credit";
 
 export const runtime = "nodejs";
 
@@ -28,8 +30,11 @@ export async function GET() {
   if (!snapshot) return new Response("Storage is not configured", { status: 501 });
 
   const today = new Date().toISOString().slice(0, 10);
+  const admin = createAdminClient();
+  // Schools taking commission as credit are settled into their plan, never by EFT.
+  const inCredit = admin ? creditModePartners(await linkedWorkspaces(admin)) : new Set<string>();
   const rows = summarise(snapshot)
-    .filter((s) => s.netPayableCents > 0 && s.clearsMinimum)
+    .filter((s) => s.netPayableCents > 0 && s.clearsMinimum && !inCredit.has(s.school.id))
     .map((s) => [
       s.school.name,
       s.school.bank_account_name,
