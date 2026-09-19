@@ -2,6 +2,7 @@ import { isPaystackConfigured, isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/lib/ai/rate-limit";
 import { fetchCustomer, manageSubscriptionLink } from "@/lib/paystack/client";
+import { isSchoolPlanCode } from "@/lib/billing/school-billing";
 
 export const runtime = "nodejs";
 
@@ -74,8 +75,12 @@ export async function POST(req: Request) {
       const customer = await fetchCustomer(sub.provider_customer_id);
       // Newest active subscription. `attention`/`non-renewing` are exactly the
       // states a failed card produces, and are the reason someone is here.
-      const usable = customer.subscriptions.filter((s) =>
-        ["active", "attention", "non-renewing"].includes(s.status),
+      // A school plan on the same customer is the other product: its card is
+      // managed from the school's own settings, never from here.
+      const usable = customer.subscriptions.filter(
+        (s) =>
+          ["active", "attention", "non-renewing"].includes(s.status) &&
+          !isSchoolPlanCode(typeof s.plan === "string" ? s.plan : s.plan?.plan_code),
       );
       code = usable.at(-1)?.subscription_code ?? null;
     }

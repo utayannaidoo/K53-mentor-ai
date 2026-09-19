@@ -20,6 +20,9 @@ export default function robots(): MetadataRoute.Robots {
           "/diagnostic",
           "/welcome",
           "/continue",
+          // The school workspace. The public page is /for-driving-schools,
+          // which this prefix does not match.
+          "/schools",
         ],
       },
     ],

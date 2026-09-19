@@ -17,6 +17,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/", 1),
     page("/pricing", 0.9),
     page("/guides", 0.8),
+    // The school product page: software for driving schools, plus the partner programme.
+    page("/for-driving-schools", 0.7),
     ...GUIDES.map((g) => page(`/guides/${g.slug}`, 0.8)),
     page("/signup", 0.7),
     page("/login", 0.4),

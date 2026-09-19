@@ -22,7 +22,9 @@
 //
 // Needs PAYSTACK_SECRET_KEY and the four PAYSTACK_PLAN_* codes, which is why
 // this is a script rather than a test — CI has no business holding a live
-// billing key.
+// billing key. The six PAYSTACK_PLAN_SCHOOL_* codes (K53 Mentor for Schools,
+// priced in src/lib/billing/school-plans.ts) are checked too once any of them
+// is set; until then school billing is simply off, which is not a failure.
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
@@ -58,6 +60,12 @@ const EXPECTED = [
   { env: "PAYSTACK_PLAN_PREMIUM_PLUS_MONTHLY", plan: "premium_plus", cycle: "monthly", interval: "monthly" },
   { env: "PAYSTACK_PLAN_PREMIUM_PLUS_ANNUAL", plan: "premium_plus", cycle: "annual", interval: "annually" },
 ];
+
+/** The school product's six Plans: plan x cycle. */
+const SCHOOL_EXPECTED = ["solo", "team", "fleet"].flatMap((plan) => [
+  { env: `PAYSTACK_PLAN_SCHOOL_${plan.toUpperCase()}_MONTHLY`, plan, cycle: "monthly", interval: "monthly" },
+  { env: `PAYSTACK_PLAN_SCHOOL_${plan.toUpperCase()}_ANNUAL`, plan, cycle: "annual", interval: "annually" },
+]);
 
 async function paystack(pathname) {
   const res = await fetch(`https://api.paystack.co${pathname}`, {
@@ -96,21 +104,41 @@ const rand = (cents) => `R ${(cents / 100).toFixed(2)}`;
 let problems = 0;
 try {
   const { expectedChargeCents } = await server.ssrLoadModule("/src/lib/billing/charge-amount.ts");
+  const { SCHOOL_PLAN_MAP, schoolAnnualZar } = await server.ssrLoadModule("/src/lib/billing/school-plans.ts");
 
-  // One list call, then match by code — cheaper and more robust than four
-  // fetches, and it also lets us notice Plans that exist but nothing points at.
+  // One list call, then match by code — cheaper and more robust than one
+  // fetch per Plan, and it also lets us notice Plans that nothing points at.
   const livePlans = await paystack("/plan?perPage=100");
   const byCode = new Map(livePlans.map((p) => [p.plan_code, p]));
 
   console.log("\nPaystack Plan  →  plans.ts\n");
+  checkRows(EXPECTED, (row) => expectedChargeCents(row.plan, row.cycle), "checkout returns 500 for this plan");
 
-  for (const row of EXPECTED) {
+  // School plans: off until the first code is set, then all six must agree.
+  if (SCHOOL_EXPECTED.some((row) => process.env[row.env])) {
+    console.log("\nPaystack Plan  →  school-plans.ts\n");
+    checkRows(
+      SCHOOL_EXPECTED,
+      (row) => {
+        const def = SCHOOL_PLAN_MAP[row.plan];
+        return (row.cycle === "annual" ? schoolAnnualZar(def) : def.monthlyZar) * 100;
+      },
+      "the school checkout refuses this plan",
+      "school ",
+      "school-plans.ts",
+    );
+  } else {
+    console.log("\nSchool plans: none set up yet, so school billing is off (not a problem).");
+  }
+
+  function checkRows(rows, expectedFor, missingEffect, prefix = "", source = "plans.ts") {
+  for (const row of rows) {
     const code = process.env[row.env];
-    const label = `${row.plan} ${row.cycle}`.padEnd(22);
-    const expected = expectedChargeCents(row.plan, row.cycle);
+    const label = `${prefix}${row.plan} ${row.cycle}`.padEnd(22);
+    const expected = expectedFor(row);
 
     if (!code) {
-      console.log(`✗ ${label} ${row.env} is not set — checkout returns 500 for this plan`);
+      console.log(`✗ ${label} ${row.env} is not set — ${missingEffect}`);
       problems++;
       continue;
     }
@@ -124,7 +152,7 @@ try {
 
     const notes = [];
     if (live.amount !== expected) {
-      notes.push(`amount ${rand(live.amount)} ≠ ${rand(expected)} in plans.ts`);
+      notes.push(`amount ${rand(live.amount)} ≠ ${rand(expected)} in ${source}`);
     }
     if (live.currency && live.currency.toUpperCase() !== "ZAR") {
       notes.push(`currency ${live.currency}, not ZAR`);
@@ -141,10 +169,11 @@ try {
       console.log(`✓ ${label} ${rand(live.amount)} ${row.interval}  (${code})`);
     }
   }
+  }
 
   // Plans nobody points at. Not a failure — old or experimental Plans are
   // normal — but a subscriber could still be sitting on one, so name them.
-  const referenced = new Set(EXPECTED.map((r) => process.env[r.env]).filter(Boolean));
+  const referenced = new Set([...EXPECTED, ...SCHOOL_EXPECTED].map((r) => process.env[r.env]).filter(Boolean));
   const orphans = livePlans.filter((p) => !referenced.has(p.plan_code));
   if (orphans.length) {
     console.log(`\n${orphans.length} Plan(s) on the account that no env var points at:`);
@@ -163,8 +192,9 @@ try {
 if (problems) {
   console.error(
     `\n${problems} mismatch(es). The site advertises one price and Paystack would charge another.\n` +
-      `Fix the Plan in the Paystack dashboard, or the price in src/lib/billing/plans.ts.\n`,
+      `Fix the Plan in the Paystack dashboard, or the price in src/lib/billing/plans.ts\n` +
+      `(school plans: src/lib/billing/school-plans.ts).\n`,
   );
   process.exit(1);
 }
-console.log("\nAll Plans agree with plans.ts.\n");
+console.log("\nAll Plans agree with the price lists.\n");

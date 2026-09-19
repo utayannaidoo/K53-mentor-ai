@@ -8,7 +8,7 @@ import {
   isSupabaseConfigured,
   supabaseConfig,
 } from "@/lib/env";
-import { safeNextPath } from "@/lib/auth/safe-next";
+import { isSchoolWorkspacePath, safeNextPath } from "@/lib/auth/safe-next";
 
 // A hosted deploy missing Supabase would silently skip every check below.
 assertSupabaseConfiguredInProduction();
@@ -17,7 +17,18 @@ assertSupabaseConfiguredInProduction();
 assertSiteUrlConfiguredInProduction();
 
 /** App areas that require a signed-in user (prefix match). */
-const PROTECTED = ["/dashboard", "/study", "/tutor", "/licence-prep", "/account", "/eye-test"];
+const PROTECTED = [
+  "/dashboard",
+  "/study",
+  "/tutor",
+  "/licence-prep",
+  "/account",
+  "/eye-test",
+  // The school workspace. A prefix match covers every page beneath it, and
+  // `/for-driving-schools` does not start with `/schools`, so the marketing
+  // page stays public and CDN-cached.
+  "/schools",
+];
 /** Auth pages a signed-in user shouldn't see. */
 const AUTH_PAGES = ["/login", "/signup"];
 
@@ -129,9 +140,23 @@ export function signedInAuthPageDest(params: URLSearchParams): {
   }
   const next = safeNextPath(params.get("next"));
   if (next) {
+    // The school workspace is not the learner app: it has its own membership
+    // gate and no onboarding prerequisite, so sending an owner through
+    // /continue would funnel them into learner onboarding they do not need.
+    // `next` still carries its query string here, so split before assigning.
+    if (isSchoolWorkspacePath(next)) {
+      const [nextPath, nextQuery] = splitPath(next);
+      return { pathname: nextPath, search: nextQuery };
+    }
     return { pathname: "/continue", search: `?next=${encodeURIComponent(next)}` };
   }
   return { pathname: "/dashboard", search: "" };
+}
+
+/** Split a validated relative path into its pathname and `?query` halves. */
+function splitPath(value: string): [string, string] {
+  const cut = value.search(/[?#]/);
+  return cut === -1 ? [value, ""] : [value.slice(0, cut), value.slice(cut)];
 }
 
 /** Carry the refreshed auth cookies onto a redirect response. */

@@ -217,12 +217,15 @@ export function disableSubscription(code: string, token: string): Promise<unknow
  */
 export function refundTransaction(
   reference: string,
-  notes?: { merchantNote?: string; customerNote?: string },
+  notes?: { merchantNote?: string; customerNote?: string; amountCents?: number },
 ): Promise<unknown> {
   return paystackFetch("/refund", {
     method: "POST",
     body: JSON.stringify({
       transaction: reference,
+      // Omitted means the whole charge. Given, Paystack refunds exactly this
+      // many cents and refuses more than the charge was for.
+      ...(notes?.amountCents ? { amount: notes.amountCents } : {}),
       ...(notes?.merchantNote ? { merchant_note: notes.merchantNote } : {}),
       ...(notes?.customerNote ? { customer_note: notes.customerNote } : {}),
     }),

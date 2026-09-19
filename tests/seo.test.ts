@@ -40,11 +40,21 @@ describe("robots", () => {
   it("only names routes that actually exist", () => {
     // A stale disallow entry is invisible: it protects nothing and nobody
     // notices the route it referred to was renamed.
-    const routes = new Set(
-      readdirSync(path.join(ROOT, "src/app/(app)"), { withFileTypes: true })
-        .filter((d) => d.isDirectory())
-        .map((d) => `/${d.name}`),
-    );
+    // Most protected routes live in the (app) group, but not all: the school
+    // workspace sits at the top level on purpose, outside the group, so it
+    // never mounts the learner study store. Count any real top-level segment
+    // — not a route group, not a dynamic segment — that renders a page.
+    const dirs = (dir: string) =>
+      readdirSync(path.join(ROOT, dir), { withFileTypes: true }).filter((d) => d.isDirectory());
+    const topLevel = dirs("src/app")
+      .filter((d) => !/^[([_@]/.test(d.name))
+      .filter((d) =>
+        ["page.tsx", "layout.tsx"].some((f) => existsSync(path.join(ROOT, "src/app", d.name, f))),
+      );
+    const routes = new Set([
+      ...dirs("src/app/(app)").map((d) => `/${d.name}`),
+      ...topLevel.map((d) => `/${d.name}`),
+    ]);
     for (const entry of disallow) {
       if (entry === "/api/") continue;
       expect(routes, `robots disallows ${entry}, which is not a route`).toContain(entry);

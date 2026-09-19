@@ -56,6 +56,31 @@ describe("signed-in user on an auth page", () => {
     });
   });
 
+  it("sends a school workspace ?next= straight there, not through learner onboarding", () => {
+    // /continue gates on learner onboarding. A driving-school owner has no
+    // reason to finish learner onboarding, and the school area has its own
+    // membership gate, so routing them via /continue would strand them.
+    expect(dest("next=/schools")).toEqual({ pathname: "/schools", search: "" });
+    expect(dest("next=/schools/settings")).toEqual({
+      pathname: "/schools/settings",
+      search: "",
+    });
+    // The query string must land in `search`, never inside `pathname`, or the
+    // redirect URL gets its `?` percent-encoded into the path.
+    expect(dest("next=%2Fschools%2Fdiary%3Fday%3D2026-09-18")).toEqual({
+      pathname: "/schools/diary",
+      search: "?day=2026-09-18",
+    });
+  });
+
+  it("does not treat a path that merely starts with the letters 'schools' as the workspace", () => {
+    // `/schoolsfoo` is not `/schools/...` — it must take the ordinary route.
+    expect(dest("next=/schoolsfoo")).toEqual({
+      pathname: "/continue",
+      search: "?next=%2Fschoolsfoo",
+    });
+  });
+
   it("still prefers a purchase intent over wherever they were bounced from", () => {
     expect(dest("plan=premium&next=/study/mock-exam")).toEqual({
       pathname: "/account/billing",

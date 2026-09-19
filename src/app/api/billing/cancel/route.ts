@@ -177,7 +177,9 @@ export async function POST(req: Request) {
   try {
     // Disable EVERY active subscription, not just the first — a past plan change
     // can leave two live, and any one still running keeps charging the learner.
-    const disabled = await disableActiveSubscriptions(customerCode);
+    // "learner": an owner's driving-school plan on the same Paystack customer
+    // is the other product and keeps running.
+    const disabled = await disableActiveSubscriptions(customerCode, "learner");
     if (disabled === 0 && !refundTarget) {
       return Response.json({ error: "no_active_subscription" }, { status: 404 });
     }

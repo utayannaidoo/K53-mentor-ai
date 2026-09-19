@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdmin } from "@/lib/partners/admin-auth";
+import type { ActionResult } from "@/lib/forms/action-result";
 import { validSchoolCode, normaliseSchoolCode } from "@/lib/partners/codes";
 import { PAYOUT_MINIMUM_CENTS } from "@/lib/partners/admin-data";
+import { creditModePartners, linkedWorkspaces, redeemSchoolCredit } from "@/lib/billing/school-credit";
 
 /**
  * Every partner mutation. Each one re-checks the allowlist itself rather than
@@ -12,11 +14,6 @@ import { PAYOUT_MINIMUM_CENTS } from "@/lib/partners/admin-data";
  * public POST endpoint wearing a form's clothes, and the check on the page is
  * about what gets *drawn*, not about what may be *done*.
  */
-
-export interface ActionResult {
-  ok: boolean;
-  message: string;
-}
 
 async function guard(): Promise<ReturnType<typeof createAdminClient> | null> {
   if (!(await isAdmin())) return null;
@@ -223,6 +220,11 @@ export async function markPaid(_prev: ActionResult | null, form: FormData): Prom
   const id = String(form.get("id") ?? "");
   const reference = String(form.get("reference") ?? "").trim();
   if (!reference) return { ok: false, message: "Enter the EFT reference from your bank." };
+  // A school that takes its commission as credit is settled into its plan
+  // nightly. Paying it by EFT as well is the one mistake this form could make.
+  if (creditModePartners(await linkedWorkspaces(admin)).has(id)) {
+    return { ok: false, message: "This school takes its commission as credit, not by EFT." };
+  }
   const { data, error } = await admin.rpc("mark_partner_payout_paid", {
     p_school: id,
     p_reference: reference,
@@ -245,4 +247,48 @@ export async function markPaid(_prev: ActionResult | null, form: FormData): Prom
     return { ok: false, message: "Nothing was payable — it may already have been paid." };
   }
   return { ok: true, message: `Recorded against ${reference}.` };
+}
+
+/**
+ * Settle a credit-mode school's payable commission into credit now, rather
+ * than waiting for tonight's run. Same RPC the cron calls; a second click
+ * finds nothing payable.
+ */
+export async function convertToCredit(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const admin = await guard();
+  if (!admin) return { ok: false, message: "Not permitted." };
+  const partnerId = String(form.get("partner") ?? "");
+  const workspaceId = String(form.get("workspace") ?? "");
+  const { data, error } = await admin.rpc("apply_commission_credit", { p_school: workspaceId });
+  if (error) {
+    console.error("[partners] credit conversion failed", error.message);
+    return { ok: false, message: "Could not convert the commission to credit." };
+  }
+  refresh();
+  revalidatePath(`/admin/schools/${partnerId}`);
+  const cents = typeof data === "number" ? data : 0;
+  return {
+    ok: true,
+    message: cents > 0 ? `Credited R${(cents / 100).toFixed(2)}.` : "Nothing was payable, or clawbacks cancelled it out.",
+  };
+}
+
+/**
+ * Pay for the workspace's latest charge from its credit: the credit is
+ * debited, then the charge is refunded through Paystack, and the credit goes
+ * back if Paystack refuses. See redeemSchoolCredit.
+ */
+export async function redeemCredit(_prev: ActionResult | null, form: FormData): Promise<ActionResult> {
+  const admin = await guard();
+  if (!admin) return { ok: false, message: "Not permitted." };
+  const partnerId = String(form.get("partner") ?? "");
+  const workspaceId = String(form.get("workspace") ?? "");
+  const outcome = await redeemSchoolCredit(admin, workspaceId);
+  refresh();
+  revalidatePath(`/admin/schools/${partnerId}`);
+  if (!outcome.ok) return { ok: false, message: outcome.message };
+  return {
+    ok: true,
+    message: `Refunded R${(outcome.amountCents / 100).toFixed(2)} of ${outcome.reference} from credit.`,
+  };
 }

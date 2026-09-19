@@ -29,3 +29,19 @@ export function safeNextPath(value: string | null | undefined): string | null {
   if (AUTH_PATHS.includes(path)) return null;
   return value;
 }
+
+/**
+ * True for the driving-school workspace (`/schools` and everything under it).
+ *
+ * Every post-auth hop that would otherwise route through the LEARNER funnel —
+ * /continue, onboarding, the starting diagnostic — must let these straight
+ * through. A school owner signing up to run their diary has no reason to pick
+ * a licence code or sit a learner's quiz first; the workspace has its own
+ * membership gate. Checks the path only, so a query string cannot smuggle a
+ * different destination past it, and `/schoolsfoo` is not a match.
+ */
+export function isSchoolWorkspacePath(value: string | null | undefined): boolean {
+  if (!value) return false;
+  const path = value.split(/[?#]/)[0];
+  return path === "/schools" || path.startsWith("/schools/");
+}
