@@ -30,6 +30,8 @@ export interface Learner {
   notes: string | null;
   /** Test-day documents already gathered (0039; see test-day.ts). */
   documents: string[];
+  /** When the learner connected their own K53 Mentor app (0043); null if not. */
+  link_consent_at: string | null;
   created_at: string;
 }
 

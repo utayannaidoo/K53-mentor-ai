@@ -303,6 +303,62 @@ export async function setCommissionMode(
   };
 }
 
+/**
+ * A code a learner enters in their own K53 Mentor app to connect it to this
+ * roster row (0043). The school can only ever offer; the learner decides.
+ */
+export async function createLearnerLinkCode(
+  _prev: ActionResult | null,
+  form: FormData,
+): Promise<ActionResult> {
+  if (!isSupabaseConfigured) return DEMO_REFUSAL;
+  const guard = await requireSchool({ write: true });
+  if (!guard.ok) return { ok: false, message: guard.message };
+  const userId = await currentUserId();
+  const admin = createAdminClient();
+  if (!admin || !userId) return NOT_CONFIGURED;
+
+  const learnerId = String(form.get("learner") ?? "");
+  const code = newShortCode();
+  const { error } = await admin.rpc("create_learner_link_code", {
+    p_user: userId,
+    p_learner: learnerId,
+    p_short_code: code,
+    p_expires_days: 7,
+  });
+  if (error) {
+    console.error("[schools] link code failed", error.message);
+    return { ok: false, message: rpcMessage(error, "Could not make a code.") };
+  }
+  revalidatePath(`/schools/learners/${learnerId}`);
+  return { ok: true, message: `Code ${code}. It works once, for 7 days.` };
+}
+
+/**
+ * Stop sharing, from the school's side. Allowed on a read-only workspace too:
+ * ending the sharing of someone's data is never a paid feature.
+ */
+export async function disconnectLearner(
+  _prev: ActionResult | null,
+  form: FormData,
+): Promise<ActionResult> {
+  if (!isSupabaseConfigured) return DEMO_REFUSAL;
+  const guard = await requireSchool();
+  if (!guard.ok) return { ok: false, message: guard.message };
+  const userId = await currentUserId();
+  const admin = createAdminClient();
+  if (!admin || !userId) return NOT_CONFIGURED;
+
+  const learnerId = String(form.get("learner") ?? "");
+  const { error } = await admin.rpc("unlink_school_learner", { p_user: userId, p_learner: learnerId });
+  if (error) {
+    console.error("[schools] disconnect failed", error.message);
+    return { ok: false, message: rpcMessage(error, "Could not disconnect.") };
+  }
+  revalidatePath(`/schools/learners/${learnerId}`);
+  return { ok: true, message: "Disconnected. Nothing is shared either way any more." };
+}
+
 /** Used by the join page to decide what to draw before anything is submitted. */
 export async function hasSchool(): Promise<boolean> {
   return (await currentSchool()) !== null;

@@ -39,6 +39,9 @@ import { BookLessonForm } from "@/components/schools/book-lesson-form";
 import { ActionForm, Field } from "@/components/admin/action-form";
 import { SelectField, TextAreaField } from "@/components/schools/fields";
 import { updateLearner } from "@/app/schools/diary-actions";
+import { createLearnerLinkCode, disconnectLearner } from "@/app/schools/actions";
+import { linkPanelFor } from "@/lib/schools/learner-link";
+import { SITE_URL } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "Learner" };
 
@@ -64,7 +67,7 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
   if (!detail) notFound();
   const { learner, lessons } = detail;
 
-  const [instructors, vehicles, learners, progress, focus, ledger, takenBy, results] = await Promise.all([
+  const [instructors, vehicles, learners, progress, focus, ledger, takenBy, results, link] = await Promise.all([
     schoolInstructors(school),
     schoolVehicles(school),
     schoolLearners(school),
@@ -73,6 +76,7 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
     learnerLedger(school, learner.id),
     memberNamesByUser(school),
     learnerTestResults(school, learner.id),
+    linkPanelFor(school, learner),
   ]);
   const haveDocs = new Set(learner.documents ?? []);
   const balance = learnerBalance(learner.id, ledger.packages, ledger.payments, ledger.lessons).balanceCents;
@@ -89,6 +93,12 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
   const completed = lessons.filter((l) => l.status === "completed").length;
   const noShows = lessons.filter((l) => l.status === "no_show").length;
   const wa = whatsappLink(learner.phone, `Hi ${learner.first_name}, this is ${school.name}.`);
+  const linkWa = link.code
+    ? whatsappLink(
+        learner.phone,
+        `Hi ${learner.first_name}, to see your lessons and progress from ${school.name} in K53 Mentor, open ${SITE_URL}/account/school and enter code ${link.code.code}.`,
+      )
+    : null;
 
   return (
     <div className="space-y-6">
@@ -215,6 +225,98 @@ export default async function LearnerCard({ params }: { params: Promise<{ id: st
             );
           })}
         </Card>
+      </div>
+
+      {/* ── Their own K53 Mentor app (0043) ─────────────────────────────── */}
+      <div className="space-y-3">
+        <h2 className="font-display text-base font-semibold">Their K53 Mentor app</h2>
+        {learner.link_consent_at ? (
+          <Card className={cn(glass, "space-y-4 p-5")}>
+            <p className="text-sm text-muted-foreground">
+              {learner.first_name} connected their app on {formatDate(learner.link_consent_at)}. You see what
+              they agreed to share: their readiness for the learner&apos;s test, and how strong they are in
+              each part of it.
+            </p>
+            {link.summary && (link.summary.readiness !== null || link.summary.categories.length > 0) ? (
+              <>
+                <div className={cn(glassSubtle, "rounded-md p-4")}>
+                  <p className="text-2xs uppercase tracking-wide text-muted-foreground">Readiness</p>
+                  <p className="mt-1 font-display text-2xl font-semibold tabular-nums">
+                    {link.summary.readiness === null ? "—" : `${link.summary.readiness}%`}
+                  </p>
+                  {link.summary.readinessDay ? (
+                    <p className="mt-0.5 text-2xs text-muted-foreground">
+                      updated {formatDate(link.summary.readinessDay)}
+                    </p>
+                  ) : null}
+                </div>
+                {link.summary.categories.length > 0 ? (
+                  <div className="divide-y divide-border/50">
+                    {link.summary.categories.map((c) => (
+                      <div key={c.categoryId} className="flex flex-wrap items-center gap-3 py-2 text-sm">
+                        <span className="min-w-0 flex-1">{c.name}</span>
+                        <span
+                          className={cn(
+                            "tabular-nums",
+                            c.enough && c.strength < 60 ? "font-semibold text-danger" : "text-muted-foreground",
+                          )}
+                        >
+                          {c.enough ? `${c.strength}%` : "too early to tell"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-sm">Nothing to show yet: they haven&apos;t studied in the app since connecting.</p>
+            )}
+            <ActionForm
+              action={disconnectLearner}
+              submitLabel="Disconnect"
+              variant="ghost"
+              className="space-y-0"
+              confirm={`Disconnect ${learner.first_name}'s app? You stop seeing their progress and they stop seeing their lessons in the app. They can connect again with a new code.`}
+            >
+              <input type="hidden" name="learner" value={learner.id} />
+            </ActionForm>
+          </Card>
+        ) : (
+          <Card className={cn(glass, "space-y-3 p-5")}>
+            <p className="text-sm text-muted-foreground">
+              If {learner.first_name} studies with K53 Mentor, connect their app. They see their next lesson,
+              their manoeuvre ratings, the notes you choose to share and what they owe. You see their
+              readiness and weak spots. They agree to it on their own phone.
+            </p>
+            {link.code ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <code className="font-mono text-lg font-semibold tracking-wider">{link.code.code}</code>
+                <span className="text-2xs text-muted-foreground">expires {formatDate(link.code.expiresAt)}</span>
+                {linkWa ? (
+                  <a
+                    href={linkWa}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "press")}
+                  >
+                    Send on WhatsApp
+                  </a>
+                ) : null}
+              </div>
+            ) : null}
+            {canWrite ? (
+              <ActionForm
+                action={createLearnerLinkCode}
+                submitLabel={link.code ? "Make a new code" : "Make a code"}
+                pendingLabel="Making…"
+                variant="secondary"
+                className="space-y-0"
+              >
+                <input type="hidden" name="learner" value={learner.id} />
+              </ActionForm>
+            ) : null}
+          </Card>
+        )}
       </div>
 
       {/* ── Test day ────────────────────────────────────────────────────── */}

@@ -211,6 +211,48 @@ describe.skipIf(!hasPartnerDb)("school workspace isolation (0035)", () => {
     }
   }, 60_000);
 
+  it("lets only the learner connect their account, and shows the school only readiness and strengths (0043)", async () => {
+    const db = await schoolDb();
+    try {
+      const verdict = await runIsolationScript(db, "supabase/tests/school_learner_link.sql");
+      expect(verdict).toMatch(/^LINK PASSED: \d+ checks \(rolled back\)$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if a school can ever insert a learner already linked to someone", async () => {
+    // Put back 0036's table-wide INSERT grant: forging a consented link must
+    // then be caught.
+    const db = await schoolDb();
+    try {
+      await db.exec("grant insert on public.school_learners to authenticated");
+      const verdict = await runIsolationScript(db, "supabase/tests/school_learner_link.sql");
+      expect(verdict).toMatch(/^LINK FAILED: .*inserted a learner already linked/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if the summary ever carries more than readiness and strengths", async () => {
+    const db = await schoolDb();
+    try {
+      const fn = await db.query<{ src: string }>(
+        "select pg_get_functiondef('public.school_learner_progress_summary(uuid,uuid)'::regprocedure) as src",
+      );
+      const widened = fn.rows[0].src.replace(
+        "'readiness_day', ready_day,",
+        "'readiness_day', ready_day, 'email', (select email from auth.users where id = linked),",
+      );
+      expect(widened).not.toBe(fn.rows[0].src);
+      await db.exec(widened);
+      const verdict = await runIsolationScript(db, "supabase/tests/school_learner_link.sql");
+      expect(verdict).toMatch(/^LINK FAILED: .*more than readiness and strengths/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
   it("fails loudly if the double-booking guard is ever dropped", async () => {
     // The diary check passing on its first run proves nothing on its own; this
     // proves it is watching. Remove the constraint and the verdict must flip.

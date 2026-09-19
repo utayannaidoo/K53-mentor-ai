@@ -54,6 +54,28 @@ export async function schoolDb(): Promise<TestDb> {
       last_charge_reference text, refunded_at timestamptz, disputed_at timestamptz
     );
 
+    -- The two learner study tables 0043's summary reads, with production's
+    -- own-rows policy, so a check can prove a school still cannot read them.
+    create table public.question_attempts (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references auth.users on delete cascade,
+      question_id text not null, category_id text not null,
+      selected_index int not null default 0, is_correct boolean not null,
+      context text not null default 'practice', attempted_at timestamptz not null default now()
+    );
+    create table public.readiness_history (
+      id uuid primary key default gen_random_uuid(),
+      user_id uuid not null references auth.users on delete cascade,
+      day date not null, readiness int not null, unique (user_id, day)
+    );
+    alter table public.question_attempts enable row level security;
+    alter table public.readiness_history enable row level security;
+    create policy own_question_attempts on public.question_attempts for all
+      using (auth.uid() = user_id) with check (auth.uid() = user_id);
+    create policy own_readiness_history on public.readiness_history for all
+      using (auth.uid() = user_id) with check (auth.uid() = user_id);
+    grant select, insert on public.question_attempts, public.readiness_history to authenticated;
+
     -- Mirrors production's handle_new_user closely enough that a new auth user
     -- gets a profile with a name, as the membership RPCs expect.
     create function public.handle_new_user() returns trigger language plpgsql
@@ -88,6 +110,7 @@ export async function schoolDb(): Promise<TestDb> {
     "0040_school_billing_periods.sql",
     "0041_school_account_deletion.sql",
     "0042_school_commission_credit.sql",
+    "0043_school_learner_link.sql",
   ]) {
     await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
   }

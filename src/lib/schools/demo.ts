@@ -114,6 +114,7 @@ function learner(
     test_centre: testCentre,
     notes: null,
     documents: id === "demo-thabo" ? ["id_copy", "learners_licence", "eye_test"] : [],
+    link_consent_at: id === "demo-thabo" ? "2026-09-05T09:00:00Z" : null,
     created_at: created,
   };
 }
@@ -275,3 +276,18 @@ export const DEMO_TEST_RESULTS: TestResult[] = [
     notes: null,
   },
 ];
+
+/**
+ * What a connected learner shares with their school (0043): a readiness number
+ * and a strength per learner's-test category. Thabo's, for the demo.
+ */
+export const DEMO_LINK_SUMMARY = {
+  readiness: 68,
+  readinessDay: "2026-09-17",
+  categories: [
+    { categoryId: "controls", name: "Vehicle controls", strength: 54, enough: true },
+    { categoryId: "rules", name: "Rules of the road", strength: 71, enough: true },
+    { categoryId: "signs", name: "Road signs", strength: 83, enough: true },
+    { categoryId: "intersections", name: "Intersections", strength: 60, enough: false },
+  ],
+};

@@ -4,7 +4,7 @@ import * as React from "react";
 import { Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { LogOut, CreditCard, Trash2, Gauge, Target, CalendarClock, Wifi, LifeBuoy } from "lucide-react";
+import { LogOut, CreditCard, Trash2, Gauge, Target, CalendarClock, Wifi, LifeBuoy, Car } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -293,6 +293,24 @@ function AccountInner() {
           router.push("/dashboard");
         }}
       />
+
+      {/* A learner whose driving school uses K53 Mentor for Schools can see their
+          lessons and ratings here, once they choose to connect (0043). */}
+      {isSupabaseConfigured ? (
+        <Card className={cn(glass, "mt-5 p-6")}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="font-display text-lg font-semibold">Driving school</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Your lessons, pickup times and manoeuvre ratings, if your school uses K53 Mentor.
+              </p>
+            </div>
+            <Link href="/account/school" className={cn(buttonVariants({ variant: "outline" }), "shrink-0 gap-2")}>
+              <Car className="h-4 w-4" /> Open
+            </Link>
+          </div>
+        </Card>
+      ) : null}
 
       <InviteCard />
       <SchoolReferralField />
