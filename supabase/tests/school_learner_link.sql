@@ -54,10 +54,10 @@ begin
   -- The learner's own study history, in the learner app's tables.
   insert into public.readiness_history (user_id, day, readiness) values
     (learner, '2030-06-01', 40), (learner, '2030-06-02', 72);
-  insert into public.question_attempts (user_id, question_id, category_id, is_correct, attempted_at)
-    select learner, 'q' || g, 'road_signs', g <= 9, now() - make_interval(mins => g) from generate_series(1, 12) g;
-  insert into public.question_attempts (user_id, question_id, category_id, is_correct, attempted_at)
-    select learner, 'r' || g, 'rules_of_the_road', true, now() - make_interval(mins => g) from generate_series(1, 3) g;
+  insert into public.question_attempts (user_id, question_id, category_id, selected_index, is_correct, attempted_at)
+    select learner, 'q' || g, 'road_signs', 0, g <= 9, now() - make_interval(mins => g) from generate_series(1, 12) g;
+  insert into public.question_attempts (user_id, question_id, category_id, selected_index, is_correct, attempted_at)
+    select learner, 'r' || g, 'rules_of_the_road', 0, true, now() - make_interval(mins => g) from generate_series(1, 3) g;
   update public.subscriptions set tier = 'premium', paid_at = now() where user_id = paid_learner;
 
   -- ── A school cannot make a link itself ───────────────────────────────────

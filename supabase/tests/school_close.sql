@@ -67,7 +67,8 @@ begin
   -- Thabo has connected his own app, and has studied in it.
   perform public.create_learner_link_code(owner_a, thabo, 'CLSETHB2');
   perform public.accept_learner_link(learner, 'CLSETHB2');
-  insert into public.question_attempts (user_id, question_id, category_id, is_correct) values (learner, 'q1', 'signs', true);
+  insert into public.question_attempts (user_id, question_id, category_id, selected_index, is_correct)
+    values (learner, 'q1', 'signs', 0, true);
 
   -- And the school is on a paid plan that is still renewing.
   update public.school_subscriptions

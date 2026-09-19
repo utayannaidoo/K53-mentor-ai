@@ -55,18 +55,24 @@ export async function schoolDb(): Promise<TestDb> {
     );
 
     -- The two learner study tables 0043's summary reads, with production's
-    -- own-rows policy, so a check can prove a school still cannot read them.
+    -- columns, bounds and own-rows policy — exactly, not a friendlier version:
+    -- a stub that defaulted selected_index once let a check pass here that
+    -- could not run against the real table.
     create table public.question_attempts (
       id uuid primary key default gen_random_uuid(),
       user_id uuid not null references auth.users on delete cascade,
       question_id text not null, category_id text not null,
-      selected_index int not null default 0, is_correct boolean not null,
-      context text not null default 'practice', attempted_at timestamptz not null default now()
+      selected_index int not null check (selected_index between -1 and 7),
+      is_correct boolean not null,
+      context text not null default 'practice' check (context in ('diagnostic', 'practice', 'mock')),
+      attempted_at timestamptz not null default now(),
+      client_id text
     );
     create table public.readiness_history (
       id uuid primary key default gen_random_uuid(),
       user_id uuid not null references auth.users on delete cascade,
-      day date not null, readiness int not null, unique (user_id, day)
+      day date not null, readiness int not null check (readiness between 0 and 100),
+      unique (user_id, day)
     );
     alter table public.question_attempts enable row level security;
     alter table public.readiness_history enable row level security;
