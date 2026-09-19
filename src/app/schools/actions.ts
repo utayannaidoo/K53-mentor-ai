@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isSupabaseConfigured } from "@/lib/env";
+import { isPaystackConfigured, isSupabaseConfigured } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { currentSchool, requireSchool } from "@/lib/schools/auth";
@@ -15,6 +15,7 @@ import {
 import type { ActionResult } from "@/lib/forms/action-result";
 import { rpcMessage } from "@/lib/schools/rpc-message";
 import { SCHOOL_TRIAL_DAYS, SCHOOL_TRIAL_SEATS } from "@/lib/billing/school-plans";
+import { stopSchoolRenewal } from "@/lib/billing/school-billing";
 
 /**
  * Every school workspace mutation.
@@ -357,6 +358,53 @@ export async function disconnectLearner(
   }
   revalidatePath(`/schools/learners/${learnerId}`);
   return { ok: true, message: "Disconnected. Nothing is shared either way any more." };
+}
+
+/**
+ * Close the school: delete it and every record it holds, for everyone,
+ * permanently (0044). The owner only, with the school's name typed as
+ * confirmation, and allowed on a read-only workspace — leaving is never a paid
+ * feature.
+ *
+ * Money first: a plan that is still renewing is stopped at Paystack BEFORE
+ * anything is deleted, and if Paystack won't stop it nothing is deleted. A
+ * school must never be gone while a card is still being charged for it. (The
+ * database refuses the same thing, as a backstop.)
+ */
+export async function closeSchool(
+  _prev: ActionResult | null,
+  form: FormData,
+): Promise<ActionResult> {
+  if (!isSupabaseConfigured) return DEMO_REFUSAL;
+  const guard = await requireSchool({ roles: ["owner"] });
+  if (!guard.ok) return { ok: false, message: guard.message };
+  const userId = await currentUserId();
+  const admin = createAdminClient();
+  if (!admin || !userId) return NOT_CONFIGURED;
+
+  const confirmation = String(form.get("confirm") ?? "");
+  if (confirmation.trim().toLowerCase() !== guard.school.name.trim().toLowerCase()) {
+    return { ok: false, message: `Type ${guard.school.name} exactly to confirm.` };
+  }
+
+  if (isPaystackConfigured) {
+    const stopped = await stopSchoolRenewal(admin, guard.school.schoolId);
+    if (!stopped.ok) {
+      return { ok: false, message: `${stopped.message} Your plan is still running, so nothing was closed.` };
+    }
+  }
+
+  const { error } = await admin.rpc("close_school", {
+    p_user: userId,
+    p_school: guard.school.schoolId,
+    p_confirm_name: confirmation,
+  });
+  if (error) {
+    console.error("[schools] close failed", error.message);
+    return { ok: false, message: rpcMessage(error, "Could not close the school. Nothing was deleted.") };
+  }
+  revalidatePath("/schools");
+  return { ok: true, message: `${guard.school.name} is closed.` };
 }
 
 /** Used by the join page to decide what to draw before anything is submitted. */

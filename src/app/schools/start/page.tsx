@@ -18,8 +18,9 @@ export const dynamic = "force-dynamic";
  * Two doors, because there are exactly two ways to belong to a school: you run
  * it, or someone who runs it invited you.
  */
-export default async function StartSchool() {
+export default async function StartSchool({ searchParams }: { searchParams: Promise<{ closed?: string }> }) {
   if (isSupabaseConfigured && (await currentSchool())) redirect("/schools");
+  const justClosed = (await searchParams).closed === "1";
 
   return (
     <div className="bg-app min-h-dvh">
@@ -35,6 +36,12 @@ export default async function StartSchool() {
             Your diary, your learners and your money in one place. {SCHOOL_TRIAL_DAYS} days free, no card.
           </p>
         </div>
+
+        {justClosed ? (
+          <Card role="status" className={cn(glass, "p-5 text-sm")}>
+            Your school has been closed and its records deleted. Your own K53 Mentor account is untouched.
+          </Card>
+        ) : null}
 
         <Card className={cn(glassFloat, "space-y-5 p-6")}>
           <div>

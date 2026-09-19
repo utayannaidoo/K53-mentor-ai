@@ -169,7 +169,7 @@ function AccountInner() {
       }
       setDeleteError(
         data.error === "owns_school"
-          ? `You own ${(data as { school?: string }).school ?? "a driving school"} on K53 Mentor for Schools. Make someone else the owner in the school's Settings, or email ${SUPPORT_EMAIL} to close the school, then delete your account.`
+          ? `You own ${(data as { school?: string }).school ?? "a driving school"} on K53 Mentor for Schools. In the school's Settings, make someone else the owner or close the school, then delete your account.`
           : data.error === "password_required" || data.error === "invalid_password"
           ? "That password is incorrect. Enter your current password to confirm."
           : data.error === "code_required" || data.error === "invalid_code"

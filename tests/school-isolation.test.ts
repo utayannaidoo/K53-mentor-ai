@@ -253,6 +253,54 @@ describe.skipIf(!hasPartnerDb)("school workspace isolation (0035)", () => {
     }
   }, 60_000);
 
+  it("lets only the owner close a school, never while it bills, and leaves nothing behind (0044)", async () => {
+    const db = await schoolDb();
+    try {
+      const verdict = await runIsolationScript(db, "supabase/tests/school_close.sql");
+      expect(verdict).toMatch(/^CLOSE PASSED: \d+ checks \(rolled back\)$/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if a school could ever be closed while its plan is still renewing", async () => {
+    const db = await schoolDb();
+    try {
+      const fn = await db.query<{ src: string }>(
+        "select pg_get_functiondef('public.close_school(uuid,uuid,text)'::regprocedure) as src",
+      );
+      const unguarded = fn.rows[0].src.replace(
+        "raise exception 'Stop the plan renewing before closing the school';",
+        "null;",
+      );
+      expect(unguarded).not.toBe(fn.rows[0].src);
+      await db.exec(unguarded);
+      const verdict = await runIsolationScript(db, "supabase/tests/school_close.sql");
+      expect(verdict).toMatch(/^CLOSE FAILED: .*while its plan was still renewing/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
+  it("fails loudly if a table ever keeps a closed school's rows", async () => {
+    // A school_id table with no cascade: closing must either fail or leave
+    // rows, and the structural sweep must say which.
+    const db = await schoolDb();
+    try {
+      await db.exec("create table public.school_orphans (id serial primary key, school_id uuid)");
+      await db.exec(`
+        create function public.orphan_on_school() returns trigger language plpgsql as $$
+        begin insert into public.school_orphans (school_id) values (new.id); return new; end $$;
+        create trigger orphan_on_school after insert on public.schools
+          for each row execute function public.orphan_on_school();
+      `);
+      const verdict = await runIsolationScript(db, "supabase/tests/school_close.sql");
+      expect(verdict).toMatch(/^CLOSE FAILED: .*left rows behind: school_orphans/);
+    } finally {
+      await db.close();
+    }
+  }, 60_000);
+
   it("fails loudly if the double-booking guard is ever dropped", async () => {
     // The diary check passing on its first run proves nothing on its own; this
     // proves it is watching. Remove the constraint and the verdict must flip.

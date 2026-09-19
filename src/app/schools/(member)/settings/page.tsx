@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { buttonVariants } from "@/components/ui/button";
 import { cn, glass, glassSubtle, formatDate } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +20,10 @@ import {
   linkPartnerCode,
   transferOwnership,
   setCommissionMode,
+  closeSchool,
 } from "@/app/schools/actions";
+import { CloseSchoolForm } from "@/components/schools/close-school-form";
+import { EXPORT_KINDS } from "@/lib/schools/export";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { schoolStatementById } from "@/lib/partners/statement";
 import { schoolCreditLedger } from "@/lib/billing/school-credit";
@@ -376,6 +380,60 @@ export default async function SchoolSettings() {
                 ))}
               </div>
             ) : null}
+          </Card>
+        </div>
+      ) : null}
+
+      {/* ── Your records ───────────────────────────────────────────────── */}
+      {school.role !== "instructor" ? (
+        <div className="space-y-3">
+          <h2 className="font-display text-base font-semibold">Your records</h2>
+          <Card className={cn(glass, "space-y-3 p-5")}>
+            <p className="text-sm text-muted-foreground">
+              Download everything as spreadsheets (CSV): for your own files, your accountant, or before you
+              close the school. Works even when the workspace is read-only.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {EXPORT_KINDS.map((kind) => (
+                <a
+                  key={kind}
+                  href={`/schools/export/${kind}`}
+                  download
+                  className={cn(buttonVariants({ variant: "secondary", size: "sm" }), "press capitalize")}
+                >
+                  {kind}
+                </a>
+              ))}
+            </div>
+          </Card>
+        </div>
+      ) : null}
+
+      {/* ── Close the school ────────────────────────────────────────────── */}
+      {isOwner ? (
+        <div className="space-y-3">
+          <h2 className="font-display text-base font-semibold">Close the school</h2>
+          <Card className={cn(glass, "space-y-4 border-danger/40 p-5")}>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>
+                Closing deletes {school.name} for everyone, permanently: the diary, every learner, lessons and
+                notes, packages and payments, vehicles, enquiries and test results. It can&apos;t be undone.
+                Download your records first.
+              </p>
+              <ul className="list-disc space-y-1 pl-5">
+                {paidRunning && !school.cancelAtPeriodEnd ? (
+                  <li>Your plan stops renewing first. What you&apos;ve already paid for isn&apos;t refunded.</li>
+                ) : null}
+                {school.creditCents > 0 ? (
+                  <li>Your {formatRand(school.creditCents)} of referral credit is lost.</li>
+                ) : null}
+                {school.partnerSchoolId ? (
+                  <li>Your referral earnings as a partner school aren&apos;t affected.</li>
+                ) : null}
+                <li>Everyone keeps their own K53 Mentor account. Learners who connected their app stop seeing the school.</li>
+              </ul>
+            </div>
+            <CloseSchoolForm schoolName={school.name} action={closeSchool} />
           </Card>
         </div>
       ) : null}

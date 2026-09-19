@@ -469,6 +469,92 @@ export async function routeSchoolEvent(
   return isSchoolPlanCode(evidence.planCode) ? "school" : "learner";
 }
 
+/** What a school's billing row says about the Paystack subscription behind it. */
+export interface SchoolBillingRow {
+  status: string;
+  plan_code: string | null;
+  provider_customer_id: string | null;
+  provider_subscription_id: string | null;
+  current_period_end: string | null;
+  cancel_at_period_end: boolean;
+}
+
+/**
+ * The school's own subscription among everything its payer's Paystack
+ * customer carries — never the owner's learner plan on the same customer:
+ * the recorded subscription code first, then the school's plan code.
+ */
+export function findSchoolSubscription(
+  subscriptions: PaystackSubscription[],
+  row: Pick<SchoolBillingRow, "plan_code" | "provider_subscription_id">,
+): PaystackSubscription | undefined {
+  return (
+    subscriptions.find((s) => row.provider_subscription_id && s.subscription_code === row.provider_subscription_id) ??
+    subscriptions.find(
+      (s) => ["active", "attention", "non-renewing"].includes(s.status) && planCodeOf(s) === row.plan_code,
+    )
+  );
+}
+
+export type StopRenewal = { ok: true; periodEnd: string | null } | { ok: false; status: number; message: string };
+
+/**
+ * Stop a school's plan renewing: what "Stop renewing" does, and what closing a
+ * school does before anything is deleted. A school that isn't billing (a
+ * trial, a lapsed plan, one already told to stop) is already stopped.
+ *
+ * The flag and the period end are recorded BEFORE Paystack is asked: it nulls
+ * next_payment_date the moment a subscription stops renewing, and the
+ * subscription.disable webhook that follows reads this row to decide whether
+ * the school keeps its paid-for days. If Paystack refuses, the flag comes off
+ * again — billing is still running, so the row must not say it is ending.
+ */
+export async function stopSchoolRenewal(admin: SupabaseClient, schoolId: string): Promise<StopRenewal> {
+  const { data } = await admin
+    .from("school_subscriptions")
+    .select("status, plan_code, provider_customer_id, provider_subscription_id, current_period_end, cancel_at_period_end")
+    .eq("school_id", schoolId)
+    .maybeSingle();
+  const row = data as SchoolBillingRow | null;
+  if (
+    !row?.provider_customer_id ||
+    row.cancel_at_period_end ||
+    (row.status !== "active" && row.status !== "past_due")
+  ) {
+    return { ok: true, periodEnd: row?.current_period_end ?? null };
+  }
+
+  let live: PaystackSubscription | undefined;
+  try {
+    live = findSchoolSubscription((await fetchCustomer(row.provider_customer_id)).subscriptions, row);
+  } catch (err) {
+    console.error("stopSchoolRenewal: customer lookup failed", err);
+    return { ok: false, status: 502, message: "Paystack didn't answer. Please try again shortly." };
+  }
+
+  const periodEnd = live?.next_payment_date ? new Date(live.next_payment_date).toISOString() : row.current_period_end;
+  const { error: flagError } = await admin
+    .from("school_subscriptions")
+    .update({ cancel_at_period_end: true, ...(periodEnd ? { current_period_end: periodEnd } : {}) })
+    .eq("school_id", schoolId);
+  if (flagError) {
+    console.error("stopSchoolRenewal: could not flag cancellation", flagError.message);
+    return { ok: false, status: 500, message: "Cancellation failed. Please try again." };
+  }
+  // Nothing renewing at Paystack (already non-renewing, or long gone): the row
+  // now says so too, and there is nothing to disable.
+  if (!live || live.status !== "active") return { ok: true, periodEnd };
+
+  try {
+    await disableSubscription(live.subscription_code, live.email_token);
+  } catch (err) {
+    console.error("stopSchoolRenewal: disable failed; un-flagging", err);
+    await admin.from("school_subscriptions").update({ cancel_at_period_end: false }).eq("school_id", schoolId);
+    return { ok: false, status: 502, message: "Cancellation failed. Please try again." };
+  }
+  return { ok: true, periodEnd };
+}
+
 /** Postgres and PostgREST's two ways of saying "that table does not exist". */
 const MISSING_TABLE = new Set(["42P01", "PGRST205"]);
 
