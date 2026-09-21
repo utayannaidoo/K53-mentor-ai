@@ -186,6 +186,36 @@ function dueSummary(state: UserState, now = new Date()): { due_cards: number; ne
  * account's profile ended up carrying another's licence code permanently.
  * `pushProgress` has always had this guard; this is its counterpart.
  */
+/**
+ * Record that this learner is here, at the moment their session is restored.
+ *
+ * `auth.users.last_sign_in_at` only moves on a real credential grant, and after
+ * the first login almost nobody performs one again — the refresh token restores
+ * the session silently on every later visit. So the figure the Supabase
+ * dashboard shows freezes on the day someone signed up, while they carry on
+ * using the app daily, and every judgement about who is still active reads from
+ * a column that stopped moving. That field belongs to GoTrue and cannot be
+ * written from here; `profiles.last_active_at` is our answer to the same
+ * question, and this is the only writer that runs on the silent path.
+ *
+ * It already rode along inside the profile upsert below, but only as a side
+ * effect of the debounced study-state sync: it needed the learner to stay past
+ * the 800ms debounce, and it was lost whenever that ~20-column upsert failed
+ * for some unrelated reason. One account's 7 September sign-in is still
+ * recorded as 28 August activity for exactly that reason. One column, once per
+ * session, and nothing else depends on it succeeding.
+ *
+ * `last_active_at` is one of the columns 0020 re-granted to `authenticated`,
+ * and `own_profile` scopes the row — so this needs no migration and can touch
+ * nothing but the caller's own timestamp.
+ */
+export async function touchLastActive(supabase: SupabaseClient, userId: string): Promise<void> {
+  await supabase
+    .from("profiles")
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("id", userId);
+}
+
 export async function saveAccount(supabase: SupabaseClient, state: UserState): Promise<void> {
   const {
     data: { user },
