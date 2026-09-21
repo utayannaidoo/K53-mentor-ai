@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ShoppingBag } from "lucide-react";
 import { RotatingWord } from "@/components/landing/rotating-word";
 import { CountUp } from "@/components/landing/count-up";
-import { TrackedLink } from "@/components/landing/tracked-link";
+import { StartCta } from "@/components/landing/start-cta";
 
 /** Gradient "pill" CTA shared across the redesigned landing sections. */
 const PILL =
@@ -46,10 +46,12 @@ export function Hero() {
         </p>
 
         <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
-          <TrackedLink location="hero" href="/onboarding" className={`${PILL} px-6 py-[15px] text-base`}>
-            Start free assessment
-            <ArrowRight className="h-[17px] w-[17px]" />
-          </TrackedLink>
+          <StartCta
+            location="hero"
+            label="Start free assessment"
+            icon={<ArrowRight className="h-[17px] w-[17px]" />}
+            className={`${PILL} px-6 py-[15px] text-base`}
+          />
           <Link
             href="#how"
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card/50 px-6 py-[15px] text-base font-semibold text-foreground shadow-[inset_0_1px_0_hsl(0_0%_100%/0.3)] backdrop-blur-md transition-[transform,background] [transition-duration:400ms] ease-spring hover:bg-muted/60 active:scale-[0.96]"

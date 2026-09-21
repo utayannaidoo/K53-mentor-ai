@@ -10,6 +10,7 @@ import { bestQuestionFor } from "@/lib/ai/keyword-search";
 import { useDataSaver } from "@/hooks/use-data-saver";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
+import { StartCta } from "@/components/landing/start-cta";
 
 /**
  * "Try it" section: a self-contained, clickable slice of the real product —
@@ -126,9 +127,12 @@ export function ProductPreview() {
               </div>
 
               <div className="hidden lg:mt-10 lg:block">
-                <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "gap-2")}>
-                  Start free assessment <ArrowRight className="h-4 w-4" />
-                </Link>
+                <StartCta
+                  location="product_preview"
+                  label="Start free assessment"
+                  icon={<ArrowRight className="h-4 w-4" />}
+                  className={cn(buttonVariants({ size: "lg" }), "gap-2")}
+                />
                 <p className="mt-2 text-xs text-muted-foreground">
                   Free · no credit card · 5 minutes
                 </p>
@@ -136,9 +140,12 @@ export function ProductPreview() {
             </div>
 
             <div className="order-3 lg:hidden">
-              <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "mt-8 gap-2")}>
-                Start free assessment <ArrowRight className="h-4 w-4" />
-              </Link>
+              <StartCta
+                location="product_preview_mobile"
+                label="Start free assessment"
+                icon={<ArrowRight className="h-4 w-4" />}
+                className={cn(buttonVariants({ size: "lg" }), "mt-8 gap-2")}
+              />
               <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · 5 minutes</p>
             </div>
           </div>
@@ -484,12 +491,14 @@ function DemoTutor({ onInteract }: { onInteract: () => void }) {
 
       <div className="shrink-0 border-t border-border pt-3">
         {spent ? (
-          <Link
-            href="/onboarding"
+          <StartCta
+            location="product_preview_tutor"
+            label="Keep asking — start free"
+            signedInLabel="Keep asking in Navi"
+            signedInHref="/tutor"
+            icon={<ArrowRight />}
             className={cn(buttonVariants({ size: "sm" }), "w-full rounded-xl")}
-          >
-            Keep asking — start free <ArrowRight />
-          </Link>
+          />
         ) : (
           <form
             onSubmit={(e) => {

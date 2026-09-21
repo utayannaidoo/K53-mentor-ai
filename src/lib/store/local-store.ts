@@ -2,8 +2,10 @@ import type { DailyUsage, Profile, Streak, UserState } from "@/types";
 import { computeRankIndex, endowCp } from "@/lib/engagement";
 import { computeReadiness } from "@/lib/diagnostic/scoring";
 import { uid } from "@/lib/utils";
+import { STORAGE_KEY } from "./storage-key";
 
-export const STORAGE_KEY = "k53mentor.state.v1";
+// Re-exported so the many existing importers of this module keep working.
+export { STORAGE_KEY };
 export const STATE_VERSION = 4;
 
 /**

@@ -6,7 +6,7 @@ import { Menu, X } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { buttonVariants } from "@/components/ui/button";
-import { TrackedLink } from "@/components/landing/tracked-link";
+import { StartCta } from "@/components/landing/start-cta";
 import { cn } from "@/lib/utils";
 
 const LINKS = [
@@ -95,13 +95,11 @@ export function MarketingNav() {
           <Link href="/login" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full")}>
             Log in
           </Link>
-          <TrackedLink
+          <StartCta
             location="nav"
-            href="/onboarding"
+            label="Start free assessment"
             className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
-          >
-            Start free assessment
-          </TrackedLink>
+          />
         </div>
 
         {/* Mobile: the header carried no CTA at all, so across the whole
@@ -111,13 +109,12 @@ export function MarketingNav() {
               36px pill fails touch-target minimums. Padding stays px-3.5 — the
               360px width budget that drops the wordmark has no slack (see
               tailwind.config.ts screens.xs). */}
-          <TrackedLink
+          <StartCta
             location="nav_mobile"
-            href="/onboarding"
+            label="Start free"
+            signedInLabel="Dashboard"
             className={cn(buttonVariants({ size: "sm" }), "h-11 rounded-full px-3.5")}
-          >
-            Start free
-          </TrackedLink>
+          />
           <button
             type="button"
             className="inline-flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors hover:bg-muted/70 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/25"
@@ -159,13 +156,13 @@ export function MarketingNav() {
               >
                 Log in
               </Link>
-              <Link
-                href="/onboarding"
-                onClick={() => setOpen(false)}
+              <StartCta
+                location="nav_menu"
+                label="Start free"
+                signedInLabel="Dashboard"
+                onNavigate={() => setOpen(false)}
                 className={cn(buttonVariants({ size: "sm" }), "flex-1")}
-              >
-                Start free
-              </Link>
+              />
             </div>
           </div>
         </nav>
