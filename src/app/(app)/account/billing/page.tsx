@@ -28,7 +28,7 @@ import {
 } from "@/lib/billing/refund-policy";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
-import { track as trackEvent } from "@/lib/analytics";
+import { attributionProps, track as trackEvent } from "@/lib/analytics";
 import type { SubscriptionTier } from "@/types";
 
 /**
@@ -438,7 +438,7 @@ function BillingInner() {
         /* private mode */
       }
     }
-    trackEvent("checkout_started", { plan: plan.id, cycle, source });
+    trackEvent("checkout_started", { plan: plan.id, cycle, source, ...attributionProps() });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",

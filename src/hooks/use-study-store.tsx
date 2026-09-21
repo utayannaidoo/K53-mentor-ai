@@ -29,7 +29,7 @@ import {
   resolveStreak,
 } from "@/lib/store/local-store";
 import { mergeAdoptedTabState } from "@/lib/store/cross-tab-merge";
-import { identify as analyticsIdentify, resetAnalytics, track } from "@/lib/analytics";
+import { attributionProps, identify as analyticsIdentify, resetAnalytics, track } from "@/lib/analytics";
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
@@ -416,7 +416,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
         try {
           if (window.localStorage.getItem("k53.signupTracked") !== user.id) {
             window.localStorage.setItem("k53.signupTracked", user.id);
-            track("signup_completed", { method });
+            track("signup_completed", { method, ...attributionProps() });
           }
         } catch {
           /* private mode */

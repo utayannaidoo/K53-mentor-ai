@@ -382,6 +382,20 @@ export function hasVerifiedName(sign: { id: string }): boolean {
   return VERIFIED_NAME_IDS.has(sign.id);
 }
 
+/**
+ * The subset safe to publish on an indexed, signed-out page.
+ *
+ * Same standard as quiz generation, and for the same reason: a derived name is
+ * often an OCR fragment ("Or under certain conditions", "as pedestrians
+ * crossing or waiting to cross your path"), and a composite crop shows two or
+ * three signs under one caption. Either is tolerable behind a login as a
+ * browsing aid next to the real meaning — both are damaging on a public page
+ * whose entire pitch is that this content is verified.
+ */
+export const VERIFIED_SIGNS: RoadSign[] = SIGNS.filter(
+  (s) => hasVerifiedName(s) && !hasCompositeImage(s),
+);
+
 export function signsByCategory(category: SignCategory): RoadSign[] {
   return SIGNS.filter((s) => s.category === category);
 }
