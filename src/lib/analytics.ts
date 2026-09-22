@@ -89,9 +89,88 @@ function run(op: (ph: PostHog) => void): void {
   void load();
 }
 
+/**
+ * First-touch campaign attribution.
+ *
+ * PostHog reads utm_* off `$current_url` on a pageview, and `trackPageview`
+ * below deliberately sends origin + path with no query string — so without this
+ * the tags never reach PostHog at all. It is also *first*-touch on purpose: a
+ * learner who arrives from a TikTok link, leaves, and comes back a week later by
+ * typing the domain should still be credited to TikTok, so the stored value is
+ * written once and never overwritten.
+ *
+ * Reading the URL is synchronous even though posthog-js is not, so
+ * `attributionProps()` is already correct on the first render — only the person
+ * property rides the buffer and waits for the dynamic import.
+ *
+ * Kept out of super properties: attaching five more fields to every event would
+ * undo the payload restraint the rest of this file is built around (autocapture
+ * off, small named vocabulary). Attribution rides on the person record, plus the
+ * two conversion events where a funnel actually needs it inline.
+ */
+const ATTRIBUTION_KEY = "k53:attribution";
+const UTM_PARAMS = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+
+type Attribution = Partial<Record<(typeof UTM_PARAMS)[number], string>>;
+
+let attribution: Attribution = {};
+
+function readStoredAttribution(): Attribution | null {
+  try {
+    const raw = window.localStorage.getItem(ATTRIBUTION_KEY);
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    // Junk that parses but is not an object (a bare string, an array) would
+    // otherwise pass the emptiness check below and stand in for real tags.
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? (parsed as Attribution)
+      : null;
+  } catch {
+    // Private mode, quota, or hand-edited junk — attribution is never worth
+    // breaking a page load over.
+    return null;
+  }
+}
+
+function captureAttribution(): void {
+  const stored = readStoredAttribution();
+  if (stored && Object.keys(stored).length > 0) {
+    attribution = stored;
+    return;
+  }
+
+  const params = new URLSearchParams(window.location.search);
+  const fresh: Attribution = {};
+  for (const key of UTM_PARAMS) {
+    // Cap the length: these land in a person property and arrive from a URL
+    // anyone can craft.
+    const value = params.get(key)?.trim().slice(0, 120);
+    if (value) fresh[key] = value;
+  }
+  if (Object.keys(fresh).length === 0) return;
+
+  attribution = fresh;
+  try {
+    window.localStorage.setItem(ATTRIBUTION_KEY, JSON.stringify(fresh));
+  } catch {
+    // Non-fatal — the in-memory copy still tags this session's events.
+  }
+  // The undefined first argument is $set_once, so a later visit carrying
+  // different tags cannot rewrite the origin even on a device that lost its
+  // localStorage.
+  run((ph) => ph.setPersonProperties(undefined, fresh));
+}
+
+/** First-touch utm_* tags, for events where the funnel needs them inline. */
+export function attributionProps(): Record<string, string> {
+  return { ...attribution };
+}
+
 /** Boots PostHog (no-op without a key). Called by AnalyticsProvider on mount. */
 export function initAnalytics(): void {
   if (!KEY || typeof window === "undefined") return;
+  // Before load(): the tags must be readable synchronously by anything that
+  // fires a conversion event during first paint.
+  captureAttribution();
   void load();
 }
 
@@ -162,7 +241,9 @@ export type AnalyticsEvent =
   | "today_plan_started"
   | "paywall_viewed"
   | "paywall_cta_clicked"
-  | "landing_preview_interacted";
+  | "landing_preview_interacted"
+  /** The ungated /free-quiz reached its result screen. */
+  | "free_quiz_completed";
 
 export function track(event: AnalyticsEvent, props?: Record<string, string | number | boolean>): void {
   run((ph) => ph.capture(event, props));

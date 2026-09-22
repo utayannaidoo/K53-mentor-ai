@@ -16,6 +16,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
   return [
     page("/", 1),
     page("/pricing", 0.9),
+    // Ungated and evergreen: both are link-in-bio destinations for social, and
+    // both answer searches ("free K53 test", "South African road signs") that
+    // run all year, so they rank alongside pricing rather than below the guides.
+    page("/free-quiz", 0.9),
+    page("/road-signs", 0.9),
     page("/guides", 0.8),
     // The school product page: software for driving schools, plus the partner programme.
     page("/for-driving-schools", 0.7),

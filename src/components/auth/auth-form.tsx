@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { AuthLocalProvider, useAuthLocal } from "@/components/auth/auth-local-provider";
 import { isSupabaseConfigured } from "@/lib/env";
 import { cn } from "@/lib/utils";
-import { track } from "@/lib/analytics";
+import { attributionProps, track } from "@/lib/analytics";
 import { isPasswordValid } from "@/lib/auth/password";
 import { checkAuthAttempt, recordAuthResult, type ThrottleSurface } from "@/lib/auth/client-throttle";
 import { shouldAuthPageSelfRedirect } from "@/lib/auth/auth-page-redirect";
@@ -386,7 +386,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
       // Email confirmation is on: the account exists but there's no session
       // yet, so entering the app now would just bounce off the middleware.
       if (mode === "signup" && !data.session) {
-        track("signup_completed", { method: "password" });
+        track("signup_completed", { method: "password", ...attributionProps() });
         setAwaitingConfirmation(true);
         setLoading(false);
         return;
@@ -398,7 +398,7 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     // router.push unmounts this page — across route groups nothing carries it
     // in memory, and a write still in flight is a write lost (see
     // auth-local-provider for the full race).
-    if (mode === "signup") track("signup_completed", { method: "password" });
+    if (mode === "signup") track("signup_completed", { method: "password", ...attributionProps() });
     await signInLocal(name || email.split("@")[0] || "Learner", email || `demo@${SITE_DOMAIN}`);
     // A client-side App Router transition can begin with the request that was
     // prefetched while this page was still anonymous. On a brand-new Supabase

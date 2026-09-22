@@ -1,73 +1,21 @@
 "use client";
 
-import * as React from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, Search, Octagon, AlertTriangle, Info, Signpost, Minus } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { PageHeader } from "@/components/app/app-shell";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Chip } from "@/components/ui/chip";
-import { Input } from "@/components/ui/input";
-import { Dialog } from "@/components/ui/dialog";
-import { EmptyState } from "@/components/ui/empty-state";
-import { SIGNS, SIGN_CATEGORIES, signsByCategory } from "@/lib/content/signs";
-import {
-  traitsFor,
-  SHAPE_FILTERS,
-  COLOUR_FILTERS,
-  type SignShape,
-  type SignColour,
-} from "@/lib/content/sign-traits";
-import { cn } from "@/lib/utils";
-import type { RoadSign, SignCategory } from "@/types";
+import { SignBrowser } from "@/components/shared/sign-browser";
+import { SIGNS } from "@/lib/content/signs";
 
-const CAT_ICON: Record<SignCategory, typeof Octagon> = {
-  regulatory: Octagon,
-  warning: AlertTriangle,
-  information: Info,
-  guidance: Signpost,
-  marking: Minus,
-};
-
-type Filter = SignCategory | "all";
+/**
+ * The in-app sign library: the full catalogue, inside the app shell.
+ *
+ * The browsing itself lives in <SignBrowser>, shared with the public
+ * /road-signs page. The two differ only in chrome and in which signs they are
+ * allowed to show — this one gets everything, including the derived names that
+ * are fine as a study aid but not fit to index.
+ */
 
 export function SignLibrary() {
-  const [filter, setFilter] = React.useState<Filter>("regulatory");
-  const [query, setQuery] = React.useState("");
-  const [active, setActive] = React.useState<RoadSign | null>(null);
-  // Shape and colour are what a learner actually retains from a roadside
-  // glance — "it was a red triangle" — so they're the two filters that match
-  // how someone searches when they never knew the sign's name.
-  const [shape, setShape] = React.useState<SignShape | null>(null);
-  const [colour, setColour] = React.useState<SignColour | null>(null);
-
-  const q = query.trim().toLowerCase();
-  const results = React.useMemo(() => {
-    return SIGNS.filter((s) => {
-      if (filter !== "all" && s.category !== filter) return false;
-      if (shape || colour) {
-        const t = traitsFor(s);
-        if (shape && t.shape !== shape) return false;
-        if (colour && t.colour !== colour) return false;
-      }
-      if (q && !`${s.name} ${s.meaning} ${s.subcategory}`.toLowerCase().includes(q)) return false;
-      return true;
-    });
-  }, [q, filter, shape, colour]);
-
-  // group results by subcategory for tidy section headers
-  const groups = React.useMemo(() => {
-    const map = new Map<string, RoadSign[]>();
-    for (const s of results) {
-      const key = `${s.category}__${s.subcategory || "General"}`;
-      const arr = map.get(key) ?? [];
-      arr.push(s);
-      map.set(key, arr);
-    }
-    return [...map.entries()];
-  }, [results]);
-
   return (
     <div className="mx-auto max-w-5xl">
       <Link
@@ -80,161 +28,7 @@ export function SignLibrary() {
         title="Road signs"
         description="Every official South African sign from the K53 manual — browse, search and learn what each one means."
       />
-
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          id="sign-search"
-          name="sign-search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search signs — e.g. stop, no entry, pedestrians, freeway"
-          className="pl-10"
-          aria-label="Search road signs"
-        />
-      </div>
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Chip active={filter === "all"} onClick={() => setFilter("all")}>
-          All <span className="text-xs opacity-70">{SIGNS.length}</span>
-        </Chip>
-        {SIGN_CATEGORIES.map((c) => {
-          const Icon = CAT_ICON[c.id];
-          return (
-            <Chip key={c.id} active={filter === c.id} onClick={() => setFilter(c.id)}>
-              <Icon className="h-3.5 w-3.5" /> {c.label}
-              <span className="text-xs opacity-70">{signsByCategory(c.id).length}</span>
-            </Chip>
-          );
-        })}
-      </div>
-
-      {/* "What did it look like?" — the way you search when you saw a sign on
-          the road and never knew its name. */}
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Shape
-        </span>
-        {SHAPE_FILTERS.map((s) => (
-          <Chip
-            key={s.id}
-            active={shape === s.id}
-            onClick={() => setShape(shape === s.id ? null : s.id)}
-          >
-            {s.label}
-          </Chip>
-        ))}
-      </div>
-      <div className="mt-2 flex flex-wrap items-center gap-2">
-        <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Colour
-        </span>
-        {COLOUR_FILTERS.map((c) => (
-          <Chip
-            key={c.id}
-            active={colour === c.id}
-            onClick={() => setColour(colour === c.id ? null : c.id)}
-          >
-            {c.label}
-          </Chip>
-        ))}
-        {(shape || colour) && (
-          <button
-            type="button"
-            onClick={() => {
-              setShape(null);
-              setColour(null);
-            }}
-            className="text-xs font-medium text-primary hover:underline"
-          >
-            Clear
-          </button>
-        )}
-      </div>
-
-      {filter !== "all" && !q && !shape && !colour && (
-        <p className="mt-4 text-sm text-muted-foreground">
-          {SIGN_CATEGORIES.find((c) => c.id === filter)?.blurb}
-        </p>
-      )}
-
-      {results.length === 0 ? (
-        <div className="mt-10">
-          <EmptyState
-            icon={<Search className="h-6 w-6" />}
-            title="No signs found"
-            description="Try a different word, or switch category."
-          />
-        </div>
-      ) : (
-        <div className="mt-6 space-y-8">
-          {groups.map(([key, signs]) => (
-            <section key={key}>
-              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                {key.split("__")[1]}
-                <span className="ml-2 font-normal lowercase opacity-60">{signs.length}</span>
-              </h2>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {signs.map((s) => (
-                  <button
-                    key={s.id}
-                    onClick={() => setActive(s)}
-                    className="press group text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 rounded-2xl"
-                  >
-                    <Card className="hover-elevate flex h-full flex-col items-center gap-3 p-4">
-                      <span className="flex h-24 w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-2">
-                        <Image
-                          src={s.image}
-                          alt={s.name}
-                          width={192}
-                          height={192}
-                          sizes="120px"
-                          className="h-full w-full object-contain"
-                        />
-                      </span>
-                      <span className="line-clamp-2 text-center text-xs font-medium leading-snug text-foreground">
-                        {s.name}
-                      </span>
-                    </Card>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ))}
-        </div>
-      )}
-
-      <Dialog open={active !== null} onClose={() => setActive(null)} label="Sign details">
-        {active && (
-          <div className="text-center">
-            <span className="mx-auto flex h-40 w-full items-center justify-center overflow-hidden rounded-xl border border-border bg-white p-4">
-              <Image
-                src={active.image}
-                alt={active.name}
-                width={320}
-                height={320}
-                sizes="320px"
-                className="h-full w-full object-contain"
-              />
-            </span>
-            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-              <Badge variant="secondary" className="capitalize">
-                {active.category}
-              </Badge>
-              {active.subcategory && (
-                <span className="text-xs text-muted-foreground">{active.subcategory}</span>
-              )}
-            </div>
-            <h3 className="mt-2 font-display text-xl font-semibold tracking-tight">{active.name}</h3>
-            <p className="mt-2 text-pretty text-sm leading-relaxed text-muted-foreground">
-              {active.meaning}
-            </p>
-            <p className="mt-4 text-2xs uppercase tracking-wide text-muted-foreground/70">
-              Source · K53 manual, page {active.page}
-            </p>
-          </div>
-        )}
-      </Dialog>
+      <SignBrowser signs={SIGNS} />
     </div>
   );
 }
