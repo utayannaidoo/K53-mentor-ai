@@ -51,7 +51,7 @@ import {
 import { achievementInputs, evaluateAchievements } from "@/lib/achievements";
 import { uid } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
-import { loadAccount, saveAccount } from "@/lib/supabase/account";
+import { loadAccount, saveAccount, touchLastActive } from "@/lib/supabase/account";
 import { pullProgress, pushProgress } from "@/lib/supabase/progress";
 import { hydrateAccountState, hydrateSessionOnly } from "@/lib/store/account-hydrate";
 import { shouldClearCachedProfile } from "@/lib/auth/session-absent";
@@ -409,6 +409,13 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       // per page load. Without it every billing/funnel event stays under an
       // anonymous distinct id and signup→paying cannot be joined per learner.
       analyticsIdentifyRef.current(user.id);
+      // Stamp the visit now, on the same path a silent auto-login takes.
+      // Without this the only writer was the debounced study sync, so
+      // "last seen" meant "last wrote some progress" — and the Supabase
+      // dashboard's own last_sign_in_at stops moving entirely once the
+      // refresh token takes over. Best-effort: a learner must never lose a
+      // session because a timestamp failed to write.
+      void touchLastActive(supabase, user.id).catch(() => {});
       // OAuth signups never pass through the password form that tracks
       // signup_completed, so a brand-new Google account is counted here, once.
       const method = user.app_metadata?.provider;

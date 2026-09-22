@@ -11,6 +11,7 @@ import {
   isFreePlan,
 } from "@/lib/billing/plans";
 import { cn, formatZar } from "@/lib/utils";
+import { StartCta } from "@/components/landing/start-cta";
 import { isSupabaseConfigured } from "@/lib/env";
 import {
   REFUND_GUARANTEE_LABEL,
@@ -98,6 +99,13 @@ export function PricingSection({
               ? "Go Premium"
               : `Go ${plan.name}`;
 
+          const ctaClass = cn(
+            "mt-5 flex w-full items-center justify-center rounded-xl py-[13px] text-[15px] font-semibold transition-[transform,filter] [transition-duration:400ms] ease-spring hover:brightness-[1.06] active:scale-[0.97]",
+            plan.highlighted
+              ? "bg-gradient-to-b from-primary-light to-primary text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45),0_12px_26px_-12px_hsl(var(--primary)/0.7)]"
+              : "bg-muted/70 text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border))]",
+          );
+
           return (
             <div
               key={plan.id}
@@ -143,26 +151,20 @@ export function PricingSection({
                     : "Billed monthly, renews automatically"}
               </div>
 
-              <Link
-                href={
-                  isFree
-                    ? "/onboarding"
-                    : `/signup?plan=${plan.id}&cycle=${annual ? "annual" : "monthly"}`
-                }
-                onClick={() =>
-                  track("cta_clicked", {
-                    location: isFree ? "pricing_free" : `pricing_${plan.id}`,
-                  })
-                }
-                className={cn(
-                  "mt-5 flex w-full items-center justify-center rounded-xl py-[13px] text-[15px] font-semibold transition-[transform,filter] [transition-duration:400ms] ease-spring hover:brightness-[1.06] active:scale-[0.97]",
-                  plan.highlighted
-                    ? "bg-gradient-to-b from-primary-light to-primary text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45),0_12px_26px_-12px_hsl(var(--primary)/0.7)]"
-                    : "bg-muted/70 text-foreground shadow-[inset_0_0_0_1px_hsl(var(--border))]",
-                )}
-              >
-                {cta}
-              </Link>
+              {/* Only the free card needs the auth-aware treatment. The paid
+                  cards point at /signup, and the middleware already turns that
+                  into /account/billing?buy=… for anyone holding a session. */}
+              {isFree ? (
+                <StartCta location="pricing_free" label={cta} className={ctaClass} />
+              ) : (
+                <Link
+                  href={`/signup?plan=${plan.id}&cycle=${annual ? "annual" : "monthly"}`}
+                  onClick={() => track("cta_clicked", { location: `pricing_${plan.id}` })}
+                  className={ctaClass}
+                >
+                  {cta}
+                </Link>
+              )}
               {/* Risk reversal at the moment of decision, not only in the
                   footnote under the grid. */}
               {!isFree && (

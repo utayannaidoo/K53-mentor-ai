@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { StartCta } from "@/components/landing/start-cta";
 import { SupportLink } from "@/components/shared/support-link";
 import { cn, glass } from "@/lib/utils";
 
@@ -17,14 +18,18 @@ export default function NotFound() {
           The page you&apos;re looking for was moved or never existed. Let&apos;s get you
           back on route.
         </p>
-        {/* Both destinations are public. A 404 is statically rendered, so it
-            can't know whether you're signed in — pointing the primary button at
-            /dashboard bounced every signed-out visitor straight to a login
-            screen they never asked for. */}
+        {/* A 404 is statically rendered and cannot know who is asking, which is
+            why this button used to point everyone at /onboarding: aiming it at
+            /dashboard bounced every signed-out visitor into a login screen they
+            never asked for. StartCta resolves it per visitor after mount, so a
+            signed-out stranger still gets the assessment and a signed-in
+            learner gets their own dashboard. */}
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link href="/onboarding" className={buttonVariants({ variant: "default" })}>
-            Start free assessment
-          </Link>
+          <StartCta
+            location="not_found"
+            label="Start free assessment"
+            className={buttonVariants({ variant: "default" })}
+          />
           <Link href="/" className={buttonVariants({ variant: "outline" })}>
             Back to home
           </Link>

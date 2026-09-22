@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { ArrowRight, Check, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
+import { StartCta } from "@/components/landing/start-cta";
 import { Skeleton } from "@/components/ui/skeleton";
 import { track } from "@/lib/analytics";
 import { cn, glass, shuffle } from "@/lib/utils";
@@ -100,13 +101,12 @@ export function GuideQuiz({ slug, categories }: { slug: string; categories?: Cat
             The real test needs about 80% in every section, and one topic is only part of it. The
             free starting check samples all three sections and shows which one to fix first.
           </p>
-          <Link
-            href="/onboarding"
-            onClick={() => track("cta_clicked", { location: `guide_quiz_${slug}` })}
+          <StartCta
+            location={`guide_quiz_${slug}`}
+            label="Get my section scores"
+            icon={<ArrowRight className="h-4 w-4" />}
             className={cn(buttonVariants({ size: "lg" }), "mt-5 w-full gap-2 sm:w-auto")}
-          >
-            Get my section scores <ArrowRight className="h-4 w-4" />
-          </Link>
+          />
           <p className="mt-2 text-xs text-muted-foreground">Free · no card · about 5 minutes</p>
         </div>
       ) : (
