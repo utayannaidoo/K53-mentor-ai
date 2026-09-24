@@ -53,7 +53,7 @@ const BRAND = "#2C5F4F";
  * transactional ones (receipts, dunning, security) get a neutral service note
  * instead — the opt-out line would be wrong (and phishy) on those.
  */
-type FooterKind = "reminders" | "transactional" | "lead";
+type FooterKind = "reminders" | "welcome" | "transactional" | "lead";
 
 function footerHtml(kind: FooterKind, unsubscribeUrl?: string | null): string {
   const style = 'style="font-size:12px;color:#8a938e;margin:18px 4px 0;line-height:1.5;"';
@@ -68,6 +68,18 @@ function footerHtml(kind: FooterKind, unsubscribeUrl?: string | null): string {
         }
       </p>`;
   }
+  if (kind === "welcome") {
+    // The welcome is the first mail an account gets, so it is where the
+    // reader learns reminders exist — and how to stop them before the first
+    // one arrives.
+    return `<p ${style}>
+        We'll send the odd study reminder when you've been away.${
+          unsubscribeUrl
+            ? ` <a href="${unsubscribeUrl}" style="color:#8a938e;">Unsubscribe from reminders</a> any time — receipts and account email keep working.`
+            : ` Switch them off any time in your <a href="${SITE_URL}/account" style="color:#8a938e;">account preferences</a>.`
+        }
+      </p>`;
+  }
   if (kind === "transactional") {
     return `<p ${style}>
         This is a service email about your K53 Mentor AI account. Manage your account
@@ -78,7 +90,7 @@ function footerHtml(kind: FooterKind, unsubscribeUrl?: string | null): string {
         You're getting study reminders because they're on in your
         <a href="${SITE_URL}/account" style="color:#8a938e;">account preferences</a>.${
           unsubscribeUrl
-            ? ` <a href="${unsubscribeUrl}" style="color:#8a938e;">Turn them off</a> — receipts and account email keep working.`
+            ? ` <a href="${unsubscribeUrl}" style="color:#8a938e;">Unsubscribe from reminders</a> — receipts and account email keep working.`
             : ` Switch them off there any time.`
         }
       </p>`;
@@ -259,6 +271,8 @@ export function buildSubscriptionEndingEmail(input: {
 export function buildWelcomeEmail(input: {
   firstName: string;
   trialDays: number;
+  /** The same reminders opt-out the nudges carry (reminder-optout.ts). */
+  unsubscribeUrl?: string | null;
 }): EmailContent {
   const name = esc(input.firstName) || "there";
   const days = input.trialDays;
@@ -285,9 +299,10 @@ export function buildWelcomeEmail(input: {
       ),
     "Start the diagnostic",
     "/dashboard",
-    "transactional",
+    "welcome",
+    input.unsubscribeUrl,
   );
-  return { subject, html, text };
+  return withOptOut({ subject, html, text }, input.unsubscribeUrl);
 }
 
 /**
@@ -543,7 +558,7 @@ export function buildDisputeAlertEmail(input: {
 
 
 /**
- * Give a reminder email its opt-out: a line in the text part (the footer link
+ * Give a reminder (or the welcome) its opt-out: a line in the text part (the footer link
  * lives only in the HTML alternative) and the List-Unsubscribe headers mail
  * clients render their own control from.
  *
@@ -554,7 +569,7 @@ function withOptOut(content: EmailContent, unsubscribeUrl?: string | null): Emai
   if (!unsubscribeUrl) return content;
   return {
     ...content,
-    text: `${content.text}\n\nStop these reminders: ${unsubscribeUrl}`,
+    text: `${content.text}\n\nUnsubscribe from study reminders: ${unsubscribeUrl}`,
     headers: {
       ...content.headers,
       "List-Unsubscribe": `<${unsubscribeUrl}>`,

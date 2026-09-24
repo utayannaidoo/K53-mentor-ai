@@ -33,7 +33,7 @@ describe("study nudges carry the test-date countdown", () => {
     expect(countdown).toBeLessThan(mail.text.indexOf(SITE_URL));
     // …and the CTA line still ends where it should, not mid-sentence.
     expect(mail.text).not.toMatch(new RegExp(`${SITE_URL}\\S* 12 days`));
-    expect(mail.text.trimEnd().endsWith(`Stop these reminders: ${link}`)).toBe(true);
+    expect(mail.text.trimEnd().endsWith(`Unsubscribe from study reminders: ${link}`)).toBe(true);
   });
 
   it("uses the singular and a test-day line", () => {

@@ -14,7 +14,7 @@ const LINK = "https://k53.test/api/unsubscribe/reminders?u=u1&t=abc";
 describe("reminder emails carry an opt-out", () => {
   it.each(TYPES)("%s puts the link in the text part and the headers", (type) => {
     const mail = buildEmail(type, { ...base, unsubscribeUrl: LINK });
-    expect(mail.text).toContain(`Stop these reminders: ${LINK}`);
+    expect(mail.text).toContain(`Unsubscribe from study reminders: ${LINK}`);
     expect(mail.html).toContain(LINK);
     expect(mail.headers?.["List-Unsubscribe"]).toBe(`<${LINK}>`);
     expect(mail.headers?.["List-Unsubscribe-Post"]).toBe("List-Unsubscribe=One-Click");
@@ -24,7 +24,7 @@ describe("reminder emails carry an opt-out", () => {
     // The countdown rewrites the body; it must not drop the headers with it.
     const mail = buildEmail("streak_risk", { ...base, unsubscribeUrl: LINK, daysToTest: 9 });
     expect(mail.text).toContain("9 days to your test.");
-    expect(mail.text).toContain("Stop these reminders:");
+    expect(mail.text).toContain("Unsubscribe from study reminders:");
     expect(mail.headers?.["List-Unsubscribe"]).toBe(`<${LINK}>`);
   });
 
@@ -36,7 +36,7 @@ describe("reminder emails carry an opt-out", () => {
   it("advertises nothing it cannot honour when no secret is configured", () => {
     const mail = buildEmail("dormant_3d", base);
     expect(mail.headers).toBeUndefined();
-    expect(mail.text).not.toContain("Stop these reminders");
+    expect(mail.text).not.toContain("Unsubscribe from study reminders");
     // Still tells the reader where the switch lives.
     expect(mail.html).toMatch(/account preferences/i);
   });
