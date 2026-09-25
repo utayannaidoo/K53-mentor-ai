@@ -139,4 +139,19 @@ describe("buildWelcomeEmail", () => {
     expect(mail.html).not.toContain("<img");
     expect(mail.html).toContain("&lt;img");
   });
+
+  it("carries the reminders opt-out, so nobody has to wait for a nudge to find it", () => {
+    const link = "https://k53.test/api/unsubscribe/reminders?u=u1&t=abc";
+    const mail = buildWelcomeEmail({ firstName: "Sam", trialDays: 7, unsubscribeUrl: link });
+    expect(mail.html).toContain(link);
+    expect(mail.html).toMatch(/Unsubscribe from reminders/);
+    expect(mail.text).toContain(`Unsubscribe from study reminders: ${link}`);
+    expect(mail.headers?.["List-Unsubscribe"]).toBe(`<${link}>`);
+  });
+
+  it("points at account preferences when no signing secret is configured", () => {
+    const mail = buildWelcomeEmail({ firstName: "Sam", trialDays: 7 });
+    expect(mail.headers).toBeUndefined();
+    expect(mail.html).toMatch(/account preferences/i);
+  });
 });

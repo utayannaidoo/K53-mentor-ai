@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildWelcomeEmail } from "@/lib/notify/templates";
+import { reminderOptOutUrl } from "@/lib/notify/reminder-optout";
 import { FREE_TRIAL_DAYS } from "@/lib/billing/plans";
 
 /**
@@ -54,7 +55,11 @@ export async function sendWelcomeOnce(userId: string): Promise<boolean> {
     // First name only. `full_name` is whatever they typed, so it is escaped in
     // the template like every other user-supplied value.
     const firstName = (profile.full_name ?? "").trim().split(/\s+/)[0] ?? "";
-    const mail = buildWelcomeEmail({ firstName, trialDays: FREE_TRIAL_DAYS });
+    const mail = buildWelcomeEmail({
+      firstName,
+      trialDays: FREE_TRIAL_DAYS,
+      unsubscribeUrl: reminderOptOutUrl(userId),
+    });
 
     const sent = await sendEmail({ to: profile.email, ...mail });
     if (!sent) return false;
