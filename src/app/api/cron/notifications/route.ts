@@ -25,7 +25,7 @@ export const maxDuration = 60;
  *
  * Sends at most ONE email per user per run, by priority:
  *   1. streak_risk  — studied yesterday but not today, streak >= 2
- *   2. dormant_7d   — inactive 7+ days
+ *   2. dormant_7d   — inactive 7+ days, repeated once a week
  *   3. dormant_3d   — inactive 3–6 days
  *   4. due_review   — active recently, but has flashcards past due today
  *
@@ -34,12 +34,21 @@ export const maxDuration = 60;
  * unconfigured or failing email provider never silently "uses up" a nudge.
  */
 
+/**
+ * Weekly, for someone who has been away 7+ days. Just under seven days rather
+ * than exactly: the cron runs once a day, last week's ledger row is stamped
+ * after last week's run started, and cron start times drift by minutes — so a
+ * full 168h gap is often just short at this week's run and slips to day 8.
+ * Anything over six days still rules out a second send in the same week.
+ */
+const WEEKLY_HOURS = 7 * 24 - 12;
+
 /** Per-type minimum gap between sends to the same user, in hours. */
 const COOLDOWN_HOURS: Record<NotificationType, number> = {
   streak_risk: 20,
   due_review: 48,
   dormant_3d: 7 * 24,
-  dormant_7d: 14 * 24,
+  dormant_7d: WEEKLY_HOURS,
 };
 
 /** South Africa has no DST — a fixed UTC+2 date key is always correct. */
