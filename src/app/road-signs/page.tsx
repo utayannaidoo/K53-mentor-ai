@@ -49,7 +49,7 @@ export default function RoadSignsPage() {
         </p>
 
         <div className="mt-8">
-          <SignBrowser signs={VERIFIED_SIGNS} />
+          <SignBrowser signs={VERIFIED_SIGNS} initialFilter="all" />
         </div>
 
         <div className="mt-16 rounded-2xl border border-border bg-card p-8 text-center">
