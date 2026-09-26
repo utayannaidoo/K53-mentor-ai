@@ -45,7 +45,15 @@ try {
     if (!Array.isArray(result.data) || !Number.isInteger(result.meta?.pageCount) || result.meta.pageCount < 0) {
       throw new Error("Incomplete refund history; inspect it in Paystack.");
     }
-    refunds.push(...result.data);
+    // `transaction` is not a documented List Refunds filter, so the page may
+    // hold other charges' refunds. Keep this charge's, and keep any refund
+    // that names no charge at all: a false "no refund" invites a double refund.
+    refunds.push(...result.data.filter((r) => {
+      const refundRef = r.transaction_reference;
+      const refundTxId = r.transaction?.id ?? r.transaction;
+      if (refundRef == null && refundTxId == null) return true;
+      return refundRef === reference || String(refundTxId) === String(tx.id);
+    }));
     pageCount = result.meta.pageCount;
     if (pageCount > 100) throw new Error("Refund history exceeds the preflight limit; inspect it in Paystack.");
     page++;

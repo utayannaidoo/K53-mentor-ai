@@ -12,8 +12,8 @@ Funding Paystack alone does not restart it. Preserve the row as the audit trail.
        node scripts/paystack-refund-status.mjs <transaction-reference>
 
    This only calls Paystack GET endpoints. It verifies the charge, reads every
-   page of that transaction's refund history, and checks the balance in the
-   charge currency. Amounts are minor units: ZAR 6000 means R60.
+   page of refund history and keeps that charge's refunds (plus any refund that
+   names no charge), and checks the balance in the charge currency. Amounts are minor units: ZAR 6000 means R60.
 3. If any refund exists, reconcile its status in Paystack before retrying.
    Pending/processing refunds must not be submitted a second time. A processed
    refund must be reconciled to the local queue, never requeued.
@@ -26,6 +26,9 @@ Funding Paystack alone does not restart it. Preserve the row as the audit trail.
 Only after a fresh preflight confirms no existing refund and adequate balance,
 and the operator has verified the cancellation is still owed, reopen that one
 failed row. Do not combine a direct/dashboard refund with this queue restart.
+That includes `node scripts/paystack-refund-diagnose.mjs --refund <reference>
+--confirm`: it submits a real refund outside the queue, and the cron would then
+submit the same charge again. Use the diagnose script read-only (no `--refund`).
 Save the original row and preflight output in the private incident record first.
 
 Use a compare-and-set update in the administrator SQL session, substituting the
