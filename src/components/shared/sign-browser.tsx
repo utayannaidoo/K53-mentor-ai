@@ -9,7 +9,7 @@ import { Chip } from "@/components/ui/chip";
 import { Input } from "@/components/ui/input";
 import { Dialog } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SIGN_CATEGORIES } from "@/lib/content/signs";
+import { SIGN_CATEGORIES } from "@/lib/content/sign-categories";
 import {
   traitsFor,
   SHAPE_FILTERS,
@@ -41,8 +41,14 @@ const CAT_ICON: Record<SignCategory, typeof Octagon> = {
 
 type Filter = SignCategory | "all";
 
-export function SignBrowser({ signs }: { signs: RoadSign[] }) {
-  const [filter, setFilter] = React.useState<Filter>("regulatory");
+export function SignBrowser({
+  signs,
+  initialFilter = "regulatory",
+}: {
+  signs: RoadSign[];
+  initialFilter?: Filter;
+}) {
+  const [filter, setFilter] = React.useState<Filter>(initialFilter);
   const [query, setQuery] = React.useState("");
   const [active, setActive] = React.useState<RoadSign | null>(null);
   // Shape and colour are what a learner actually retains from a roadside
