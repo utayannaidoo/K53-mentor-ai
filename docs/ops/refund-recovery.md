@@ -1,38 +1,83 @@
-# Recover an exhausted refund
+# Recover a stuck refund
 
-A row in pending_refunds with status failed has exhausted the 14-attempt limit.
-Funding Paystack alone does not restart it. Preserve the row as the audit trail.
+A money-back refund lands in pending_refunds when Paystack refuses it, usually
+"Insufficient balance to process refund". Paystack only refunds from takings it
+has not paid out yet: in South Africa that is roughly the last two working days
+of sales. On a quiet week the learner's own payment has already been paid out
+and nothing new covers it, so retrying alone may never succeed.
 
-## Read-only diagnosis
+The daily reconcile-payments cron (03:00 UTC) retries each queued row. Support
+gets a "Refund stuck" email after 2 failed retries, and a "Queued refund gave up"
+email after 14, when the row becomes failed. Settle it from /admin/refunds (the
+admin allowlist is ADMIN_EMAILS). Never delete a row: it is the audit trail.
 
-1. Inspect the failed row's transaction_reference, attempts and last_error using
-   an administrator connection. Do not expose the user's email or secret keys.
-2. With the correct account key in the environment (or local .env.local), run:
+## 1. Check Paystack first (read-only)
 
-       node scripts/paystack-refund-status.mjs <transaction-reference>
+With the correct account key in the environment (or local .env.local), run:
 
-   This only calls Paystack GET endpoints. It verifies the charge, reads every
-   page of refund history and keeps that charge's refunds (plus any refund that
-   names no charge), and checks the balance in the charge currency. Amounts are minor units: ZAR 6000 means R60.
-3. If any refund exists, reconcile its status in Paystack before retrying.
-   Pending/processing refunds must not be submitted a second time. A processed
-   refund must be reconciled to the local queue, never requeued.
-4. If the reported balance is insufficient, fund the appropriate refund balance
-   through Paystack. If that facility is unavailable, contact Paystack support.
-   Do not use a second payment channel without recording and reconciling it.
+    node scripts/paystack-refund-status.mjs <transaction-reference>
 
-## Resume the existing queue after funding
+This only calls Paystack GET endpoints. It verifies the charge, reads every page
+of refund history and keeps that charge's refunds (plus any refund that names no
+charge), and checks the balance in the charge currency. Amounts are minor units:
+ZAR 6000 means R60.
 
-Only after a fresh preflight confirms no existing refund and adequate balance,
-and the operator has verified the cancellation is still owed, reopen that one
-failed row. Do not combine a direct/dashboard refund with this queue restart.
-That includes `node scripts/paystack-refund-diagnose.mjs --refund <reference>
---confirm`: it submits a real refund outside the queue, and the cron would then
-submit the same charge again. Use the diagnose script read-only (no `--refund`).
-Save the original row and preflight output in the private incident record first.
+If any refund already exists, reconcile it in Paystack before doing anything
+else. A pending or processing refund must not be submitted a second time, and a
+processed one must be reconciled to the local row, never retried.
 
-Use a compare-and-set update in the administrator SQL session, substituting the
-verified row ID, reference and original attempt count:
+Do not use `node scripts/paystack-refund-diagnose.mjs --refund <reference>
+--confirm` or the Paystack dashboard's refund button for a queued charge. Both
+submit a refund outside the queue, and the cron would then submit the same
+charge again. Use the diagnose script read-only (no `--refund`).
+
+## 2a. Refund through Paystack
+
+Once new sales or a balance top-up cover the charge, press **Retry now** on the
+row. Registered businesses can top up by EFT (1% fee in South Africa); Starter
+businesses can only wait for sales, or ask Paystack support to hold payouts
+longer. A preflight is a point-in-time check, not a reservation of the balance.
+
+Retry now works on a row that is still retrying and on one that has stopped. A
+refusal is shown on the page and recorded as the row's last error, and does not
+use up the cron's 14 attempts. On success the row is marked refunded, the
+learner's plan ends if this charge is still their latest payment, any partner
+commission is voided, and the learner is emailed.
+
+## 2b. Repay by EFT
+
+When Paystack cannot cover it in time:
+
+1. Press **Stop retries to repay by EFT** first, so the cron cannot refund the
+   same charge through Paystack the next morning. A row that gave up after 14
+   attempts is already stopped.
+2. Ask the learner for their bank details and pay them the charge amount by EFT.
+3. Press **Mark as refunded** with the reference your bank shows. The page
+   refuses this while the row is still retrying.
+
+Only record the EFT after the money has gone. Recording runs the same follow-ups
+as a Paystack refund, and the learner's email says the money came by EFT, not
+back to their card. The row keeps the EFT reference and the admin who recorded
+it (manual_reference, manual_recorded_by). Never retry through Paystack after
+an EFT.
+
+## 3. Verify completion
+
+The row moves to "Settled in the last 30 days" on /admin/refunds. For a Paystack
+refund, run the preflight again later: an accepted request is not proof that the
+bank has credited the learner, so confirm Paystack's final processed status.
+Check that the learner's plan ended only if the refunded charge was their latest;
+a newer paid subscription must keep its tier. Check that the learner email went:
+the page says when it could not, and then you tell them yourself. If Paystack
+and local state disagree, escalate for reconciliation rather than resubmitting.
+
+## Fallback: reopen a stopped row without the admin page
+
+Only if /admin/refunds cannot be used (for example ADMIN_EMAILS is unset), and
+only after a fresh preflight shows no existing refund and enough balance, reopen
+the one failed row for the cron. Save the original row and preflight output in
+the private incident record first, then use a compare-and-set update in the
+administrator SQL session:
 
     update public.pending_refunds
     set status = 'queued', attempts = 0, updated_at = now()
@@ -43,17 +88,7 @@ verified row ID, reference and original attempt count:
     returning id, transaction_reference, status, attempts, last_error;
 
 Exactly one row must be returned. Keep last_error as the previous failure trail.
-Do not clear money_back_used or edit subscription tiers. The existing daily
-reconcile-payments cron (03:00 UTC) owns the refund request and its follow-ups.
-A preflight is a point-in-time check, not a reservation of the balance.
-
-## Verify completion
-
-Run the read-only preflight again after the cron. An accepted request is not
-proof that the bank has credited the learner: confirm Paystack's final processed
-status. Check the local queue, subscription downgrade for the refunded charge,
-commission reversal where applicable, and notification delivery. A newer paid
-subscription must retain its entitlements. If Paystack or local state disagrees,
-escalate for reconciliation; do not keep resubmitting the same charge.
+Do not clear money_back_used or edit subscription tiers: the cron owns the
+refund request and its follow-ups.
 
 Paystack API reference: https://paystack.com/docs/api/refund/
