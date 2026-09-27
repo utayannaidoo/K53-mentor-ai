@@ -449,11 +449,80 @@ export function buildRefundProcessedEmail(input: {
 }
 
 /**
+ * A learner repaid by EFT from /admin/refunds, when Paystack could not refund
+ * the charge. Unlike a Paystack refund the money is not going back to the
+ * card: it is already in their bank account, so the wording says so and the
+ * wait is the bank transfer's, not the card network's.
+ */
+export function buildManualRefundEmail(input: {
+  firstName: string;
+  amountZar: number | null;
+}): EmailContent {
+  const name = esc(input.firstName) || "there";
+  const amount =
+    input.amountZar === null ? null : `R ${input.amountZar.toFixed(2).replace(/\.00$/, "")}`;
+  const subject = "Your refund has been paid";
+  const text =
+    `Hi ${input.firstName || "there"} — ${amount ? `your ${amount} refund` : "your refund"} has been paid into your bank account by EFT. ` +
+    `Transfers between banks can take up to two business days to show.\n\n` +
+    `Nothing further is needed from you, and your study progress stays exactly where it was.\n\n` +
+    `Manage your plan any time: ${SITE_URL}/account/billing`;
+  const html = wrap(
+    h("Refund paid") +
+      p(`Hi ${name} — ${amount ? `your <strong>${amount}</strong> refund` : "your refund"} has been paid into your bank account by EFT.`) +
+      p("Transfers between banks can take up to two business days to show. Nothing further is needed from you, and your progress stays exactly where it was."),
+    "Go to billing",
+    "/account/billing",
+    "transactional",
+  );
+  return { subject, html, text };
+}
+
+/**
+ * Operator alert: a queued money-back refund has failed its first daily
+ * retries and is unlikely to clear on its own.
+ *
+ * Paystack can only refund from takings it has not yet paid out, which in
+ * South Africa is roughly the last two working days of sales. On a quiet week
+ * the queue can retry for a fortnight and never find the money, so this goes
+ * out early enough to repay by EFT before the date the learner was promised.
+ */
+export function buildStuckRefundAlertEmail(input: {
+  reference: string;
+  userId: string;
+  attempts: number;
+  lastError: string | null;
+}): EmailContent {
+  const subject = `[K53 billing] Refund stuck, action needed: ${input.reference}`;
+  const lines = [
+    `A money-back refund has failed ${input.attempts} daily retries.`,
+    ``,
+    `Reference:  ${input.reference}`,
+    `User:       ${input.userId}`,
+    `Last error: ${input.lastError ?? "(none recorded)"}`,
+    ``,
+    `Paystack can only refund from takings it hasn't paid out yet, which is`,
+    `roughly the last two working days of sales. Until new payments cover it,`,
+    `this keeps failing. The learner has been told their refund is on its way.`,
+    ``,
+    `Settle it at ${SITE_URL}/admin/refunds:`,
+    `  - Retry now, once new sales or a balance top-up cover it; or`,
+    `  - Stop automatic retries, repay the learner by EFT, then mark it refunded.`,
+    ``,
+    `Until then the queue keeps retrying daily.`,
+  ];
+  const html =
+    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
+    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
+  return { subject, html, text: lines.join("\n") };
+}
+
+/**
  * Operator alert: a queued money-back refund exhausted its retries.
  *
  * Goes to SUPPORT_EMAIL, never to a customer — same plain style as the price
- * mismatch alert. The learner's money is owed; only a human can issue it from
- * the Paystack dashboard once the balance covers it.
+ * mismatch alert. The learner's money is owed and the cron has stopped trying;
+ * only a human can settle it now.
  */
 export function buildQueuedRefundAlertEmail(input: {
   reference: string;
@@ -471,9 +540,9 @@ export function buildQueuedRefundAlertEmail(input: {
     `Last error: ${input.lastError ?? "(none recorded)"}`,
     ``,
     `The learner cancelled inside the 7-day window and was told their refund`,
-    `is processing. It isn't going through on its own — issue it manually from`,
-    `the Paystack dashboard (Transactions → the charge → Refund) once the`,
-    `balance covers it, then mark the pending_refunds row 'refunded'.`,
+    `is processing. Automatic retries have stopped. Settle it at`,
+    `${SITE_URL}/admin/refunds: Retry now once the balance covers it, or repay`,
+    `the learner by EFT and mark it refunded there.`,
   ];
   const html =
     `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
@@ -486,8 +555,9 @@ export function buildQueuedRefundAlertEmail(input: {
  *
  * Goes to SUPPORT_EMAIL on EVERY self-serve cancellation — this is the churn
  * signal, not a task list. Billing and any money-back refund are already
- * handled automatically by the cancel route and the retry cron; the one case
- * that DOES need a human arrives as a separate "Queued refund gave up" alert.
+ * handled automatically by the cancel route and the retry cron; the case that
+ * DOES need a human arrives separately, as "Refund stuck" after a couple of
+ * failed retries and "Queued refund gave up" if nobody settles it.
  */
 export function buildCancellationAlertEmail(input: {
   userEmail: string;

@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ACCOUNT_DAILY_LIMIT, clientIp, limitCheckout, limitUserDaily } from "@/lib/ai/rate-limit";
 import { refundTransaction } from "@/lib/paystack/client";
 import { disableActiveSubscriptions, refundBlockedReason, voidMoneyBackCommission } from "@/lib/billing/subscription-cancel";
-import { queuePendingRefund } from "@/lib/billing/pending-refunds";
+import { queuePendingRefund, REFUND_ESCALATE_AFTER_ATTEMPTS } from "@/lib/billing/pending-refunds";
 import { REFUND_PROCESSING_DAYS, PLAN_MAP } from "@/lib/billing/plans";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildCancellationAlertEmail } from "@/lib/notify/templates";
@@ -279,7 +279,7 @@ export async function POST(req: Request) {
     const outcome = refunded
       ? "money-back refund issued — access ended immediately"
       : refundQueued
-        ? "refund queued — cron retries daily and emails the learner when it lands"
+        ? `refund queued (Paystack said: ${refundMessage ?? "no detail"}) — cron retries daily and emails the learner when it lands; a "Refund stuck" alert follows if ${REFUND_ESCALATE_AFTER_ATTEMPTS} retries fail`
         : refundError
           ? `refund FAILED and could not be queued — learner keeps access until period end (${refundMessage ?? "no detail"})`
           : `no refund attempted (${refundBlocked ?? "outside money-back window"}) — access until period end`;

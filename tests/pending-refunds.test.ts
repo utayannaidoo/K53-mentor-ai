@@ -18,7 +18,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *    someone who re-subscribed while their old refund sat queued keeps the
  *    new tier they paid for;
  *  - after REFUND_MAX_ATTEMPTS the row fails closed and support is pointed
- *    at the manual fix.
+ *    at the manual fix;
+ *  - support hears after REFUND_ESCALATE_AFTER_ATTEMPTS failed retries, once,
+ *    rather than only when the queue gives up;
+ *  - /admin/refunds can retry a row, stop its retries, and record an EFT
+ *    repayment, and never lets an EFT be recorded while the cron could still
+ *    refund the same charge through Paystack.
  */
 
 vi.mock("@/lib/paystack/client", () => ({
@@ -27,15 +32,29 @@ vi.mock("@/lib/paystack/client", () => ({
   fetchCustomer: vi.fn(),
   disableSubscription: vi.fn(),
 }));
-vi.mock("@/lib/notify/email", () => ({ isEmailConfigured: false, sendEmail: vi.fn() }));
+// Email is off by default; the escalation and EFT tests switch it on.
+const mail = vi.hoisted(() => ({ on: false }));
+vi.mock("@/lib/notify/email", () => ({
+  get isEmailConfigured() {
+    return mail.on;
+  },
+  sendEmail: vi.fn(async () => true),
+}));
 vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: vi.fn() }));
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { refundTransaction } from "@/lib/paystack/client";
+import { refundTransaction, verifyTransaction } from "@/lib/paystack/client";
+import { sendEmail } from "@/lib/notify/email";
+import { SUPPORT_EMAIL } from "@/lib/constants";
 import {
+  REFUND_ESCALATE_AFTER_ATTEMPTS,
   REFUND_MAX_ATTEMPTS,
   processPendingRefunds,
   queuePendingRefund,
+  recordManualRefund,
+  refundsForAdmin,
+  retryRefundNow,
+  stopRefundRetries,
 } from "@/lib/billing/pending-refunds";
 
 type Row = Record<string, unknown>;
@@ -44,7 +63,19 @@ type Entry = {
   op: string;
   values?: Row;
   filters: Record<string, unknown>;
+  /** `.update(...).select()` — resolve with the rows the update touched. */
+  returning?: boolean;
 };
+
+/** Filters are stored as `col`, `col__neq`, `col__in` or `col__gte`. */
+function matchesFilters(r: Row, filters: Record<string, unknown>): boolean {
+  return Object.entries(filters).every(([k, v]) => {
+    if (k.endsWith("__neq")) return r[k.slice(0, -5)] !== v;
+    if (k.endsWith("__in")) return (v as unknown[]).includes(r[k.slice(0, -4)]);
+    if (k.endsWith("__gte")) return String(r[k.slice(0, -5)] ?? "") >= String(v);
+    return r[k] === v;
+  });
+}
 
 /**
  * Fluent Supabase double. Entries record every operation with its accumulated
@@ -58,18 +89,11 @@ function makeFakeAdmin(initial: Record<string, Row[]> = {}) {
   function build(table: string, op: string, values?: Row) {
     const entry: Entry = { table, op, values, filters: {} };
     entries.push(entry);
-    const rowMatches = (r: Row) =>
-      Object.entries(entry.filters).every(([k, v]) => {
-        if (typeof k === "string" && k.endsWith("__neq")) {
-          return r[k.slice(0, -5)] !== v;
-        }
-        return r[k] === v;
-      });
     const chain: Record<string, unknown> = {};
-    const applyUpdate = () => {
-      for (const r of tables[table] ?? []) {
-        if (rowMatches(r) && entry.values) Object.assign(r, entry.values);
-      }
+    const applyUpdate = (): Row[] => {
+      const touched = (tables[table] ?? []).filter((r) => matchesFilters(r, entry.filters));
+      for (const r of touched) if (entry.values) Object.assign(r, entry.values);
+      return touched;
     };
     Object.assign(chain, {
       eq(col: string, val: unknown) {
@@ -80,6 +104,14 @@ function makeFakeAdmin(initial: Record<string, Row[]> = {}) {
         entry.filters[`${col}__neq`] = val;
         return chain;
       },
+      in(col: string, vals: unknown[]) {
+        entry.filters[`${col}__in`] = vals;
+        return chain;
+      },
+      gte(col: string, val: unknown) {
+        entry.filters[`${col}__gte`] = val;
+        return chain;
+      },
       order() {
         return chain;
       },
@@ -87,6 +119,7 @@ function makeFakeAdmin(initial: Record<string, Row[]> = {}) {
         return chain;
       },
       select(_cols?: string) {
+        if (entry.op === "update") entry.returning = true;
         return chain;
       },
       update(vals: Row) {
@@ -119,20 +152,18 @@ function makeFakeAdmin(initial: Record<string, Row[]> = {}) {
       },
       maybeSingle: async () => ({ data: rowMatchesList()[0] ?? null, error: null }),
       then(resolve?: (v: { data: Row[] | null; error: null }) => unknown) {
-        if (entry.op === "update") applyUpdate();
-        const data = entry.op === "select" ? rowMatchesList() : null;
+        let data: Row[] | null = null;
+        if (entry.op === "update") {
+          const touched = applyUpdate();
+          if (entry.returning) data = touched;
+        } else if (entry.op === "select") {
+          data = rowMatchesList();
+        }
         return Promise.resolve({ data, error: null }).then(resolve);
       },
     });
     function rowMatchesList(): Row[] {
-      return (tables[table] ?? []).filter((r) =>
-        Object.entries(entry.filters).every(([k, v]) => {
-          if (typeof k === "string" && k.endsWith("__neq")) {
-            return r[k.slice(0, -5)] !== v;
-          }
-          return r[k] === v;
-        }),
-      );
+      return (tables[table] ?? []).filter((r) => matchesFilters(r, entry.filters));
     }
     return chain as unknown as SupabaseClient;
   }
@@ -176,7 +207,10 @@ const subscriptionRow = (over: Row = {}): Row => ({
 
 beforeEach(() => {
   delete process.env.RESEND_API_KEY; // keep every email path inert
+  mail.on = false;
+  vi.mocked(sendEmail).mockClear();
   vi.mocked(refundTransaction).mockReset();
+  vi.mocked(verifyTransaction).mockReset();
   vi.mocked(createAdminClient).mockReset().mockReturnValue(null as never);
 });
 
@@ -314,5 +348,199 @@ describe("processPendingRefunds", () => {
       status: "queued",
       attempts: 1,
     });
+  });
+});
+
+describe("early escalation", () => {
+  const sent = () => vi.mocked(sendEmail).mock.calls.map(([msg]) => msg);
+
+  it(`pages support once, on failed retry ${REFUND_ESCALATE_AFTER_ATTEMPTS}`, async () => {
+    mail.on = true;
+    const fake = makeFakeAdmin({
+      pending_refunds: [queuedRow({ attempts: REFUND_ESCALATE_AFTER_ATTEMPTS - 1 })],
+    });
+    vi.mocked(refundTransaction).mockRejectedValue(new Error("Insufficient balance to process refund"));
+
+    await processPendingRefunds(fake.client);
+
+    expect(sent()).toHaveLength(1);
+    expect(sent()[0]).toMatchObject({ to: SUPPORT_EMAIL });
+    expect(sent()[0].subject).toContain("Refund stuck");
+    expect(sent()[0].text).toContain("/admin/refunds");
+    expect(fake.tables.pending_refunds[0]).toMatchObject({
+      status: "queued",
+      attempts: REFUND_ESCALATE_AFTER_ATTEMPTS,
+    });
+  });
+
+  it("stays quiet on the retries before and after", async () => {
+    mail.on = true;
+    vi.mocked(refundTransaction).mockRejectedValue(new Error("Insufficient balance"));
+    for (const attempts of [0, REFUND_ESCALATE_AFTER_ATTEMPTS, REFUND_ESCALATE_AFTER_ATTEMPTS + 3]) {
+      const fake = makeFakeAdmin({ pending_refunds: [queuedRow({ attempts })] });
+      await processPendingRefunds(fake.client);
+    }
+    expect(sendEmail).not.toHaveBeenCalled();
+  });
+});
+
+describe("admin: retryRefundNow", () => {
+  it("records a refusal without spending the cron's attempt budget", async () => {
+    const fake = makeFakeAdmin({ pending_refunds: [queuedRow({ attempts: 3 })] });
+    vi.mocked(refundTransaction).mockRejectedValue(new Error("Insufficient balance to process refund"));
+
+    const out = await retryRefundNow(fake.client, "pr-1");
+
+    expect(out.ok).toBe(false);
+    expect(out.message).toContain("Insufficient balance");
+    expect(fake.tables.pending_refunds[0]).toMatchObject({ status: "queued", attempts: 3 });
+    expect(String(fake.tables.pending_refunds[0].last_error)).toContain("Insufficient balance");
+  });
+
+  it("settles a stopped row once Paystack accepts, with the guarded downgrade", async () => {
+    const fake = makeFakeAdmin({
+      pending_refunds: [queuedRow({ status: "failed", attempts: REFUND_MAX_ATTEMPTS })],
+      subscriptions: [subscriptionRow()],
+    });
+    vi.mocked(refundTransaction).mockResolvedValue(undefined as never);
+
+    const out = await retryRefundNow(fake.client, "pr-1");
+
+    expect(out.ok).toBe(true);
+    expect(fake.tables.pending_refunds[0].status).toBe("refunded");
+    expect(fake.tables.subscriptions[0]).toMatchObject({ tier: "free", status: "canceled" });
+  });
+
+  it("never asks Paystack to refund a row that is already refunded", async () => {
+    const fake = makeFakeAdmin({ pending_refunds: [queuedRow({ status: "refunded" })] });
+    const out = await retryRefundNow(fake.client, "pr-1");
+    expect(out.ok).toBe(false);
+    expect(refundTransaction).not.toHaveBeenCalled();
+  });
+});
+
+describe("admin: stopRefundRetries", () => {
+  it("takes a queued row away from the cron and keeps Paystack's reason", async () => {
+    const fake = makeFakeAdmin({
+      pending_refunds: [queuedRow({ last_error: "Insufficient balance to process refund" })],
+    });
+
+    const out = await stopRefundRetries(fake.client, "pr-1", "owner@example.com");
+
+    expect(out.ok).toBe(true);
+    const row = fake.tables.pending_refunds[0];
+    expect(row.status).toBe("failed");
+    expect(String(row.last_error)).toContain("owner@example.com");
+    expect(String(row.last_error)).toContain("Insufficient balance");
+
+    // The cron now leaves it alone.
+    vi.mocked(refundTransaction).mockResolvedValue(undefined as never);
+    const summary = await processPendingRefunds(fake.client);
+    expect(summary.attempted).toBe(0);
+    expect(refundTransaction).not.toHaveBeenCalled();
+  });
+
+  it("refuses a row that is not retrying", async () => {
+    const fake = makeFakeAdmin({ pending_refunds: [queuedRow({ status: "refunded" })] });
+    const out = await stopRefundRetries(fake.client, "pr-1", "owner@example.com");
+    expect(out.ok).toBe(false);
+    expect(fake.tables.pending_refunds[0].status).toBe("refunded");
+  });
+});
+
+describe("admin: recordManualRefund", () => {
+  const eft = { reference: "FNB 2026-10-01", by: "owner@example.com" };
+
+  it("refuses while the cron could still refund the charge through Paystack", async () => {
+    const fake = makeFakeAdmin({ pending_refunds: [queuedRow()] });
+    const out = await recordManualRefund(fake.client, "pr-1", eft);
+    expect(out.ok).toBe(false);
+    expect(out.message).toContain("Stop the automatic retries first");
+    expect(fake.tables.pending_refunds[0].status).toBe("queued");
+    expect(fake.updatesOn("pending_refunds")).toHaveLength(0);
+  });
+
+  it("settles a stopped row, ends the plan and tells the learner it went by EFT", async () => {
+    mail.on = true;
+    const fake = makeFakeAdmin({
+      pending_refunds: [queuedRow({ status: "failed" })],
+      subscriptions: [subscriptionRow()],
+      profiles: [{ id: "user-1", email: "learner@example.com", full_name: "Thandi Mokoena" }],
+    });
+    vi.mocked(createAdminClient).mockReturnValue(fake.client as never);
+    vi.mocked(verifyTransaction).mockResolvedValue({ amount: 6000 } as never);
+
+    const out = await recordManualRefund(fake.client, "pr-1", eft);
+
+    expect(out.ok).toBe(true);
+    expect(out.message).toContain("The learner has been emailed");
+    expect(fake.tables.pending_refunds[0]).toMatchObject({
+      status: "refunded",
+      manual_reference: "FNB 2026-10-01",
+      manual_recorded_by: "owner@example.com",
+    });
+    expect(fake.tables.pending_refunds[0].refunded_at).toBeTruthy();
+    expect(fake.tables.subscriptions[0]).toMatchObject({ tier: "free", status: "canceled" });
+    expect(refundTransaction).not.toHaveBeenCalled();
+
+    const [learnerMail] = vi.mocked(sendEmail).mock.calls.map(([msg]) => msg);
+    expect(learnerMail).toMatchObject({ to: "learner@example.com", subject: "Your refund has been paid" });
+    expect(learnerMail.text).toContain("R 60");
+    expect(learnerMail.text).toContain("EFT");
+    expect(learnerMail.text).not.toContain("card");
+  });
+
+  it("says so when no email could go to the learner", async () => {
+    const fake = makeFakeAdmin({ pending_refunds: [queuedRow({ status: "failed" })] });
+    const out = await recordManualRefund(fake.client, "pr-1", eft);
+    expect(out.ok).toBe(true);
+    expect(out.message).toContain("let the learner know yourself");
+  });
+
+  it("records a repayment once", async () => {
+    const fake = makeFakeAdmin({ pending_refunds: [queuedRow({ status: "failed" })] });
+    await recordManualRefund(fake.client, "pr-1", eft);
+    const again = await recordManualRefund(fake.client, "pr-1", { ...eft, reference: "second" });
+    expect(again.ok).toBe(false);
+    expect(fake.tables.pending_refunds[0].manual_reference).toBe("FNB 2026-10-01");
+  });
+});
+
+describe("admin: refundsForAdmin", () => {
+  it("lists what is owed with the learner and amount, and recent settlements", async () => {
+    const fake = makeFakeAdmin({
+      pending_refunds: [
+        queuedRow(),
+        queuedRow({ id: "pr-2", transaction_reference: "ref_stopped", status: "failed" }),
+        queuedRow({
+          id: "pr-3",
+          transaction_reference: "ref_paid",
+          status: "refunded",
+          refunded_at: new Date().toISOString(),
+          manual_reference: "FNB 1",
+        }),
+        queuedRow({
+          id: "pr-4",
+          transaction_reference: "ref_old",
+          status: "refunded",
+          refunded_at: "2020-01-01T00:00:00.000Z",
+        }),
+      ],
+      profiles: [{ id: "user-1", email: "learner@example.com", full_name: "Thandi Mokoena" }],
+    });
+    vi.mocked(verifyTransaction).mockImplementation(async (reference: string) => {
+      if (reference === "ref_stopped") throw new Error("paystack down");
+      return { amount: 6000 } as never;
+    });
+
+    const out = await refundsForAdmin(fake.client);
+
+    if (!out.ok) throw new Error(out.message);
+    expect(out.open.map((row) => [row.id, row.amountCents])).toEqual([
+      ["pr-1", 6000],
+      ["pr-2", null],
+    ]);
+    expect(out.open[0]).toMatchObject({ email: "learner@example.com", name: "Thandi Mokoena" });
+    expect(out.settled.map((row) => row.id)).toEqual(["pr-3"]);
   });
 });

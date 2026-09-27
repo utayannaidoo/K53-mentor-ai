@@ -46,7 +46,9 @@ export async function GET() {
         .from("pending_refunds")
         .select("created_at")
         .eq("user_id", user.id)
-        .eq("status", "queued")
+        // 'failed' is still owed: the cron stopped, or an admin stopped it to
+        // repay by EFT. The learner's notice lasts until the money is back.
+        .in("status", ["queued", "failed"])
         .order("created_at", { ascending: true })
         .limit(1)
         .maybeSingle()
