@@ -65,7 +65,8 @@ export async function POST(req: Request) {
         if (error) throw new Error(error.message);
         refundStatus = existing?.status ?? "submitting";
       }
-      await flushBillingEmails(admin, 3, [`refund-${reference}-attention`, `refund-${reference}-processed`, `refund-${reference}-customer-processed`]).catch((error) => console.error("refund notification pending", error));
+      // Everything this charge has queued: attention alerts carry a per-problem suffix.
+      await flushBillingEmails(admin, 4, { prefix: `refund-${reference}-` }).catch((error) => console.error("refund notification pending", error));
     } else if (isEmailConfigured) {
       await sendEmail({ to: SUPPORT_EMAIL, ...buildCancellationAlertEmail({
         userEmail: user.email ?? "(no email)", userId: user.id,
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
     console.error("billing/cancel failed", error);
     if (eligible) {
       await notifyRefundOperator(admin, { reference, userId: user.id, userEmail: user.email, kind: "attention", detail: "Cancellation or refund could not complete. Inspect the account and Paystack before taking action." }).catch((e) => console.error("refund alert could not be recorded", e));
-      await flushBillingEmails(admin, 2, [`refund-${reference}-requested`, `refund-${reference}-attention`]).catch((e) => console.error("refund alert pending", e));
+      await flushBillingEmails(admin, 3, { prefix: `refund-${reference}-` }).catch((e) => console.error("refund alert pending", e));
     }
     return Response.json({ error: "Cancellation could not fully complete. Please refresh your billing status; support has been alerted where available." }, { status: 502 });
   }

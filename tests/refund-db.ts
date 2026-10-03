@@ -21,6 +21,13 @@ export function refundDb(initial: Record<string, Row[]> = {}) {
         neq(k: string, v: unknown) { filters.push(r => r[k] !== v); return q; },
         is(k: string, v: unknown) { filters.push(r => (r[k] ?? null) === v); return q; },
         in(k: string, v: unknown[]) { filters.push(r => v.includes(r[k])); return q; },
+        gte(k: string, v: string) { filters.push(r => String(r[k]) >= v); return q; },
+        lte(k: string, v: string) { filters.push(r => String(r[k]) <= v); return q; },
+        like(k: string, pattern: string) {
+          const source = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/%/g, ".*").replace(/_/g, ".");
+          const re = new RegExp(`^${source}$`);
+          filters.push(r => re.test(String(r[k]))); return q;
+        },
         order(col: string, options?: { ascending?: boolean }) { sort = { col, ascending: options?.ascending ?? true }; return q; },
         limit(n: number) { max = n; return q; },
         maybeSingle() { single = true; return q; },

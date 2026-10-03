@@ -94,29 +94,47 @@ async function applyProviderRefund(admin: Admin, row: PendingRefundRow, result: 
   return (await readRefund(admin, row.transaction_reference))?.status ?? "processing";
 }
 
-/** Atomic queued → submitting claim. An uncertain POST is NEVER blindly repeated. */
-export async function processRefund(admin: Admin, reference: string): Promise<RefundStatus> {
+/** How long a submitting row is presumed to have a live request behind it (the cancel route's maxDuration). */
+export const SUBMITTING_STALE_MS = 120_000;
+
+/**
+ * Atomic queued → submitting claim. An uncertain POST is NEVER blindly repeated:
+ * every submission first reads Paystack's refund history for the charge and
+ * adopts a refund that already exists instead of posting another.
+ *
+ * `manual` is an admin's one checked attempt from /admin/refunds: it is not
+ * counted against REFUND_MAX_ATTEMPTS (that budget paces the cron, not a person
+ * checking whether their balance top-up arrived) and it may run on a row the
+ * cron has given up on.
+ */
+export async function processRefund(admin: Admin, reference: string, opts: { manual?: boolean } = {}): Promise<RefundStatus> {
   const row = await readRefund(admin, reference);
   if (!row) throw new Error("Refund request missing");
   if (["refunded", "failed", "needs_attention"].includes(row.status)) return row.status;
   if (row.status === "submitting") {
-    if (Date.now() - Date.parse(row.updated_at) > 120_000) return attention(admin, row, "Refund submission was interrupted. Verify its status in Paystack before retrying.");
+    if (Date.now() - Date.parse(row.updated_at) > SUBMITTING_STALE_MS) return attention(admin, row, "Refund submission was interrupted. Verify its status in Paystack before retrying.");
     return "submitting";
   }
   if (row.status === "processing") {
     if (!row.provider_refund_id) return attention(admin, row, "Refund accepted without a stored provider ID. Reconcile in Paystack.");
     return applyProviderRefund(admin, row, await fetchRefund(row.provider_refund_id));
   }
-  if (row.attempts >= REFUND_MAX_ATTEMPTS) return attention(admin, row, row.last_error ?? "Automatic refund retries exhausted.", "failed");
+  if (!opts.manual && row.attempts >= REFUND_MAX_ATTEMPTS) {
+    // Worded apart from the last refusal, so this alert is not deduplicated
+    // against the one that refusal already sent (see notifyRefundOperator).
+    return attention(admin, row, `Automatic retries stopped after ${row.attempts} attempts. Last error: ${row.last_error ?? "none recorded"}`, "failed");
+  }
   const { data: claim, error } = await admin.from("pending_refunds").update({
-    status: "submitting", attempts: row.attempts + 1, updated_at: new Date().toISOString(),
+    status: "submitting", attempts: opts.manual ? row.attempts : row.attempts + 1, updated_at: new Date().toISOString(),
   }).eq("id", row.id).eq("status", "queued").select("id").maybeSingle();
   if (error) throw new Error(`Refund claim failed: ${error.message}`);
   if (!claim) return (await readRefund(admin, reference))?.status ?? "submitting";
   let submitted = false;
   try {
     const tx = await verifyTransaction(reference);
-    const refunds = await listTransactionRefunds(tx.id);
+    // A refund Paystack marked failed moved no money, so it neither blocks a
+    // fresh submission nor counts as an existing one.
+    const refunds = (await listTransactionRefunds(tx.id)).filter((refund) => refund.status !== "failed");
     if (refunds.length) {
       if (refunds.length !== 1 || refunds[0].amount !== tx.amount) return attention(admin, row, "Existing partial or multiple refunds found. Reconcile the remaining amount manually.");
       return await applyProviderRefund(admin, row, refunds[0]);
@@ -170,23 +188,52 @@ export async function applyRefundEvent(admin: Admin, event: string, data: {
   }
 }
 
+/** How far back the sweep looks for a cancellation that died mid-claim. Days of missed cron runs, not weeks. */
+const RECOVERY_LOOKBACK_MS = 14 * 86_400_000;
+/** Younger requests may still be inside their own cancel request (maxDuration 120s). */
+const RECOVERY_SETTLE_MS = 10 * 60_000;
+
+/**
+ * A cancellation that claimed the guarantee and then died before writing its
+ * refund row. The cancel route records its "refund requested" notice BEFORE it
+ * claims, so a recent notice with no row, on a subscription whose claim still
+ * names that charge, is exactly that crash.
+ *
+ * Deliberately NOT driven by `money_back_used` alone: the flag is lifetime, so
+ * a learner who used the guarantee once, resubscribed and later cancelled the
+ * normal way looks identical on the subscription row and would be flagged for
+ * a refund nobody owes them.
+ */
+async function recoverInterruptedClaims(admin: Admin): Promise<number> {
+  const now = Date.now();
+  const requests = await admin.from("billing_email_outbox").select("id").like("id", "refund-%-requested")
+    .gte("created_at", new Date(now - RECOVERY_LOOKBACK_MS).toISOString())
+    .lte("created_at", new Date(now - RECOVERY_SETTLE_MS).toISOString()).limit(50);
+  if (requests.error) throw new Error(`Refund claim recovery failed: ${requests.error.message}`);
+  let recovered = 0;
+  for (const { id } of (requests.data ?? []) as Array<{ id: string }>) {
+    const reference = id.slice("refund-".length, -"-requested".length);
+    if (!reference || await readRefund(admin, reference)) continue;
+    const { data: claim, error } = await admin.from("subscriptions").select("user_id")
+      .eq("last_charge_reference", reference).eq("money_back_used", true).maybeSingle();
+    if (error) throw new Error(`Refund claim recovery failed: ${error.message}`);
+    // No claim on this charge: the request failed before claiming, or released it.
+    if (!claim) continue;
+    const detail = "Refund claim has no processing record. Reconcile in Paystack before moving money.";
+    const recovery = await admin.from("pending_refunds").upsert({ user_id: claim.user_id, transaction_reference: reference, status: "needs_attention", last_error: detail }, { onConflict: "transaction_reference", ignoreDuplicates: true });
+    if (recovery.error) throw new Error(`Refund recovery write failed: ${recovery.error.message}`);
+    await notifyRefundOperator(admin, { reference, userId: claim.user_id, kind: "attention", detail });
+    recovered++;
+  }
+  return recovered;
+}
+
 /** Bounded by elapsed time as well as rows; checked rows rotate to the back. */
 export async function processPendingRefunds(admin: Admin) {
   const summary = { attempted: 0, refunded: 0, failed: 0, waiting: 0, recovered: 0 };
   const deadline = Date.now() + 180_000;
   // A crash after claiming the guarantee must remain visible to support.
-  const candidates = await admin.from("subscriptions").select("user_id,last_charge_reference")
-    .eq("money_back_used", true).eq("cancel_at_period_end", true).neq("tier", "free").limit(20);
-  if (candidates.error) throw new Error(`Refund claim recovery failed: ${candidates.error.message}`);
-  for (const candidate of candidates.data ?? []) {
-    const reference = candidate.last_charge_reference;
-    if (!reference || await readRefund(admin, reference)) continue;
-    const detail = "Refund claim has no processing record. Reconcile in Paystack before moving money.";
-    const recovery = await admin.from("pending_refunds").upsert({ user_id: candidate.user_id, transaction_reference: reference, status: "needs_attention", last_error: detail }, { onConflict: "transaction_reference", ignoreDuplicates: true });
-    if (recovery.error) throw new Error(`Refund recovery write failed: ${recovery.error.message}`);
-    await notifyRefundOperator(admin, { reference, userId: candidate.user_id, kind: "attention", detail });
-    summary.recovered++;
-  }
+  summary.recovered = await recoverInterruptedClaims(admin);
   const { data, error } = await admin.from("pending_refunds").select("transaction_reference")
     .in("status", ["queued", "submitting", "processing"]).order("updated_at", { ascending: true }).limit(20);
   if (error) throw new Error(`Refund queue read failed: ${error.message}`);

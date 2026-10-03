@@ -28,7 +28,8 @@ try {
   for (const kind of ["requested", "attention"]) {
     await notifyRefundOperator(admin, { reference, kind, detail: "TEST ONLY: verification of refund alerts to support@k53mentorai.co.za. No customer refund has been requested or paid by this test. No payment action is needed." });
   }
-  const sent = await flushBillingEmails(admin, 2, ["requested", "attention"].map(kind => `refund-${reference}-${kind}`));
+  // Prefix, not exact ids: attention ids carry a per-problem suffix. The test reference keeps this to the probe's own mail.
+  const sent = await flushBillingEmails(admin, 2, { prefix: `refund-${reference}-` });
   const evidence = { testReference: reference, recipient: "support@k53mentorai.co.za", accepted: sent, providerIds, recordedAt: new Date().toISOString() };
   fs.mkdirSync("docs/audits/2026-10-03", {recursive:true});
   fs.writeFileSync("docs/audits/2026-10-03/refund-notification-probe.json", JSON.stringify(evidence, null, 2));

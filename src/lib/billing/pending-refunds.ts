@@ -1,11 +1,11 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { verifyTransaction } from "@/lib/paystack/client";
+import { listTransactionRefunds, verifyTransaction } from "@/lib/paystack/client";
 import { voidMoneyBackCommission } from "@/lib/billing/subscription-cancel";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildManualRefundEmail, buildRefundProcessedEmail } from "@/lib/notify/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { processRefund, type PendingRefundRow } from "./refund-lifecycle";
+import { processRefund, SUBMITTING_STALE_MS, type PendingRefundRow } from "./refund-lifecycle";
 import { flushBillingEmails } from "./refund-notifications";
 export { queuePendingRefund, processPendingRefunds, REFUND_MAX_ATTEMPTS } from "./refund-lifecycle";
 type Admin = SupabaseClient;
@@ -113,29 +113,90 @@ async function readRow(admin: Admin, id: string): Promise<PendingRefundRow | nul
 }
 
 /**
- * One Paystack attempt now, for a queued or stopped row: the admin has topped
- * up the balance or seen new sales land and does not want to wait for 03:00.
- * A refusal is recorded but not counted against REFUND_MAX_ATTEMPTS, which
- * paces the cron, not the person checking whether their top-up arrived.
+ * Rows the cron will not touch again on its own, which a person may re-open for
+ * one checked attempt. Each was parked because nobody could be sure what
+ * Paystack did, and that is safe to settle now: processRefund reads Paystack's
+ * refund history for the charge before it posts anything, so a refund that did
+ * land is adopted, never sent twice.
+ */
+const REOPENABLE: PendingRefundRow["status"][] = ["failed", "needs_attention", "submitting"];
+
+/**
+ * One Paystack attempt now, for any open row: the admin has topped up the
+ * balance, seen new sales land, or checked Paystack after an attention alert,
+ * and does not want to wait for the next cron run. A refusal is recorded but not
+ * counted against REFUND_MAX_ATTEMPTS, which paces the cron, not the person
+ * checking whether their top-up arrived. A processing row is only re-checked.
  */
 export async function retryRefundNow(admin: Admin, id: string): Promise<AdminRefundResult> {
   const row = await readRow(admin, id);
   if (!row) return { ok: false, message: "That refund no longer exists." };
   if (row.status === "refunded") return { ok: false, message: "It has already been refunded." };
-  if (["failed", "needs_attention", "submitting"].includes(row.status)) return { ok: false, message: "Reconcile this refund in Paystack before any further payment. Automatic submission is blocked." };
+  if (row.status === "submitting" && Date.now() - Date.parse(row.updated_at) <= SUBMITTING_STALE_MS) {
+    return { ok: false, message: "A refund attempt is running right now. Reload in a couple of minutes." };
+  }
+  if (REOPENABLE.includes(row.status)) {
+    // Compare-and-set on the status this page was drawn from, so two tabs (or
+    // the cron) cannot both re-open it.
+    const { data, error } = await admin.from("pending_refunds")
+      .update({ status: "queued", updated_at: new Date().toISOString() })
+      .eq("id", row.id).eq("status", row.status).select("id");
+    if (error || !data?.length) return { ok: false, message: "It changed while you were looking. Reload and try again." };
+  }
+  let status: PendingRefundRow["status"];
   try {
-    const status = await processRefund(admin, row.transaction_reference);
-    await flushBillingEmails(admin, 3);
-    return { ok: status === "refunded" || status === "processing", message: status === "refunded" ? "Paystack confirmed the refund was processed." : status === "processing" ? "Paystack is processing the refund. Completion will be confirmed separately." : "Refund needs review. Check its status and the support alert before taking action." };
+    status = await processRefund(admin, row.transaction_reference, { manual: true });
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : "Refund check failed." };
+  }
+  // Refused before anything reached Paystack. A stopped row goes back to
+  // stopped: Retry is one attempt, not a restart of the daily schedule an admin
+  // (or the attempt budget) ended. Any other row stays queued for the cron.
+  if (status === "queued" && row.status === "failed") {
+    await admin.from("pending_refunds").update({ status: "failed", updated_at: new Date().toISOString() })
+      .eq("id", row.id).eq("status", "queued");
+  }
+  await flushBillingEmails(admin, 4, { prefix: `refund-${row.transaction_reference}-` })
+    .catch((error) => console.error("[refunds] alerts pending after admin retry", error));
+  const why = (await readRow(admin, id))?.last_error ?? "no detail recorded";
+  switch (status) {
+    case "refunded":
+      return { ok: true, message: "Paystack confirmed the refund was processed. The learner's receipt is on its way." };
+    case "processing":
+      return { ok: true, message: "Paystack accepted the refund and is processing it. This page updates when it confirms." };
+    case "queued":
+      return { ok: false, message: `Paystack refused it: ${why}${row.status === "failed" ? " Retries stay stopped." : " The daily retry continues."}` };
+    case "submitting":
+      return { ok: false, message: "Another attempt is running. Reload in a couple of minutes." };
+    default:
+      return { ok: false, message: `Still needs review: ${why}` };
   }
 }
 
 /**
- * Take a queued row away from the cron, so the admin can repay by EFT without
- * Paystack refunding the same charge the next morning. Only a queued row can
- * be stopped; the compare-and-set on status is what makes that true.
+ * Why the learner must not be repaid by EFT yet: a Paystack refund for this
+ * charge that could still pay them, or one that already has in full. Null when
+ * nothing can, which is the only time repaying outside Paystack is safe.
+ */
+async function paystackStillOwnsRefund(reference: string): Promise<string | null> {
+  const tx = await verifyTransaction(reference);
+  const refunds = await listTransactionRefunds(tx.id);
+  const live = refunds.find((refund) => ["pending", "processing", "needs-attention"].includes(refund.status));
+  if (live) return `Paystack still has refund ${live.id} ${live.status} for this charge. Settle it in Paystack first.`;
+  const processed = refunds.filter((refund) => refund.status === "processed").reduce((sum, refund) => sum + (refund.amount ?? 0), 0);
+  if (processed > 0 && tx.amount == null) return "Paystack shows a refund for this charge but not the charge amount. Reconcile it in Paystack first.";
+  if (tx.amount != null && processed >= tx.amount) return "Paystack has already refunded this charge in full. Check status instead of repaying by EFT.";
+  return null;
+}
+
+/**
+ * Take a row away from Paystack, so the admin can repay by EFT without Paystack
+ * refunding the same charge as well. A queued row only needs the cron kept off
+ * it. A needs_attention row was parked because nobody could be sure what
+ * Paystack did (a timed-out request, a partial refund), so it is stopped only
+ * once Paystack itself confirms nothing for this charge can still pay out.
+ * That check runs here, BEFORE the EFT is sent, not when it is recorded.
+ * The compare-and-set on status keeps a concurrent cron pass out.
  */
 export async function stopRefundRetries(
   admin: Admin,
@@ -143,15 +204,23 @@ export async function stopRefundRetries(
   by: string,
 ): Promise<AdminRefundResult> {
   const row = await readRow(admin, id);
-  if (!row || row.status !== "queued") {
-    return { ok: false, message: "Only a refund that is still retrying can be stopped." };
+  if (!row || (row.status !== "queued" && row.status !== "needs_attention")) {
+    return { ok: false, message: "Only a refund that is retrying or needs attention can be stopped." };
   }
-  const note = `Automatic retries stopped by ${by} to repay by EFT. Last Paystack error: ${row.last_error ?? "none"}`;
+  if (row.status === "needs_attention") {
+    try {
+      const blocked = await paystackStillOwnsRefund(row.transaction_reference);
+      if (blocked) return { ok: false, message: blocked };
+    } catch {
+      return { ok: false, message: "Couldn't reach Paystack to confirm no refund is in progress. Try again shortly." };
+    }
+  }
+  const note = `Automatic retries stopped by ${by} to repay by EFT. Last error: ${row.last_error ?? "none"}`;
   const { data, error } = await admin
     .from("pending_refunds")
     .update({ status: "failed", last_error: note.slice(0, 500), updated_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("status", "queued")
+    .eq("status", row.status)
     .select("id");
   if (error || !data?.length) {
     if (error) console.error(`[refunds] could not stop ${row.transaction_reference}: ${error.message}`);
@@ -164,7 +233,8 @@ export async function stopRefundRetries(
  * Record that the admin repaid the learner outside Paystack, then do what a
  * Paystack refund would have: end the plan (guarded), void the commission,
  * email the learner. A queued row is refused: the cron could still refund it
- * through Paystack, and the learner would be paid twice.
+ * through Paystack, and the learner would be paid twice. So is every other
+ * unstopped row: only stopRefundRetries decides that Paystack is out of it.
  */
 export async function recordManualRefund(
   admin: Admin,
@@ -176,7 +246,8 @@ export async function recordManualRefund(
   if (row.status === "queued") {
     return { ok: false, message: "Stop the automatic retries first, so Paystack can't refund it as well." };
   }
-  if (row.status !== "failed") return { ok: false, message: "Reconcile the provider status first; this refund may still be processing." };
+  if (row.status === "refunded") return { ok: false, message: "It has already been refunded." };
+  if (row.status !== "failed") return { ok: false, message: "Stop it first. Paystack may still be processing this refund." };
   const now = new Date().toISOString();
   const { data, error } = await admin
     .from("pending_refunds")

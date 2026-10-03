@@ -8,7 +8,10 @@ and nothing new covers it, so retrying alone may never succeed.
 
 The dedicated refund cron (03:30 UTC / 05:30 South Africa time) retries queued
 rows and checks accepted refunds. Support gets an immediate request alert and
-an attention alert on a failure. Alerts are persisted in billing_email_outbox;
+an attention alert on a failure: one per distinct problem on a charge, so the
+same refusal on every daily retry stays one email while a new problem (retries
+exhausted, Paystack failing a refund it accepted) sends another. Alerts are
+persisted in billing_email_outbox;
 unsent messages are retried by the cron. sent_at means provider acceptance,
 not inbox delivery. Settle refunds from /admin/refunds (ADMIN_EMAILS controls
 access). Never delete a refund row: it is the audit trail.
@@ -17,7 +20,9 @@ Statuses are queued (safe to attempt), submitting (an attempt owns the row),
 processing (Paystack accepted), needs_attention (ambiguous or partial), failed
 (provider failure/exhaustion/stopped), and refunded (confirmed processed or
 recorded manual repayment). Submitting and ambiguous outcomes must be reconciled
-before any further payment. Processing is never treated as refunded.
+before any further payment. Processing is never treated as refunded. A
+cancellation that claimed the guarantee but died before writing its row is
+found from its "Refund requested" notice and appears as needs_attention.
 
 ## 1. Check Paystack first (read-only)
 
@@ -46,24 +51,32 @@ row. Registered businesses can top up by EFT (1% fee in South Africa); Starter
 businesses can only wait for sales, or ask Paystack support to hold payouts
 longer. A preflight is a point-in-time check, not a reservation of the balance.
 
-Retry now and the cron share the same atomic submission claim and attempt
-budget. Queued rows check provider history before posting a refund; processing
-rows fetch the existing provider refund. Failed, submitting and needs_attention
-rows are blocked from new submissions until reconciled. Only confirmed processed
-refunds are marked refunded, end the matching plan and queue the learner's receipt.
-A newer purchase must retain its paid access.
+Retry now and the cron share the same atomic submission claim; a manual retry
+does not spend the cron's 14-attempt budget. Every submission first reads
+Paystack's refund history for the charge and adopts a pending, processing or
+processed refund instead of posting another (one Paystack marked failed moved no
+money and is ignored). Processing rows show **Check status**, which fetches the
+existing provider refund. Failed, needs_attention and interrupted submitting rows
+show **Check Paystack and retry**: the same history check, then one attempt. A
+stopped (failed) row that Paystack refuses stays stopped; a needs_attention row
+it refuses goes back to the daily queue. A submission under two minutes old is
+still running and is left alone. Only confirmed processed refunds are marked
+refunded, end the matching plan and queue the learner's receipt. A newer
+purchase must retain its paid access.
 
 ## 2b. Repay by EFT
 
 When Paystack cannot cover it in time:
 
-1. Confirm in Paystack that no refund can still complete. Press **Stop retries to repay by EFT** first, so the cron cannot refund the
-   same charge through Paystack the next morning. A row that gave up after 14
-   attempts is already stopped.
+1. Press **Stop retries to repay by EFT** (queued rows) or **Stop to repay by
+   EFT** (needs_attention rows) first, so Paystack cannot refund the same
+   charge as well. For a needs_attention row the page asks Paystack first and
+   refuses while a refund there is pending, processing or needs attention, when
+   Paystack has already refunded the charge in full, or when Paystack can't be
+   reached. A row that gave up after 14 attempts is already stopped.
 2. Ask the learner for their bank details and pay them the charge amount by EFT.
 3. Press **Mark as refunded** with the reference your bank shows. The page
-   refuses this unless the row is stopped (failed); processing and ambiguous
-   rows cannot be manually settled through this form.
+   refuses this unless the row is stopped (failed).
 
 Only record the EFT after the money has gone. Recording runs the same follow-ups
 as a Paystack refund, and the learner's email says the money came by EFT, not

@@ -15,6 +15,9 @@ beforeEach(() => {
   vi.mocked(refundTransaction).mockResolvedValue({ id: 9, status: "pending", amount: 6000 });
   vi.mocked(sendEmail).mockResolvedValue(true);
 });
+const HOUR_AGO = () => new Date(Date.now() - 3_600_000).toISOString();
+/** The outbox row the cancel route writes before it claims the guarantee. */
+const requestedNotice = (reference: string, at: () => string) => ({ id: `refund-${reference}-requested`, message: {}, created_at: at(), last_attempt_at: null, sent_at: at() });
 const setup = () => refundDb({ pending_refunds:[refundRow()], subscriptions:[paidRow()], profiles:[{id:"user-1",email:"buyer@example.com",full_name:"Learner"}] });
 
 describe("refund lifecycle", () => {
@@ -106,7 +109,7 @@ describe("refund lifecycle", () => {
   });
   it("empty cron queue does nothing",async()=>{const db=refundDb();expect((await processPendingRefunds(db.client)).attempted).toBe(0);});
   it("recovers an orphaned claim without moving money",async()=>{
-    const db=refundDb({subscriptions:[paidRow({money_back_used:true,cancel_at_period_end:true})]});
+    const db=refundDb({subscriptions:[paidRow({money_back_used:true,cancel_at_period_end:true})],billing_email_outbox:[requestedNotice("ref_old",HOUR_AGO)]});
     expect((await processPendingRefunds(db.client)).recovered).toBe(1);
     expect(db.tables.pending_refunds[0].status).toBe("needs_attention");expect(refundTransaction).not.toHaveBeenCalled();
   });
@@ -140,5 +143,101 @@ describe("operator notifications",()=>{
     expect(await flushBillingEmails(db.client)).toBe(1);expect(await flushBillingEmails(db.client)).toBe(0);
     expect(sendEmail).toHaveBeenCalledTimes(2);
     expect(vi.mocked(sendEmail).mock.calls[0][0]).toMatchObject({to:"support@k53mentorai.co.za",idempotencyKey:"refund-ref_old-requested"});
+  });
+});
+
+describe("interrupted-claim recovery",()=>{
+  it("a returning learner's ordinary cancellation is not mistaken for an unpaid refund",async()=>{
+    // money_back_used is lifetime: used once on an earlier charge, then a new
+    // plan (ref_new) cancelled outside the guarantee. No request was made.
+    const db=refundDb({subscriptions:[paidRow({last_charge_reference:"ref_new",money_back_used:true,cancel_at_period_end:true})],pending_refunds:[refundRow({status:"refunded"})],billing_email_outbox:[requestedNotice("ref_old",HOUR_AGO)]});
+    expect((await processPendingRefunds(db.client)).recovered).toBe(0);
+    expect(db.tables.pending_refunds).toHaveLength(1);
+    expect(db.tables.billing_email_outbox.filter(r=>String(r.id).includes("attention"))).toHaveLength(0);
+  });
+  it("leaves a request that may still be inside its own cancel call",async()=>{
+    const db=refundDb({subscriptions:[paidRow({money_back_used:true,cancel_at_period_end:true})],billing_email_outbox:[requestedNotice("ref_old",()=>new Date().toISOString())]});
+    expect((await processPendingRefunds(db.client)).recovered).toBe(0);
+  });
+  it("ignores a request whose claim was released",async()=>{
+    const db=refundDb({subscriptions:[paidRow({money_back_used:false})],billing_email_outbox:[requestedNotice("ref_old",HOUR_AGO)]});
+    expect((await processPendingRefunds(db.client)).recovered).toBe(0);
+  });
+});
+
+describe("admin reconciliation",()=>{
+  const timedOut = async (db: ReturnType<typeof setup>) => {
+    vi.mocked(refundTransaction).mockRejectedValueOnce(new Error("The operation was aborted due to timeout"));
+    expect(await processRefund(db.client,"ref_old")).toBe("needs_attention");
+  };
+  it("re-checks a needs_attention refund and adopts the one Paystack did accept",async()=>{
+    const db=setup();await timedOut(db);
+    vi.mocked(listTransactionRefunds).mockResolvedValue([{id:9,status:"pending",amount:6000}]);
+    expect((await retryRefundNow(db.client,"refund-1")).ok).toBe(true);
+    expect(db.tables.pending_refunds[0]).toMatchObject({status:"processing",provider_refund_id:9});
+    expect(refundTransaction).toHaveBeenCalledTimes(1);
+  });
+  it("submits a needs_attention refund again only when Paystack has none",async()=>{
+    const db=setup();await timedOut(db);
+    expect((await retryRefundNow(db.client,"refund-1")).ok).toBe(true);
+    expect(db.tables.pending_refunds[0].status).toBe("processing");expect(refundTransaction).toHaveBeenCalledTimes(2);
+  });
+  it("leaves a submission that is still running alone",async()=>{
+    const db=setup();Object.assign(db.tables.pending_refunds[0],{status:"submitting",updated_at:new Date().toISOString()});
+    expect((await retryRefundNow(db.client,"refund-1")).ok).toBe(false);
+    expect(db.tables.pending_refunds[0].status).toBe("submitting");expect(refundTransaction).not.toHaveBeenCalled();
+  });
+  it("retries an exhausted refund without spending attempts, and a refusal leaves it stopped",async()=>{
+    const db=setup();Object.assign(db.tables.pending_refunds[0],{status:"failed",attempts:REFUND_MAX_ATTEMPTS});
+    vi.mocked(refundTransaction).mockRejectedValueOnce(new PaystackError("Insufficient balance to process refund",400));
+    const refused=await retryRefundNow(db.client,"refund-1");
+    expect(refused).toMatchObject({ok:false});expect(refused.message).toContain("Insufficient balance");
+    expect(db.tables.pending_refunds[0]).toMatchObject({status:"failed",attempts:REFUND_MAX_ATTEMPTS});
+    expect((await retryRefundNow(db.client,"refund-1")).ok).toBe(true);
+    expect(db.tables.pending_refunds[0]).toMatchObject({status:"processing",attempts:REFUND_MAX_ATTEMPTS});
+  });
+  it("a refund Paystack failed does not block a fresh one",async()=>{
+    const db=setup();vi.mocked(listTransactionRefunds).mockResolvedValue([{id:8,status:"failed",amount:6000}]);
+    expect(await processRefund(db.client,"ref_old")).toBe("processing");
+    expect(db.tables.pending_refunds[0].provider_refund_id).toBe(9);
+  });
+  it("stops a needs_attention refund for EFT only once Paystack has nothing that could still pay",async()=>{
+    const db=setup();await timedOut(db);
+    vi.mocked(listTransactionRefunds).mockResolvedValue([{id:9,status:"processing",amount:6000}]);
+    expect((await stopRefundRetries(db.client,"refund-1","owner")).ok).toBe(false);
+    expect(db.tables.pending_refunds[0].status).toBe("needs_attention");
+    vi.mocked(listTransactionRefunds).mockResolvedValue([{id:9,status:"processed",amount:6000}]);
+    expect((await stopRefundRetries(db.client,"refund-1","owner")).ok).toBe(false);
+    vi.mocked(listTransactionRefunds).mockResolvedValue([{id:9,status:"failed",amount:6000}]);
+    expect((await stopRefundRetries(db.client,"refund-1","owner")).ok).toBe(true);
+    expect(db.tables.pending_refunds[0].status).toBe("failed");
+    expect((await recordManualRefund(db.client,"refund-1",{reference:"EFT 1",by:"owner"})).ok).toBe(true);
+    expect(db.tables.pending_refunds[0]).toMatchObject({status:"refunded",manual_reference:"EFT 1"});
+  });
+  it("will not stop a needs_attention refund when Paystack can't be asked",async()=>{
+    const db=setup();await timedOut(db);
+    vi.mocked(verifyTransaction).mockRejectedValue(new Error("paystack down"));
+    expect((await stopRefundRetries(db.client,"refund-1","owner")).ok).toBe(false);
+    expect(db.tables.pending_refunds[0].status).toBe("needs_attention");
+  });
+});
+
+describe("attention alerts",()=>{
+  const attentionIds = (db: ReturnType<typeof setup>) => (db.tables.billing_email_outbox ?? []).map(r=>String(r.id)).filter(id=>id.includes("-attention-"));
+  it("repeat refusals stay one email, but a later, different problem still reaches support",async()=>{
+    const db=setup();vi.mocked(refundTransaction).mockRejectedValue(new PaystackError("Insufficient balance to process refund",400));
+    await processRefund(db.client,"ref_old");await processRefund(db.client,"ref_old");
+    expect(attentionIds(db)).toHaveLength(1);
+    db.tables.pending_refunds[0].attempts=REFUND_MAX_ATTEMPTS;
+    expect(await processRefund(db.client,"ref_old")).toBe("failed");
+    expect(attentionIds(db)).toHaveLength(2);
+  });
+  it("a refund Paystack fails after accepting it alerts even when an earlier problem already did",async()=>{
+    const db=setup();vi.mocked(refundTransaction).mockRejectedValueOnce(new PaystackError("Insufficient balance to process refund",400));
+    await processRefund(db.client,"ref_old");
+    expect(await processRefund(db.client,"ref_old")).toBe("processing");
+    await applyRefundEvent(db.client,"refund.failed",{transaction_reference:"ref_old"});
+    expect(attentionIds(db)).toHaveLength(2);
+    expect(await flushBillingEmails(db.client,5,{prefix:"refund-ref_old-"})).toBe(2);
   });
 });
