@@ -9,7 +9,7 @@ describe.skipIf(!hasPartnerDb)("refund lifecycle migration", () => {
       await db.exec(`create role anon; create role authenticated; create role service_role bypassrls;
         create schema auth; create table auth.users(id uuid primary key);
         insert into auth.users values ('20000000-0000-0000-0000-000000000001');`);
-      for (const file of ["0028_pending_refunds.sql", "0045_pending_refunds_manual.sql", "20261001191407_refund_lifecycle_and_alerts.sql"])
+      for (const file of ["0028_pending_refunds.sql", "0045_pending_refunds_manual.sql", "0046_refund_lifecycle_and_alerts.sql"])
         await db.exec(readFileSync(`supabase/migrations/${file}`, "utf8"));
       for (const status of ["queued", "submitting", "processing", "needs_attention", "failed", "refunded"])
         await db.query("insert into pending_refunds(user_id,transaction_reference,status) values ('20000000-0000-0000-0000-000000000001',$1,$1)", [status]);
