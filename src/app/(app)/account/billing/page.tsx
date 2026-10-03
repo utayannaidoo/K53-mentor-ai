@@ -16,7 +16,7 @@ import { useStudyStore } from "@/hooks/use-study-store";
 import {
   PLANS,
   PLAN_MAP,
-  REFUND_PROCESSING_DAYS,
+
   monthlyPrice,
   annualMonthlyPrice,
   annualPrice,
@@ -28,7 +28,7 @@ import {
 } from "@/lib/billing/refund-policy";
 import { cn, formatZar } from "@/lib/utils";
 import { isSupabaseConfigured } from "@/lib/env";
-import { attributionProps, track as trackEvent } from "@/lib/analytics";
+import { track as trackEvent } from "@/lib/analytics";
 import type { SubscriptionTier } from "@/types";
 
 /**
@@ -204,6 +204,7 @@ function BillingInner() {
     refundIneligibleReason?: "not_paid" | "money_back_used" | "no_payment_record" | "outside_window" | null;
     /** Non-null while a money-back refund sits queued for automatic retry. */
     refundProcessingSince?: string | null;
+    refundStatus?: string | null;
     moneyBackDays?: number;
   }
   const [billing, setBilling] = React.useState<BillingStatus | null>(null);
@@ -271,22 +272,6 @@ function BillingInner() {
   };
 
   /**
-   * "26 August 2026" — the date a queued money-back refund is promised by:
-   * REFUND_PROCESSING_DAYS business days out, which is what Paystack's
-   * settlement cycle (the usual reason an instant refund can't fire) takes to
-   * refill the balance the daily retry pass spends.
-   */
-  const refundEta = () => {
-    const d = new Date();
-    let added = 0;
-    while (added < REFUND_PROCESSING_DAYS) {
-      d.setDate(d.getDate() + 1);
-      if (d.getDay() !== 0 && d.getDay() !== 6) added += 1;
-    }
-    return formatDate(d.toISOString());
-  };
-
-  /**
    * Send the learner to Paystack's hosted page to attach a new card.
    *
    * The old advice here was "cancel and resubscribe with the new card", which
@@ -336,8 +321,6 @@ function BillingInner() {
         refundMessage?: string | null;
         /** Why no refund was even attempted (money-back gates). */
         refundReason?: string | null;
-        /** Honest upper bound for a queued refund, in business days. */
-        refundProcessingDays?: number;
         /** true only when the charge was reversed, so access ends now. */
         endsNow?: boolean;
         accessUntil?: string | null;
@@ -368,15 +351,8 @@ function BillingInner() {
           return;
         }
         if (data.refundQueued) {
-          // The instant refund couldn't fire (usually Paystack's settlement
-          // balance is empty), but the money IS owed and a cron now owns
-          // completing it. Promise a date, not a shrug — and be clear access
-          // continues until the refund actually lands.
-          const by = refundEta();
           showBanner(
-            `Your plan is cancelled and your refund is processing — no action needed. It completes automatically${
-              by ? ` by ${by}` : ` within ${data.refundProcessingDays ?? REFUND_PROCESSING_DAYS} business days`
-            }, and you'll get a confirmation email. You keep full access until then.`,
+            "Your plan won't renew and your refund request is recorded. We'll email you when Paystack confirms it is processed. Paid access continues until the refund is processed or your paid period ends. Support is notified if anything needs attention.",
             "info",
           );
           return;
@@ -387,7 +363,7 @@ function BillingInner() {
             ? `Your plan won't renew. You keep full access until ${until}.`
             : "Your plan won't renew. You keep full access until the end of the period you've paid for.") +
             (data.refundError
-              ? " We couldn't process an automatic refund — email us if you were expecting one."
+              ? " Your refund needs attention. Support has been notified; contact us if you need an update."
               : ""),
         );
         return;
@@ -438,7 +414,7 @@ function BillingInner() {
         /* private mode */
       }
     }
-    trackEvent("checkout_started", { plan: plan.id, cycle, source, ...attributionProps() });
+    trackEvent("checkout_started", { plan: plan.id, cycle, source });
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
@@ -647,23 +623,21 @@ function BillingInner() {
           </p>
         )}
 
+        {isSupabaseConfigured && billing?.refundStatus && (
+          <div className="mt-4 rounded-lg border border-primary/30 bg-primary/[0.08] px-4 py-3" role="status">
+            <p className="text-sm font-medium text-foreground">
+              {billing.refundStatus === "refunded" ? "Your refund is complete" :
+                ["failed", "needs_attention"].includes(billing.refundStatus) ? "Your refund needs attention" : "Your refund request is recorded"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {billing.refundStatus === "refunded" ? "Your repayment is recorded. If processed through Paystack, bank clearance can take 5–10 business days." :
+                ["failed", "needs_attention"].includes(billing.refundStatus) ? `Support has been notified. Contact ${SUPPORT_EMAIL} for an update; your request remains on record.` :
+                "We'll email you when Paystack confirms processing. Paid access continues until then or until your paid period ends. Support is notified if anything needs attention."}
+            </p>
+          </div>
+        )}
         {isSupabaseConfigured && effectiveTier !== "free" && !confirmingCancel && (
           <div className="mt-4">
-            {/* Durable "your money is coming back" state. The cancel-time
-                banner scrolls away; a queued refund lasts days, so this chip
-                keeps the promise visible until the cron completes it. */}
-            {billing?.refundProcessingSince && (
-              <div className="mb-3 rounded-lg border border-primary/30 bg-primary/[0.08] px-4 py-3">
-                <p className="text-sm font-medium text-foreground">
-                  Your refund is processing — no action needed
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  You cancelled inside the money-back window. The refund completes automatically
-                  {refundEta() ? ` by ${refundEta()}` : ` within ${REFUND_PROCESSING_DAYS} business days`} and
-                  you&rsquo;ll get a confirmation email when it lands.
-                </p>
-              </div>
-            )}
             {/* Renewal state, in the two words that matter: does it renew, and
                 until when. Rendered only once the server has answered, so the
                 page never guesses a date. */}
@@ -731,9 +705,8 @@ function BillingInner() {
             {billing?.refundEligible ? (
               <p className="mt-1 text-xs text-muted-foreground">
                 You&apos;re still inside the {billing.moneyBackDays ?? 7}-day money-back window, so
-                we&apos;ll refund your payment in full automatically and access ends straight away.
-                If our payment provider can&apos;t send it back instantly, it completes on its own
-                within {REFUND_PROCESSING_DAYS} business days — you&apos;ll get a confirmation
+                we&apos;ll request a full refund and notify support. Access ends when the refund is processed or your paid period ends.
+                You&apos;ll get a confirmation
                 email either way. Your progress, streak and readiness all carry over.
               </p>
             ) : (

@@ -3,7 +3,6 @@ import { isAuthorizedCron } from "@/lib/cron/auth";
 import { isPaystackConfigured } from "@/lib/env";
 import { listTransactions } from "@/lib/paystack/client";
 import { applyChargeOnce, normaliseTransaction } from "@/lib/paystack/apply";
-import { processPendingRefunds } from "@/lib/billing/pending-refunds";
 import { matureSchoolCommissions } from "@/lib/partners/commission";
 import { sendMonthlyStatements } from "@/lib/partners/statement-email";
 import { accrueSchoolCredit } from "@/lib/billing/school-credit";
@@ -114,23 +113,6 @@ export async function GET(req: Request) {
     );
   }
 
-  // Second pass: money-back refunds that Paystack refused earlier (usually
-  // "Insufficient balance" — the balance refills on the settlement cycle this
-  // job's daily schedule naturally waits out). Each queued row gets one retry
-  // attempt here; on success the revoke lands and the learner is emailed.
-  // Failures are recorded on the row and simply wait for tomorrow's pass —
-  // never thrown, so a stuck refund cannot mask a reconciliation failure
-  // above (or vice versa).
-  let refunds: Awaited<ReturnType<typeof processPendingRefunds>> | null = null;
-  try {
-    refunds = await processPendingRefunds(admin);
-    if (refunds.refunded > 0 || refunds.failed > 0) {
-      console.error("[refunds] cron pass result", JSON.stringify(refunds));
-    }
-  } catch (err) {
-    console.error("[refunds] retry pass crashed (rows keep their state)", err);
-  }
-
   const commissionsMatured = await matureSchoolCommissions(admin);
   // Straight after maturing, so a school that takes its commission as credit
   // (0042) has tonight's payable amount credited before its statement goes.
@@ -156,6 +138,5 @@ export async function GET(req: Request) {
     alreadyApplied,
     failed,
     repairedRefs,
-    refunds,
   });
 }

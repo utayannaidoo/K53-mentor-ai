@@ -1,9 +1,10 @@
+import { applyRefundEvent } from "@/lib/billing/refund-lifecycle";
+import { flushBillingEmails } from "@/lib/billing/refund-notifications";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { voidSchoolCommission } from "@/lib/partners/commission";
 import {
   manageSubscriptionLink,
   verifyPaystackSignature,
-  verifyTransaction,
 } from "@/lib/paystack/client";
 import { applyChargeSuccess, type ChargeSuccessData } from "@/lib/paystack/apply";
 import { webhookLedgerId } from "@/lib/paystack/ledger";
@@ -11,7 +12,7 @@ import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildPaymentFailedEmail, buildDisputeAlertEmail } from "@/lib/notify/templates";
 import { PLAN_MAP } from "@/lib/billing/plans";
 import { SUPPORT_EMAIL } from "@/lib/constants";
-import { eventPlanCode, routeSchoolEvent, SchoolBillingError } from "@/lib/billing/school-billing";
+import { eventPlanCode, routeSchoolEvent } from "@/lib/billing/school-billing";
 
 export const runtime = "nodejs";
 
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
   // state write, so a redelivery converges on the same state. charge.success
   // is the exception: its grant is NOT idempotent (credits), so an unclaimable
   // one fails instead of applying unprotected.
-  const ledgerId = webhookLedgerId(payload.event, payload.data);
+  const ledgerId = payload.event.startsWith("refund.") ? null : webhookLedgerId(payload.event, payload.data);
   // Correlation anchor: every decision below can be traced from this line —
   // user → charge reference → ledger id → applied outcome. Logged before any
   // branch so even a refused/duplicate event leaves a trail.
@@ -389,101 +390,15 @@ export async function POST(req: Request) {
         break;
       }
 
+      case "refund.pending":
+      case "refund.processing":
+      case "refund.failed":
+      case "refund.needs-attention":
       case "refund.processed": {
-        // The money is back with the customer, so the tier goes with it.
-        //
-        // Our own 7-day money-back flow already downgrades before refunding,
-        // which makes this a no-op there — writing tier: "free" twice is
-        // harmless. The case this exists for is a refund issued from the
-        // Paystack dashboard, which previously left the account paid forever.
-        //
-        // The refunded charge is resolved through Paystack's API first: a
-        // renewal charge carries no checkout metadata and never lands in
-        // `last_charge_reference`, so reference-matching alone silently kept
-        // every renewal refundee on a paid tier. Verifying the transaction
-        // also tells a subscription charge (it has a plan) from a one-off
-        // tutor top-up (it doesn't) — only the former may strip the tier.
-        // If Paystack can't be reached, fall back to the legacy
-        // last_charge_reference match, which still covers first charges.
-        //
-        // IDENTITY — no subscription-code guard, deliberately: the refund
-        // names a charge by reference, and neither the event nor
-        // /transaction/verify exposes which subscription (if any) that charge
-        // belonged to, so there is nothing comparable against the row's
-        // provider_subscription_id. Both paths below are per-charge keys, not
-        // customer guesses: the fallback matches last_charge_reference, which
-        // only our own grant writes from checkout metadata (globally unique
-        // per charge), and the verified path strips a tier only after
-        // Paystack itself confirms the refunded charge carried a plan.
-        const data = payload.data as {
-          transaction?: { reference?: string };
-          transaction_reference?: string;
-          status?: string;
-        };
-        const reference = data.transaction?.reference ?? data.transaction_reference;
-        if (!reference) break;
-        await voidSchoolCommission(admin, reference, "refund.processed");
-
-        let applied = false;
-        try {
-          const tx = await verifyTransaction(reference);
-          const customerCode = tx.customer?.customer_code;
-          const refundedFor = await routeSchoolEvent(admin, "refund.processed", {
-            planCode: typeof tx.plan === "string" ? tx.plan : tx.plan?.plan_code,
-            customerCode,
-            reference,
-          });
-          if (refundedFor === "school") {
-            // A school's money came back: its plan ends now. Never the owner's
-            // learner tier, which the customer-keyed downgrade below would hit.
-            applied = true;
-          } else if (customerCode && tx.plan) {
-            const { error } = await admin
-              .from("subscriptions")
-              .update({
-                tier: "free",
-                status: "canceled",
-                refunded_at: new Date().toISOString(),
-              })
-              .eq("provider_customer_id", customerCode)
-              .neq("tier", "free");
-            if (error) throw new Error(`refund downgrade failed: ${error.message}`);
-            applied = true;
-          } else if (customerCode && !tx.plan) {
-            // A refunded tutor top-up: credits stay spent, subscription stays.
-            applied = true;
-          }
-        } catch (err) {
-          // A school refund that failed to apply must be retried, not fall
-          // through to the learner fallback below and be acknowledged.
-          if (err instanceof SchoolBillingError) throw err;
-          console.error("paystack webhook: refund lookup failed, falling back", err);
-        }
-
-        // Paystack unreachable: a school's FIRST charge is still findable by
-        // the reference its grant recorded, exactly like the learner fallback.
-        if (!applied && (await routeSchoolEvent(admin, "refund.processed", { reference })) === "school") {
-          applied = true;
-        }
-
-        if (!applied) {
-          const { error } = await admin
-            .from("subscriptions")
-            .update({
-              tier: "free",
-              status: "canceled",
-              refunded_at: new Date().toISOString(),
-            })
-            .eq("last_charge_reference", reference)
-            // Mirror the verified branch above: a row already free has
-            // nothing to lose, and touching it would overwrite a newer
-            // status (e.g. a re-subscription) with a stale cancellation.
-            .neq("tier", "free");
-          if (error) throw new Error(`refund downgrade failed: ${error.message}`);
-        }
+        await applyRefundEvent(admin, payload.event, payload.data as Parameters<typeof applyRefundEvent>[2]);
+        await flushBillingEmails(admin, 2).catch((error) => console.error("refund emails pending", error));
         break;
       }
-
       default:
         // Unhandled event types are acknowledged so Paystack stops retrying them.
         break;

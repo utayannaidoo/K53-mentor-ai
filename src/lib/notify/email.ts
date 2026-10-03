@@ -9,6 +9,8 @@ import { isSuppressed } from "@/lib/notify/suppression";
  */
 
 export interface EmailMessage {
+  /** Provider deduplication for retried monthly partner statements. */
+  idempotencyKey?: string;
   to: string;
   subject: string;
   html: string;
@@ -55,6 +57,7 @@ export async function sendEmail(msg: EmailMessage): Promise<boolean> {
       headers: {
         Authorization: `Bearer ${key}`,
         "Content-Type": "application/json",
+        ...(msg.idempotencyKey ? {"Idempotency-Key":msg.idempotencyKey} : {}),
       },
       body: JSON.stringify({
         from,

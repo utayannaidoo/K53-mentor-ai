@@ -75,6 +75,7 @@ export function RefundQueue({ open, settled }: { open: AdminRefundRow[]; settled
 
 function OpenRefund({ row }: { row: AdminRefundRow }) {
   const retrying = row.status === "queued";
+  const stopped = row.status === "failed";
   const who = row.name || row.email || "this learner";
   const amount = row.amountCents === null ? "the charge" : rand(row.amountCents);
   return (
@@ -101,7 +102,7 @@ function OpenRefund({ row }: { row: AdminRefundRow }) {
         {retrying ? (
           <Badge variant="outline">retrying daily</Badge>
         ) : (
-          <Badge variant="warning">retries stopped</Badge>
+          <Badge variant="warning">{stopped ? "retries stopped" : row.status.replaceAll("_", " ")}</Badge>
         )}
       </div>
 
@@ -110,7 +111,7 @@ function OpenRefund({ row }: { row: AdminRefundRow }) {
       <div className="flex flex-wrap items-start gap-3">
         <ActionForm
           action={retryRefund}
-          submitLabel="Retry now"
+          submitLabel={row.status === "processing" ? "Check status" : "Retry now"}
           pendingLabel="Asking Paystack…"
           variant="secondary"
           confirm={`Ask Paystack to refund ${amount} to ${who}'s card now?`}
@@ -132,7 +133,7 @@ function OpenRefund({ row }: { row: AdminRefundRow }) {
         )}
       </div>
 
-      {!retrying && (
+      {stopped && (
         <ActionForm
           action={recordRefundPaid}
           submitLabel="Mark as refunded"

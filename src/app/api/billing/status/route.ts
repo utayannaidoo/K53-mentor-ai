@@ -35,26 +35,19 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // The queued-refund read depends only on user.id, not on the subscription
-  // row, so it starts here — in parallel with the subscriptions read — instead
-  // of after it. Its result is only *used* for paid tiers below, so a free
-  // account's extra read is one indexed row on a page they rarely load; a paid
-  // account saves a full serial round-trip on every billing-page visit.
+  // Refund progress remains visible after paid access has ended.
   const admin = createAdminClient();
   const queuedPromise = admin
     ? admin
         .from("pending_refunds")
-        .select("created_at")
+        .select("created_at,status")
         .eq("user_id", user.id)
-        // 'failed' is still owed: the cron stopped, or an admin stopped it to
-        // repay by EFT. The learner's notice lasts until the money is back.
-        .in("status", ["queued", "failed"])
-        .order("created_at", { ascending: true })
+        .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle()
     : null;
 
-  const { data } = await supabase
+  const { data, error: subscriptionError } = await supabase
     .from("subscriptions")
     .select(
       "tier, status, cancel_at_period_end, current_period_end, paid_at, last_charge_reference, money_back_used",
@@ -62,14 +55,23 @@ export async function GET() {
     .eq("user_id", user.id)
     .maybeSingle();
 
+  if (subscriptionError) return Response.json({ error: "Billing status temporarily unavailable" }, { status: 503 });
+
   const sub = data as (SubscriptionRowLike & {
     paid_at: string | null;
     last_charge_reference: string | null;
     money_back_used: boolean | null;
   }) | null;
 
+  const refundResult = queuedPromise ? await queuedPromise : null;
+  if (refundResult?.error) return Response.json({ error: "Refund status temporarily unavailable" }, { status: 503 });
+  const refund = refundResult?.data as { created_at: string; status: string } | null;
+  const refundFields = {
+    refundStatus: refund?.status ?? null,
+    refundProcessingSince: refund && ["queued", "submitting", "processing"].includes(refund.status) ? refund.created_at : null,
+  };
   if (!sub || sub.tier === "free" || !sub.tier) {
-    return Response.json({ tier: "free", hasBillingAccount: false });
+    return Response.json({ tier: "free", hasBillingAccount: false, ...refundFields });
   }
 
   // Mirror the EXACT rule the gates use — tierFromSubscriptionRow includes the
@@ -86,20 +88,6 @@ export async function GET() {
     moneyBackUsed: sub.money_back_used,
   });
 
-  // A queued money-back refund (Paystack refused the instant one — usually an
-  // empty settlement balance) is service-role data under RLS, so this needs
-  // the admin client. Read-only, and it only surfaces a timestamp: enough for
-  // the billing page to say "your refund is processing" durably, long after
-  // the cancel-time banner has scrolled away. (Started above, in parallel
-  // with the subscriptions read.)
-  let refundProcessingSince: string | null = null;
-  if (queuedPromise) {
-    const { data: queued } = await queuedPromise;
-    if (queued) {
-      refundProcessingSince = (queued as { created_at: string }).created_at;
-    }
-  }
-
   return Response.json({
     tier: effectiveTier,
     status: sub.status,
@@ -111,7 +99,7 @@ export async function GET() {
     /** When refundEligible is false, the exact money-back gate that closed. */
     refundIneligibleReason: refundBlocked,
     /** Non-null while a money-back refund is queued for automatic retry. */
-    refundProcessingSince,
+    ...refundFields,
     moneyBackDays: MONEY_BACK_DAYS,
   });
 }

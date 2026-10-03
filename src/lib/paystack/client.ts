@@ -24,6 +24,14 @@ function secretKey(): string {
 /** Hard ceiling on any Paystack call — a hung upstream must not hold a serverless function open until the platform kills it. */
 const REQUEST_TIMEOUT_MS = 15_000;
 
+/** Only an explicit provider refusal proves a POST was not accepted. */
+export class PaystackError extends Error {
+  constructor(message: string, public readonly httpStatus: number) {
+    super(message);
+    this.name = "PaystackError";
+  }
+}
+
 async function paystackFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_BASE}${path}`, {
     ...init,
@@ -44,7 +52,7 @@ async function paystackFetch<T>(path: string, init?: RequestInit): Promise<T> {
     body = null;
   }
   if (!res.ok || !body?.status) {
-    throw new Error(`Paystack ${path}: ${body?.message ?? `${res.status} ${res.statusText}`}`);
+    throw new PaystackError(`Paystack ${path}: ${body?.message ?? `${res.status} ${res.statusText}`}`, res.status);
   }
   return body.data;
 }
@@ -215,16 +223,30 @@ export function disableSubscription(code: string, token: string): Promise<unknow
  * indistinguishable from fraud when it is reviewed weeks later — and when a
  * refund silently fails, the note is how support finds every attempt.
  */
+export interface PaystackRefund {
+  id: number;
+  status: "pending" | "processing" | "processed" | "failed" | "needs-attention";
+  amount?: number;
+  currency?: string;
+  transaction?: number | { id?: number; reference?: string };
+}
+
+export function fetchRefund(id: number): Promise<PaystackRefund> {
+  return paystackFetch(`/refund/${encodeURIComponent(id)}`);
+}
+
+export function listTransactionRefunds(transactionId: number): Promise<PaystackRefund[]> {
+  return paystackFetch(`/refund?transaction=${encodeURIComponent(transactionId)}&perPage=100`);
+}
+
 export function refundTransaction(
   reference: string,
   notes?: { merchantNote?: string; customerNote?: string; amountCents?: number },
-): Promise<unknown> {
+): Promise<PaystackRefund> {
   return paystackFetch("/refund", {
     method: "POST",
     body: JSON.stringify({
       transaction: reference,
-      // Omitted means the whole charge. Given, Paystack refunds exactly this
-      // many cents and refuses more than the charge was for.
       ...(notes?.amountCents ? { amount: notes.amountCents } : {}),
       ...(notes?.merchantNote ? { merchant_note: notes.merchantNote } : {}),
       ...(notes?.customerNote ? { customer_note: notes.customerNote } : {}),
