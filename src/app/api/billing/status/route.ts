@@ -9,6 +9,9 @@ import {
 
 export const runtime = "nodejs";
 
+/** How long a settled refund stays on the billing page. Owed refunds show until settled. */
+const SETTLED_REFUND_NOTICE_MS = 30 * 86_400_000;
+
 /**
  * What the billing page needs to describe a subscription truthfully: does it
  * renew, when does access run out, and would cancelling right now be refunded.
@@ -35,12 +38,15 @@ export async function GET() {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Refund progress remains visible after paid access has ended.
+  // The learner's latest money-back refund, if any. Service-role data under RLS,
+  // so it needs the admin client. Read in parallel with the subscription below,
+  // and shown to free accounts too: the progress of a refund stays visible
+  // after the paid access it reversed has ended.
   const admin = createAdminClient();
   const queuedPromise = admin
     ? admin
         .from("pending_refunds")
-        .select("created_at,status")
+        .select("created_at,status,refunded_at,updated_at")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(1)
@@ -65,7 +71,21 @@ export async function GET() {
 
   const refundResult = queuedPromise ? await queuedPromise : null;
   if (refundResult?.error) return Response.json({ error: "Refund status temporarily unavailable" }, { status: 503 });
-  const refund = refundResult?.data as { created_at: string; status: string } | null;
+  const latest = refundResult?.data as {
+    created_at: string;
+    status: string;
+    refunded_at: string | null;
+    updated_at: string | null;
+  } | null;
+  // A settled refund is news for a while, not forever: it stops showing after
+  // a month, or as soon as the learner has paid again. One that is still owed
+  // (queued, processing, needs attention, stopped) shows until it settles.
+  const settledAt =
+    latest?.status === "refunded" ? Date.parse(latest.refunded_at ?? latest.updated_at ?? latest.created_at) : null;
+  const settledNoticeOver =
+    settledAt !== null &&
+    (Date.now() - settledAt > SETTLED_REFUND_NOTICE_MS || (sub?.paid_at != null && Date.parse(sub.paid_at) > settledAt));
+  const refund = settledNoticeOver ? null : latest;
   const refundFields = {
     refundStatus: refund?.status ?? null,
     refundProcessingSince: refund && ["queued", "submitting", "processing"].includes(refund.status) ? refund.created_at : null,

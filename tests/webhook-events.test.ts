@@ -361,9 +361,10 @@ describe("refund webhook routing", () => {
     expect((await send("refund.processed",{transaction_reference:"ref_old"})).status).toBe(200);
     expect(refundAdmin.tables.subscriptions[0].tier).toBe("premium");
   });
-  it("rejects a missing charge identity without changing anyone's tier",async()=>{
+  it("acknowledges a refund event with no charge identity without changing anyone's tier",async()=>{
+    // An error would only make Paystack redeliver the same unmatchable event for days.
     refundAdmin=refundDb({subscriptions:[paidRow()]});
-    expect((await send("refund.processed",{status:"processed"})).status).toBe(500);
+    expect((await send("refund.processed",{status:"processed"})).status).toBe(200);
     expect(refundAdmin.tables.subscriptions[0].tier).toBe("premium");
   });
 });

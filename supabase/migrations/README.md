@@ -18,6 +18,10 @@ project to record the merged name as applied — never by renaming one of them a
 New migrations continue from the highest number (next: `0031_…`) — never reuse a prefix again.
 Check the folder, not this line: `0028_diagnostic_skip` reused `0028` (taken by
 `0028_pending_refunds`) and was renamed to `0030_diagnostic_skip` before it was ever applied.
+`0046_refund_lifecycle_and_alerts` was first committed under a timestamp name
+(`20261001191407_…`) and renamed so later numbered files sort after it on a fresh database.
+Prod had recorded it as version `20261003031401`, name `refund_lifecycle_and_alerts`, which
+never matched the file, so the rename desynced nothing.
 
 **Prod is not tracked by `supabase_migrations`.** Most files from `0025` on were applied
 through the SQL editor, so the dashboard's migration list stops early. Before assuming a

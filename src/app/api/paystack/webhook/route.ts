@@ -80,6 +80,12 @@ export async function POST(req: Request) {
   // state write, so a redelivery converges on the same state. charge.success
   // is the exception: its grant is NOT idempotent (credits), so an unclaimable
   // one fails instead of applying unprotected.
+  //
+  // Refund events skip the ledger on purpose. Their identity would be the
+  // charge reference, which a second refund of the same charge (a partial,
+  // then the rest) shares, so it would be swallowed as a duplicate. Every
+  // refund transition is instead keyed on the pending_refunds row's status
+  // (applyRefundEvent), which makes redelivery converge on its own.
   const ledgerId = payload.event.startsWith("refund.") ? null : webhookLedgerId(payload.event, payload.data);
   // Correlation anchor: every decision below can be traced from this line —
   // user → charge reference → ledger id → applied outcome. Logged before any
@@ -395,7 +401,12 @@ export async function POST(req: Request) {
       case "refund.failed":
       case "refund.needs-attention":
       case "refund.processed": {
+        // The whole refund lifecycle lives in refund-lifecycle.ts: only a
+        // processed refund of the full charge ends access, and only while that
+        // charge is still the learner's latest payment. A refund issued from the
+        // Paystack dashboard (no queue row) converges the same way.
         await applyRefundEvent(admin, payload.event, payload.data as Parameters<typeof applyRefundEvent>[2]);
+        // Best-effort: anything unsent stays in the outbox for the refund cron.
         await flushBillingEmails(admin, 2).catch((error) => console.error("refund emails pending", error));
         break;
       }
