@@ -38,7 +38,8 @@ export function RefundQueue({ open, settled }: { open: AdminRefundRow[]; settled
 
       {open.length === 0 ? (
         <Card className={cn(glassSubtle, "p-6 text-sm text-muted-foreground")}>
-          No refunds are waiting. A money-back refund lands here only when Paystack refuses it.
+          No refunds are waiting. A money-back refund stays here until Paystack confirms it was
+          processed.
         </Card>
       ) : (
         <div className="space-y-4">
@@ -75,8 +76,20 @@ export function RefundQueue({ open, settled }: { open: AdminRefundRow[]; settled
 
 function OpenRefund({ row }: { row: AdminRefundRow }) {
   const retrying = row.status === "queued";
+  const stopped = row.status === "failed";
+  /** Parked because nobody can be sure what Paystack did; Retry re-checks it first. */
+  const uncertain = row.status === "needs_attention" || row.status === "submitting";
   const who = row.name || row.email || "this learner";
   const amount = row.amountCents === null ? "the charge" : rand(row.amountCents);
+  const retry =
+    row.status === "processing"
+      ? { label: "Check status", confirm: undefined }
+      : stopped || uncertain
+        ? {
+            label: "Check Paystack and retry",
+            confirm: `Check Paystack for an existing refund of ${amount}, and if there is none, ask it to refund ${who}'s card now?`,
+          }
+        : { label: "Retry now", confirm: `Ask Paystack to refund ${amount} to ${who}'s card now?` };
   return (
     <Card className={cn(glass, "space-y-4 p-5")}>
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -101,7 +114,7 @@ function OpenRefund({ row }: { row: AdminRefundRow }) {
         {retrying ? (
           <Badge variant="outline">retrying daily</Badge>
         ) : (
-          <Badge variant="warning">retries stopped</Badge>
+          <Badge variant="warning">{stopped ? "retries stopped" : row.status.replaceAll("_", " ")}</Badge>
         )}
       </div>
 
@@ -110,21 +123,25 @@ function OpenRefund({ row }: { row: AdminRefundRow }) {
       <div className="flex flex-wrap items-start gap-3">
         <ActionForm
           action={retryRefund}
-          submitLabel="Retry now"
+          submitLabel={retry.label}
           pendingLabel="Asking Paystack…"
           variant="secondary"
-          confirm={`Ask Paystack to refund ${amount} to ${who}'s card now?`}
+          confirm={retry.confirm}
           resetOnSuccess={false}
         >
           <input type="hidden" name="id" value={row.id} />
         </ActionForm>
-        {retrying && (
+        {(retrying || row.status === "needs_attention") && (
           <ActionForm
             action={stopRefund}
-            submitLabel="Stop retries to repay by EFT"
-            pendingLabel="Stopping…"
+            submitLabel={retrying ? "Stop retries to repay by EFT" : "Stop to repay by EFT"}
+            pendingLabel={retrying ? "Stopping…" : "Checking Paystack…"}
             variant="outline"
-            confirm="Stop the automatic retries? Only do this if you're about to pay the learner back by EFT."
+            confirm={
+              retrying
+                ? "Stop the automatic retries? Only do this if you're about to pay the learner back by EFT."
+                : "Stop this refund to repay by EFT? Paystack is checked first, and this is refused if a refund there could still pay out."
+            }
             resetOnSuccess={false}
           >
             <input type="hidden" name="id" value={row.id} />
@@ -132,7 +149,7 @@ function OpenRefund({ row }: { row: AdminRefundRow }) {
         )}
       </div>
 
-      {!retrying && (
+      {stopped && (
         <ActionForm
           action={recordRefundPaid}
           submitLabel="Mark as refunded"

@@ -983,3 +983,19 @@ export function buildPartnerStatementEmail(input: {
   );
   return { subject, html, text: `${body.join("\n\n")}\n\n${input.statementUrl}` };
 }
+
+export function buildRefundOperatorEmail(input: {
+  reference: string;
+  userId?: string;
+  userEmail?: string;
+  kind: "requested" | "attention" | "processed";
+  detail: string;
+}): EmailContent {
+  const labels = { requested: "Refund requested", attention: "Refund needs attention", processed: "Refund processed" };
+  const subject = `[K53 billing] ${labels[input.kind]}: ${input.reference}`;
+  const text = [labels[input.kind], `Reference: ${input.reference}`,
+    `Learner: ${input.userEmail ?? "See account record"}`, `User: ${input.userId ?? "See payment record"}`,
+    input.detail, "Review the transaction in Paystack before taking any manual payment action.",
+    "If repaid outside Paystack, record the manual repayment so it cannot be refunded again."].join("\n\n");
+  return { subject, text, html: `<pre style="white-space:pre-wrap;font-family:Arial,sans-serif;line-height:1.6">${esc(text)}</pre>` };
+}

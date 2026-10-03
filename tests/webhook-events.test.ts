@@ -1,3 +1,4 @@
+import { refundDb, paidRow, refundRow } from "./refund-db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
@@ -34,6 +35,7 @@ interface UpdateCall {
 }
 
 const updates: UpdateCall[] = [];
+let refundAdmin: ReturnType<typeof refundDb> | null = null;
 
 /** Captured console.error spy — the identity guards log loudly on mismatch. */
 let errLog: ReturnType<typeof vi.spyOn>;
@@ -99,7 +101,7 @@ function makeAdmin() {
   };
 }
 
-vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => makeAdmin() }));
+vi.mock("@/lib/supabase/admin", () => ({ createAdminClient: () => refundAdmin?.client ?? makeAdmin() }));
 
 import { POST } from "@/app/api/paystack/webhook/route";
 import { verifyTransaction } from "@/lib/paystack/client";
@@ -116,6 +118,7 @@ function send(event: string, data: unknown) {
 
 beforeEach(() => {
   updates.length = 0;
+  refundAdmin = null;
   subscriptionRow = null;
   process.env.PAYSTACK_SECRET_KEY = "sk_test_stub";
   vi.mocked(verifyTransaction).mockReset();
@@ -344,69 +347,23 @@ describe("charge.dispute.create", () => {
   });
 });
 
-describe("refund.processed", () => {
-  it("downgrades by customer when Paystack confirms a subscription charge", async () => {
-    // Renewal charges never land in last_charge_reference, so the only way a
-    // renewal refundee loses their tier is via this lookup path.
-    vi.mocked(verifyTransaction).mockResolvedValue({
-      id: 7,
-      status: "success",
-      reference: "ref_renewal",
-      customer: { customer_code: "CUS_9", email: "a@b.c" },
-      plan: { plan_code: "PLN_premium" },
-    });
-    const res = await send("refund.processed", {
-      transaction: { reference: "ref_renewal" },
-      status: "processed",
-    });
-    expect(res.status).toBe(200);
-    expect(updates).toHaveLength(1);
-    expect(updates[0].values).toMatchObject({ tier: "free", status: "canceled" });
-    expect(updates[0].values).toHaveProperty("refunded_at");
-    expect(updates[0].eqColumn).toBe("provider_customer_id");
-    expect(updates[0].eqValue).toBe("CUS_9");
+describe("refund webhook routing", () => {
+  it.each(["refund.pending", "refund.processing", "refund.failed", "refund.needs-attention", "refund.processed"])("handles %s through durable state", async event => {
+    refundAdmin = refundDb({pending_refunds:[refundRow()],subscriptions:[paidRow()]});
+    const response = await send(event,{transaction_reference:"ref_old"});
+    expect(response.status).toBe(200);
+    const expected = event === "refund.processed" ? "refunded" : event === "refund.failed" ? "failed" : event === "refund.needs-attention" ? "needs_attention" : "processing";
+    expect(refundAdmin.tables.pending_refunds[0].status).toBe(expected);
+    expect(refundAdmin.tables.subscriptions[0].tier).toBe(event === "refund.processed" ? "free" : "premium");
   });
-
-  it("does NOT strip a subscription when the refunded charge was a tutor top-up", async () => {
-    vi.mocked(verifyTransaction).mockResolvedValue({
-      id: 8,
-      status: "success",
-      reference: "ref_topup",
-      customer: { customer_code: "CUS_9", email: "a@b.c" },
-      plan: null,
-    });
-    const res = await send("refund.processed", { transaction: { reference: "ref_topup" } });
-    expect(res.status).toBe(200);
-    expect(updates).toHaveLength(0);
+  it("keeps the new plan when an older charge is refunded",async()=>{
+    refundAdmin=refundDb({pending_refunds:[refundRow()],subscriptions:[paidRow({last_charge_reference:"ref_new"})]});
+    expect((await send("refund.processed",{transaction_reference:"ref_old"})).status).toBe(200);
+    expect(refundAdmin.tables.subscriptions[0].tier).toBe("premium");
   });
-
-  it("falls back to the last_charge_reference match when the lookup fails", async () => {
-    // Paystack outage must not turn a refund into a no-op for first charges,
-    // which are exactly the ones recorded in last_charge_reference.
-    vi.mocked(verifyTransaction).mockRejectedValue(new Error("paystack down"));
-    const res = await send("refund.processed", {
-      transaction: { reference: "ref_first_charge" },
-      status: "processed",
-    });
-    expect(res.status).toBe(200);
-    expect(updates).toHaveLength(1);
-    expect(updates[0].values).toMatchObject({ tier: "free", status: "canceled" });
-    expect(updates[0].eqColumn).toBe("last_charge_reference");
-    expect(updates[0].eqValue).toBe("ref_first_charge");
-  });
-
-  it("accepts the flat transaction_reference shape too", async () => {
-    vi.mocked(verifyTransaction).mockRejectedValue(new Error("paystack down"));
-    await send("refund.processed", { transaction_reference: "ref_flat" });
-    expect(updates[0].eqColumn).toBe("last_charge_reference");
-    expect(updates[0].eqValue).toBe("ref_flat");
-  });
-
-  it("does nothing when no reference is present", async () => {
-    // Without a reference an update would match every row and free the whole
-    // customer base.
-    const res = await send("refund.processed", { status: "processed" });
-    expect(res.status).toBe(200);
-    expect(updates).toHaveLength(0);
+  it("rejects a missing charge identity without changing anyone's tier",async()=>{
+    refundAdmin=refundDb({subscriptions:[paidRow()]});
+    expect((await send("refund.processed",{status:"processed"})).status).toBe(500);
+    expect(refundAdmin.tables.subscriptions[0].tier).toBe("premium");
   });
 });
