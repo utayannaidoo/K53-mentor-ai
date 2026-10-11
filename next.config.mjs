@@ -1,4 +1,11 @@
 const isProd = process.env.NODE_ENV === "production";
+// Ads (AdSense) are optional. The policy below only opens up for Google's ad
+// hosts when a publisher id is configured, so a deployment without ads keeps
+// the tight allow-list. Mirrors the check in src/lib/ads.ts.
+const adsOn = /^ca-pub-\d{10,20}$/.test(process.env.NEXT_PUBLIC_ADSENSE_CLIENT?.trim() ?? "");
+const AD_HOSTS = adsOn
+  ? " https://*.googlesyndication.com https://*.doubleclick.net https://*.google.com https://*.gstatic.com https://*.adtrafficquality.google"
+  : "";
 
 /**
  * Content Security Policy.
@@ -14,18 +21,22 @@ const isProd = process.env.NODE_ENV === "production";
  *   load. Core events still arrived (they go over connect-src), so the
  *   breakage was silent: session replay simply never recorded. `*.posthog.com`
  *   matches nested subdomains, which is what `eu-assets.i.posthog.com` needs.
+ * - With ads on, Google's ad hosts join script/connect/frame-src, and img-src
+ *   widens to any https host: ad creatives are served from advertisers' own
+ *   CDNs, which cannot be enumerated. Free-plan pages only request them, but a
+ *   header is per-deployment, not per-user.
  */
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://*.posthog.com https://challenges.cloudflare.com${isProd ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://*.posthog.com https://challenges.cloudflare.com${AD_HOSTS}${isProd ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
   // Every image the app renders is a local /signs/* asset (439 of them) or an
   // inline data:/blob: preview from the scanner's file input. No remote hosts.
-  "img-src 'self' data: blob:",
+  `img-src 'self' data: blob:${adsOn ? " https:" : ""}`,
   "font-src 'self' data:",
   // PostHog ingestion hosts (us/eu); harmless when analytics is unconfigured.
-  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.i.posthog.com https://*.posthog.com${isProd ? "" : " ws:"}`,
-  "frame-src https://challenges.cloudflare.com",
+  `connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.i.posthog.com https://*.posthog.com${AD_HOSTS}${isProd ? "" : " ws:"}`,
+  `frame-src https://challenges.cloudflare.com${AD_HOSTS}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",

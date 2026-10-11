@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Who may open /admin and move partner money.
+ * Who may open /admin and act on refunds.
  *
  * A comma-separated `ADMIN_EMAILS` allowlist, resolved from the Supabase
  * session on the server for every page render and every mutation. There is no
@@ -13,7 +13,7 @@ import { createClient } from "@/lib/supabase/server";
  * **Fails closed.** An unset or empty `ADMIN_EMAILS` means *nobody* is an
  * admin. The alternative — treating "no allowlist configured" as "no
  * restriction" — turns a missing environment variable on a fresh deploy into
- * an open payout console for every signed-in learner. Locking the owner out of
+ * an open refund console for every signed-in learner. Locking the owner out of
  * their own admin area is a five-minute fix; the other failure is not.
  */
 function allowlist(): string[] {
@@ -22,9 +22,6 @@ function allowlist(): string[] {
     .map((entry) => entry.trim().toLowerCase())
     .filter((entry) => entry.length > 0);
 }
-
-/** True when the programme has an admin at all — used only for boot logging. */
-export const hasAdminAllowlist = allowlist().length > 0;
 
 /**
  * The signed-in admin's email, or null for everyone else. Null covers all of:

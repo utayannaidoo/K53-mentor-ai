@@ -27,8 +27,6 @@ export const DEMO_SCHOOL: SchoolContext = {
   trialEndsAt: new Date(Date.now() + SCHOOL_TRIAL_DAYS * 86_400_000).toISOString(),
   cancelAtPeriodEnd: false,
   currentPeriodEnd: null,
-  partnerSchoolId: null,
-  commissionMode: "eft",
   creditCents: 0,
   seatsUsed: 2,
   timezone: "Africa/Johannesburg",

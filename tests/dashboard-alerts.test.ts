@@ -17,13 +17,12 @@ describe("the dashboard interrupts you about one thing", () => {
   it("puts an imminent test above everything else", () => {
     // "Your test is tomorrow" and "take your diagnostic" are advice for two
     // different people. Showing both says neither.
-    expect(topAlert({ cram: true, "trial-ended": true, diagnostic: true, comeback: true })).toBe(
+    expect(topAlert({ cram: true, diagnostic: true, comeback: true })).toBe(
       "cram",
     );
   });
 
   it("falls through the ranking as the urgent ones clear", () => {
-    expect(topAlert({ "trial-ended": true, diagnostic: true, comeback: true })).toBe("trial-ended");
     expect(topAlert({ diagnostic: true, comeback: true })).toBe("diagnostic");
     expect(topAlert({ comeback: true })).toBe("comeback");
   });

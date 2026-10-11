@@ -96,33 +96,6 @@ export async function createSchoolWorkspace(
   };
 }
 
-export async function linkPartnerCode(
-  _prev: ActionResult | null,
-  form: FormData,
-): Promise<ActionResult> {
-  if (!isSupabaseConfigured) return DEMO_REFUSAL;
-  const guard = await requireSchool({ roles: ["owner"] });
-  if (!guard.ok) return { ok: false, message: guard.message };
-  const userId = await currentUserId();
-  const admin = createAdminClient();
-  if (!admin || !userId) return NOT_CONFIGURED;
-
-  const code = String(form.get("code") ?? "").trim().toLowerCase();
-  if (!code) return { ok: false, message: "Enter your partner code." };
-
-  const { data, error } = await admin.rpc("link_partner_school", {
-    p_user: userId,
-    p_school: guard.school.schoolId,
-    p_code: code,
-  });
-  if (error) {
-    console.error("[schools] link partner failed", error.message);
-    return { ok: false, message: rpcMessage(error, "Could not link that code.") };
-  }
-  refresh();
-  return { ok: true, message: `Linked to ${String(data)}. Your referral earnings now show here.` };
-}
-
 export async function inviteMember(
   _prev: ActionResult | null,
   form: FormData,
@@ -267,41 +240,6 @@ export async function transferOwnership(
   }
   refresh();
   return { ok: true, message: "Done. They own the school now, and you're an instructor." };
-}
-
-/**
- * Bank transfer or credit, for referral commission not yet settled. Credit
- * already earned stays credit: there is no path from credit back to cash.
- */
-export async function setCommissionMode(
-  _prev: ActionResult | null,
-  form: FormData,
-): Promise<ActionResult> {
-  if (!isSupabaseConfigured) return DEMO_REFUSAL;
-  const guard = await requireSchool({ roles: ["owner"] });
-  if (!guard.ok) return { ok: false, message: guard.message };
-  const userId = await currentUserId();
-  const admin = createAdminClient();
-  if (!admin || !userId) return NOT_CONFIGURED;
-
-  const mode = form.get("mode") === "credit" ? "credit" : "eft";
-  const { error } = await admin.rpc("set_school_commission_mode", {
-    p_user: userId,
-    p_school: guard.school.schoolId,
-    p_mode: mode,
-  });
-  if (error) {
-    console.error("[schools] commission mode failed", error.message);
-    return { ok: false, message: rpcMessage(error, "Could not change how commission is paid.") };
-  }
-  refresh();
-  return {
-    ok: true,
-    message:
-      mode === "credit"
-        ? "Done. New commission goes toward your plan from tonight."
-        : "Done. New commission is paid to your bank account again.",
-  };
 }
 
 /**

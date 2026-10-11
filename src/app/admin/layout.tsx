@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { adminEmail } from "@/lib/partners/admin-auth";
+import { adminEmail } from "@/lib/admin/auth";
 import { cn } from "@/lib/utils";
 
 /**
@@ -14,20 +14,15 @@ import { cn } from "@/lib/utils";
  * what may be done.
  */
 export const metadata: Metadata = {
-  title: "Partner admin",
+  title: "Admin",
   robots: { index: false, follow: false },
 };
 
-// The whole area reads live money. A cached render would show an owner a payout
+// The whole area reads live money. A cached render would show an owner a refund
 // queue that was already paid.
 export const dynamic = "force-dynamic";
 
-const TABS = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/schools", label: "Schools" },
-  { href: "/admin/payouts", label: "Payouts" },
-  { href: "/admin/refunds", label: "Refunds" },
-];
+const TABS = [{ href: "/admin/refunds", label: "Refunds" }];
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const email = await adminEmail();
@@ -37,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       <header className="glass-panel sticky top-0 z-30 border-b border-border/50">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 px-4 py-3 sm:px-6">
           <Link href="/admin" className="font-display text-sm font-semibold tracking-tight">
-            Partner admin
+            Admin
           </Link>
           <nav className="flex flex-wrap items-center gap-1" aria-label="Admin sections">
             {TABS.map((tab) => (

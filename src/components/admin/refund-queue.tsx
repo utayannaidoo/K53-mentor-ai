@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn, glass, glassSubtle } from "@/lib/utils";
-import { rand } from "@/lib/partners/admin-data";
+import { formatRand as rand } from "@/lib/schools/money";
 import { ActionForm, Field } from "@/components/admin/action-form";
 import { recordRefundPaid, retryRefund, stopRefund } from "@/app/admin/actions";
 import type { AdminRefundRow } from "@/lib/billing/pending-refunds";

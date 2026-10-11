@@ -349,7 +349,7 @@ export async function refundUserDaily(surface: string, userId: string): Promise<
  * Per-user daily caps for the account-management actions.
  *
  * These routes shared exactly one bucket — `limitCheckout`, keyed on IP — and
- * that is the wrong axis for them. Cancelling, deleting and claiming a referral
+ * that is the wrong axis for them. Cancelling and deleting
  * are per-account actions, and South African mobile traffic is heavily CGNAT'd:
  * one person hammering the endpoint from a campus or mobile network took the
  * whole IP's budget, so a stranger could stop somebody else from cancelling
@@ -369,10 +369,6 @@ export const ACCOUNT_DAILY_LIMIT = {
   reset: 3,
   /** Deletion-code emails. Doubles as the anti-email-bombing cap. */
   deletion_code: 5,
-  /** Referral claims. The GET stays IP-limited only — it is a cheap read the
-   *  dashboard makes on load, and a per-user cap there would break heavy use. */
-  referral_claim: 20,
-  school_claim: 20,
 } as const;
 
 /**

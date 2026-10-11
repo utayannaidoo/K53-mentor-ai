@@ -1,17 +1,13 @@
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Which engine answers a free account's tutor message.
+ * Who the tutor route answers, and with which engine.
  *
- * The free tier is also the seven-day trial, so `tier === "free"` covers two
- * people with opposite economics: someone three days into deciding whether to
- * pay, and an account that lapsed months ago. Serving both the rule-based
- * explainer is cheap but hides the product from the only audience the free week
- * exists to convince; serving both a real model pays for stale signups forever.
+ * The AI tutor is a paid feature. A free account is refused before anything is
+ * metered or sent to a provider; a paid account always reaches the cascade.
  *
- * Only the Supabase reads are stubbed here — `resolveEntitlement` and
- * `isWithinFreeTrial` both run for real, because the wiring between them is the
- * thing that breaks.
+ * Only the Supabase reads are stubbed here — `resolveEntitlement` runs for
+ * real, because the wiring between it and the route is the thing that breaks.
  */
 
 const DAY_MS = 86_400_000;
@@ -80,15 +76,19 @@ vi.mock("@/lib/ai/provider", () => ({
   streamTutorReply: (args: { forceLocal?: boolean }) => streamTutorReply(args),
 }));
 
-/** Whether the route decided this caller gets the local explainer. */
-async function askTutor(): Promise<boolean> {
-  const res = await POST(
+function post(): Promise<Response> {
+  return POST(
     new Request("https://k53.test/api/tutor", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ messages: [{ role: "user", content: "What is the pass mark?" }] }),
     }),
   );
+}
+
+/** Whether the route decided this caller gets the local explainer. */
+async function askTutor(): Promise<boolean> {
+  const res = await post();
   expect(res.status).toBe(200);
   expect(streamTutorReply).toHaveBeenCalledTimes(1);
   return streamTutorReply.mock.calls[0][0].forceLocal === true;
@@ -116,49 +116,31 @@ beforeEach(() => {
   profileReadThrows = false;
 });
 
-describe("free tier, inside the free week", () => {
-  it("reaches a real provider", async () => {
-    expect(await askTutor()).toBe(false);
+describe("free tier", () => {
+  it("is refused with upgrade_required, before any provider is reached", async () => {
+    const res = await post();
+    expect(res.status).toBe(403);
+    expect(await res.json()).toMatchObject({ error: "upgrade_required", tier: "free" });
+    expect(streamTutorReply).not.toHaveBeenCalled();
   });
 
-  it("still reaches one on the last day of the week", async () => {
-    // 6 days elapsed = day seven. The client's trialDaysRemaining() still shows
-    // a day left here, and the two must not disagree about the same week.
-    profileRow = { onboarded_at: null, created_at: daysAgo(6) };
-    expect(await askTutor()).toBe(false);
+  it("is refused whatever the account's age — there is no free week", async () => {
+    for (const age of [0, 3, 400]) {
+      profileRow = { onboarded_at: null, created_at: daysAgo(age) };
+      expect((await post()).status).toBe(403);
+    }
+    expect(streamTutorReply).not.toHaveBeenCalled();
   });
 
-  it("treats an account with no anchoring timestamps as untouched", async () => {
-    // Matches trialStartedAt()'s forgiving branch: never wall a brand-new
-    // signup whose profile row hasn't been written yet.
-    profileRow = { onboarded_at: null, created_at: null };
-    expect(await askTutor()).toBe(false);
-  });
-
-  it("anchors on the earliest timestamp, not the latest", async () => {
-    // A profile recreated last week must not hand out a second free week when
-    // onboarding proves the learner started a month ago.
-    profileRow = { onboarded_at: daysAgo(30), created_at: daysAgo(2) };
-    expect(await askTutor()).toBe(true);
-  });
-});
-
-describe("free tier, week expired", () => {
-  it("falls back to the local explainer", async () => {
-    profileRow = { onboarded_at: null, created_at: daysAgo(8) };
-    expect(await askTutor()).toBe(true);
-  });
-
-  it("stays local for a long-lapsed account", async () => {
-    profileRow = { onboarded_at: daysAgo(400), created_at: daysAgo(400) };
-    expect(await askTutor()).toBe(true);
+  it("a lapsed or cancelled subscription is free again", async () => {
+    subscriptionRow = { tier: "premium", status: "cancelled" };
+    expect((await post()).status).toBe(403);
   });
 });
 
 describe("paid tiers", () => {
   it("never force local", async () => {
     subscriptionRow = { tier: "premium", status: "active" };
-    // Deliberately expired, to prove tier short-circuits before the trial read.
     profileRow = { onboarded_at: null, created_at: daysAgo(400) };
     expect(await askTutor()).toBe(false);
   });
@@ -173,55 +155,10 @@ describe("paid tiers", () => {
 describe("when the cascade falls through to the study notes", () => {
   // The stubbed provider always answers "local", which is exactly what an
   // outage or an empty DeepSeek balance looks like from the route.
-  async function ask(): Promise<Response> {
-    return POST(
-      new Request("https://k53.test/api/tutor", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ messages: [{ role: "user", content: "What is the pass mark?" }] }),
-      }),
-    );
-  }
-
   it("flags a paid learner's answer as basic and gives the message back", async () => {
     subscriptionRow = { tier: "premium", status: "active" };
-    const res = await ask();
+    const res = await post();
     expect(res.headers.get("x-tutor-mode")).toBe("basic");
     expect(refundUserDaily).toHaveBeenCalledWith("tutor", "u1");
-  });
-
-  it("does the same for a free learner inside the week, who was promised the AI", async () => {
-    const res = await ask();
-    expect(res.headers.get("x-tutor-mode")).toBe("basic");
-    expect(refundUserDaily).toHaveBeenCalledTimes(1);
-  });
-
-  it("leaves a lapsed free trial alone — the explainer is its product", async () => {
-    profileRow = { onboarded_at: null, created_at: daysAgo(8) };
-    const res = await ask();
-    expect(res.headers.get("x-tutor-mode")).toBeNull();
-    expect(refundUserDaily).not.toHaveBeenCalled();
-  });
-});
-
-describe("when the trial lookup fails", () => {
-  /**
-   * Forgiving, unlike the tier lookup, which fails closed. This decides which
-   * engine answers a message already capped at 2/day, not what someone paid
-   * for — so an outage must not quietly serve the worse tutor to new signups.
-   */
-  it("keeps a free account on the provider when the profile read throws", async () => {
-    profileReadThrows = true;
-    expect(await askTutor()).toBe(false);
-  });
-
-  it("keeps a free account on the provider when the profile is missing", async () => {
-    profileRow = null;
-    expect(await askTutor()).toBe(false);
-  });
-
-  it("keeps a free account on the provider with no admin client", async () => {
-    adminAvailable = false;
-    expect(await askTutor()).toBe(false);
   });
 });

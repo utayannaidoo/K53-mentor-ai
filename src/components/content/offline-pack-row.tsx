@@ -3,26 +3,18 @@
 import { CloudDownload, Check, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useContentPool } from "@/components/content/content-provider";
-import { useStudyStore } from "@/hooks/use-study-store";
-import { isPaidTier } from "@/lib/billing/plans";
 
 /**
  * "Download for offline" — the manual half of the content sync.
  *
- * Paid devices normally sync in the background on first load, but not when data
+ * Devices normally sync in the background on first load, but not when data
  * saver is on: this app is built for prepaid connections, and spending someone's
  * bundle on a ~1MB download they did not ask for is exactly the behaviour the
  * data-saver switch exists to prevent. Without a control here, those learners
  * would sit on the starter pack permanently with no way out and no explanation.
- *
- * Free accounts see nothing — their whole allowance fits in the bundled pack, so
- * there is nothing to download.
  */
 export function OfflinePackRow() {
-  const { state } = useStudyStore();
   const { full, status, sync } = useContentPool();
-
-  if (!isPaidTier(state.tier)) return null;
 
   const syncing = status === "syncing";
 

@@ -29,6 +29,8 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature, PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
+import { AdSlot } from "@/components/ads/ad-slot";
+import { routeAllowsAds } from "@/lib/ads";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn } from "@/lib/utils";
 
@@ -65,9 +67,9 @@ const NAV: NavItem[] = [
 
 // Derived, not typed out: a cap change in plans.ts must not leave the upsell
 // promising the old numbers.
-const PREMIUM_UPSELL = `Unlock ${PLAN_MAP.premium.limits.questions} questions, ${PLAN_MAP.premium.limits.flashcards} flashcards, tutor help and scenarios each day.`;
+const PREMIUM_UPSELL = `Remove ads and get the AI tutor — ${PLAN_MAP.premium.limits.tutorMessages} messages a day.`;
+const PLUS_UPSELL = `Get ${PLAN_MAP.premium_plus.limits.tutorMessages} tutor messages a day, plus top-ups.`;
 
-import { SchoolReferralConfirmation } from "@/components/account/school-referral";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { ready, accountHydrated, isAuthed, state } = useStudyStore();
@@ -150,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <p className="mt-1 text-xs text-muted-foreground">
               {state.tier === "free"
                 ? PREMIUM_UPSELL
-                : "Get driver's-licence prep & advanced analytics."}
+                : PLUS_UPSELL}
             </p>
           </Link>
         )}
@@ -196,8 +198,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               input under the nav. The nudge matters most on the study hub,
               least on an immersive chat surface — hide it there. */}
           {pathname !== "/tutor" && <StreakBanner />}
-          {pathname !== "/tutor" && <SchoolReferralConfirmation />}
           {children}
+          {/* Free plan only, below the page's own content so it never sits
+              between a learner and the thing they came to do. */}
+          {routeAllowsAds(pathname) && <AdSlot className="mt-10" />}
         </main>
         <RankUpToast />
         <TestDayDialog />

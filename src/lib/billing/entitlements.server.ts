@@ -2,7 +2,6 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { assertSupabaseConfiguredInProduction, isProductionRuntime, isSupabaseConfigured } from "@/lib/env";
-import { FREE_TRIAL_DAYS, PLAN_MAP } from "@/lib/billing/plans";
 import { tierFromSubscriptionRow, type SubscriptionRowLike } from "@/lib/billing/tier-rule";
 import type { SubscriptionTier } from "@/types";
 
@@ -30,12 +29,11 @@ export type AiSurface = "tutor" | "coach" | "vision";
  * tier can legitimately produce; vision is paid-only (0 = feature locked).
  */
 const DAILY_ALLOWANCE: Record<AiSurface, Record<SubscriptionTier, number>> = {
-  // free mirrors PlanLimits.tutorMessages. The client additionally stops
-  // refilling once the 7-day trial window is up; this stays a plain per-day
-  // ceiling because it is a cost guard, not the product rule — and a per-day
-  // ceiling is strictly tighter than what the old lifetime-vs-daily mismatch
-  // allowed, where a free account could spend 3 messages every single day
-  // server-side while the client believed the pool was lifetime.
+  // free is 0 on tutor and vision: the AI is what a subscription buys, and an
+  // ad-supported account earns cents a month, nowhere near a model call. The
+  // free `coach` number is not a spend allowance at all (the coach route
+  // answers free accounts from its local templates); it only bounds how often
+  // a free account can hit that route in a day.
   // Cut to 10/20 on 11 Aug 2026 because Haiku 4.5 made the old 15/40 unaffordable
   // — a Premium Plus subscriber at their ceiling cost their whole R70 in tokens.
   // Restored the same day, to 15/35, when the fast tier moved to DeepSeek
@@ -45,7 +43,7 @@ const DAILY_ALLOWANCE: Record<AiSurface, Record<SubscriptionTier, number>> = {
   // docs/ops/ai-cost-model.md. Anthropic remains the fallback, and these numbers
   // are only affordable while DeepSeek is the one answering; if the cascade ever
   // falls back for a sustained period, revisit here first.
-  tutor: { free: 2, premium: 15, premium_plus: 35 },
+  tutor: { free: 0, premium: 15, premium_plus: 35 },
   coach: { free: 12, premium: 60, premium_plus: 100 },
   vision: { free: 0, premium: 12, premium_plus: 25 },
 };
@@ -140,8 +138,6 @@ export async function resolveTier(): Promise<ResolvedTier | Response> {
   return { userId: user.id, tier };
 }
 
-const DAY_MS = 86_400_000;
-
 /**
  * The row → tier rule lives in `src/lib/billing/tier-rule.ts`, dependency-free
  * so the CLIENT copy of the tier (src/lib/supabase/account.ts) can resolve
@@ -149,60 +145,6 @@ const DAY_MS = 86_400_000;
  * already imports it from this module.
  */
 export { EXPIRY_GRACE_MS, tierFromSubscriptionRow, type SubscriptionRowLike } from "@/lib/billing/tier-rule";
-
-/**
- * Is this free account still inside its free week?
- *
- * The free tier *is* the trial (`PLAN_MAP.free.limits.trialDays`), so `tier ===
- * "free"` on its own doesn't separate a prospect three days into evaluating the
- * product from an account that lapsed months ago. Callers that want to spend
- * money on someone — a real model call rather than the rule-based explainer —
- * need that distinction.
- *
- * Deliberately mirrors `trialStartedAt()` in `src/lib/billing/trial.ts`, which
- * anchors on the **earliest** timestamp it can see. That client function is
- * what renders "3 days left in your free week"; if the server resolved the
- * window differently, the banner and the tutor would disagree about the same
- * seven days, which is worse than either answer alone.
- *
- * `created_at` is normally the floor (it is `not null` and precedes onboarding),
- * but `onboarded_at` is read too so a profile row that was ever backfilled or
- * recreated can't hand someone a second free week.
- *
- * **Forgiving on failure, unlike the tier lookup above.** A missing profile, an
- * unreadable one, or no admin client all resolve to *within* trial — matching
- * the client, which treats an unanchored week as untouched rather than expired.
- * The asymmetry is deliberate: `resolveTier` fails closed because it decides
- * what someone paid for, whereas this only decides which engine answers a
- * message that is already capped at `DAILY_ALLOWANCE.tutor.free` a day. Failing
- * closed here would silently serve the worse tutor to new signups during an
- * outage — the exact people the week exists to convince.
- */
-export async function isWithinFreeTrial(userId: string, now = Date.now()): Promise<boolean> {
-  const admin = createAdminClient();
-  if (!admin) return true;
-
-  const days = PLAN_MAP.free.limits.trialDays ?? FREE_TRIAL_DAYS;
-  try {
-    const { data } = await admin
-      .from("profiles")
-      .select("onboarded_at,created_at,trial_bonus_days")
-      .eq("id", userId)
-      .maybeSingle();
-    const row = data as { onboarded_at: string | null; created_at: string | null; trial_bonus_days?: number } | null;
-    if (!row) return true;
-
-    const started = [row.created_at, row.onboarded_at]
-      .map((v) => (typeof v === "string" ? Date.parse(v) : NaN))
-      .filter((t) => Number.isFinite(t));
-    if (started.length === 0) return true;
-
-    const bonus = row.trial_bonus_days === 7 ? 7 : 0;
-    return now - Math.min(...started) < (days + bonus) * DAY_MS;
-  } catch {
-    return true;
-  }
-}
 
 /**
  * Spend one purchased tutor top-up credit. Credits are granted only by the

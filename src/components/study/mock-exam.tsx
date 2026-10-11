@@ -529,47 +529,19 @@ export function MockExam() {
     );
   }
 
+  // No plan meters mocks today (every tier is unlimited); this stays for any
+  // plan that sets a daily number.
   if (remainingMocks <= 0 && phase === "intro") {
-    const free = state.tier === "free";
+    const what = drill ? "section drills" : mini ? "mini mocks" : "full mocks";
     return (
       <div className="mx-auto max-w-md py-10">
-        {drill ? (
-          <Paywall
-            feature="section_drill"
-            plan={free ? "premium" : "premium_plus"}
-            title={free ? "That's today's free section drill" : "You've done today's 5 section drills"}
-            description={
-              free
-                ? "One timed drill a day is included in your free week. Premium gives you 5 section drills a day — signs, rules or controls, each at its real pass mark."
-                : "Your daily allowance resets tomorrow. Premium Plus removes drill limits entirely."
-            }
-            cta={free ? "Unlock 5 drills a day" : "See Premium Plus"}
-          />
-        ) : free && !mini ? (
-          <Paywall
-            feature="mock_exam"
-            plan="premium"
-            title="Your free plan includes one full mock"
-            description="That one real 64-question paper is available during your free week. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
-            cta="Unlock full mocks"
-          />
-        ) : free ? (
-          <Paywall
-            feature="mini_mock"
-            plan="premium"
-            title="That's today's free mini mock"
-            description="Your free week includes one full 64-question mock. Premium gives you 3 full mocks and 5 mini mocks every day until test day."
-            cta="Unlock daily mocks"
-          />
-        ) : (
-          <Paywall
-            feature={mini ? "mini_mock" : "mock_exam"}
-            plan="premium_plus"
-            title={mini ? "You've done today's 5 mini mocks" : "You've done today's 3 full mocks"}
-            description="Your daily allowance resets tomorrow. Premium Plus removes mock limits entirely."
-            cta="See Premium Plus"
-          />
-        )}
+        <Paywall
+          feature={drill ? "section_drill" : mini ? "mini_mock" : "mock_exam"}
+          title={`You've done today's ${what}`}
+          description="Your daily allowance resets tomorrow."
+          cta="See plans"
+          href="/account/billing"
+        />
       </div>
     );
   }

@@ -17,11 +17,10 @@ import { tierFromSubscriptionRow, type SubscriptionRowLike } from "@/lib/billing
 
 type AccountData = Pick<
   UserState,
-  "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence" | "diagnosticSkippedAt" | "trialBonusDays" | "hasEverPaid"
+  "profile" | "onboarding" | "tier" | "streak" | "cp" | "licence" | "diagnosticSkippedAt" | "hasEverPaid"
 >;
 
 interface ProfileRow {
-  trial_bonus_days?: number;
   full_name: string | null;
   email: string | null;
   goal: OnboardingData["goal"] | null;
@@ -136,7 +135,6 @@ export async function loadAccount(
 
   const st = streakRes.data as StreakRow | null;
   const result: Partial<AccountData> = {
-    trialBonusDays: p?.trial_bonus_days === 7 ? 7 : 0,
     hasEverPaid: Boolean(subRes.data?.paid_at || (subRes.data?.tier && subRes.data.tier !== "free")),
     profile,
     onboarding,

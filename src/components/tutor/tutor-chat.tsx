@@ -11,8 +11,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog } from "@/components/ui/dialog";
 import { Paywall } from "@/components/app/paywall";
 import { SUPPORT_EMAIL } from "@/lib/constants";
-import { TrialMeter } from "@/components/app/trial-meter";
-import { TrialEndCard, trialExhausted } from "@/components/app/trial-end-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { cn, formatDate, formatZar } from "@/lib/utils";
 import { hasFeature, TUTOR_TOPUP_CREDITS, TUTOR_TOPUP_PRICE } from "@/lib/billing/plans";
@@ -589,25 +587,32 @@ export function TutorChat({ initial }: { initial: InitialContext | null }) {
         <div className="border-t border-border p-3">
           {blocked ? (
             <div className="px-1 py-2">
-              {state.tier === "free" && trialExhausted(state) ? (
-                // The free week is over: the daily allowance is 0, so "the free
-                // plan includes 0 messages a day" is nonsense. These learners
-                // get the personalised trial-end card their sibling study
-                // surfaces show, with whatever is still free today named.
-                <TrialEndCard feature="tutor" />
-              ) : (
+              {state.tier === "free" ? (
+                // The AI tutor is not part of the free plan at all, so this is
+                // an upgrade card, not a "you've run out for today" one.
                 <Paywall
                   feature="tutor"
                   plan="premium"
-                  title="You've used today's free tutor messages"
-                  description={`The free plan includes ${cap.cap} tutor message${cap.cap === 1 ? "" : "s"} a day. Upgrade for more coaching whenever you're stuck.`}
-                  cta="Upgrade for more"
+                  title="The AI tutor is a Premium feature"
+                  description="Ask Navi anything about the K53 and get an answer written for the question in front of you. Premium also removes every ad."
+                />
+              ) : (
+                <Paywall
+                  feature="tutor"
+                  plan="premium_plus"
+                  title="You've used today's tutor messages"
+                  description={
+                    state.tier === "premium_plus"
+                      ? `Your plan includes ${cap.cap} tutor messages a day, and they reset tomorrow.`
+                      : `Your plan includes ${cap.cap} tutor messages a day, and they reset tomorrow. Premium Plus gives you more, plus top-ups.`
+                  }
+                  cta={state.tier === "premium_plus" ? "Manage plan" : "See Premium Plus"}
+                  href={state.tier === "premium_plus" ? "/account/billing" : undefined}
                 />
               )}
             </div>
           ) : (
             <>
-              <TrialMeter feature="tutor" className="mb-2.5" />
               {topUpBanner && (
                 <div
                   className={cn(

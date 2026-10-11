@@ -104,7 +104,7 @@ describe("TURNSTILE_SCRIPT_SRC", () => {
   it("allows the same origin in the production Content Security Policy", () => {
     const config = readFileSync(resolve(process.cwd(), "next.config.mjs"), "utf8");
     const scriptSrc = config.match(/`script-src[^`]+`/)?.[0] ?? "";
-    const frameSrc = config.match(/"frame-src[^"]+"/)?.[0] ?? "";
+    const frameSrc = config.match(/[`"]frame-src[^`"]+[`"]/)?.[0] ?? "";
 
     expect(new URL(TURNSTILE_SCRIPT_SRC).origin).toBe(TURNSTILE_ORIGIN);
     expect(scriptSrc).toContain(TURNSTILE_ORIGIN);

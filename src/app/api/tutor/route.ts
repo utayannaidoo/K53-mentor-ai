@@ -5,7 +5,6 @@ import { retrieveRelated } from "@/lib/ai/retrieve";
 import { chooseProvider, streamTutorReply } from "@/lib/ai/provider";
 import { clientIp, limitTutor, limitUserDaily, refundUserDaily } from "@/lib/ai/rate-limit";
 import {
-  isWithinFreeTrial,
   refundTutorCredit,
   resolveEntitlement,
   spendTutorCredit,
@@ -84,15 +83,13 @@ export async function POST(req: Request) {
   const ent = await resolveEntitlement("tutor");
   if (ent instanceof Response) return ent;
 
-  // Free-tier trial lookup, started before the body is even read: it decides
-  // local-vs-AI at the very end of this handler, and nothing below depends on
-  // it — so instead of a lone awaited round-trip after metering, it overlaps
-  // the body parse, the cap check and grounding (one fewer serial RTT for
-  // exactly the users the trial exists to convince).
-  const trialPromise =
-    !limiterUnavailable && ent.tier === "free" && ent.userId !== null
-      ? isWithinFreeTrial(ent.userId)
-      : Promise.resolve(false);
+  // The AI tutor is a paid feature: a free account's allowance is 0. Refused
+  // here, before the body is read or anything is metered, with the same shape
+  // /api/vision uses. The composer already shows the upgrade card instead of
+  // an input for free accounts; this is the backstop for a tampered client.
+  if (ent.userId && ent.allowance <= 0) {
+    return Response.json({ error: "upgrade_required", tier: ent.tier }, { status: 403 });
+  }
 
   // Chunked requests skip the header check above, so the read itself is capped:
   // an undeclared flood dies mid-stream instead of buffering before zod.
@@ -177,17 +174,9 @@ export async function POST(req: Request) {
   if (trimmed.length === 0) trimmed = [{ role: "user", content: lastUser }];
 
   // ── Which engine answers ───────────────────────────────────────────────────
-  // The free tier IS the seven-day trial, so "free" splits into two different
-  // people. Inside the week, the AI tutor is the single feature the learner is
-  // deciding whether to pay for — answering with the rule-based explainer hides
-  // the product from exactly the audience the week exists to convince, and the
-  // 2/day cap already bounds it to roughly R0.59 per trialling signup. Once the
-  // week lapses, the local explainer takes over, and the gap between the two is
-  // the upgrade pitch. Only the free tier pays for the extra lookup (started
-  // early, right after entitlement — see trialPromise above).
   // If shared accounting is down, keep the learning flow available without
   // making any provider call or consuming the learner's paid daily allowance.
-  const forceLocal = limiterUnavailable || (ent.tier === "free" && !(await trialPromise));
+  const forceLocal = limiterUnavailable;
 
   try {
     const { stream, model, provider } = await streamTutorReply({
@@ -200,10 +189,9 @@ export async function POST(req: Request) {
       forceLocal,
     });
     // A provider outage or an empty balance falls through to the study-notes
-    // explainer without erroring. Everyone who reaches this line was promised
-    // the AI — a lapsed free trial is `forceLocal`, where the explainer IS the
-    // product — so give the message back and flag the answer rather than
-    // serving the lesser reply as if it were what they pay for.
+    // explainer without erroring. Everyone who reaches this line pays for the
+    // AI, so give the message back and flag the answer rather than serving the
+    // lesser reply as if it were what they pay for.
     const fellBack = provider === "local" && !forceLocal;
     if (fellBack && ent.userId) {
       if (spentCredit) await refundTutorCredit(ent.userId);
@@ -222,9 +210,8 @@ export async function POST(req: Request) {
         // — is visible as a shift in the mix rather than as nothing at all.
         "x-tutor-provider": provider,
         // A paid learner answered from study notes because spend can't be
-        // accounted for right now. Flagged so the chat can say so — the
-        // intentional free-tier fallback stays unflagged.
-        ...((limiterUnavailable && ent.tier !== "free") || fellBack ? { "x-tutor-mode": "basic" } : {}),
+        // accounted for right now. Flagged so the chat can say so.
+        ...(limiterUnavailable || fellBack ? { "x-tutor-mode": "basic" } : {}),
       },
     });
   } finally {

@@ -1,8 +1,7 @@
 "use client";
 
 import * as React from "react";
-import type { DriverModule, Flashcard, Question, Scenario, SubscriptionTier } from "@/types";
-import { isPaidTier } from "@/lib/billing/plans";
+import type { DriverModule, Flashcard, Question, Scenario } from "@/types";
 import { useStudyStore } from "@/hooks/use-study-store";
 import {
   mayServeCached,
@@ -24,25 +23,20 @@ import { CONTENT_VERSION } from "@/lib/content/meta";
 /**
  * Where study content comes from.
  *
- * The browser bundle carries only the starter pack. The full bank — everything
- * a subscription pays for — is fetched once from /api/content/pack and kept in
- * Cache Storage, so it is downloaded on a device once rather than shipped to
- * every visitor on every route.
+ * The browser bundle carries only the starter pack. The full bank is fetched
+ * once from /api/content/pack and kept in Cache Storage, so it is downloaded on
+ * a device once rather than shipped to every visitor on every route. It is free
+ * on every plan; the route only requires an account.
  *
  * The starter pack is available synchronously, which is the point: there is no
- * loading state on first paint, free learners never wait for a network call,
- * and a paid learner studies immediately while the rest arrives behind them.
- * Planning does not depend on any of this — due counts, today's plan, mastery
- * and CP all read the generated index in meta.ts — so only the surfaces that
- * actually render an item consume this.
+ * loading state on first paint, and a learner studies immediately while the
+ * rest arrives behind them. Planning does not depend on any of this — due
+ * counts, today's plan, mastery and CP all read the generated index in meta.ts
+ * — so only the surfaces that actually render an item consume this.
  *
- * Entitlement-aware caching: the client's own tier (localStorage) decides
- * nothing here except whether to bother syncing at all. Every cached read goes
- * through the pack-cache module, which requires either a live server probe or
- * an unexpired server-stamped grant — see pack-cache.ts for why. A lapsed
- * subscription therefore loses its cached bank within days even if this
- * browser's stored tier still says "premium", and a manipulated one never
- * gains it.
+ * Every cached read goes through the pack-cache module, which requires either a
+ * live server probe or an unexpired server-stamped grant — see pack-cache.ts. A
+ * signed-out browser therefore loses its cached bank within days.
  */
 
 export type ContentStatus = "starter" | "syncing" | "full" | "error" | "paused";
@@ -79,8 +73,8 @@ const STARTER: Pick<ContentPool, "questions" | "flashcards" | "scenarios" | "mod
   questions: STARTER_QUESTIONS,
   flashcards: STARTER_FLASHCARDS,
   scenarios: STARTER_SCENARIOS,
-  // No bundled modules at all: every step of every guide is Premium Plus
-  // content, and the list page renders from metadata instead.
+  // No bundled modules: the steps arrive with the pack, and the list page
+  // renders from metadata instead.
   modules: [],
 };
 
@@ -88,7 +82,7 @@ const STARTER: Pick<ContentPool, "questions" | "flashcards" | "scenarios" | "mod
 type LoadOutcome =
   | { kind: "full"; pack: Pack }
   | { kind: "cached"; pack: Pack }
-  | { kind: "denied" } // server says not paid — purge and drop to starter
+  | { kind: "denied" } // server says signed out — purge and drop to starter
   | { kind: "unavailable" }; // could not confirm and no usable cache
 
 const ContentContext = React.createContext<ContentPool | null>(null);
@@ -102,13 +96,11 @@ export async function loadPack(
   doFetch: typeof fetch,
   now = Date.now(),
 ): Promise<LoadOutcome> {
-  // Ask the server first — always. Even when a cache exists: this is what
-  // makes the browser's own tier state worthless as authorization.
+  // Ask the server first — always, even when a cache exists.
   try {
     const res = await doFetch("/api/content/pack?probe=1");
     if (res.ok) {
       const probe = (await res.json()) as ProbeResponse;
-      if (!isPaidTier(probe.tier as SubscriptionTier)) return { kind: "denied" };
       const expiresAt = Date.parse(probe.entitlement?.expiresAt ?? "") || now;
       const grant = {
         version: CONTENT_VERSION,
@@ -123,8 +115,7 @@ export async function loadPack(
       return await fetchFull(scope, doFetch);
     }
     if (res.status === 401 || res.status === 403) {
-      // Authoritative: signed out or no longer entitled. The cached copy of
-      // paid content must go with it.
+      // Authoritative: signed out. The cached copy goes with the session.
       return { kind: "denied" };
     }
     // 429/5xx — the server spoke but cannot answer properly right now. Fall
@@ -160,11 +151,10 @@ async function fetchFull(scope: PackCacheScope, doFetch: typeof fetch): Promise<
 
 export function ContentProvider({ children }: { children: React.ReactNode }) {
   const { state, ready, accountHydrated } = useStudyStore();
-  const paid = isPaidTier(state.tier);
   const ownerId = state.profile?.id ?? null;
   // Only act once hydration has told us who this browser belongs to. Before
-  // that, a paying account can look free for a few hundred milliseconds —
-  // acting then would purge their cached bank on every cold load.
+  // that, `state` is whatever this browser last cached — possibly another
+  // account's — and a pack must never be keyed to the wrong owner.
   const settled = ready && accountHydrated;
 
 
@@ -175,11 +165,11 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
 
   const scopeOf = React.useCallback((): PackCacheScope | null => {
     // The owner id anchors the cache to one account. Without it (no profile
-    // yet) there is nothing to key a paid download to, so wait — hydration
-    // sets it moments later.
-    if (!ownerId || !paid) return null;
+    // yet) there is nothing to key a download to, so wait — hydration sets it
+    // moments later.
+    if (!ownerId) return null;
     return { version: CONTENT_VERSION, tier: state.tier, ownerId };
-  }, [ownerId, paid, state.tier]);
+  }, [ownerId, state.tier]);
 
   const runLoad = React.useCallback(async () => {
     if (syncing.current || !settled) return;
@@ -196,8 +186,8 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
           setStatus("full");
           break;
         case "denied":
-          // Server truth says this account may not hold the bank — wipe any
-          // cached copy this browser is holding, whatever it believes.
+          // The server no longer recognises this session — wipe any cached
+          // copy this browser is holding.
           setPack(null);
           setStatus("starter");
           void purgePackCache();
@@ -217,11 +207,10 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     if (!settled) return;
-    if (!paid || !ownerId) {
-      // Free accounts never fetch AND never keep: their whole allowance fits in
-      // the starter pack, so anything in Cache Storage belongs to a payment
-      // that is over. Purge on the way down — but only once hydration has
-      // actually established this account is free (see `settled`).
+    if (!ownerId) {
+      // Nobody is signed in on this browser, so there is no one to key a pack
+      // to. Purge on the way down — but only once hydration has actually
+      // established that (see `settled`).
       setPack(null);
       setStatus("starter");
       void purgePackCache();
@@ -243,14 +232,13 @@ export function ContentProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     void runLoad();
-  }, [paid, ownerId, settled, runLoad]);
+  }, [ownerId, settled, runLoad]);
 
   React.useEffect(() => {
     if (!settled) return;
     // Re-probe when connectivity returns. Without this, a session that opened
     // offline (or through an outage) kept serving the cached pack on the
-    // grace grant until the next full reload — a downgraded account could
-    // study paid content for as long as the tab stayed open.
+    // grace grant until the next full reload.
     const onOnline = () => void runLoad();
     window.addEventListener("online", onOnline);
     return () => window.removeEventListener("online", onOnline);

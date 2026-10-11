@@ -205,26 +205,6 @@ function AuthFormInner({ mode }: { mode: "login" | "signup" }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
-  // A referral link (/signup?ref=CODE) parks the code until the account
-  // exists; the study store claims it right after the first sign-in.
-  React.useEffect(() => {
-    const ref = new URLSearchParams(window.location.search).get("ref");
-    if (ref && /^[a-z0-9]{4,16}$/i.test(ref)) {
-      try {
-        window.localStorage.setItem("k53.ref", ref.toLowerCase());
-      } catch {
-        /* private mode */
-      }
-    }
-    const school = new URLSearchParams(window.location.search).get("school");
-    if (school && /^[a-z0-9-]{6,16}$/i.test(school)) {
-      try {
-        // First touch wins, including while the learner has not signed in yet.
-        if (!window.localStorage.getItem("k53.school")) window.localStorage.setItem("k53.school", school.toLowerCase());
-      } catch { /* private mode */ }
-    }
-  }, []);
-
   /** Where Supabase should send someone after they click an emailed link. */
   function confirmRedirect(): string {
     return `${window.location.origin}/auth/callback?next=${encodeURIComponent(postAuthDest())}`;

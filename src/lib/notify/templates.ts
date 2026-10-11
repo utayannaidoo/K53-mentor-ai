@@ -1,5 +1,4 @@
 import { SITE_URL } from "@/lib/constants";
-import { PLAN_MAP } from "@/lib/billing/plans";
 import { categoryName } from "@/lib/content/categories";
 import type { CategoryId } from "@/types";
 import { pluralize } from "@/lib/utils";
@@ -203,25 +202,17 @@ export function buildPaymentReceiptEmail(input: {
 }
 
 /**
- * What a lapsed or cancelled account still gets each day, in words. Read from
- * the plan definition so an email can never quote a number the app no longer
- * honours.
+ * What a lapsed or cancelled account keeps, in words. One place, so the two
+ * halves of the email below cannot drift apart.
  */
-function freeFloor(): string {
-  const floor = PLAN_MAP.free.limits.afterTrial;
-  if (!floor) return "nothing";
-  return `${floor.questions} ${pluralize(floor.questions, "question")} and ${floor.flashcards} ${pluralize(floor.flashcards, "flashcard")} a day`;
-}
+const FREE_FLOOR = "the Free plan: all your study content stays, with ads";
 
 /**
  * Sent a few days before a cancelled subscription's paid period runs out.
  *
  * This is the one warning someone gets that access is about to stop, and it
- * names exactly what they keep and what they lose. The seven-day free
- * week is anchored to signup and long spent by now, but a small daily
- * allowance (PlanLimits.afterTrial) survives it, so this says "you drop to
- * N a day" rather than "you'll move to our Free plan", which would imply
- * the paid loop continues.
+ * names exactly what they keep and what they lose: the study content stays
+ * (Free is ad-supported and unmetered), the AI tutor and ad-free go.
  */
 export function buildSubscriptionEndingEmail(input: {
   firstName: string;
@@ -237,8 +228,8 @@ export function buildSubscriptionEndingEmail(input: {
   const subject = `Your ${input.planName} access ends ${dayPhrase}`;
   const text =
     `Hi ${input.firstName || "there"} — your ${input.planName} plan was cancelled and your access ends on ${when}.\n\n` +
-    `Nothing has been charged and nothing will be. When it ends you drop to the free daily allowance, ` +
-    `${freeFloor()}, and mock exams, scenarios and the AI tutor stop.
+    `Nothing has been charged and nothing will be. When it ends you drop to ` +
+    `${FREE_FLOOR}, and the AI tutor stops.
 
 ` +
     `If you're still working towards your test, resubscribing before ${when} keeps everything going without a gap. ` +
@@ -247,7 +238,7 @@ export function buildSubscriptionEndingEmail(input: {
   const html = wrap(
     h(`Your access ends ${esc(dayPhrase)}`) +
       p(`Hi ${name} — your <strong>${plan}</strong> plan was cancelled, and your access ends on <strong>${esc(when)}</strong>.`) +
-      p(`Nothing has been charged and nothing will be. When it ends you drop to the free daily allowance, ${esc(freeFloor())}, and mock exams, scenarios and the AI tutor stop on that date.`) +
+      p(`Nothing has been charged and nothing will be. When it ends you drop to ${esc(FREE_FLOOR)}, and the AI tutor stops on that date.`) +
       p("If you're still working towards your test, resubscribing before then keeps everything running without a gap. Your progress, streak and readiness score are safe either way.") ,
     "Resubscribe",
     "/account/billing",
@@ -264,25 +255,22 @@ export function buildSubscriptionEndingEmail(input: {
  * were the ones who heard from us least. This is also the email that sets the
  * expectation the whole product rests on: ten minutes a day, not cramming.
  *
- * Deliberately not a sales pitch. It names the free week honestly, including
- * that it ends, and points at the one action worth taking first. The upgrade
- * argument is the product working, not this email.
+ * Deliberately not a sales pitch. It says plainly that the study app is free
+ * and ad-supported, and points at the one action worth taking first.
  */
 export function buildWelcomeEmail(input: {
   firstName: string;
-  trialDays: number;
   /** The same reminders opt-out the nudges carry (reminder-optout.ts). */
   unsubscribeUrl?: string | null;
 }): EmailContent {
   const name = esc(input.firstName) || "there";
-  const days = input.trialDays;
   const subject = "Welcome to K53 Mentor AI — start with the diagnostic";
   const text =
     `Hi ${input.firstName || "there"} — welcome aboard.\n\n` +
     `Start with the diagnostic. It takes about five minutes and works out which topics ` +
     `you're actually weak on, so your daily practice goes there instead of spreading thin.\n\n` +
-    `Your free week: full flashcards and questions every day for ${days} days, a mini mock ` +
-    `daily, and the AI tutor. It refills each morning and stops after ${days} days.\n\n` +
+    `Everything you study with is free: every question, flashcard, scenario and mock exam, ` +
+    `with no daily limit. The app is paid for by ads; a plan removes them and adds the AI tutor.\n\n` +
     `What passes this test is ten minutes a day, not one long cram the night before. ` +
     `The whole app is built around that.\n\nStart here: ${SITE_URL}/dashboard`;
   const html = wrap(
@@ -292,7 +280,7 @@ export function buildWelcomeEmail(input: {
         "<strong>Start with the diagnostic.</strong> It takes about five minutes and works out which topics you're actually weak on, so your daily practice goes there instead of spreading thin across everything.",
       ) +
       p(
-        `Your free week gives you full flashcards and questions every day for ${days} days, a mini mock daily, and the AI tutor. It refills each morning and stops after ${days} days.`,
+        "Everything you study with is free: every question, flashcard, scenario and mock exam, with no daily limit. The app is paid for by ads; a plan removes them and adds the AI tutor.",
       ) +
       p(
         "One thing worth knowing: what passes this test is ten minutes a day, not one long cram the night before. The whole app is built around that.",
@@ -909,79 +897,6 @@ export function buildPlanEmail(input: {
         }
       : {}),
   };
-}
-
-/**
- * A driving school applied from /for-driving-schools. Internal alert — the
- * school itself gets nothing until a human activates it in /admin and a code
- * is issued, so this is the only thing that happens automatically.
- */
-export function buildPartnerApplicationEmail(input: {
-  name: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string | null;
-  town: string | null;
-  learnersPerMonth: string | null;
-}): EmailContent {
-  const subject = `[K53 partners] ${input.name} applied`;
-  const lines = [
-    `A driving school applied to the referral programme.`,
-    ``,
-    `School:   ${input.name}`,
-    `Contact:  ${input.contactName}`,
-    `Email:    ${input.contactEmail}`,
-    `Phone:    ${input.contactPhone ?? "not given"}`,
-    `Town:     ${input.town ?? "not given"}`,
-    `Learners: ${input.learnersPerMonth ?? "not given"} per month`,
-    ``,
-    `It was created as PENDING, with no code. Nothing can be attributed or earned`,
-    `until you activate it in /admin/schools and issue a code.`,
-  ];
-  const html =
-    `<pre style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;` +
-    `line-height:1.6;color:#1d2724;white-space:pre-wrap;">${esc(lines.join("\n"))}</pre>`;
-  return { subject, html, text: lines.join("\n") };
-}
-
-/**
- * A school's monthly statement. Deliberately thin: counts, money, and the link
- * to its own live page. Nothing here identifies a learner — see
- * `src/lib/partners/statement.ts` for why that boundary is in the query rather
- * than in the template.
- */
-export function buildPartnerStatementEmail(input: {
-  schoolName: string;
-  contactName: string;
-  signedUp: number;
-  converted: number;
-  pendingCents: number;
-  payableCents: number;
-  paidCents: number;
-  statementUrl: string;
-}): EmailContent {
-  const money = (cents: number) => `R${(cents / 100).toFixed(2)}`;
-  const first = input.contactName.trim().split(/\s+/)[0] || "there";
-  const subject = `Your K53 Mentor referrals — ${input.converted} subscribed`;
-  const body = [
-    `Hi ${first},`,
-    `Here's how ${input.schoolName} is doing on the K53 Mentor referral programme.`,
-    `${input.signedUp} learner${input.signedUp === 1 ? "" : "s"} signed up with your code, and ${input.converted} subscribed.`,
-    `${money(input.payableCents)} is ready to be paid, ${money(input.pendingCents)} is still in its 8-day hold, and ${money(input.paidCents)} has been paid to you so far.`,
-    `Your live numbers are always on your statement page — no login needed.`,
-  ];
-  const html = wrap(
-    body
-      .map(
-        (line, i) =>
-          `<p style="font-size:${i === 0 ? 15 : 14}px;line-height:1.6;color:#1d2724;margin:0 0 12px;">${esc(line)}</p>`,
-      )
-      .join(""),
-    "View your statement",
-    input.statementUrl,
-    "transactional",
-  );
-  return { subject, html, text: `${body.join("\n\n")}\n\n${input.statementUrl}` };
 }
 
 export function buildRefundOperatorEmail(input: {

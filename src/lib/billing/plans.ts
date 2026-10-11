@@ -50,53 +50,27 @@ export const TUTOR_TOPUP_PRICE = 10;
 
 /** Items in one full flashcard or question session. */
 export const STUDY_SESSION_SIZE = 12;
-/** Premium gets this many full flashcard + question sessions a day. */
-export const PREMIUM_SESSIONS_PER_DAY = 3;
-const PREMIUM_DAILY_ITEMS = STUDY_SESSION_SIZE * PREMIUM_SESSIONS_PER_DAY; // 36
 
 /**
- * The richer per-tier limit model behind the new plan structure. `caps` below
- * is kept as the legacy numeric view consumed by the study surfaces; `limits`
- * is the source of truth the new enforcement + UI read from.
+ * Per-tier limits. Everything that is not AI is free and unlimited on every
+ * plan — the free tier is paid for by ads, not by a trial clock or daily caps.
+ * What a subscription buys is the AI (tutor, sign scanner) and no ads, so the
+ * only numbers that differ between tiers are the AI allowances.
  */
-/** How long the free tier's daily allowances keep refilling. */
-export const FREE_TRIAL_DAYS = 7;
-
 export interface PlanLimits {
-  /**
-   * Study allowances refill daily. Free additionally expires: its allowances
-   * reset every day for `trialDays`, then stop. The single Free full mock has
-   * its own lifetime reset rule below.
-   *
-   * It used to be `"trial"` — one lifetime pool of 12 cards, 15 questions and 3
-   * tutor messages, which a learner could exhaust in a single ten-minute
-   * sitting. That is not enough to feel a product whose whole thesis is "ten
-   * minutes a day, spaced repetition, streaks": they were asked to buy a habit
-   * they had never experienced. A week of smaller daily allowances costs about
-   * the same content and can actually produce a streak.
-   */
+  /** Study allowances refill daily. */
   reset: "daily";
-  /** Days the plan's daily allowance keeps refilling. Absent = forever (paid). */
-  trialDays?: number;
-  /**
-   * Free only: the small daily allowance that outlives the trial. Without it
-   * day eight walled off everything, and a learner whose test was in week four
-   * simply left — every competing K53 app is free forever. Tutor, scenarios
-   * and mocks stay paid; this keeps the daily habit and the streak alive.
-   */
-  afterTrial?: { questions: number; flashcards: number };
   diagnostic: "full";
   /** A per-day item count, or unlimited. */
   flashcards: number | "unlimited";
   questions: number | "unlimited";
   /** false = not included, a number = per-day allowance, or unlimited. */
   scenarios: number | "unlimited" | false;
+  /** AI tutor messages a day. 0 = the tutor is not part of this plan. */
   tutorMessages: number | "unlimited";
   /** Premium Plus: buy extra tutor messages beyond the daily allowance. */
   tutorTopUp: boolean;
   mockExams: number | "unlimited";
-  /** Full mocks normally reset daily; Free gets one genuine paper for its whole trial. */
-  mockExamReset?: "daily" | "lifetime";
   /** 15-question mini mocks, per day. */
   miniMocks: number | "unlimited";
   /** Single-section timed drills at real pass marks, per day. */
@@ -116,125 +90,79 @@ export interface PlanDef {
    * code, so nothing here depends on which vehicle the learner is studying.
    */
   monthly: number;
+  /** Whether this plan is ad-supported. Paying for any plan removes ads. */
+  ads: boolean;
   features: Record<FeatureKey, boolean>;
   caps: Record<CapKey, number>; // Infinity = unlimited (legacy view)
   limits: PlanLimits;
   perks: string[];
 }
 
+/** The study allowances every plan shares: all of it, with no daily meter. */
+const FULL_STUDY = {
+  reset: "daily",
+  diagnostic: "full",
+  flashcards: "unlimited",
+  questions: "unlimited",
+  scenarios: "unlimited",
+  mockExams: "unlimited",
+  miniMocks: "unlimited",
+  sectionDrills: "unlimited",
+  mockLength: "full",
+  studyPlan: true,
+  progressHistory: "full",
+} as const;
+
 export const PLANS: PlanDef[] = [
   {
     id: "free",
     name: "Free",
-    tagline: "A full free week, then a daily taste that stays free.",
+    tagline: "The whole K53 study app, free. Supported by ads.",
     monthly: 0,
-    features: { tutor: true, scenarios: false, licencePrep: false, advancedAnalytics: false, scanner: false },
-    caps: { flashcardsPerDay: 15, questionsPerDay: 15, tutorPerDay: 2 },
-    limits: {
-      reset: "daily",
-      trialDays: FREE_TRIAL_DAYS,
-      afterTrial: { questions: 5, flashcards: 5 },
-      diagnostic: "full",
-      flashcards: 15,
-      questions: 15,
-      scenarios: false,
-      tutorMessages: 2,
-      tutorTopUp: false,
-      mockExams: 1,
-      mockExamReset: "lifetime",
-      miniMocks: 1, // one a day during the free week
-      sectionDrills: 1, // one a day, same taste-then-pay pattern
-      // The Free plan gets one genuine 64-question paper, not a disguised
-      // mini mock. `mocksRemaining` keeps that paper lifetime-limited.
-      mockLength: "full",
-      studyPlan: false,
-      progressHistory: "7d",
-    },
+    ads: true,
+    // `tutor` and `scanner` are the AI features — the only things a plan buys
+    // besides removing ads. Everything else is on for everyone.
+    features: { tutor: false, scenarios: true, licencePrep: true, advancedAnalytics: true, scanner: false },
+    caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 0 },
+    limits: { ...FULL_STUDY, tutorMessages: 0, tutorTopUp: false },
     perks: [
-      "Full AI diagnostic + readiness score",
-      "15 flashcards & 15 questions every day for 7 days",
-      "Then 5 flashcards & 5 questions a day, free for good",
-      // Both of these stop at day 7 — `afterTrial` carries only questions and
-      // flashcards, and mocksRemaining() returns 0 once trialExhausted(). They
-      // used to read "a day" / "every day" with no qualifier, which is the plan
-      // page promising something the app takes away on day eight.
-      "2 AI tutor messages a day during your free week",
-      "1 full 64-question mock during your free week",
-      "A 15-question mini mock a day during your free week",
-      "7-day progress history",
+      "Every question, flashcard & scenario — unlimited",
+      "Unlimited full mock exams, mini mocks & section drills",
+      "Readiness score, daily study plan & full progress history",
+      "Driver's-licence yard-test modules",
+      "Shows ads",
     ],
   },
   {
     id: "premium",
     name: "Premium",
-    tagline: "Focused daily practice to pass your learner's.",
+    tagline: "No ads, and an AI tutor whenever you're stuck.",
     highlighted: true,
     monthly: 60,
-    features: { tutor: true, scenarios: true, licencePrep: false, advancedAnalytics: false, scanner: true },
-    caps: {
-      flashcardsPerDay: PREMIUM_DAILY_ITEMS,
-      questionsPerDay: PREMIUM_DAILY_ITEMS,
-      tutorPerDay: 15,
-    },
-    limits: {
-      reset: "daily",
-      diagnostic: "full",
-      flashcards: PREMIUM_DAILY_ITEMS,
-      questions: PREMIUM_DAILY_ITEMS,
-      scenarios: 3,
-      tutorMessages: 15,
-      tutorTopUp: false,
-      mockExams: 3,
-      mockExamReset: "daily",
-      miniMocks: 5,
-      sectionDrills: 5,
-      mockLength: "full",
-      studyPlan: true,
-      progressHistory: "full",
-    },
+    ads: false,
+    features: { tutor: true, scenarios: true, licencePrep: true, advancedAnalytics: true, scanner: true },
+    caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 15 },
+    limits: { ...FULL_STUDY, tutorMessages: 15, tutorTopUp: false },
     perks: [
-      "3 full flashcard & question sessions a day",
-      "Full scenarios — a few a day",
+      "Everything in Free",
+      "No ads, anywhere",
       "AI tutor — 15 messages a day",
-      "3 full mocks + 5 mini mocks & section drills a day",
-      "Personalised daily study plan",
-      "Full progress history",
+      "AI road-sign scanner",
     ],
   },
   {
     id: "premium_plus",
     name: "Premium Plus",
-    tagline: "Full learner's and driver's prep, end to end.",
+    tagline: "No ads, and the most AI tutor time.",
     monthly: 70,
+    ads: false,
     features: { tutor: true, scenarios: true, licencePrep: true, advancedAnalytics: true, scanner: true },
     caps: { flashcardsPerDay: Infinity, questionsPerDay: Infinity, tutorPerDay: 35 },
-    limits: {
-      reset: "daily",
-      diagnostic: "full",
-      flashcards: "unlimited",
-      questions: "unlimited",
-      scenarios: "unlimited",
-      tutorMessages: 35,
-      tutorTopUp: true,
-      mockExams: "unlimited",
-      mockExamReset: "daily",
-      miniMocks: "unlimited",
-      sectionDrills: "unlimited",
-      mockLength: "full",
-      studyPlan: true,
-      progressHistory: "full",
-    },
+    limits: { ...FULL_STUDY, tutorMessages: 35, tutorTopUp: true },
     perks: [
-      "Unlimited flashcards, questions & scenarios",
+      "Everything in Premium",
       "AI tutor — 35 messages a day (cheap top-ups available)",
-      "Unlimited mock exams",
-      "Driver's-licence yard-test modules",
-      // The DLTC eye-test screener used to be listed here. It is free on every
-      // tier now — a DLTC admin step rather than study content — so selling it
-      // as a Plus perk would promise exclusivity the product does not enforce,
-      // which is the same misrepresentation as an unqualified Free perk.
-      "Advanced analytics & trends",
-      "Priority new-content access",
+      "More AI sign scans a day",
     ],
   },
 ];
@@ -250,15 +178,20 @@ export function hasFeature(tier: SubscriptionTier, feature: FeatureKey): boolean
 /**
  * Whether this tier has paid for anything at all.
  *
- * Deliberately not expressed as a FeatureKey. The individual flags separate the
- * two *paid* plans from each other — `licencePrep` and `advancedAnalytics` are
- * Premium Plus only, `scenarios` and `scanner` start at Premium — so none of
- * them means "has paid", and reaching for one as a proxy silently denies
- * Premium subscribers whatever it guards. The content pack needs exactly this
- * question and nothing finer.
+ * Deliberately not expressed as a FeatureKey — no single feature flag means
+ * "has paid", and reaching for one as a proxy drifts the moment a flag moves.
  */
 export function isPaidTier(tier: SubscriptionTier): boolean {
   return tier !== "free";
+}
+
+/**
+ * Whether this tier is shown ads. Display state only, like every client gate:
+ * a tampered tier hides an ad slot, it does not unlock anything that costs
+ * money.
+ */
+export function showsAds(tier: SubscriptionTier): boolean {
+  return PLAN_MAP[tier].ads;
 }
 
 export function dailyCap(tier: SubscriptionTier, cap: CapKey): number {

@@ -1,7 +1,6 @@
 /**
  * Row shapes for the diary, hand-written at the boundary as everywhere else in
- * this codebase (there are no generated Database types — see
- * src/lib/partners/admin-data.ts for the precedent). They mirror 0036.
+ * this codebase (there are no generated Database types). They mirror 0036.
  */
 
 export type LicenceCode = "8" | "10" | "14" | "A1" | "A";

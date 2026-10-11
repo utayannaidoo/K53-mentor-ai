@@ -11,10 +11,9 @@ import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_BENEFITS = [
-  "3 full study sessions every day",
-  "Full mock exams + scenario practice",
   "AI tutor whenever you're stuck",
-  "Personalised daily plan to test day",
+  "AI road-sign scanner",
+  "No ads, anywhere in the app",
 ];
 
 /**

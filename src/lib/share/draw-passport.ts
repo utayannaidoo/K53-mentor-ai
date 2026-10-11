@@ -500,26 +500,23 @@ function paintCard(ctx: Ctx, p: Passport, f: FontFamilies) {
   hairline(ctx, PAD, RIGHT, 1246);
 
   // The right block is measured first so the left one knows what room it has.
-  // Both used to be anchored independently, which is fine until a referral code
-  // makes the left string long — and the whole point of a referral code is that
-  // it appears on the cards carrying one.
   ctx.fillStyle = C.faint;
   font(ctx, 600, 17, f.display);
-  const capLabel = p.referralCode ? "INVITE CODE" : "ISSUED";
+  const capLabel = "ISSUED";
   const capWidth = trackedWidth(ctx, capLabel, 0.2);
   tracked(ctx, capLabel, RIGHT, 1288, 0.2, "right");
   ctx.fillStyle = C.cream;
-  font(ctx, 600, p.referralCode ? 30 : 24, f.mono);
+  font(ctx, 600, 24, f.mono);
   ctx.textAlign = "right";
-  const capValue = p.referralCode ?? p.issued;
+  const capValue = p.issued;
   ctx.fillText(capValue, RIGHT, 1324);
   const rightWidth = Math.max(capWidth, ctx.measureText(capValue).width);
   ctx.textAlign = "left";
 
   // 48px of gutter, and the link shrinks rather than running into it. Today's
   // longest form clears the right block by ~150px, so this never fires — it is
-  // insurance for a longer referral code or a longer domain, either of which
-  // would otherwise close that gap silently.
+  // insurance for a longer domain, which would otherwise close that gap
+  // silently.
   const leftRoom = RIGHT - rightWidth - 48 - PAD;
   ctx.fillStyle = brand;
   font(ctx, 700, fitted(ctx, p.link, leftRoom, 700, 33, f.display), f.display);

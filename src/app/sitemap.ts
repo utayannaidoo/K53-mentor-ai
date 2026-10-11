@@ -22,7 +22,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/free-quiz", 0.9),
     page("/road-signs", 0.9),
     page("/guides", 0.8),
-    // The school product page: software for driving schools, plus the partner programme.
+    // The school product page: software for driving schools.
     page("/for-driving-schools", 0.7),
     ...GUIDES.map((g) => page(`/guides/${g.slug}`, 0.8)),
     page("/signup", 0.7),

@@ -44,7 +44,7 @@ export function PricingSection({
             Pricing
           </span>
           <h2 className="mt-3 text-balance font-display text-[clamp(2rem,4.4vw,3rem)] font-semibold leading-[1.08] tracking-[-0.025em]">
-            Start free. Upgrade when you&apos;re hooked.
+            Free to study. Pay only for the AI tutor and no ads.
           </h2>
         </div>
       )}
@@ -130,11 +130,8 @@ export function PricingSection({
                 <span className="font-mono text-[40px] font-semibold leading-none tracking-[-0.03em]">
                   {isFree ? "R0" : formatZar(monthlyEquivalent)}
                 </span>
-                {/* "forever" would be read as "the full product, free, forever".
-                    What actually happens: a week of daily allowances (see
-                    FREE_TRIAL_DAYS), then the upgrade pitch. Say that. */}
                 <span className="text-[0.9rem] text-muted-foreground">
-                  {isFree ? "· free week" : "/mo"}
+                  {isFree ? "· free for good" : "/mo"}
                 </span>
               </div>
               {/* Name the amount that actually leaves their account. "R40/mo
@@ -145,7 +142,7 @@ export function PricingSection({
                   entered, not first appear on the receipt. */}
               <div className="mt-1 text-[0.78rem] text-muted-foreground">
                 {isFree
-                  ? "No card needed · 7 full days, then a free daily taste"
+                  ? "No card needed · ad-supported"
                   : annual
                     ? `${formatZar(annualPrice(plan))} billed yearly, renews automatically`
                     : "Billed monthly, renews automatically"}

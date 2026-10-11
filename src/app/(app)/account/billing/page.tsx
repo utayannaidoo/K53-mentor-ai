@@ -650,8 +650,8 @@ function BillingInner() {
                       : ""}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Nothing more will be charged. After that date you drop to Free — and since your
-                    free week is already used, that means no daily allowances. Resume any time
+                    Nothing more will be charged. After that date you drop to Free: all your
+                    study content stays, with ads, and the AI tutor stops. Resume any time
                     before then to keep going without a gap.
                   </p>
                   <div className="mt-3">
@@ -719,7 +719,7 @@ function BillingInner() {
                   ? ` ${formatDate(billing?.currentPeriodEnd)}`
                   : " the end of the period you've paid for"}
                 {" "}— nothing more will be charged and nothing is lost today. After that you drop to
-                Free, and since your free week is already used there are no daily allowances. Your
+                Free: all your study content stays, with ads, and the AI tutor stops. Your
                 progress, streak and readiness all carry over either way.
               </p>
             )}

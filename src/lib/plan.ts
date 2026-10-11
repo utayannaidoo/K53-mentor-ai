@@ -17,7 +17,6 @@ import { showsDriversContent } from "@/lib/content/scope";
 import { isDue } from "@/lib/srs/sm2";
 import { atDayKey, getTodayUsage, todayKey } from "@/lib/store/local-store";
 import { PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
-import { trialExhausted } from "@/lib/billing/trial";
 import { categoryName } from "@/lib/content/categories";
 // Index-only like everything here: mistakes derives from the attempt log,
 // never the question bank.
@@ -79,11 +78,8 @@ export function countDueTomorrow(state: UserState, now = new Date()): number {
 }
 
 /**
- * How many full or mini mocks the learner has left.
- *
- * Paid-plan mocks and free mini mocks meter per day. Free gets one genuine
- * full paper for the lifetime of its seven-day trial. Once that trial expires,
- * `trialExhausted` closes every remaining Free allowance.
+ * How many full or mini mocks the learner has left today. Unlimited on every
+ * plan now; the per-day arithmetic stays for any plan that sets a number.
  */
 export function mocksRemaining(
   state: UserState,
@@ -93,15 +89,11 @@ export function mocksRemaining(
   const limits = PLAN_MAP[state.tier].limits;
   const cap = kind === "full" ? limits.mockExams : limits.miniMocks;
   if (cap === "unlimited") return Infinity;
-  if (trialExhausted(state, now.getTime())) return 0;
   // Section drills live under their own allowance — never count them here.
   const pool = state.mockExams.filter(
     (m) => !m.drill && Boolean(m.mini) === (kind === "mini"),
   );
-  const used =
-    kind === "full" && limits.mockExamReset === "lifetime"
-      ? pool.length
-      : pool.filter((m) => atDayKey(m.at) === todayKey(now)).length;
+  const used = pool.filter((m) => atDayKey(m.at) === todayKey(now)).length;
   return Math.max(0, cap - used);
 }
 
@@ -109,7 +101,6 @@ export function mocksRemaining(
 export function drillsRemaining(state: UserState, now = new Date()): number {
   const cap = PLAN_MAP[state.tier].limits.sectionDrills;
   if (cap === "unlimited") return Infinity;
-  if (trialExhausted(state, now.getTime())) return 0;
   const used = state.mockExams.filter(
     (m) => Boolean(m.drill) && atDayKey(m.at) === todayKey(now),
   ).length;

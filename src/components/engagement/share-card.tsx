@@ -7,7 +7,6 @@ import { Chip } from "@/components/ui/chip";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { buildPassport, passportMessage } from "@/lib/share/passport";
 import { documentFonts, drawPassport, type ShareFormat } from "@/lib/share/draw-passport";
-import { isSupabaseConfigured } from "@/lib/env";
 import { track } from "@/lib/analytics";
 
 /**
@@ -37,28 +36,10 @@ export function ShareCard() {
   const [format, setFormat] = React.useState<ShareFormat>("card");
   const [canShare, setCanShare] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
-  const [referralCode, setReferralCode] = React.useState<string | null>(null);
-
-  // The invite code turns a share into a signup: the receiver gets a code, both
-  // sides get 250 CP (see /api/referral). Absent in demo mode, and the card
-  // falls back to its issue date in that corner.
-  React.useEffect(() => {
-    if (!isSupabaseConfigured) return;
-    let cancelled = false;
-    fetch("/api/referral")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j) => {
-        if (!cancelled && typeof j?.code === "string") setReferralCode(j.code);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const passport = React.useMemo(
-    () => buildPassport(state, readiness, { referralCode }),
-    [state, readiness, referralCode],
+    () => buildPassport(state, readiness),
+    [state, readiness],
   );
 
   React.useEffect(() => {

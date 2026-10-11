@@ -9,6 +9,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SwRegister } from "@/components/shared/sw-register";
 import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/lib/constants";
+import { ADSENSE_CLIENT } from "@/lib/ads";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -36,6 +37,10 @@ export const metadata: Metadata = {
   },
   description: APP_DESCRIPTION,
   applicationName: APP_NAME,
+  // Site-ownership proof for AdSense. Google's reviewer reads public pages,
+  // and the ad script itself only ever loads for signed-in free accounts, so
+  // this tag (with /ads.txt) is what it finds instead.
+  ...(ADSENSE_CLIENT ? { other: { "google-adsense-account": ADSENSE_CLIENT } } : {}),
   keywords: [
     "K53",
     "learner's licence",

@@ -1,7 +1,6 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { listTransactionRefunds, verifyTransaction } from "@/lib/paystack/client";
-import { voidMoneyBackCommission } from "@/lib/billing/subscription-cancel";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildManualRefundEmail, buildRefundProcessedEmail } from "@/lib/notify/templates";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -231,8 +230,7 @@ export async function stopRefundRetries(
 
 /**
  * Record that the admin repaid the learner outside Paystack, then do what a
- * Paystack refund would have: end the plan (guarded), void the commission,
- * email the learner. A queued row is refused: the cron could still refund it
+ * Paystack refund would have: end the plan (guarded) and email the learner. A queued row is refused: the cron could still refund it
  * through Paystack, and the learner would be paid twice. So is every other
  * unstopped row: only stopRefundRetries decides that Paystack is out of it.
  */
@@ -276,7 +274,6 @@ export async function recordManualRefund(
  * tier because of the old refund would take away something they paid for.
  */
 async function downgradeIfStillCurrentCharge(admin: Admin, row: PendingRefundRow) {
-  await voidMoneyBackCommission(admin, row.transaction_reference);
   const { error } = await admin
     .from("subscriptions")
     .update({

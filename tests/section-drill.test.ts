@@ -34,30 +34,16 @@ describe("drillsRemaining", () => {
   const TODAY = `${todayKey()}T10:00:00.000Z`;
   const LAST_WEEK = "2026-07-01T10:00:00.000Z";
 
-  it("free: one drill a day, refilling through the free week", () => {
-    const s = defaultUserState();
-    expect(drillsRemaining(s)).toBe(1);
-    s.mockExams = [drillAttempt(LAST_WEEK)];
-    expect(drillsRemaining(s)).toBe(1); // last week's doesn't spend today's
-    s.mockExams = [drillAttempt(TODAY)];
-    expect(drillsRemaining(s)).toBe(0);
-  });
-
-  it("premium: 5 per day, resetting daily", () => {
-    const s: UserState = { ...defaultUserState(), tier: "premium" };
+  it.each(["free", "premium", "premium_plus"] as const)("%s: unlimited", (tier) => {
+    const s: UserState = { ...defaultUserState(), tier };
     s.mockExams = [drillAttempt(TODAY), drillAttempt(TODAY, "controls"), drillAttempt(LAST_WEEK)];
-    expect(drillsRemaining(s)).toBe(3);
-  });
-
-  it("premium_plus: unlimited", () => {
-    const s: UserState = { ...defaultUserState(), tier: "premium_plus" };
     expect(drillsRemaining(s)).toBe(Infinity);
   });
 
   it("drills never eat the full or mini mock allowance", () => {
     const s: UserState = { ...defaultUserState(), tier: "premium" };
     s.mockExams = [drillAttempt(TODAY), drillAttempt(TODAY), drillAttempt(TODAY)];
-    expect(mocksRemaining(s, "full")).toBe(3);
-    expect(mocksRemaining(s, "mini")).toBe(5);
+    expect(mocksRemaining(s, "full")).toBe(Infinity);
+    expect(mocksRemaining(s, "mini")).toBe(Infinity);
   });
 });

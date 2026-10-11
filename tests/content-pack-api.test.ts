@@ -67,68 +67,39 @@ describe("/api/content/pack", () => {
     expect((await get()).status).toBe(401);
   });
 
-  it("refuses the free tier — this is the paywall", async () => {
-    resolveTier.mockResolvedValue({ userId: "u1", tier: "free" });
-    const res = await get();
+  it.each(["free", "premium", "premium_plus"] as const)(
+    "serves the whole bank, modules included, to %s",
+    async (tier) => {
+      // The bank is free on every plan (Free is ad-supported). The server must
+      // not quietly hand a smaller body to anyone who is signed in.
+      resolveTier.mockResolvedValue({ userId: "u1", tier });
+      const res = await get();
+      expect(res.status).toBe(200);
 
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ error: "upgrade_required", tier: "free" });
-  });
-
-  it("serves the full study bank to Premium, but NOT the Plus-only modules", async () => {
-    // Two regressions are guarded here at once:
-    //  1. Gating the whole bank on a FeatureKey like `licencePrep` would pass
-    //     Premium Plus and silently deny every Premium subscriber, because
-    //     those flags separate the two paid plans rather than free from paid.
-    //     Premium still gets every question, flashcard and scenario.
-    //  2. Shipping DRIVER_MODULES to Premium anyway (hidden by the UI) — the
-    //     yard-test guides are what the pricing page sells as Premium Plus, so
-    //     the server must not hand them to a Premium body. If the browser
-    //     receives bytes, assume they will be read.
-    resolveTier.mockResolvedValue({ userId: "u1", tier: "premium" });
-    const res = await get();
-    expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.questions.length).toBeGreaterThan(1000);
-    expect(body.flashcards.length).toBeGreaterThan(700);
-    expect(body.scenarios.length).toBeGreaterThan(50);
-    expect(body.modules).toEqual([]);
-    expect(body.version).toMatch(/^[0-9a-f]{12}$/);
-    // The entitlement stamp that bounds offline cache use after a downgrade.
-    expect(typeof body.entitlement?.expiresAt).toBe("string");
-    expect(Number.isFinite(Date.parse(body.entitlement.expiresAt))).toBe(true);
-  });
-
-  it("serves Premium Plus everything, including the modules", async () => {
-    resolveTier.mockResolvedValue({ userId: "u1", tier: "premium_plus" });
-    const res = await get();
-    expect(res.status).toBe(200);
-
-    const body = await res.json();
-    expect(body.modules.length).toBeGreaterThan(0);
-    expect(typeof body.entitlement?.expiresAt).toBe("string");
-  });
+      const body = await res.json();
+      expect(body.questions.length).toBeGreaterThan(1000);
+      expect(body.flashcards.length).toBeGreaterThan(700);
+      expect(body.scenarios.length).toBeGreaterThan(50);
+      expect(body.modules.length).toBeGreaterThan(0);
+      expect(body.version).toMatch(/^[0-9a-f]{12}$/);
+      // The stamp that bounds offline cache use after sign-out.
+      expect(typeof body.entitlement?.expiresAt).toBe("string");
+      expect(Number.isFinite(Date.parse(body.entitlement.expiresAt))).toBe(true);
+    },
+  );
 
   it("answers an entitlement probe cheaply: no bank, no sync-cap charge", async () => {
-    resolveTier.mockResolvedValue({ userId: "u1", tier: "premium" });
+    resolveTier.mockResolvedValue({ userId: "u1", tier: "free" });
     const res = await get(true);
     expect(res.status).toBe(200);
 
     const body = await res.json();
-    expect(body.tier).toBe("premium");
-    expect(body.modules).toBe(false); // premium has no licencePrep
+    expect(body.tier).toBe("free");
+    expect(body.modules).toBe(true);
     expect(body.version).toMatch(/^[0-9a-f]{12}$/);
     expect(Number.isFinite(Date.parse(body.entitlement.expiresAt))).toBe(true);
     expect(body.questions).toBeUndefined();
     expect(limitUserDaily).not.toHaveBeenCalled();
-  });
-
-  it("refuses a probe from the free tier like any other call", async () => {
-    resolveTier.mockResolvedValue({ userId: "u1", tier: "free" });
-    const res = await get(true);
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ error: "upgrade_required" });
   });
 
   it("caps probes on their own bucket so browsing never starves the sync cap", async () => {

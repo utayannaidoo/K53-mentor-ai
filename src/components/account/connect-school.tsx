@@ -84,9 +84,7 @@ export function ConnectSchool() {
           </ul>
         </div>
         <p className="text-2xs text-muted-foreground">
-          You can stop sharing at any time, and so can the school. If you haven&apos;t paid for K53
-          Mentor and {preview.schoolName} is one of our partner schools, connecting also records them as
-          the school that referred you.
+          You can stop sharing at any time, and so can the school.
         </p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" loading={busy} loadingText="Connecting…" onClick={agree} className="press">

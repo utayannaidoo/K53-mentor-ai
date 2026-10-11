@@ -4,11 +4,9 @@ import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
 import { Card } from "@/components/ui/card";
 import { buttonVariants } from "@/components/ui/button";
-import { PartnerApplyForm } from "@/components/partners/apply-form";
 import { cn, glass, glassFloat, glassSubtle } from "@/lib/utils";
 import { APP_NAME, SUPPORT_EMAIL } from "@/lib/constants";
 import { MONEY_BACK_DAYS } from "@/lib/billing/refund-policy";
-import { FREE_TRIAL_DAYS } from "@/lib/billing/plans";
 import {
   SCHOOL_ANNUAL_MONTHS_CHARGED,
   SCHOOL_PLANS,
@@ -19,10 +17,7 @@ import {
 import { modulesForLicence } from "@/lib/schools/modules";
 
 /**
- * Two offers on one page, software first.
- *
- * The school workspace is the product; the R20-per-learner referral programme
- * is how an existing partner earns alongside it. Every number on this page is
+ * The school workspace product page. Every number on this page is
  * read from the code that enforces it — prices and the trial from
  * school-plans.ts, manoeuvre counts from the K53 content itself, the refund
  * hold from refund-policy.ts — so the page cannot promise what the product
@@ -111,21 +106,6 @@ const FAQ = [
   {
     q: "Do my learners need to install anything?",
     a: "No. The school side works on its own. Learners who want to study for the learner's test can use the K53 Mentor app separately.",
-  },
-];
-
-const STEPS = [
-  {
-    title: "We give you a code",
-    body: "A short code and a link, both yours. Put the code on the whiteboard, share the link in your class WhatsApp group — whichever suits how you teach.",
-  },
-  {
-    title: "Your learners use it",
-    body: `They pay the same price everyone pays. What they get for using your code is ${FREE_TRIAL_DAYS * 2} days free instead of ${FREE_TRIAL_DAYS}, and a head start on their progress score.`,
-  },
-  {
-    title: "You earn R20 each",
-    body: "Every learner of yours who subscribes earns you R20 — flat, whichever plan they pick, monthly or annual. Paid by EFT, once a month.",
   },
 ];
 
@@ -274,87 +254,6 @@ export default function ForDrivingSchoolsPage() {
               </details>
             ))}
           </Card>
-        </section>
-
-        {/* ── Partners ─────────────────────────────────────────────────── */}
-        <section id="partners" className="container mt-14 scroll-mt-24 sm:mt-20">
-          <div className="text-center">
-            <p className="text-2xs font-medium uppercase tracking-wide text-primary">Partner programme</p>
-            <h2 className="mx-auto mt-2 max-w-2xl font-display text-xl font-semibold tracking-tight sm:text-2xl">
-              Already sending learners our way? Earn R20 for each one who subscribes.
-            </h2>
-            <p className="mx-auto mt-3 max-w-2xl text-sm text-muted-foreground">
-              Separate from the school app and free to join. You already tell your learners how to
-              pass; this pays you for it, and gets them double the free trial on the learner app.
-            </p>
-          </div>
-
-          <div className="mt-8 grid gap-4 sm:grid-cols-3">
-            {STEPS.map((step, index) => (
-              <Card key={step.title} className={cn(glass, "p-5")}>
-                <p className="font-display text-sm font-semibold text-primary tabular-nums">
-                  {String(index + 1).padStart(2, "0")}
-                </p>
-                <h3 className="mt-2 font-display text-base font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">{step.body}</p>
-              </Card>
-            ))}
-          </div>
-
-          <div className="mt-8 grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-start">
-            <div className="space-y-4">
-              <h3 className="font-display text-lg font-semibold tracking-tight">What your learners get</h3>
-              <Card className={cn(glassSubtle, "space-y-3 p-5 text-sm")}>
-                <p>
-                  <strong>The same price as everyone else.</strong> Your code is not a discount and
-                  never costs them anything.
-                </p>
-                <p>
-                  <strong>{FREE_TRIAL_DAYS * 2} days free instead of {FREE_TRIAL_DAYS}.</strong> Double
-                  the full free trial — the whole question bank, flashcards and mock tests, daily,
-                  for two weeks.
-                </p>
-                <p>
-                  <strong>250 confidence points.</strong> A head start on the progress score that
-                  tracks how test-ready they are.
-                </p>
-              </Card>
-
-              <h3 className="pt-2 font-display text-lg font-semibold tracking-tight">How you get paid</h3>
-              <Card className={cn(glassSubtle, "space-y-3 p-5 text-sm")}>
-                <p>
-                  <strong>R20 per subscriber, flat.</strong> It does not matter which plan they
-                  choose or whether they pay monthly or annually.
-                </p>
-                <p>
-                  <strong>A short hold first.</strong> Every learner can ask for their money back
-                  within {MONEY_BACK_DAYS} days, so earnings become payable{" "}
-                  {MONEY_BACK_DAYS + 1} days after their payment. If someone refunds, that R20 falls
-                  away.
-                </p>
-                <p>
-                  <strong>EFT, once a month,</strong> once you have at least R100 owing. You get a
-                  private link showing your numbers at any time — or link your code in the school
-                  app and see them there.
-                </p>
-                <p className="text-muted-foreground">
-                  Full details in the{" "}
-                  <Link href="/partners/terms" className="text-primary underline">
-                    partner terms
-                  </Link>
-                  , or email{" "}
-                  <a href={`mailto:${SUPPORT_EMAIL}`} className="text-primary underline">
-                    {SUPPORT_EMAIL}
-                  </a>
-                  .
-                </p>
-              </Card>
-            </div>
-
-            <div id="apply" className="lg:sticky lg:top-24">
-              <PartnerApplyForm />
-            </div>
-          </div>
         </section>
 
         <div className="h-16" />

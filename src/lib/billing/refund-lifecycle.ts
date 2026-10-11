@@ -1,6 +1,5 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { voidMoneyBackCommission } from "@/lib/billing/subscription-cancel";
 import {
   fetchRefund,
   listTransactionRefunds,
@@ -126,8 +125,7 @@ function schoolEvidence(charge: VerifyTransactionResult) {
 
 /**
  * Everything a confirmed, full refund settles (rule 3): the matching plan
- * ends, any partner commission on the charge is voided, support and the
- * learner are told, and the row is marked refunded.
+ * ends, support and the learner are told, and the row is marked refunded.
  *
  * `charge` is the verified transaction when the caller already has one. School
  * routing needs its plan and customer: a school's older charge is not findable
@@ -171,7 +169,6 @@ export async function completeRefund(
       .neq("tier", "free");
     if (error) throw new Error(`Refund downgrade failed: ${error.message}`);
   }
-  await voidMoneyBackCommission(admin, reference);
   await notifyRefundOperator(admin, {
     reference,
     userId: row?.user_id,

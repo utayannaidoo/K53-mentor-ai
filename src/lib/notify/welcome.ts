@@ -3,7 +3,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isEmailConfigured, sendEmail } from "@/lib/notify/email";
 import { buildWelcomeEmail } from "@/lib/notify/templates";
 import { reminderOptOutUrl } from "@/lib/notify/reminder-optout";
-import { FREE_TRIAL_DAYS } from "@/lib/billing/plans";
 
 /**
  * Send the welcome email once per account, ever.
@@ -57,7 +56,6 @@ export async function sendWelcomeOnce(userId: string): Promise<boolean> {
     const firstName = (profile.full_name ?? "").trim().split(/\s+/)[0] ?? "";
     const mail = buildWelcomeEmail({
       firstName,
-      trialDays: FREE_TRIAL_DAYS,
       unsubscribeUrl: reminderOptOutUrl(userId),
     });
 

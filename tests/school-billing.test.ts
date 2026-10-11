@@ -19,10 +19,7 @@ vi.mock("@/lib/paystack/client", () => ({
   disableSubscription: vi.fn(),
 }));
 vi.mock("@/lib/notify/email", () => ({ isEmailConfigured: false, sendEmail: vi.fn() }));
-vi.mock("@/lib/partners/commission", () => ({
-  earnSchoolCommission: vi.fn(),
-  voidSchoolCommission: vi.fn(),
-}));
+
 
 import { applyChargeSuccess } from "@/lib/paystack/apply";
 import {

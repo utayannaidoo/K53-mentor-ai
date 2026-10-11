@@ -62,18 +62,17 @@ describe("buildSubscriptionEndingEmail", () => {
     expect(mail.html).toContain("3 September 2026");
   });
 
-  it("names the small free allowance they land on, and what stops", () => {
-    // The free week is long spent by now, but PlanLimits.afterTrial survives
-    // it. Promising neither too much ("move to our Free plan") nor too little
-    // ("everything stops") is the whole job of this sentence.
-    const floor = PLAN_MAP.free.limits.afterTrial!;
+  it("names what they keep on Free, and what stops", () => {
+    // Promising neither too much ("nothing changes") nor too little
+    // ("everything stops") is the whole job of this sentence: the study
+    // content stays, ad-supported, and the AI tutor goes.
     const mail = buildSubscriptionEndingEmail({
       firstName: "Sam",
       planName: "Premium",
       endsOn,
       daysLeft: 3,
     });
-    const phrase = `${floor.questions} questions and ${floor.flashcards} flashcards a day`;
+    const phrase = "all your study content stays, with ads";
     expect(mail.text).toContain(phrase);
     expect(mail.html).toContain(phrase);
     expect(mail.text).toMatch(/AI tutor stop/i);
