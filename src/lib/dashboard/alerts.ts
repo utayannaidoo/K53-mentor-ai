@@ -1,8 +1,8 @@
 /**
  * Which single thing the dashboard interrupts you about.
  *
- * Five banners used to render as independent siblings — the test countdown, the
- * comeback summary, the cram warning, the trial-ended card and the "take your
+ * Four banners used to render as independent siblings — the test countdown, the
+ * comeback summary, the cram warning and the "take your
  * diagnostic" prompt — each deciding on its own whether it applied. Nothing
  * stopped four of them being true at once, and on that day the learner scrolled
  * past four boxes before reaching a single thing they could actually do.
@@ -19,8 +19,6 @@
 export const ALERT_PRIORITY = [
   /** Test is days away and mistakes are still open: nothing else matters now. */
   "cram",
-  /** The free week is over; every study surface is capped until they choose. */
-  "trial-ended",
   /** No diagnostic yet, so the plan and readiness are both guesses. */
   "diagnostic",
   /** Back after a gap — orient them before they start. */

@@ -13,8 +13,6 @@ import { SpeakButton } from "@/components/study/speak-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SessionProgress } from "@/components/ui/session-progress";
 import { Paywall } from "@/components/app/paywall";
-import { TrialEndCard } from "@/components/app/trial-end-card";
-import { TrialMeter } from "@/components/app/trial-meter";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
 import { SessionRecap } from "@/components/study/session-recap";
@@ -145,21 +143,17 @@ export function FlashcardDeck() {
   const [attempt, setAttempt] = React.useState("");
   const speech = useSpeechInput((t) => setAttempt((a) => (a ? `${a} ${t}` : t)));
 
-  // Trial (free) or daily (paid) allowance used up — the conversion moment.
+  // Daily allowance used up. No plan meters study today; this stays for any that does.
   if (Number.isFinite(cap.cap) && cap.used >= cap.cap) {
     return (
       <div className="mx-auto max-w-md py-10">
-        {state.tier === "free" ? (
-          <TrialEndCard feature="flashcards" />
-        ) : (
-          <Paywall
+        <Paywall
             feature="flashcards"
             plan="premium_plus"
             title="You've hit today's flashcards"
             description="Your plan's daily flashcard sessions are done — they reset tomorrow. Premium Plus removes the limit entirely."
             cta="See Premium Plus"
           />
-        )}
       </div>
     );
   }
@@ -176,7 +170,6 @@ export function FlashcardDeck() {
         seconds={seconds}
         cpEarned={state.cp - cpStartRef.current}
         onReviewMore={restart}
-        trialNearEnd={state.tier === "free" && Number.isFinite(cap.cap) && cap.cap - cap.used <= 2}
         againByCategory={againByCat}
         recap={{
           mode: "flashcards",
@@ -251,8 +244,6 @@ export function FlashcardDeck() {
         />
         <span className="font-mono text-xs text-muted-foreground">{i + 1}/{queue.length}</span>
       </div>
-
-      <TrialMeter feature="flashcards" className="mt-3" />
 
       {/* Card */}
       <div className="perspective relative mt-8">
@@ -422,7 +413,6 @@ function Completion({
   cpEarned,
   recap,
   onReviewMore,
-  trialNearEnd,
   againByCategory,
 }: {
   reviewed: number;
@@ -430,7 +420,6 @@ function Completion({
   cpEarned: number;
   recap: SessionRecapData;
   onReviewMore: () => void;
-  trialNearEnd?: boolean;
   /** "Again" ratings by category this session — feeds the follow-up. */
   againByCategory: CategoryMisses;
 }) {
@@ -475,12 +464,6 @@ function Completion({
         />
       )}
       <SessionRecap data={recap} className="mt-5" />
-      {/* Conversion moment lands right here, while the session result is fresh. */}
-      {trialNearEnd && (
-        <div className="mt-5">
-          <TrialEndCard compact feature="flashcards" />
-        </div>
-      )}
     </div>
   );
 }

@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  FREE_TRIAL_DAYS,
   PLANS,
   PLAN_MAP,
   SELECTABLE_CODES,
@@ -10,6 +9,7 @@ import {
   hasFeature,
   isFreePlan,
   monthlyPrice,
+  showsAds,
 } from "@/lib/billing/plans";
 
 describe("plan pricing", () => {
@@ -41,75 +41,79 @@ describe("plan pricing", () => {
 });
 
 describe("feature gates", () => {
-  it("free tier excludes the money features", () => {
-    expect(hasFeature("free", "scenarios")).toBe(false);
-    expect(hasFeature("free", "scanner")).toBe(false);
-    expect(hasFeature("free", "licencePrep")).toBe(false);
+  it("everything that is not AI is on for every plan, free included", () => {
+    for (const plan of PLANS) {
+      expect(hasFeature(plan.id, "scenarios")).toBe(true);
+      expect(hasFeature(plan.id, "licencePrep")).toBe(true);
+      expect(hasFeature(plan.id, "advancedAnalytics")).toBe(true);
+      expect(plan.limits.questions).toBe("unlimited");
+      expect(plan.limits.flashcards).toBe("unlimited");
+      expect(plan.limits.mockExams).toBe("unlimited");
+      expect(plan.limits.studyPlan).toBe(true);
+      expect(plan.limits.progressHistory).toBe("full");
+    }
   });
 
-  it("scanner unlocks at premium; licence prep at premium plus", () => {
-    expect(hasFeature("premium", "scanner")).toBe(true);
-    expect(hasFeature("premium", "licencePrep")).toBe(false);
-    expect(hasFeature("premium_plus", "licencePrep")).toBe(true);
+  it("the AI features are what a plan buys", () => {
+    expect(hasFeature("free", "tutor")).toBe(false);
+    expect(hasFeature("free", "scanner")).toBe(false);
+    for (const tier of ["premium", "premium_plus"] as const) {
+      expect(hasFeature(tier, "tutor")).toBe(true);
+      expect(hasFeature(tier, "scanner")).toBe(true);
+    }
   });
 
   // The client cap and the server allowance in entitlements.server.ts are the
   // same number written twice, and only the server one is enforced. If they
   // drift, the UI promises an allowance the API refuses — so this pins both.
-  it("tutor caps mirror the server allowances (2/15/35)", () => {
-    expect(dailyCap("free", "tutorPerDay")).toBe(2);
+  it("tutor caps mirror the server allowances (0/15/35)", () => {
+    expect(dailyCap("free", "tutorPerDay")).toBe(0);
     expect(dailyCap("premium", "tutorPerDay")).toBe(15);
     expect(dailyCap("premium_plus", "tutorPerDay")).toBe(35);
   });
+
+  it("only Premium Plus can top up", () => {
+    expect(PLAN_MAP.free.limits.tutorTopUp).toBe(false);
+    expect(PLAN_MAP.premium.limits.tutorTopUp).toBe(false);
+    expect(PLAN_MAP.premium_plus.limits.tutorTopUp).toBe(true);
+  });
 });
 
-describe("the free week", () => {
-  it("study allowances meter per day; only Free's full mock is lifetime", () => {
-    for (const plan of PLANS) expect(plan.limits.reset).toBe("daily");
+describe("ads", () => {
+  it("the free plan is ad-supported; paying for any plan removes ads", () => {
+    expect(showsAds("free")).toBe(true);
+    expect(showsAds("premium")).toBe(false);
+    expect(showsAds("premium_plus")).toBe(false);
   });
 
-  it("only the free plan is on a clock, and it is seven days", () => {
-    expect(PLAN_MAP.free.limits.trialDays).toBe(FREE_TRIAL_DAYS);
-    expect(FREE_TRIAL_DAYS).toBe(7);
-    expect(PLAN_MAP.premium.limits.trialDays).toBeUndefined();
-    expect(PLAN_MAP.premium_plus.limits.trialDays).toBeUndefined();
+  it("the free plan says so on the pricing card", () => {
+    // Ads are the price of Free. Leaving them off the perk list would be the
+    // plan page hiding the one cost the plan has.
+    expect(PLAN_MAP.free.perks.some((p) => /ads/i.test(p))).toBe(true);
+    for (const tier of ["premium", "premium_plus"] as const) {
+      const chain = [...PLAN_MAP[tier].perks, ...PLAN_MAP.premium.perks].join(" ");
+      expect(chain).toMatch(/no ads/i);
+    }
   });
+});
 
+describe("plan limits", () => {
   it("the legacy caps view agrees with the limits it mirrors", () => {
     // Two representations of the same allowance; the study surfaces read the
     // first and the paywall copy the second, so a drift between them shows a
     // learner one number and enforces another.
     for (const plan of PLANS) {
-      if (typeof plan.limits.questions === "number") {
-        expect(plan.caps.questionsPerDay).toBe(plan.limits.questions);
-      }
-      if (typeof plan.limits.flashcards === "number") {
-        expect(plan.caps.flashcardsPerDay).toBe(plan.limits.flashcards);
-      }
+      expect(plan.limits.reset).toBe("daily");
+      expect(plan.caps.questionsPerDay).toBe(
+        plan.limits.questions === "unlimited" ? Infinity : plan.limits.questions,
+      );
+      expect(plan.caps.flashcardsPerDay).toBe(
+        plan.limits.flashcards === "unlimited" ? Infinity : plan.limits.flashcards,
+      );
       if (typeof plan.limits.tutorMessages === "number") {
         expect(plan.caps.tutorPerDay).toBe(plan.limits.tutorMessages);
       }
     }
-  });
-
-  it("gives Free one lifetime full mock, while paid full mocks reset daily", () => {
-    expect(PLAN_MAP.free.limits.mockExams).toBe(1);
-    expect(PLAN_MAP.free.limits.mockExamReset).toBe("lifetime");
-    expect(PLAN_MAP.free.limits.mockLength).toBe("full");
-    expect(PLAN_MAP.premium.limits.mockExamReset).toBe("daily");
-  });
-
-  it("a free week gives more total study than the old lifetime pool did", () => {
-    // The whole point of the change: the old model could be exhausted in one
-    // ten-minute sitting, before the learner ever experienced a second day.
-    const OLD_LIFETIME = { questions: 15, flashcards: 12, tutor: 3 };
-    expect(PLAN_MAP.free.caps.questionsPerDay * FREE_TRIAL_DAYS).toBeGreaterThan(
-      OLD_LIFETIME.questions,
-    );
-    expect(PLAN_MAP.free.caps.flashcardsPerDay * FREE_TRIAL_DAYS).toBeGreaterThan(
-      OLD_LIFETIME.flashcards,
-    );
-    expect(PLAN_MAP.free.caps.tutorPerDay * FREE_TRIAL_DAYS).toBeGreaterThan(OLD_LIFETIME.tutor);
   });
 });
 

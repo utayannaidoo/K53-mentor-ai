@@ -107,9 +107,8 @@ export interface Passport {
   bars: PassportBar[];
   strongest: PassportBar | null;
   weakest: PassportBar | null;
-  /** Right-hand footer line: the invite code where there is one, else the issue date. */
+  /** Right-hand footer line: the issue date. */
   issued: string;
-  referralCode: string | null;
   /** Where the card sends whoever sees it. */
   link: string;
 }
@@ -172,7 +171,7 @@ function pickHero(input: {
 export function buildPassport(
   state: UserState,
   readiness: ReadinessBreakdown,
-  options: { referralCode?: string | null; now?: Date } = {},
+  options: { now?: Date } = {},
 ): Passport {
   const now = options.now ?? new Date();
   // Which licence, not just whether — a driver's licence is a bigger thing than
@@ -240,7 +239,6 @@ export function buildPassport(
     stamp = { title: "PASSED", detail: `${best.score}/${best.total} MOCK`, tone: "success" };
 
   const cards = Object.values(state.cardStates).filter((c) => c.reps > 0 || c.lapses > 0).length;
-  const referralCode = options.referralCode ?? null;
 
   return {
     licensed,
@@ -273,10 +271,9 @@ export function buildPassport(
       .format(now)
       .toUpperCase()
       .replace(/\./g, ""),
-    referralCode,
     // Bare domain, no scheme: the card is read, and WhatsApp linkifies it in
     // the message either way.
-    link: referralCode ? `${SITE_DOMAIN}/signup?ref=${referralCode}` : SITE_DOMAIN,
+    link: SITE_DOMAIN,
   };
 }
 

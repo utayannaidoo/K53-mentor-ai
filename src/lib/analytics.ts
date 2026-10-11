@@ -228,7 +228,6 @@ export type AnalyticsEvent =
   | "tutor_topup_shown"
   | "tutor_topup_completed"
   | "tts_used"
-  | "referral_link_copied"
   | "share_card_shared"
   | "share_card_downloaded"
   | "share_text_copied"

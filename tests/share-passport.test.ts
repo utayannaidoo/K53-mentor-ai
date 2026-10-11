@@ -56,8 +56,8 @@ function spread(correct: number, total: number): QuestionAttempt[] {
   ]);
 }
 
-function build(state: UserState, referralCode: string | null = null) {
-  return buildPassport(state, computeReadiness(state), { referralCode, now: NOW });
+function build(state: UserState) {
+  return buildPassport(state, computeReadiness(state), { now: NOW });
 }
 
 describe("Driving Passport — the numbers", () => {
@@ -196,11 +196,11 @@ describe("Driving Passport — the claim", () => {
 });
 
 describe("Driving Passport — the message", () => {
-  it("carries the invite link, the receipts and a bar whose colour is the verdict", () => {
-    const p = build(stateWith({ attempts: spread(10, 10), mockExams: [mock()] }), "AB12");
+  it("carries the site link, the receipts and a bar whose colour is the verdict", () => {
+    const p = build(stateWith({ attempts: spread(10, 10), mockExams: [mock()] }));
     const text = passportMessage(p);
 
-    expect(text).toContain(`${SITE_DOMAIN}/signup?ref=AB12`);
+    expect(text).toContain(SITE_DOMAIN);
     expect(text).toContain(`${formatCount(p.work.questions)} questions`);
     expect(text).toContain("Best mock: 58/64 ✅");
     expect(text).toContain("🟩");
@@ -217,9 +217,8 @@ describe("Driving Passport — the message", () => {
     expect(text).not.toContain("Predicted pass");
   });
 
-  it("falls back to the bare domain when there is no referral code", () => {
+  it("links to the bare domain, with no tracking parameter", () => {
     const p = build(stateWith({}));
-    expect(p.referralCode).toBeNull();
     expect(passportMessage(p)).toContain(SITE_DOMAIN);
     expect(passportMessage(p)).not.toContain("?ref=");
   });

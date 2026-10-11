@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 /**
  * Who may open a school workspace, and what they may do in it.
  *
- * The analogue of `src/lib/partners/admin-auth.ts`, but keyed on membership
+ * The analogue of `src/lib/admin/auth.ts`, but keyed on membership
  * rather than an env allowlist. Reads go through the *user's* client, not the
  * service role, so every call here exercises the RLS policies added in 0035 —
  * if a policy is wrong, this breaks loudly rather than papering over it.
@@ -36,10 +36,7 @@ export interface SchoolContext {
   cancelAtPeriodEnd: boolean;
   /** When the paid-for period runs out. Null on a trial, or before it is recorded. */
   currentPeriodEnd: string | null;
-  partnerSchoolId: string | null;
-  /** How partner-programme commission is settled: bank transfer, or credit (0042). */
-  commissionMode: "eft" | "credit";
-  /** Referral credit not yet spent on the school's own plan. */
+  /** Account credit not yet spent on the school's own plan. */
   creditCents: number;
   /** Active owner + instructor members. Compared against `seats`. */
   seatsUsed: number;
@@ -59,8 +56,6 @@ interface SchoolRow {
   id: string;
   name: string;
   slug: string;
-  partner_school_id: string | null;
-  commission_mode: string | null;
   timezone: string | null;
   default_lesson_minutes: number | null;
 }
@@ -136,7 +131,7 @@ export async function currentSchool(): Promise<SchoolContext | null> {
   const [schoolResult, subscriptionResult, seatResult] = await Promise.all([
     supabase
       .from("schools")
-      .select("id, name, slug, partner_school_id, commission_mode, timezone, default_lesson_minutes")
+      .select("id, name, slug, timezone, default_lesson_minutes")
       .eq("id", member.school_id)
       .maybeSingle(),
     supabase
@@ -170,8 +165,6 @@ export async function currentSchool(): Promise<SchoolContext | null> {
     trialEndsAt: sub?.trial_ends_at ?? null,
     cancelAtPeriodEnd: sub?.cancel_at_period_end ?? false,
     currentPeriodEnd: sub?.current_period_end ?? null,
-    partnerSchoolId: school.partner_school_id,
-    commissionMode: school.commission_mode === "credit" ? "credit" : "eft",
     creditCents: sub?.credit_cents ?? 0,
     seatsUsed: seatResult.count ?? 0,
     timezone: school.timezone || "Africa/Johannesburg",

@@ -1,6 +1,4 @@
 import "server-only";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import { voidSchoolCommission } from "@/lib/partners/commission";
 import { fetchCustomer, disableSubscription } from "@/lib/paystack/client";
 import { isSchoolPlanCode } from "@/lib/billing/school-billing";
 import { MONEY_BACK_DAYS } from "@/lib/billing/refund-policy";
@@ -9,11 +7,6 @@ import { MONEY_BACK_DAYS } from "@/lib/billing/refund-policy";
 // refund-policy.ts — the cancel dialog and pricing copy are client components and
 // cannot import a `server-only` module to quote the same number.
 export { MONEY_BACK_DAYS };
-
-/** Match the refunded charge, never an unrelated renewal or top-up. */
-export async function voidMoneyBackCommission(admin: SupabaseClient, reference: string) {
-  await voidSchoolCommission(admin, reference, "money-back cancellation");
-}
 
 export interface RefundContext {
   tier: string | null;

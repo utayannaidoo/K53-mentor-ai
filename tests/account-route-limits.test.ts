@@ -97,12 +97,6 @@ const routes: { name: string; surface: string; body: unknown; load: () => Promis
     body: {},
     load: async () => (await import("@/app/api/account/delete/send-code/route")).POST,
   },
-  {
-    name: "referral",
-    surface: "referral_claim",
-    body: { code: "abcd1234" },
-    load: async () => (await import("@/app/api/referral/route")).POST,
-  },
 ];
 
 const handlers = new Map<string, Handler>();
@@ -162,6 +156,5 @@ describe("per-account caps", () => {
     expect(ACCOUNT_DAILY_LIMIT.cancel).toBeGreaterThanOrEqual(3);
     expect(ACCOUNT_DAILY_LIMIT.delete).toBeGreaterThanOrEqual(3);
     expect(ACCOUNT_DAILY_LIMIT.deletion_code).toBeGreaterThanOrEqual(3);
-    expect(ACCOUNT_DAILY_LIMIT.referral_claim).toBeGreaterThanOrEqual(3);
   });
 });

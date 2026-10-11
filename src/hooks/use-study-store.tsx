@@ -33,7 +33,6 @@ import { attributionProps, identify as analyticsIdentify, resetAnalytics, track 
 import { initialCardState, scheduleCard } from "@/lib/srs/sm2";
 import { computeReadiness, type ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 import { dailyCap, type CapKey } from "@/lib/billing/plans";
-import { afterTrialCap, trialExhausted } from "@/lib/billing/trial";
 import { purgePackCache } from "@/lib/content/pack-cache";
 import { countDueFlashcards, generateTodayPlan, isTaskDone } from "@/lib/plan";
 import {
@@ -429,41 +428,6 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
           /* private mode */
         }
       }
-      // A parked referral code from /signup?ref=… — claim it exactly once,
-      // now that a real account exists (covers password and OAuth signups).
-      try {
-        const ref = window.localStorage.getItem("k53.ref");
-        if (ref) {
-          window.localStorage.removeItem("k53.ref");
-          fetch("/api/referral", {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify({ code: ref }),
-          }).catch(() => {});
-        }
-      } catch {
-        /* private mode */
-      }
-      // Independent of k53.ref: one signup may receive both rewards. Clear
-      // before requesting, then refresh after completion so the first hydrate
-      // racing the RPC cannot leave a seven-day banner on a fourteen-day trial.
-      try {
-        const school = window.localStorage.getItem("k53.school");
-        if (school) {
-          window.localStorage.removeItem("k53.school");
-          void fetch("/api/partners/claim", {
-            method: "POST", headers: { "content-type": "application/json" },
-            body: JSON.stringify({ code: school, source: "link" }),
-          }).then(async (res) => {
-            const result = await res.json();
-            if (!result.ok || cancelled) return;
-            window.sessionStorage.setItem("k53.school.confirmation", result.message);
-            window.dispatchEvent(new Event("k53:school-claimed"));
-            const account = await loadAccount(supabase, user);
-            if (!cancelled) setState((s) => hydrateAccountState(s, account, null, user.email ?? null));
-          }).catch(() => {});
-        }
-      } catch { /* private mode */ }
       try {
         // Account rows + the server's copy of study history in one round.
         const [account, progress] = await Promise.all([
@@ -907,16 +871,10 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
 
       usageFor: (kind) => {
         const capKey = CAP_KEY[kind];
-        // Every plan meters per day. Free drops to its small after-trial
-        // allowance once the week is over (tutor and scenarios to nothing) —
-        // see PlanLimits.afterTrial and trialExhausted().
+        // Study is unmetered on every plan; the tutor is the one pool with a
+        // real number, and it is 0 on free (the AI tutor is a paid feature).
         const used = getTodayUsage(state)[kind];
-        const base = capKey ? dailyCap(state.tier, capKey) : Infinity;
-        const cap = !trialExhausted(state)
-          ? base
-          : kind === "questions" || kind === "flashcards"
-            ? afterTrialCap(kind)
-            : 0;
+        const cap = capKey ? dailyCap(state.tier, capKey) : Infinity;
         return { used, cap, allowed: used < cap };
       },
     }),

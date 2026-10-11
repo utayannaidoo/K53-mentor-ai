@@ -3,7 +3,6 @@
 import * as React from "react";
 import { TodaySheet } from "@/components/dashboard/today-sheet";
 import { TutorNavigator } from "@/components/onboarding/tutor-navigator";
-import { trialExhausted } from "@/components/app/trial-end-card";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { usePlanRationale } from "@/components/dashboard/coach-plan";
 import { countDueFlashcards, generateTodayPlan, isTaskDone, mockRetestStatus, planFocus } from "@/lib/plan";
@@ -53,7 +52,6 @@ export default function DashboardPage() {
   const mistakes = openMistakes(state);
   const alertKey = topAlert({
     cram: isCramWindow(state) && mistakes.length > 0,
-    "trial-ended": trialExhausted(state),
     diagnostic: !hasDiagnostic,
     comeback: state.pendingComeback !== null,
   });
@@ -148,14 +146,6 @@ function alertBand(
         body: `Skip the new material — ${ctx.mistakes} questions are still tripping you up.`,
         href: "/study/questions?mode=cram",
         cta: "Drill mistakes",
-      };
-    case "trial-ended":
-      return {
-        tone: "primary" as const,
-        title: "Your free week is over",
-        body: "Pick a plan to keep your daily allowance and the full study plan.",
-        href: "/account/billing",
-        cta: "See plans",
       };
     case "diagnostic":
       return {

@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="2026-09-12"
+      updated="2026-10-11"
       intro={`This policy explains what ${APP_NAME} collects, why we collect it, and the choices you have. We collect as little as we can get away with — your study data exists to teach you, not to sell you.`}
     >
       <section>
@@ -86,8 +86,38 @@ export default function PrivacyPage() {
           many people get stuck where. It records the pages you open and a short list of named
           actions (signing up, finishing a diagnostic, starting a checkout). We have turned off its
           automatic capture of every click and keystroke, so it only receives events we have named
-          deliberately. We do not run advertising trackers and we do not sell or share your data
-          with advertisers.
+          deliberately. We do not sell your data, and we do not give advertisers your name, email
+          address, study results or tutor conversations.
+        </p>
+      </section>
+
+      <section>
+        <h2>Advertising</h2>
+        <p>
+          The Free plan is paid for by adverts, shown inside the app by Google AdSense. Paid plans
+          show no adverts and load no advertising code at all.
+        </p>
+        <p>
+          We ask Google for <strong>non-personalised</strong> adverts only. That means the adverts
+          you see are chosen from the page you are on and your general location, not from a
+          profile of your interests or your browsing elsewhere. To show an advert, your browser
+          contacts Google directly, so Google receives your IP address, details of your device and
+          browser, and the address of the page the advert is on. Google may also store cookies or
+          similar identifiers in your browser to limit how often you see the same advert, to
+          measure advert performance, and to detect fraud. We do not send Google your name, email
+          address, answers, readiness score or tutor conversations.
+        </p>
+        <p>
+          You can read how Google uses this information at{" "}
+          <a
+            href="https://policies.google.com/technologies/partner-sites"
+            className="underline"
+            rel="noopener noreferrer"
+          >
+            policies.google.com/technologies/partner-sites
+          </a>
+          . If you would rather see no adverts and have no advertising code loaded, any paid plan
+          removes them.
         </p>
       </section>
 
@@ -125,6 +155,11 @@ export default function PrivacyPage() {
             <strong>PostHog</strong> — product analytics, as described above.
           </li>
           <li>
+            <strong>Google (AdSense)</strong> — adverts on the Free plan, as described above.
+            Receives your IP address, device and browser details and the page address directly
+            from your browser. Not used on paid plans.
+          </li>
+          <li>
             <strong>Upstash</strong> — usage limits. Holds a counter keyed to your account ID so the
             AI features can enforce a daily allowance.
           </li>
@@ -150,7 +185,8 @@ export default function PrivacyPage() {
           Africa recognises as comparable to POPIA, so we rely on DeepSeek&rsquo;s published
           processing terms rather than on its home jurisdiction. If you would rather no tutor
           message left for China, do not use the AI tutor; every other part of the app — questions,
-          flashcards, mocks, scenarios and progress — works without it.
+          flashcards, mocks, scenarios and progress — works without it. The AI tutor is part of
+          the paid plans only, so nothing you do on the Free plan is sent to an AI provider.
         </p>
         <p>
           We choose providers that publish a data-processing agreement and commit to protection

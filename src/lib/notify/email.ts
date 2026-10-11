@@ -9,7 +9,7 @@ import { isSuppressed } from "@/lib/notify/suppression";
  */
 
 export interface EmailMessage {
-  /** Provider deduplication for retried monthly partner statements. */
+  /** Provider deduplication, so a retried send is not delivered twice. */
   idempotencyKey?: string;
   to: string;
   subject: string;

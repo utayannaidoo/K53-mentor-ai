@@ -11,7 +11,6 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { SessionProgress, type SessionOutcome } from "@/components/ui/session-progress";
 import { SessionNavRow } from "@/components/ui/session-nav";
 import { Paywall } from "@/components/app/paywall";
-import { TrialEndCard } from "@/components/app/trial-end-card";
 import { sourceFor } from "@/lib/content/provenance";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { signQuestionAlt } from "@/lib/content/sign-alt";
@@ -39,7 +38,6 @@ import { nextStepAfterQuestions, type CategoryMisses } from "@/lib/learning/next
 import { mockRetestStatus } from "@/lib/plan";
 import { abilityByCategory, interleave, withinReach } from "@/lib/learning/ability";
 import { cramQueue } from "@/lib/learning/cram";
-import { TrialMeter } from "@/components/app/trial-meter";
 import { categoryName } from "@/lib/content/categories";
 import { STUDY_SESSION_SIZE, studyCodeOf } from "@/lib/billing/plans";
 import { haptics } from "@/lib/haptics";
@@ -211,17 +209,13 @@ export function QuestionPractice() {
   if (Number.isFinite(cap.cap) && cap.used >= cap.cap) {
     return (
       <div className="mx-auto max-w-md py-10">
-        {state.tier === "free" ? (
-          <TrialEndCard feature="questions" />
-        ) : (
-          <Paywall
+        <Paywall
             feature="questions"
             plan="premium_plus"
             title="You've hit today's questions"
             description="Your plan's daily question sessions are done — they reset tomorrow. Premium Plus removes the limit entirely."
             cta="See Premium Plus"
           />
-        )}
       </div>
     );
   }
@@ -275,7 +269,6 @@ export function QuestionPractice() {
         seconds={seconds}
         cpEarned={state.cp - cpStartRef.current}
         onPracticeMore={restart}
-        trialNearEnd={state.tier === "free" && Number.isFinite(cap.cap) && cap.cap - cap.used <= 2}
         wrongByCategory={wrongByCat}
         mockRetestDue={mockRetestStatus(state).due}
         recap={{
@@ -385,8 +378,6 @@ export function QuestionPractice() {
           {i + 1}/{queue.length}
         </span>
       </div>
-
-      <TrialMeter feature="questions" className="mx-auto mt-3 max-w-xl" />
 
       {runningAcc !== null && (
         <div className="mx-auto mt-3 flex max-w-xl items-center justify-end gap-1 text-xs text-muted-foreground">
@@ -553,7 +544,6 @@ function Summary({
   cpEarned,
   recap,
   onPracticeMore,
-  trialNearEnd,
   wrongByCategory,
   mockRetestDue,
 }: {
@@ -563,7 +553,6 @@ function Summary({
   cpEarned: number;
   recap: SessionRecapData;
   onPracticeMore: () => void;
-  trialNearEnd?: boolean;
   /** Misses by category for this session — feeds the targeted next step. */
   wrongByCategory: CategoryMisses;
   /** Whether the pass predictor is due a recalibration. */
@@ -618,13 +607,6 @@ function Summary({
         />
       )}
       <SessionRecap data={recap} className="mt-5" />
-      {/* Conversion moment lands right here, while the session result is fresh,
-          instead of ambushing the learner on their next visit. */}
-      {trialNearEnd && (
-        <div className="mt-5">
-          <TrialEndCard compact feature="questions" />
-        </div>
-      )}
     </div>
   );
 }

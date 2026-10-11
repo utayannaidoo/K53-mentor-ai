@@ -3,16 +3,16 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * Which engine writes a free account's coach copy.
  *
- * Mirrors tutor-trial-routing: the free week gets the real model (coach copy is
- * part of what's being evaluated); a LAPSED free account gets the local
- * template — otherwise every stale signup cost up to 12 provider calls a day
- * forever. Paid tiers never go local, whatever their account age.
+ * Free accounts are ad-supported and always get the local template — otherwise
+ * every free signup could cost up to 12 provider calls a day forever. The
+ * AI-written copy is part of what a subscription buys, whatever the account's
+ * age.
  */
 
 const DAY_MS = 86_400_000;
 
 let subscriptionRow: { tier: string; status: string } | null = null;
-let profileRow: { onboarded_at: string | null; created_at: string | null; trial_bonus_days?: number } | null = null;
+let profileRow: { onboarded_at: string | null; created_at: string | null } | null = null;
 let adminAvailable = true;
 
 const singleRow = <T>(row: T) => ({
@@ -91,25 +91,16 @@ beforeEach(() => {
   adminAvailable = true;
 });
 
-describe("coach spend follows the trial", () => {
-  it("uses the real coach on day ten after a school trial extension", async () => {
-    profileRow = { onboarded_at: null, created_at: new Date(Date.now()-9*DAY_MS).toISOString(), trial_bonus_days: 7 };
-    expect((await askRecap()).status).toBe(200);
-    expect(completeCoachText).toHaveBeenCalledTimes(1);
-  });
-  it("calls the provider inside the free week", async () => {
-    const res = await askRecap();
-    expect(res.status).toBe(200);
-    expect(completeCoachText).toHaveBeenCalledTimes(1);
-  });
-
-  it("never calls it for an account past the free week", async () => {
-    profileRow = { onboarded_at: null, created_at: new Date(Date.now() - 30 * DAY_MS).toISOString() };
-    await askRecap();
+describe("coach spend follows the plan", () => {
+  it("never calls the provider for a free account, new or old", async () => {
+    for (const age of [0, 3, 30]) {
+      profileRow = { onboarded_at: null, created_at: new Date(Date.now() - age * DAY_MS).toISOString() };
+      const res = await askRecap();
+      expect(res.status).toBe(200);
+      // The learner still gets copy — from the local template, model "local".
+      expect(((await res.json()) as { model?: string }).model).toBe("local");
+    }
     expect(completeCoachText).not.toHaveBeenCalled();
-    // The learner still gets copy — from the local template, model "local".
-    const body = (await (await askRecap()).json()) as { model?: string };
-    expect(body.model).toBe("local");
   });
 
   it("paid tiers keep the provider whatever their age", async () => {

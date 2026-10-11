@@ -118,31 +118,33 @@ describe("buildWelcomeEmail", () => {
   // system was bundled into the payment receipt, so the people still deciding
   // whether to pay heard from us least.
   it("points at the diagnostic, which is the first thing worth doing", () => {
-    const mail = buildWelcomeEmail({ firstName: "Sam", trialDays: 7 });
+    const mail = buildWelcomeEmail({ firstName: "Sam" });
     expect(mail.text).toMatch(/diagnostic/i);
     expect(mail.html).toContain(`href="${SITE_URL}/dashboard"`);
   });
 
-  it("says how long the free week lasts, using the real number", () => {
-    const mail = buildWelcomeEmail({ firstName: "Sam", trialDays: 7 });
-    expect(mail.text).toContain("7 days");
+  it("says the study app is free and ad-supported, with no time limit", () => {
+    const mail = buildWelcomeEmail({ firstName: "Sam" });
+    expect(mail.text).toMatch(/free/i);
+    expect(mail.text).toMatch(/ads/i);
+    expect(mail.text).not.toMatch(/\d+ days/);
   });
 
   it("copes with no name", () => {
-    const mail = buildWelcomeEmail({ firstName: "", trialDays: 7 });
+    const mail = buildWelcomeEmail({ firstName: "" });
     expect(mail.text).toContain("Hi there");
     expect(mail.html).toContain("Hi there");
   });
 
   it("escapes the name — it is whatever the user typed", () => {
-    const mail = buildWelcomeEmail({ firstName: '<img src=x onerror=alert(1)>', trialDays: 7 });
+    const mail = buildWelcomeEmail({ firstName: '<img src=x onerror=alert(1)>' });
     expect(mail.html).not.toContain("<img");
     expect(mail.html).toContain("&lt;img");
   });
 
   it("carries the reminders opt-out, so nobody has to wait for a nudge to find it", () => {
     const link = "https://k53.test/api/unsubscribe/reminders?u=u1&t=abc";
-    const mail = buildWelcomeEmail({ firstName: "Sam", trialDays: 7, unsubscribeUrl: link });
+    const mail = buildWelcomeEmail({ firstName: "Sam", unsubscribeUrl: link });
     expect(mail.html).toContain(link);
     expect(mail.html).toMatch(/Unsubscribe from reminders/);
     expect(mail.text).toContain(`Unsubscribe from study reminders: ${link}`);
@@ -150,7 +152,7 @@ describe("buildWelcomeEmail", () => {
   });
 
   it("points at account preferences when no signing secret is configured", () => {
-    const mail = buildWelcomeEmail({ firstName: "Sam", trialDays: 7 });
+    const mail = buildWelcomeEmail({ firstName: "Sam" });
     expect(mail.headers).toBeUndefined();
     expect(mail.html).toMatch(/account preferences/i);
   });
