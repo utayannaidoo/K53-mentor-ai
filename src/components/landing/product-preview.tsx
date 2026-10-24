@@ -129,12 +129,12 @@ export function ProductPreview() {
               <div className="hidden lg:mt-10 lg:block">
                 <StartCta
                   location="product_preview"
-                  label="Start free assessment"
+                  label="Start studying free"
                   icon={<ArrowRight className="h-4 w-4" />}
                   className={cn(buttonVariants({ size: "lg" }), "gap-2")}
                 />
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Free · no credit card · 5 minutes
+                  Free · no credit card · no test first
                 </p>
               </div>
             </div>
@@ -142,11 +142,11 @@ export function ProductPreview() {
             <div className="order-3 lg:hidden">
               <StartCta
                 location="product_preview_mobile"
-                label="Start free assessment"
+                label="Start studying free"
                 icon={<ArrowRight className="h-4 w-4" />}
                 className={cn(buttonVariants({ size: "lg" }), "mt-8 gap-2")}
               />
-              <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · 5 minutes</p>
+              <p className="mt-2 text-xs text-muted-foreground">Free · no credit card · no test first</p>
             </div>
           </div>
         </section>

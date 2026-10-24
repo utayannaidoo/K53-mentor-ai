@@ -73,6 +73,16 @@ const nextConfig = {
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },
+  // The starting check was retired: onboarding asks what the learner finds
+  // hard and starts them studying. Old links and emails to it land on practice.
+  // A config redirect rather than a page that calls redirect(), which builds
+  // as an empty error shell with no lang attribute and fails the a11y check.
+  async redirects() {
+    return [
+      { source: "/diagnostic", destination: "/study/questions", permanent: false },
+      { source: "/diagnostic/:path*", destination: "/study/questions", permanent: false },
+    ];
+  },
 };
 
 export default nextConfig;

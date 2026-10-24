@@ -106,7 +106,7 @@ const PROGRESS_STEPS: readonly NaviGuideStep[] = [
     target: "[data-tutorial='progress-verdict']",
     eyebrow: "Read your result",
     title: "Progress explains what your readiness means",
-    body: "After the starting check, this page separates the overall verdict from the three K53 section pass marks. Before then, it stays honest and asks you to measure first.",
+    body: "Once you’ve practised every section, this page separates the overall verdict from the three K53 section pass marks. Before then, it stays honest and shows no score.",
   },
   {
     target: "[data-tutorial='progress-mastery']",

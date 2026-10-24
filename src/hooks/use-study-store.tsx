@@ -56,6 +56,7 @@ import { hydrateAccountState, hydrateSessionOnly } from "@/lib/store/account-hyd
 import { shouldClearCachedProfile } from "@/lib/auth/session-absent";
 import { revokeRemoteSession } from "@/lib/auth/sign-out";
 import { persistOnboarding } from "@/lib/store/persist-onboarding";
+import { baselineStatus, type BaselineStatus } from "@/lib/learning/baseline";
 
 type UsageKind = "flashcards" | "questions" | "tutor" | "scenarios";
 
@@ -72,6 +73,12 @@ interface StudyStore {
   isAuthed: boolean;
   hasOnboarded: boolean;
   hasDiagnostic: boolean;
+  /**
+   * Enough real answers, across every exam section, to show a readiness score.
+   * The starting check used to be the only way in; ordinary practice now is.
+   * See baselineStatus.
+   */
+  baseline: BaselineStatus;
   readiness: ReadinessBreakdown;
 
   signInLocal: (name: string, email: string) => void;
@@ -162,6 +169,7 @@ type StudyValues =
   | "isAuthed"
   | "hasOnboarded"
   | "hasDiagnostic"
+  | "baseline"
   | "readiness"
   | "usageFor";
 
@@ -867,6 +875,7 @@ export function StudyStoreProvider({ children }: { children: React.ReactNode }) 
       isAuthed: Boolean(state.profile),
       hasOnboarded: Boolean(state.onboarding),
       hasDiagnostic: state.diagnostics.length > 0,
+      baseline: baselineStatus(state),
       readiness,
 
       usageFor: (kind) => {

@@ -17,7 +17,6 @@ export default function robots(): MetadataRoute.Robots {
           "/licence-prep",
           "/eye-test",
           "/onboarding",
-          "/diagnostic",
           "/welcome",
           "/continue",
           // The school workspace. The public page is /for-driving-schools,

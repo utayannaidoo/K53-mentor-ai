@@ -115,9 +115,9 @@ export default function GuidePage() {
             entry point. */}
         <p>
           Not sure where you stand? K53 Mentor's{" "}
-          <Link href="/onboarding">free assessment</Link> scores you the way the
-          examiner will — per section — and builds your study plan around the
-          sections that need the work.
+          <Link href="/onboarding">free practice</Link> and mock exams score you
+          the way the examiner will — per section — and build your study plan
+          around the sections that need the work.
         </p>
       </section>
     </LegalPage>

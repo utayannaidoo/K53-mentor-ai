@@ -48,7 +48,7 @@ export function localPlanRationale(d: PlanRationaleData): string {
       : "";
 
   if (d.weakestCategory && d.fromWorry) {
-    return `You told us ${d.weakestCategory} worries you most, so today starts there${dueBit}${urgency}.`;
+    return `You said ${d.weakestCategory} is hardest for you, so today starts there${dueBit}${urgency}.`;
   }
   if (d.weakestCategory && d.weakestPct != null) {
     return `${d.weakestCategory} is sitting at ${d.weakestPct}%, so today starts there${dueBit}${urgency}.`;

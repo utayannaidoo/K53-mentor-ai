@@ -106,11 +106,11 @@ export default function RoadSignsPage() {
           </h2>
           <p className="mx-auto mt-2 max-w-lg text-sm text-muted-foreground">
             The computerised test shuffles the questions and the answers, so recognising a sign in
-            a list is not enough. Find out which sections would fail you today — 15 questions, no
-            card needed.
+            a list is not enough. Practise them as the test asks them — free, no card needed, and
+            no test before you start.
           </p>
           <Link href="/onboarding" className={cn(buttonVariants({ size: "lg" }), "mt-6 gap-2")}>
-            Start free assessment <ArrowRight className="h-4 w-4" />
+            Start studying free <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
       </main>

@@ -137,7 +137,7 @@ export default function GuidePage() {
             were sent to a login screen. The free assessment is the public
             entry point. */}
         <p>
-          K53 Mentor's <Link href="/onboarding">free assessment</Link> checks
+          K53 Mentor's <Link href="/onboarding">free practice</Link> checks
           your signs against the real pass mark and feeds whatever you miss back
           into your study plan until it sticks.
         </p>

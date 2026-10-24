@@ -28,7 +28,10 @@ import { todayKey } from "@/lib/store/local-store";
  * it takes for this to become a grid again.
  */
 export default function DashboardPage() {
-  const { state, readiness, hasDiagnostic, dismissComeback, completeFirstRunTour } = useStudyStore();
+  const { state, readiness, baseline, dismissComeback, completeFirstRunTour } = useStudyStore();
+  // Readiness, the blocking section and pass chance print only once practice
+  // has reached every exam section — see baselineStatus.
+  const measured = baseline.measured;
 
   const tasks = generateTodayPlan(state, readiness);
   const doneMap = Object.fromEntries(tasks.map((t) => [t.id, isTaskDone(t, state)]));
@@ -40,7 +43,7 @@ export default function DashboardPage() {
     firstName: state.profile?.name?.split(" ")[0],
     weakestCategory: focus.categoryId ? categoryName(focus.categoryId) : undefined,
     weakestPct:
-      hasDiagnostic && focus.categoryId && !focus.fromWorry
+      measured && focus.categoryId && !focus.fromWorry
         ? readiness.perCategory[focus.categoryId]
         : undefined,
     fromWorry: focus.fromWorry,
@@ -52,7 +55,6 @@ export default function DashboardPage() {
   const mistakes = openMistakes(state);
   const alertKey = topAlert({
     cram: isCramWindow(state) && mistakes.length > 0,
-    diagnostic: !hasDiagnostic,
     comeback: state.pendingComeback !== null,
   });
 
@@ -86,9 +88,10 @@ export default function DashboardPage() {
         planDonePct={planDonePct}
         perCategory={readiness.perCategory}
         perCategoryEvidence={readiness.perCategoryEvidence}
-        blocking={hasDiagnostic ? blockingSection(readiness.perCategory) : null}
+        blocking={measured ? blockingSection(readiness.perCategory) : null}
         hasAttempts={state.attempts.length > 0}
-        hasDiagnostic={hasDiagnostic}
+        measured={measured}
+        baselineRemaining={baseline.remaining}
         activeDays={activeDays}
         tasks={tasks}
         doneMap={doneMap}
@@ -106,8 +109,8 @@ export default function DashboardPage() {
         rankLine={
           rank.next
             ? `${rank.current.name} · ${
-                !hasDiagnostic && rank.unmet[0]?.startsWith("readiness ")
-                  ? "take the starting check to measure readiness"
+                !measured && rank.unmet[0]?.startsWith("readiness ")
+                  ? "practise a little in every section to measure readiness"
                   : rank.unmet[0] ?? `next: ${rank.next.name}`
               }`
             : `${rank.current.name} — the road is done`
@@ -120,7 +123,7 @@ export default function DashboardPage() {
           state.sessions.filter((session) => session.type !== "diagnostic").length <= 1
         }
         passChance={
-          hasDiagnostic ? passChanceStory(readiness.passProbability, readiness.perCategory) : null
+          measured ? passChanceStory(readiness.passProbability, readiness.perCategory) : null
         }
       />
       {!state.firstRunTourDone && <TutorNavigator onComplete={completeFirstRunTour} />}
@@ -146,14 +149,6 @@ function alertBand(
         body: `Skip the new material — ${ctx.mistakes} questions are still tripping you up.`,
         href: "/study/questions?mode=cram",
         cta: "Drill mistakes",
-      };
-    case "diagnostic":
-      return {
-        tone: "primary" as const,
-        title: "Measure your starting point",
-        body: "A 15-question check measures all 7 categories. It cannot be failed.",
-        href: "/diagnostic",
-        cta: "Start 5-minute check",
       };
     case "comeback":
       return {

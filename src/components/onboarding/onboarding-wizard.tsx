@@ -6,37 +6,38 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Bike, Car, Gauge, GraduationCap, Layers } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { CategoryIcon } from "@/components/shared/category-icon";
 import { OptionCard } from "@/components/onboarding/option-card";
 import { useStudyStore } from "@/hooks/use-study-store";
+import { CATEGORIES } from "@/lib/content/categories";
 import { track } from "@/lib/analytics";
-import { cn, isPastDate, localIsoDate } from "@/lib/utils";
-import type { LicenceGoal, OnboardingData, VehicleCode } from "@/types";
+import { cn } from "@/lib/utils";
+import type { CategoryId, LicenceGoal, OnboardingData, VehicleCode } from "@/types";
 
 /**
- * Goal, vehicle, date — then straight into the starting check.
+ * Three taps, then studying.
  *
- * Every landing CTA says "Start free assessment", so the assessment has to be
- * the destination. This used to open on an intro screen and close on a "your
- * plan is ready" summary (a plan can't be ready before a single answer), so a
- * visitor saw six screens before question one. The date stays: it drives the
- * dashboard's countdown and the plan's pace.
+ * This used to end in a 15-question starting check, and almost everyone who
+ * signed up took it and never came back — the first thing the app asked of
+ * them was a test. Now it asks what they find hard and starts them there.
+ * The test date moved out too: it can be set from Today or Account whenever
+ * the learner books, and it was the one screen here that needed typing.
  */
 const TOTAL_STEPS = 3;
-const DRAFT_KEY = "k53mentor.onboarding.draft.v1";
+// v2: the date step is gone and "what's hard" took its place, so a v1 draft's
+// step number would land on the wrong screen.
+const DRAFT_KEY = "k53mentor.onboarding.draft.v2";
 
 interface WizardDraft {
   step: number;
   goal: LicenceGoal | null;
   vehicleCode: VehicleCode | null;
-  testDate: string;
-  noDate: boolean;
-  driversTestDate: string;
-  noDriversDate: boolean;
+  hardest: CategoryId[];
 }
 
 const GOALS: readonly LicenceGoal[] = ["learners", "drivers", "both"];
 const VEHICLE_CODES: readonly VehicleCode[] = ["8", "10", "14", "A1", "A"];
+const CATEGORY_IDS = CATEGORIES.map((c) => c.id);
 
 export function OnboardingWizard() {
   const router = useRouter();
@@ -46,14 +47,8 @@ export function OnboardingWizard() {
   const [step, setStep] = React.useState(1);
   const [goal, setGoal] = React.useState<LicenceGoal | null>(null);
   const [vehicleCode, setVehicleCode] = React.useState<VehicleCode | null>(null);
-  const [testDate, setTestDate] = React.useState("");
-  const [noDate, setNoDate] = React.useState(false);
-  const [driversTestDate, setDriversTestDate] = React.useState("");
-  const [noDriversDate, setNoDriversDate] = React.useState(false);
-
-  const todayIso = React.useMemo(() => localIsoDate(), []);
-  const testDateInPast = isPastDate(testDate || null);
-  const driversDateInPast = isPastDate(driversTestDate || null);
+  // In the order tapped: the first is where the plan starts.
+  const [hardest, setHardest] = React.useState<CategoryId[]>([]);
 
   // Restore after mount so static prerender and browser hydration stay identical.
   const restored = React.useRef(false);
@@ -63,21 +58,14 @@ export function OnboardingWizard() {
       if (raw) {
         const draft = JSON.parse(raw) as Partial<WizardDraft>;
         if (typeof draft.step === "number") {
-          // Drafts from the older intro/summary flows land on the nearest
-          // question that still exists.
           setStep(Math.min(Math.max(draft.step, 1), TOTAL_STEPS));
         }
         if (draft.goal && GOALS.includes(draft.goal)) setGoal(draft.goal);
         if (draft.vehicleCode && VEHICLE_CODES.includes(draft.vehicleCode)) {
           setVehicleCode(draft.vehicleCode);
         }
-        if (typeof draft.testDate === "string") setTestDate(draft.testDate);
-        if (typeof draft.noDate === "boolean") setNoDate(draft.noDate);
-        if (typeof draft.driversTestDate === "string") {
-          setDriversTestDate(draft.driversTestDate);
-        }
-        if (typeof draft.noDriversDate === "boolean") {
-          setNoDriversDate(draft.noDriversDate);
+        if (Array.isArray(draft.hardest)) {
+          setHardest(draft.hardest.filter((id) => CATEGORY_IDS.includes(id)));
         }
       }
     } catch {
@@ -88,21 +76,13 @@ export function OnboardingWizard() {
 
   React.useEffect(() => {
     if (!restored.current) return;
-    const draft: WizardDraft = {
-      step,
-      goal,
-      vehicleCode,
-      testDate,
-      noDate,
-      driversTestDate,
-      noDriversDate,
-    };
+    const draft: WizardDraft = { step, goal, vehicleCode, hardest };
     try {
       window.localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
     } catch {
       // The flow still works when storage is blocked; it simply cannot resume.
     }
-  }, [step, goal, vehicleCode, testDate, noDate, driversTestDate, noDriversDate]);
+  }, [step, goal, vehicleCode, hardest]);
 
   const next = () => setStep((current) => Math.min(current + 1, TOTAL_STEPS));
   const back = () => setStep((current) => Math.max(current - 1, 1));
@@ -120,6 +100,12 @@ export function OnboardingWizard() {
     window.setTimeout(next, 240);
   }
 
+  function toggleHardest(id: CategoryId) {
+    setHardest((current) =>
+      current.includes(id) ? current.filter((c) => c !== id) : [...current, id],
+    );
+  }
+
   function answers(): Omit<OnboardingData, "completedAt"> {
     return {
       goal: goal ?? "learners",
@@ -128,56 +114,37 @@ export function OnboardingWizard() {
       // saved to the profile as if the learner had given it. Consumers fall
       // back to neutral behaviour on null / empty.
       confidence: null,
-      worryCategories: [],
+      worryCategories: hardest,
       knowledgeLevel: null,
       studyFrequency: null,
       priorAttempts: 0,
-      testDate: noDate || testDateInPast ? null : testDate || null,
-      driversTestDate:
-        goal === "both"
-          ? noDriversDate || driversDateInPast
-            ? null
-            : driversTestDate || null
-          : null,
+      testDate: null,
+      driversTestDate: null,
     };
   }
 
-  function clearDraft() {
+  function finish() {
+    const data = answers();
+    completeOnboarding(data);
+    // Marks the account as past the old starting check, which older devices
+    // and the account sync still read.
+    skipDiagnostic();
+    track("onboarding_completed", {
+      path: "study",
+      goal: data.goal,
+      vehicle_code: data.vehicleCode,
+      hardest_count: data.worryCategories.length,
+      elapsed_seconds: Math.max(0, Math.round((Date.now() - startedAt.current) / 1000)),
+    });
     try {
       window.localStorage.removeItem(DRAFT_KEY);
     } catch {
       // Nothing to clean up if storage is unavailable.
     }
-  }
-
-  function completeSetup(path: "starting_check" | "study_first") {
-    const data = answers();
-    completeOnboarding(data);
-    track("onboarding_completed", {
-      path,
-      goal: data.goal,
-      vehicle_code: data.vehicleCode,
-      has_test_date: Boolean(data.testDate),
-      elapsed_seconds: Math.max(0, Math.round((Date.now() - startedAt.current) / 1000)),
-    });
-    clearDraft();
-
-    if (path === "starting_check") {
-      router.push("/diagnostic");
-      return;
-    }
-
-    skipDiagnostic();
-    // Guests save their setup first; signed-in learners can enter the practice
-    // step immediately through the post-auth router.
+    // Guests save their setup first; signed-in learners go through the
+    // post-auth router, which starts their first practice.
     router.push(isAuthed ? "/continue" : "/signup");
   }
-
-  const primaryDateLabel = goal === "drivers" ? "Driver's test date" : "Learner's test date";
-  const datesChosen =
-    (Boolean(testDate) || noDate) &&
-    !testDateInPast &&
-    (goal !== "both" || ((Boolean(driversTestDate) || noDriversDate) && !driversDateInPast));
 
   return (
     <div className="flex min-h-dvh flex-col bg-background bg-app">
@@ -212,7 +179,7 @@ export function OnboardingWizard() {
           <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-500 ease-glass"
-              style={{ width: `${(step / (TOTAL_STEPS + 1)) * 100}%` }}
+              style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
             />
           </div>
           <span className="font-mono text-xs text-muted-foreground">
@@ -224,10 +191,7 @@ export function OnboardingWizard() {
       <main id="main-content" tabIndex={-1} className="flex flex-1 items-center justify-center px-6 py-8">
         <div key={step} className="w-full max-w-lg animate-fade-in">
           {step === 1 && (
-            <Step
-              title="What are you working toward?"
-              subtitle="Three quick taps, then a 15-question starting check — about 5 minutes, no pass or fail."
-            >
+            <Step title="What are you studying for?" subtitle="Three quick taps and you're studying.">
               <div className="space-y-3">
                 <OptionCard selected={goal === "learners"} onClick={() => pick(setGoal, "learners")} icon={<GraduationCap className="h-5 w-5" />} title="Learner's licence" description="Rules of the road, signs and vehicle controls" />
                 <OptionCard selected={goal === "drivers"} onClick={() => pick(setGoal, "drivers")} icon={<Car className="h-5 w-5" />} title="Driver's licence" description="Parking, manoeuvres and the yard test" />
@@ -238,8 +202,8 @@ export function OnboardingWizard() {
 
           {step === 2 && (
             <Step
-              title="Which licence code are you studying?"
-              subtitle="This controls the vehicle-specific questions you see. You can change it later."
+              title="Which licence code?"
+              subtitle="This decides the vehicle questions you see. You can change it any time."
             >
               <div className="space-y-3">
                 <OptionCard selected={vehicleCode === "8"} onClick={() => pick(setVehicleCode, "8")} icon={<Car className="h-5 w-5" />} title="Car · Code 08 (B)" description="Cars and light vehicles up to 3 500 kg" />
@@ -251,125 +215,29 @@ export function OnboardingWizard() {
 
           {step === 3 && (
             <Step
-              title={goal === "both" ? "When are your tests?" : "When's your test?"}
-              subtitle="A date paces your plan and starts a countdown. Not booked yet is a perfectly good answer."
+              title="What do you find hardest?"
+              subtitle="Pick any that apply. We'll start you there — or skip it and study everything."
             >
-              <div className="space-y-5">
-                <DateChoice
-                  id="primary-test-date"
-                  label={primaryDateLabel}
-                  value={testDate}
-                  min={todayIso}
-                  notBooked={noDate}
-                  invalid={testDateInPast}
-                  onChange={(value) => {
-                    setTestDate(value);
-                    setNoDate(false);
-                  }}
-                  onNotBooked={() => {
-                    setNoDate(true);
-                    setTestDate("");
-                  }}
-                />
-
-                {goal === "both" && (
-                  <DateChoice
-                    id="drivers-test-date"
-                    label="Driver's test date"
-                    value={driversTestDate}
-                    min={todayIso}
-                    notBooked={noDriversDate}
-                    invalid={driversDateInPast}
-                    onChange={(value) => {
-                      setDriversTestDate(value);
-                      setNoDriversDate(false);
-                    }}
-                    onNotBooked={() => {
-                      setNoDriversDate(true);
-                      setDriversTestDate("");
-                    }}
+              <div className="space-y-2.5">
+                {CATEGORIES.map((category) => (
+                  <OptionCard
+                    key={category.id}
+                    selected={hardest.includes(category.id)}
+                    onClick={() => toggleHardest(category.id)}
+                    icon={<CategoryIcon id={category.id} className="h-5 w-5" />}
+                    title={category.name}
+                    description={category.description}
+                    className="p-3.5"
                   />
-                )}
-
-                <div>
-                  <Button
-                    size="lg"
-                    className="w-full"
-                    disabled={!datesChosen}
-                    onClick={() => completeSetup("starting_check")}
-                  >
-                    Start my 5-minute check <ArrowRight />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="lg"
-                    disabled={!datesChosen}
-                    onClick={() => completeSetup("study_first")}
-                    className="mt-2 w-full text-muted-foreground"
-                  >
-                    Study first — measure me later
-                  </Button>
-                </div>
+                ))}
               </div>
+              <Button size="lg" className="mt-6 w-full" onClick={finish}>
+                {hardest.length > 0 ? "Start studying" : "Not sure — start studying"} <ArrowRight />
+              </Button>
             </Step>
           )}
         </div>
       </main>
-    </div>
-  );
-}
-
-function DateChoice({
-  id,
-  label,
-  value,
-  min,
-  notBooked,
-  invalid,
-  onChange,
-  onNotBooked,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  min: string;
-  notBooked: boolean;
-  invalid: boolean;
-  onChange: (value: string) => void;
-  onNotBooked: () => void;
-}) {
-  const errorId = `${id}-error`;
-  return (
-    <div>
-      <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
-        {label}
-      </label>
-      <Input
-        id={id}
-        type="date"
-        value={value}
-        min={min}
-        aria-invalid={invalid || undefined}
-        aria-describedby={invalid ? errorId : undefined}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-12 text-base"
-      />
-      {invalid && (
-        <p id={errorId} role="alert" className="mt-1.5 text-sm text-danger">
-          That date has passed. Pick an upcoming date or choose not booked yet.
-        </p>
-      )}
-      <Button
-        type="button"
-        variant={notBooked ? "secondary" : "outline"}
-        size="lg"
-        onClick={onNotBooked}
-        aria-pressed={notBooked}
-        className={cn("mt-2 w-full", notBooked && "border-primary/50 text-primary")}
-      >
-        I haven&apos;t booked yet
-      </Button>
     </div>
   );
 }

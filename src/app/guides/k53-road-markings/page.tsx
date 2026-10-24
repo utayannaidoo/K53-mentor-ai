@@ -162,7 +162,7 @@ export default function GuidePage() {
             entry point. */}
         <p>
           Not sure how your marking knowledge scores? K53 Mentor's{" "}
-          <Link href="/onboarding">free assessment</Link> marks you the way the
+          <Link href="/onboarding">free practice</Link> marks you the way the
           examiner will, section by section, and feeds what you miss back into
           your study plan until it sticks.
         </p>

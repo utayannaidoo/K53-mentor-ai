@@ -19,8 +19,6 @@
 export const ALERT_PRIORITY = [
   /** Test is days away and mistakes are still open: nothing else matters now. */
   "cram",
-  /** No diagnostic yet, so the plan and readiness are both guesses. */
-  "diagnostic",
   /** Back after a gap — orient them before they start. */
   "comeback",
 ] as const;

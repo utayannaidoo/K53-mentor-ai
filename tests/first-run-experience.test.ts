@@ -28,7 +28,7 @@ describe("first-run routing", () => {
     expect(destination({ hasDiagnostic: true, next: "/study" })).toBe("/study");
   });
 
-  it("gives a skipper the hands-on Navi introduction", () => {
+  it("gives a learner who skipped the old check the hands-on Navi introduction", () => {
     expect(destination({ diagnosticSkippedAt: "2026-09-04T08:00:00.000Z" })).toBe("/welcome");
   });
 
@@ -41,8 +41,17 @@ describe("first-run routing", () => {
     ).toBe("/dashboard");
   });
 
-  it("keeps an undecided learner at the starting check", () => {
-    expect(destination()).toBe("/diagnostic");
+  it("sends a brand-new learner straight to their first practice — there is no check", () => {
+    // Accounts from before the check was removed can still be undecided.
+    expect(destination()).toBe("/welcome");
+  });
+
+  it("never routes anyone to the retired starting check", () => {
+    for (const hasDiagnostic of [false, true]) {
+      for (const guidedDone of [false, true]) {
+        expect(destination({ hasDiagnostic, guidedDone })).not.toBe("/diagnostic");
+      }
+    }
   });
 });
 

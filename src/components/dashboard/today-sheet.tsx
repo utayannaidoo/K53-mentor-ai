@@ -48,7 +48,8 @@ export function TodaySheet({
   perCategoryEvidence,
   blocking,
   hasAttempts,
-  hasDiagnostic,
+  measured,
+  baselineRemaining,
   activeDays,
   tasks,
   doneMap,
@@ -82,7 +83,10 @@ export function TodaySheet({
    */
   blocking: ExamSection | null;
   hasAttempts: boolean;
-  hasDiagnostic: boolean;
+  /** Readiness has enough evidence behind it to be printed. */
+  measured: boolean;
+  /** Answers still needed before it is; 0 once measured. */
+  baselineRemaining: number;
   activeDays: ReadonlySet<string>;
   tasks: PlanTask[];
   doneMap: Record<string, boolean>;
@@ -117,7 +121,7 @@ export function TodaySheet({
   rankLine: string;
   /** Keep the one-line orientation until the learner starts independent work. */
   firstPlanExperience: boolean;
-  /** Present only once the starting check has measured every section. */
+  /** Present only once practice has measured every section. */
   passChance: PassChanceStory | null;
 }) {
   const strip = React.useMemo(
@@ -161,14 +165,14 @@ export function TodaySheet({
             <p className="text-2xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
               Readiness
             </p>
-            {!hasDiagnostic ? (
+            {!measured ? (
               <>
                 <p className="mt-1.5 font-mono text-6xl font-semibold leading-none tabular-nums text-muted-foreground">
                   —<span className="align-top text-2xl">%</span>
                 </p>
-                <Link href="/diagnostic" className="mt-2.5 inline-flex text-sm font-medium text-primary hover:underline">
-                  Take your starting check
-                </Link>
+                <p className="mt-2.5 text-sm text-muted-foreground">
+                  {baselineRemaining} more {baselineRemaining === 1 ? "answer" : "answers"} to measure it
+                </p>
                 <Link
                   href="/study/questions"
                   className={cn(buttonVariants({ size: "sm" }), "mt-3 w-fit")}
@@ -224,7 +228,7 @@ export function TodaySheet({
 
         {/* The chart is the top of the sheet now, not a footnote at the bottom. */}
         <div className="min-w-0 bg-card/[0.01] pb-2 pr-2 pt-4">
-          <ReadinessPlot data={hasDiagnostic ? trend : []} current={readiness} unmeasured={!hasDiagnostic} />
+          <ReadinessPlot data={measured ? trend : []} current={readiness} unmeasured={!measured} />
         </div>
       </div>
 
@@ -431,7 +435,7 @@ export function TodaySheet({
             </Link>
           </div>
 
-          {hasDiagnostic && hasAttempts && (
+          {measured && hasAttempts && (
             <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
               {blocking ? (
                 <>
@@ -454,7 +458,7 @@ export function TodaySheet({
               // starting-check score. Until that check is completed, show the
               // evidence count rather than printing a model percentage as a
               // measurement.
-              const assessed = hasDiagnostic && answerCount > 0;
+              const assessed = measured && answerCount > 0;
               const status = assessed
                 ? `${row.value}%`
                 : answerCount > 0

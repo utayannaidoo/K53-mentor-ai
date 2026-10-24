@@ -21,6 +21,7 @@ import { categoryName } from "@/lib/content/categories";
 // Index-only like everything here: mistakes derives from the attempt log,
 // never the question bank.
 import { openMistakes } from "@/lib/learning/mistakes";
+import { baselineStatus } from "@/lib/learning/baseline";
 import type { ReadinessBreakdown } from "@/lib/diagnostic/scoring";
 
 export type PlanTaskType = "flashcards" | "questions" | "scenario" | "mock";
@@ -213,10 +214,9 @@ export function generateTodayPlan(
   const weakest = focus.categoryId;
   const hasSignal = !focus.fromWorry && weakest !== null;
   // Practice can choose a sensible next category from a real answer, but a
-  // posterior percentage is not a starting-check score. Until that check is
-  // complete, name the evidence without turning one or two taps into a fake
-  // measurement.
-  const hasMeasuredStartingPoint = state.diagnostics.length > 0;
+  // posterior percentage is not a measurement. Until the baseline is in, name
+  // the evidence without turning one or two taps into a fake score.
+  const hasMeasuredStartingPoint = baselineStatus(state).measured;
   if (weakest) {
     tasks.push({
       id: "task-questions",
@@ -230,7 +230,7 @@ export function generateTodayPlan(
               // contradictory number for the same category.
               "Your weakest area so far — let's close the gap"
             : "Your practice has pointed us here — keep going to build a measured picture"
-          : "You told us this one worries you most — let's start here") + mistakeLine,
+          : "You said this one is hardest for you — let's start here") + mistakeLine,
       targetCount: size.questions,
       estMinutes: 5,
       href: `/study/questions?category=${weakest}`,

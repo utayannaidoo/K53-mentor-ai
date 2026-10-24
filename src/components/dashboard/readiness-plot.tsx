@@ -67,8 +67,8 @@ export function ReadinessPlot({
       <div className="m-5 flex h-[200px] flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border text-center">
         <p className="text-sm font-medium text-foreground">No readiness score yet</p>
         <p className="max-w-[34ch] text-xs text-muted-foreground">
-          Complete the starting check to establish your baseline. Until then, no estimate is
-          shown as if it were measured progress.
+          Answer a few questions in each section of the test — signs, rules and controls — and
+          your score appears. Until then, no estimate is shown as if it were measured progress.
         </p>
       </div>
     );

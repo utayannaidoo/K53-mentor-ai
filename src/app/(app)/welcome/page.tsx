@@ -11,15 +11,14 @@ export default function WelcomePage() {
   const router = useRouter();
   const { ready, accountHydrated, isAuthed, hasOnboarded, hasDiagnostic, state } = useStudyStore();
 
-  // This route is only for the learner who deliberately chose "study first".
-  // A completed starting check already taught them enough to use Today.
+  // The first-run introduction for a learner who has just set up. Someone who
+  // already took the old starting check, or has done it before, goes to Today.
   React.useEffect(() => {
     if (!ready || !accountHydrated) return;
     const next = safeNextPath("/welcome") ?? "/welcome";
     if (!isAuthed) router.replace(`/login?next=${encodeURIComponent(next)}`);
     else if (!hasOnboarded) router.replace("/onboarding");
     else if (hasDiagnostic || state.guidedDone) router.replace("/dashboard");
-    else if (!state.diagnosticSkippedAt) router.replace("/diagnostic");
   }, [
     ready,
     accountHydrated,
@@ -27,7 +26,6 @@ export default function WelcomePage() {
     hasOnboarded,
     hasDiagnostic,
     state.guidedDone,
-    state.diagnosticSkippedAt,
     router,
   ]);
 
@@ -37,8 +35,7 @@ export default function WelcomePage() {
     !isAuthed ||
     !hasOnboarded ||
     hasDiagnostic ||
-    state.guidedDone ||
-    !state.diagnosticSkippedAt
+    state.guidedDone
   ) {
     return (
       <div className="flex min-h-dvh items-center justify-center">

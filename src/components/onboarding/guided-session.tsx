@@ -23,10 +23,10 @@ import type { Flashcard, Question } from "@/types";
 const LETTERS = ["A", "B", "C", "D"];
 
 /**
- * Learners who defer the starting check get a tiny, real study loop: one
- * question and one flashcard, then Navi opens the Study menu. The first answer
- * therefore has a purpose — it demonstrates how the app adapts — without
- * pretending one answer is a readiness score.
+ * Every new learner's first two minutes: one question and one flashcard, then
+ * Navi opens the Study menu. The question comes from the area they said they
+ * find hardest, so the first thing the app does is the thing they asked for —
+ * and one answer still never pretends to be a readiness score.
  */
 export function GuidedSession() {
   const router = useRouter();
@@ -45,7 +45,9 @@ export function GuidedSession() {
 
   const [question] = React.useState<Question | null>(() => {
     const bank = forCode(questionBank, studyCodeOf(state));
-    const fresh = orderByFreshness(bank, state.attempts)[0];
+    const hardest = state.onboarding?.worryCategories ?? [];
+    const pool = bank.filter((q) => hardest.includes(q.categoryId));
+    const fresh = orderByFreshness(pool.length > 0 ? pool : bank, state.attempts)[0];
     return fresh ? withShuffledOptions(fresh) : null;
   });
 
@@ -125,8 +127,8 @@ export function GuidedSession() {
                 {firstName ? `Your plan is live, ${firstName}` : "Your plan is live"}
               </h1>
               <p className="mx-auto mt-3 max-w-md text-balance text-muted-foreground">
-                Navi will take you through one real question and one flashcard. You&apos;ll see how
-                practice works, while your readiness stays unmeasured until the starting check.
+                Navi will take you through one real question and one flashcard. Your readiness
+                score appears once you&apos;ve practised a little in each section of the test.
               </p>
               <Button size="xl" className="mt-8 w-full sm:w-auto" onClick={() => setStep(1)}>
                 Start a quick practice preview <ArrowRight />

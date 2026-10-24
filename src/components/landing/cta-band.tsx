@@ -11,15 +11,15 @@ export function CtaBand() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_100%_at_50%_0%,hsl(var(--primary)/0.22),transparent_70%)]"
         />
         <h2 className="relative mx-auto max-w-[640px] text-balance font-display text-[clamp(2.1rem,5vw,3.2rem)] font-semibold leading-[1.06] tracking-[-0.03em]">
-          Find out where you stand in 15 questions.
+          Start studying in three taps.
         </h2>
         <p className="relative mx-auto mt-[18px] max-w-[440px] text-[1.08rem] text-muted-foreground">
-          Free, no card, 5 minutes. You&apos;ll get a readiness score and a plan before you finish
-          your coffee.
+          Free, no card, no test first. Tell us what you find hard and your first questions are
+          waiting.
         </p>
         <StartCta
           location="cta_band"
-          label="Start free assessment"
+          label="Start studying free"
           icon={<ArrowRight className="h-[17px] w-[17px]" />}
           className="relative mt-[30px] inline-flex items-center gap-2.5 rounded-full bg-gradient-to-b from-primary-light to-primary px-[30px] py-4 text-base font-semibold text-white shadow-[inset_0_1px_0_hsl(0_0%_100%/0.45),0_16px_34px_-12px_hsl(var(--primary)/0.7)] transition-[transform,filter] [transition-duration:400ms] ease-spring hover:brightness-[1.07] active:scale-[0.96] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ring/30"
         />

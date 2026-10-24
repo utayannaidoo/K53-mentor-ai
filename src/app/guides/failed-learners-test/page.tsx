@@ -104,9 +104,10 @@ export default function GuidePage() {
             were sent to a login screen. The free assessment is the public
             entry point. */}
         <p>
-          K53 Mentor's <Link href="/onboarding">free assessment</Link> finds
-          the section that cost you the pass, then builds your retry's study
-          plan around it until it clears its mark with room to spare.
+          Tell K53 Mentor which section cost you the pass and its{" "}
+          <Link href="/onboarding">free practice</Link> starts there, building
+          your retry's study plan around it until it clears its mark with room
+          to spare.
         </p>
       </section>
     </LegalPage>

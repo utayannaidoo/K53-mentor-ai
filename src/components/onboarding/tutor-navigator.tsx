@@ -14,7 +14,7 @@ const TOUR_STEPS: readonly NaviGuideStep[] = [
     target: "[data-tutorial='study-areas']",
     eyebrow: "Your learning picture",
     title: "See the areas that need you",
-    body: "This is where your assessed study areas live. Take the starting check when you’re ready and I’ll use real answers, not guesses, to shape your plan.",
+    body: "This is where your study areas live. Every answer you give sharpens it, and I use real answers, not guesses, to shape your plan.",
   },
   {
     target: "[data-tutorial='study-nav']",

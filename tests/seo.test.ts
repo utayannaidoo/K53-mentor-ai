@@ -29,7 +29,7 @@ describe("robots", () => {
   });
 
   it("disallows the API and the post-signup handoff routes", () => {
-    for (const route of ["/api/", "/onboarding", "/diagnostic", "/welcome", "/continue"]) {
+    for (const route of ["/api/", "/onboarding", "/welcome", "/continue"]) {
       expect(disallow).toContain(route);
     }
   });

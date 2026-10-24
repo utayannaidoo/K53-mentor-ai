@@ -22,11 +22,10 @@ interface Feature {
 const FEATURES: Feature[] = [
   {
     icon: Gauge,
-    title: "AI diagnostic",
-    // Not "adaptive": questions are sampled once from the learner's profile
-    // (worry categories, licence code), not re-chosen per answer. Say what it
-    // actually does.
-    body: "A 15-question starting check across your licence code's seven study categories, with a baseline and per-category breakdown.",
+    title: "Readiness from real answers",
+    // Measured from practice once every exam section has answers behind it —
+    // see baselineStatus. Say what it actually does.
+    body: "Practise across your licence code's seven study categories and your readiness score and per-category breakdown build from the answers you give.",
   },
   {
     icon: ClipboardList,
