@@ -1,5 +1,7 @@
-import { DiagnosticRunner } from "@/components/diagnostic/diagnostic-runner";
+import { redirect } from "next/navigation";
 
-export default function DiagnosticPage() {
-  return <DiagnosticRunner />;
+// The starting check was removed: onboarding now asks what the learner finds
+// hard and starts them studying. Old links and emails land on practice instead.
+export default function Page() {
+  redirect("/study/questions");
 }

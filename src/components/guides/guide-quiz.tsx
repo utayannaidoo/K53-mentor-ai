@@ -98,12 +98,12 @@ export function GuideQuiz({ slug, categories }: { slug: string; categories?: Cat
             You got {correct} of {questions.length}.
           </p>
           <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-            The real test needs about 80% in every section, and one topic is only part of it. The
-            free starting check samples all three sections and shows which one to fix first.
+            The real test needs about 80% in every section, and one topic is only part of it. Practise
+            all three sections free and your scores show which one to fix first.
           </p>
           <StartCta
             location={`guide_quiz_${slug}`}
-            label="Get my section scores"
+            label="Start studying free"
             icon={<ArrowRight className="h-4 w-4" />}
             className={cn(buttonVariants({ size: "lg" }), "mt-5 w-full gap-2 sm:w-auto")}
           />

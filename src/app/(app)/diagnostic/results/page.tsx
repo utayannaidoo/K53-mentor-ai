@@ -1,5 +1,6 @@
-import { DiagnosticResults } from "@/components/diagnostic/diagnostic-results";
+import { redirect } from "next/navigation";
 
-export default function DiagnosticResultsPage() {
-  return <DiagnosticResults />;
+// Results of the retired starting check. See ../page.tsx.
+export default function Page() {
+  redirect("/study/questions");
 }

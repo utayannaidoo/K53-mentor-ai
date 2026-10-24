@@ -109,7 +109,7 @@ export default function GuidePage() {
             entry point. */}
         <p>
           Once you're booked, K53 Mentor's{" "}
-          <Link href="/onboarding">free assessment</Link> shows you which of the
+          <Link href="/onboarding">free practice</Link> shows you which of the
           three sections needs the work between now and test day.
         </p>
       </section>

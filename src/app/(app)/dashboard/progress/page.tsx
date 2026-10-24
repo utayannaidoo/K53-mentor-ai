@@ -67,7 +67,7 @@ const STREAK_MILESTONES = [
 ] as const;
 
 export default function ProgressPage() {
-  const { state, readiness, hasDiagnostic } = useStudyStore();
+  const { state, readiness, baseline } = useStudyStore();
 
   const totalSeconds = state.sessions.reduce((s, x) => s + x.durationSeconds, 0);
   // Questions actually attempted. A timed mock records every slot at submit,
@@ -83,10 +83,10 @@ export default function ProgressPage() {
   const accuracy = answered ? Math.round((correct / answered) * 100) : 0;
   const advanced = hasFeature(state.tier, "advancedAnalytics");
   const hasAttempts = answered > 0;
-  // Readiness and pass probability rely on a full, cross-category starting
-  // assessment. The scoring model still carries an internal prior before the
-  // diagnostic, but that prior is not user progress and must never be printed.
-  const hasAssessment = hasDiagnostic;
+  // Readiness and pass probability need evidence from every exam section. The
+  // scoring model carries an internal prior before that, but the prior is not
+  // user progress and must never be printed. See baselineStatus.
+  const hasAssessment = baseline.measured;
 
   // Free plan sees the last week; the rest stays visible as a blurred teaser
   // rather than silently vanishing. One paywall treatment on the page, not three.
@@ -184,8 +184,8 @@ export default function ProgressPage() {
         lead: "No verdict yet.",
         rest: "",
         support:
-          "Complete the 15-question starting check and this page will show your real baseline — never a placeholder score.",
-        cta: { href: "/diagnostic", label: "Take the starting check" },
+          `Answer ${baseline.remaining} more ${baseline.remaining === 1 ? "question" : "questions"} across signs, rules and controls and this page will show your real baseline — never a placeholder score.`,
+        cta: { href: "/study/questions", label: "Practise questions" },
       };
     }
     if (blocking) {
@@ -217,7 +217,7 @@ export default function ProgressPage() {
         "Confirm that category evidence under timed conditions before deciding you are ready for the real test.",
       cta: { href: "/study/mock-exam", label: "Confirm it on a full mock" },
     };
-  }, [hasAssessment, blocking, sections, passChance]);
+  }, [hasAssessment, baseline.remaining, blocking, sections, passChance]);
 
   const streakMilestone = STREAK_MILESTONES.find((m) => state.streak.current >= m.at) ?? null;
   const DeltaIcon = delta === null || delta === 0 ? Minus : delta > 0 ? TrendingUp : TrendingDown;
@@ -431,7 +431,7 @@ export default function ProgressPage() {
                         : `${delta > 0 ? "+" : ""}${delta} in 7 days`}
                   </span>
                 ) : (
-                  <span className="text-xs text-muted-foreground">Awaiting starting check</span>
+                  <span className="text-xs text-muted-foreground">Not measured yet</span>
                 )
               }
             >
@@ -580,8 +580,8 @@ export default function ProgressPage() {
               </div>
             ) : (
               <p className="mt-3 text-sm text-muted-foreground">
-                Your shareable Driving Passport appears after the starting check, once it has real
-                readiness and category scores to show.
+                Your shareable Driving Passport appears once you&apos;ve practised every section and
+                it has real readiness and category scores to show.
               </p>
             )}
           </Band>

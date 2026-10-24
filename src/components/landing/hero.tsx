@@ -41,14 +41,14 @@ export function Hero() {
         </h1>
 
         <p className="mx-auto mt-5 max-w-[480px] text-pretty text-lg leading-relaxed text-muted-foreground lg:mx-0">
-          K53 Mentor diagnoses your weak spots, builds a 10-minute daily plan, and coaches you with
+          K53 Mentor starts you on what you find hardest, builds a 10-minute daily plan, and coaches you with
           an AI tutor — until you walk in ready to pass first time.
         </p>
 
         <div className="mt-7 flex flex-wrap justify-center gap-3 lg:justify-start">
           <StartCta
             location="hero"
-            label="Start free assessment"
+            label="Start studying free"
             icon={<ArrowRight className="h-[17px] w-[17px]" />}
             className={`${PILL} px-6 py-[15px] text-base`}
           />

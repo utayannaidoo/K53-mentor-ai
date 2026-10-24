@@ -33,7 +33,7 @@ export const FAQ_ITEMS: {
     // DOWN with headroom — the content ratchet only grows the bank, so these
     // stay true between sprints. Recheck after big packs land.
     answer:
-      "Free apps hand you the same recycled question bank everyone else has and leave you to guess what to study. We have over 1,250 questions and over 900 flashcards, but volume isn't the point: a 15-question diagnostic finds which of the seven categories you're actually weak in, your daily plan puts those first, and spaced repetition brings them back just before you'd forget them. You're paying for a diagnosis and a plan, not more questions.",
+      "Free apps hand you the same recycled question bank everyone else has and leave you to guess what to study. We have over 1,250 questions and over 900 flashcards, but volume isn't the point: you start on whatever you find hardest, every answer shows which of the seven categories you're actually weak in, your daily plan puts those first, and spaced repetition brings them back just before you'd forget them. It's a plan that follows you, not just more questions.",
   },
   {
     question: "Which licence codes does my subscription cover?",

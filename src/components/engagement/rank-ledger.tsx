@@ -38,7 +38,7 @@ export function RankLedger({
   const visibleUnmet = readinessMeasured
     ? prog.unmet
     : prog.unmet.map((item) =>
-        item.startsWith("readiness ") ? "take the starting check to measure readiness" : item,
+        item.startsWith("readiness ") ? "practise a little in every section to measure readiness" : item,
       );
   const currentIndex = Math.min(rankAchieved, LICENCE_RANK_INDEX);
 

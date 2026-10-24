@@ -8,7 +8,7 @@ type CellValue = boolean | string;
 
 const ROWS: { feature: string; values: [CellValue, CellValue, CellValue] }[] = [
   { feature: "Free to start", values: [true, true, false] },
-  { feature: "Personalised AI diagnostic", values: [true, false, false] },
+  { feature: "Starts on what you find hardest", values: [true, false, false] },
   { feature: "Readiness and category tracking", values: [true, false, false] },
   { feature: "Spaced repetition that adapts to you", values: [true, "Some", false] },
   { feature: "AI tutor that explains your mistakes", values: [true, false, false] },

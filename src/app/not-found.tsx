@@ -22,12 +22,12 @@ export default function NotFound() {
             why this button used to point everyone at /onboarding: aiming it at
             /dashboard bounced every signed-out visitor into a login screen they
             never asked for. StartCta resolves it per visitor after mount, so a
-            signed-out stranger still gets the assessment and a signed-in
+            signed-out stranger still gets setup and a signed-in
             learner gets their own dashboard. */}
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
           <StartCta
             location="not_found"
-            label="Start free assessment"
+            label="Start studying free"
             className={buttonVariants({ variant: "default" })}
           />
           <Link href="/" className={buttonVariants({ variant: "outline" })}>

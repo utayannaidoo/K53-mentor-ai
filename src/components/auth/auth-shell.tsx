@@ -6,7 +6,7 @@ import { SupportLink } from "@/components/shared/support-link";
 import { SUPPORT_EMAIL } from "@/lib/constants";
 
 const POINTS = [
-  "Free starting check + readiness score",
+  "Free practice + a readiness score",
   "A tutor that explains, not just answers",
   "Spaced-repetition that adapts to you",
 ];

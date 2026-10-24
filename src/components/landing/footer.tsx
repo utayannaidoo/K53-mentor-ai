@@ -10,7 +10,7 @@ const GROUPS = [
     links: [
       { href: "/#features", label: "Features" },
       { href: "/pricing", label: "Pricing" },
-      { href: "/onboarding", label: "Free assessment" },
+      { href: "/onboarding", label: "Start studying" },
       { href: "/free-quiz", label: "Free K53 practice test" },
       // Not /licence-prep — that route is auth-gated, so every signed-out
       // visitor who tapped this got a blank frame then an unexplained login

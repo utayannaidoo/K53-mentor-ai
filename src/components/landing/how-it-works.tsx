@@ -18,13 +18,13 @@ const BOARD_QUERY =
 const STEPS = [
   {
     n: "01",
-    title: "Diagnose",
-    body: "A 15-question assessment finds exactly where you stand — no more guessing what to study.",
+    title: "Start",
+    body: "Three taps: your licence, your code, and what you find hardest. No test before you can study.",
   },
   {
     n: "02",
     title: "Plan",
-    body: "We build a 10-minute daily plan around your weakest categories, refreshed every session.",
+    body: "Your answers show where you are weakest, and the 10-minute daily plan follows them, refreshed every session.",
   },
   {
     n: "03",

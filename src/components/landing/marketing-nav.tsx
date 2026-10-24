@@ -97,7 +97,7 @@ export function MarketingNav() {
           </Link>
           <StartCta
             location="nav"
-            label="Start free assessment"
+            label="Start studying free"
             className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
           />
         </div>
