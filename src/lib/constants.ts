@@ -7,6 +7,16 @@ export const APP_TAGLINE =
 export const APP_DESCRIPTION =
   "K53 Mentor AI diagnoses your weak spots in minutes, then builds a personalised, spaced-repetition study plan for the South African learner's and driver's licence tests — not just another question bank.";
 
+/**
+ * The description search results show for the homepage and any page without
+ * its own. Written for someone who has not heard of the product: it names what
+ * they searched for (the test, the questions, the signs, the codes) before it
+ * names the coach. APP_DESCRIPTION stays as the product pitch for the PWA
+ * manifest, where the reader has already installed the app.
+ */
+export const SEO_DESCRIPTION =
+  "Free K53 learner's licence test practice for South Africa: questions and answers, every road sign explained, timed mock exams and driver's test prep for Code 8, Code 10, Code 14 and motorcycles — with an AI coach that finds your weak sections.";
+
 export const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 

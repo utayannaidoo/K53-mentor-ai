@@ -5,7 +5,7 @@ import { PricingSection } from "@/components/landing/pricing-section";
 import { Faq } from "@/components/landing/faq";
 
 export const metadata: Metadata = {
-  title: "Pricing",
+  title: "Pricing — free K53 practice, paid AI coach",
   description:
     "Start free with the K53 diagnostic, then one affordable plan covers every licence code — car, motorcycle and heavy vehicle. Cheaper than failing the test once.",
 };

@@ -11,6 +11,7 @@ const GROUPS = [
       { href: "/#features", label: "Features" },
       { href: "/pricing", label: "Pricing" },
       { href: "/onboarding", label: "Free assessment" },
+      { href: "/free-quiz", label: "Free K53 practice test" },
       // Not /licence-prep — that route is auth-gated, so every signed-out
       // visitor who tapped this got a blank frame then an unexplained login
       // screen. Pricing is where the yard-test modules are actually described.
@@ -20,7 +21,9 @@ const GROUPS = [
   {
     title: "Company",
     links: [
-      { href: "/guides", label: "Guides" },
+      { href: "/guides", label: "K53 guides" },
+      { href: "/k53-questions", label: "K53 questions & answers" },
+      { href: "/road-signs", label: "Road signs" },
       { href: "/#faq", label: "FAQ" },
       { href: "/#how", label: "How it works" },
       { href: "/for-driving-schools", label: "For driving schools" },

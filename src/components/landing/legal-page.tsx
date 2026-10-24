@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
-import { APP_NAME, SITE_URL } from "@/lib/constants";
+import { SITE_URL } from "@/lib/constants";
+import { JsonLd, PUBLISHER, breadcrumbSchema } from "@/lib/seo";
 import { GUIDES } from "@/app/guides/guides";
 import { GuideQuiz } from "@/components/guides/guide-quiz";
 import type { CategoryId } from "@/types";
@@ -13,6 +14,7 @@ export function LegalPage({
   updated,
   articleSlug,
   quiz,
+  faq,
   children,
 }: {
   title: string;
@@ -23,6 +25,9 @@ export function LegalPage({
    * datePublished/dateModified — Google's guidance for maintained articles
    * (rather than news) is that one honest date for both beats two invented
    * ones, and schema.org requires ISO 8601.
+   *
+   * Guides leave this unset: their date comes from the catalogue, which the
+   * sitemap reads too, so the two can never disagree.
    */
   updated?: string;
   /**
@@ -36,11 +41,19 @@ export function LegalPage({
    * pack, optionally narrowed to the categories the guide is about.
    */
   quiz?: { categories?: CategoryId[] };
+  /**
+   * Guides only: the follow-up questions a reader of this guide searches next,
+   * rendered as a closing section and emitted as FAQPage structured data.
+   * Plain-text answers — the schema serialises them verbatim.
+   */
+  faq?: { question: string; answer: string }[];
   children: React.ReactNode;
 }) {
+  const guide = articleSlug ? GUIDES.find((g) => g.slug === articleSlug) : undefined;
+  const revised = updated ?? guide?.updated;
   const articleUrl = articleSlug ? `${SITE_URL}/guides/${articleSlug}` : null;
 
-  const schemas = articleUrl
+  const schemas: object[] = articleUrl
     ? [
         {
           "@context": "https://schema.org",
@@ -48,25 +61,33 @@ export function LegalPage({
           headline: title,
           description: intro,
           url: articleUrl,
-          ...(updated && { datePublished: updated, dateModified: updated }),
+          // The guide's own share card. Google requires an image for an
+          // Article to be eligible for the larger result treatments.
+          image: `${articleUrl}/opengraph-image`,
+          ...(revised && { datePublished: revised, dateModified: revised }),
           inLanguage: "en-ZA",
           isAccessibleForFree: true,
-          // Inlined rather than an "@id" reference: the Organization node
-          // lives in the homepage's JSON-LD, and a dangling cross-page
-          // reference is a parse risk for scrapers that read this page alone.
-          author: { "@type": "Organization", name: APP_NAME, url: SITE_URL },
-          publisher: { "@type": "Organization", name: APP_NAME, url: SITE_URL },
+          author: PUBLISHER,
+          publisher: PUBLISHER,
           mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
         },
-        {
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL },
-            { "@type": "ListItem", position: 2, name: "K53 guides", item: `${SITE_URL}/guides` },
-            { "@type": "ListItem", position: 3, name: title, item: articleUrl },
-          ],
-        },
+        breadcrumbSchema([
+          { name: "K53 guides", path: "/guides" },
+          { name: title, path: `/guides/${articleSlug}` },
+        ]),
+        ...(faq?.length
+          ? [
+              {
+                "@context": "https://schema.org",
+                "@type": "FAQPage",
+                mainEntity: faq.map((item) => ({
+                  "@type": "Question",
+                  name: item.question,
+                  acceptedAnswer: { "@type": "Answer", text: item.answer },
+                })),
+              },
+            ]
+          : []),
       ]
     : [];
 
@@ -80,9 +101,9 @@ export function LegalPage({
   /** ISO → "1 August 2026". Manual so the output never shifts with the
    * server's locale or timezone — an ISO date parsed as UTC must not render
    * as the last day of July in a UTC+2 runtime. */
-  const updatedLabel = updated
+  const updatedLabel = revised
     ? (() => {
-        const [y, m, d] = updated.split("-").map(Number);
+        const [y, m, d] = revised.split("-").map(Number);
         const months = [
           "January", "February", "March", "April", "May", "June",
           "July", "August", "September", "October", "November", "December",
@@ -93,13 +114,7 @@ export function LegalPage({
 
   return (
     <div className="flex min-h-dvh flex-col">
-      {schemas.map((schema, i) => (
-        <script
-          key={i}
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
-        />
-      ))}
+      <JsonLd data={schemas} />
       <MarketingNav />
       <main id="main-content" tabIndex={-1} className="flex-1">
         <div className="container max-w-3xl py-16 lg:py-20">
@@ -118,8 +133,19 @@ export function LegalPage({
             </p>
           )}
           <p className="mt-4 text-muted-foreground">{intro}</p>
-          <div className="mt-10 space-y-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-muted-foreground [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5 [&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-muted-foreground">
+          <div className="mt-10 space-y-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-muted-foreground [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5 [&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-muted-foreground [&_section_a]:font-medium [&_section_a]:text-primary [&_section_a]:underline [&_section_a]:underline-offset-4">
             {children}
+            {faq && faq.length > 0 && (
+              <section>
+                <h2>Common questions</h2>
+                {faq.map((item) => (
+                  <div key={item.question} className="mt-5">
+                    <h3 className="text-base font-semibold text-foreground">{item.question}</h3>
+                    <p>{item.answer}</p>
+                  </div>
+                ))}
+              </section>
+            )}
           </div>
           {/* Outside the prose wrapper, whose descendant selectors would
               restyle the quiz's own paragraphs and lists. */}

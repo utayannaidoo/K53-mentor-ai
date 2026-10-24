@@ -14,7 +14,6 @@ export default function GuidePage() {
       articleSlug="k53-road-markings"
       quiz={{ categories: ["signs"] }}
       title="K53 road markings explained: lines, blocks & arrows"
-      updated="2026-08-22"
       intro="Paint never shouts, but the learner's test grades it as strictly as any sign. Learn the grammar once — colour, pattern, orientation — and the road-scene diagrams start reading themselves."
     >
       <section>

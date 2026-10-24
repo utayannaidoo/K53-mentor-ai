@@ -3,6 +3,9 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
+import { GUIDES } from "@/app/guides/guides";
+import { QUESTION_PAGES, questionsFor } from "@/lib/content/question-pages";
+import { SIGN_PAGES } from "@/lib/content/sign-pages";
 
 const ROOT = path.resolve(__dirname, "..");
 const read = (p: string) => readFileSync(path.join(ROOT, p), "utf8");
@@ -161,6 +164,16 @@ describe("sitemap", () => {
     // A sitemap entry for a deleted page is a soft 404 submitted on purpose.
     for (const p of paths) {
       if (p === "/") continue;
+      // Programmatic pages resolve through one dynamic segment each; their
+      // slugs are checked against the generating catalogues further down.
+      const dynamic = [
+        ["/road-signs/", "src/app/road-signs/[slug]/page.tsx"],
+        ["/k53-questions/", "src/app/k53-questions/[category]/page.tsx"],
+      ].find(([prefix]) => p.startsWith(prefix));
+      if (dynamic) {
+        expect(existsSync(path.join(ROOT, dynamic[1]))).toBe(true);
+        continue;
+      }
       const direct = path.join(ROOT, "src/app", p, "page.tsx");
       // Grouped pages may live under any route group — /login and /signup sit
       // in (auth) so they don't inherit (app)'s provider layout.
@@ -177,6 +190,79 @@ describe("sitemap", () => {
     const disallow = (Array.isArray(rule) ? rule[0] : rule).disallow as string[];
     for (const p of paths) {
       expect(disallow, `${p} is both submitted and disallowed`).not.toContain(p);
+    }
+  });
+});
+
+describe("guide catalogue", () => {
+  it("is the only place a guide's date lives", () => {
+    // The sitemap's lastModified and the article's "Last updated" line both
+    // read the catalogue. A page passing its own `updated` would let the two
+    // disagree, which is the fake-date problem the sitemap comment describes.
+    for (const guide of GUIDES) {
+      expect(guide.updated, `${guide.slug} has no updated date`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      const src = read(`src/app/guides/${guide.slug}/page.tsx`);
+      expect(src, `${guide.slug} sets its own updated date`).not.toMatch(/\bupdated=/);
+    }
+  });
+
+  it("every guide is submitted with that date", () => {
+    const entries = new Map(sitemap().map((e) => [new URL(e.url).pathname, e]));
+    for (const guide of GUIDES) {
+      expect(entries.get(`/guides/${guide.slug}`)?.lastModified).toBe(guide.updated);
+    }
+  });
+});
+
+describe("programmatic pages", () => {
+  const paths = new Set(sitemap().map((e) => new URL(e.url).pathname));
+
+  it("every verified sign has a unique, readable slug", () => {
+    // Two signs sharing a slug would silently drop one from the site: the
+    // second overwrites the first in the lookup and its URL never exists.
+    const slugs = SIGN_PAGES.map((p) => p.slug);
+    expect(slugs.length).toBeGreaterThanOrEqual(90);
+    expect(new Set(slugs).size).toBe(slugs.length);
+    for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
+  });
+
+  it("every sign page and question page is in the sitemap", () => {
+    for (const p of SIGN_PAGES) expect(paths).toContain(`/road-signs/${p.slug}`);
+    for (const p of QUESTION_PAGES) expect(paths).toContain(`/k53-questions/${p.slug}`);
+    expect(paths).toContain("/k53-questions");
+  });
+
+  it("no question page is thin", () => {
+    // A category page with a handful of questions is the thin, near-duplicate
+    // page that drags a whole section down. The starter pack is generated, so
+    // this catches a regeneration that starves a category.
+    for (const p of QUESTION_PAGES) {
+      expect(questionsFor(p.categoryId).length, p.slug).toBeGreaterThanOrEqual(10);
+    }
+  });
+
+  it("question pages cover each study category exactly once", () => {
+    const ids = QUESTION_PAGES.map((p) => p.categoryId);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.length).toBe(7);
+  });
+
+  it("the guide links into sign pages resolve", () => {
+    // Guides link to individual signs by slug; a renamed sign would turn the
+    // link into a 404 that no type checks.
+    const signSlugs = new Set(SIGN_PAGES.map((p) => p.slug));
+    const questionSlugs = new Set(QUESTION_PAGES.map((p) => p.slug));
+    for (const guide of GUIDES) {
+      const src = read(`src/app/guides/${guide.slug}/page.tsx`);
+      for (const [, slug] of src.matchAll(/href="\/road-signs\/([^"/]+)"/g)) {
+        expect(signSlugs, `${guide.slug} links to missing sign ${slug}`).toContain(slug);
+      }
+      for (const [, slug] of src.matchAll(/href="\/k53-questions\/([^"/]+)"/g)) {
+        expect(questionSlugs, `${guide.slug} links to missing topic ${slug}`).toContain(slug);
+      }
+      for (const [, slug] of src.matchAll(/href="\/guides\/([^"/]+)"/g)) {
+        expect(GUIDES.map((g) => g.slug), `${guide.slug} links to missing guide ${slug}`).toContain(slug);
+      }
     }
   });
 });

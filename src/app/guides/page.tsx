@@ -3,17 +3,27 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
+import { JsonLd, breadcrumbSchema, itemListSchema } from "@/lib/seo";
 import { GUIDES } from "./guides";
 
 export const metadata: Metadata = {
-  title: "K53 guides — how the learner's test works, pass marks & licence codes",
+  title: "K53 guides: learner's test, driving test & road signs",
   description:
-    "Plain-English guides to the South African K53 learner's licence: how the test works, the pass marks per section, and which licence code you actually need.",
+    "Plain-English guides to the South African K53 learner's and driver's licence: how the test works, pass marks, rules of the road, the yard test, and which licence code you need.",
 };
 
 export default function GuidesIndexPage() {
   return (
     <>
+      <JsonLd
+        data={[
+          breadcrumbSchema([{ name: "K53 guides", path: "/guides" }]),
+          itemListSchema(
+            "K53 learner's and driver's licence guides",
+            GUIDES.map((g) => ({ name: g.title, path: `/guides/${g.slug}` })),
+          ),
+        ]}
+      />
       <MarketingNav />
       <main id="main-content" tabIndex={-1} className="container max-w-3xl py-16">
         <h1 className="font-display text-3xl font-semibold tracking-tight">K53 guides</h1>
@@ -39,6 +49,20 @@ export default function GuidesIndexPage() {
             </li>
           ))}
         </ul>
+        <p className="mt-10 text-sm text-muted-foreground">
+          Rather practise than read?{" "}
+          <Link href="/k53-questions" className="font-medium text-primary underline underline-offset-4">
+            K53 questions and answers
+          </Link>
+          {" · "}
+          <Link href="/road-signs" className="font-medium text-primary underline underline-offset-4">
+            every road sign explained
+          </Link>
+          {" · "}
+          <Link href="/free-quiz" className="font-medium text-primary underline underline-offset-4">
+            free practice test
+          </Link>
+        </p>
       </main>
       <Footer />
     </>
