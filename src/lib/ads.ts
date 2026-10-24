@@ -33,14 +33,13 @@ export const ADSENSE_SCRIPT_SRC = "https://pagead2.googlesyndication.com/pagead/
  *   and invites the accidental clicks AdSense policy forbids.
  * - Account and billing are where someone pays or cancels; an ad beside a card
  *   form is the wrong neighbour.
- * - Onboarding, the diagnostic and the eye test are focused single-task flows.
+ * - Onboarding and the eye test are focused single-task flows.
  */
 const AD_FREE_PREFIXES = [
   "/tutor",
   "/study/mock-exam",
   "/account",
   "/onboarding",
-  "/diagnostic",
   "/eye-test",
   "/welcome",
   "/continue",
