@@ -8,8 +8,13 @@ import { AnalyticsProvider } from "@/components/shared/analytics-provider";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { SwRegister } from "@/components/shared/sw-register";
-import { APP_DESCRIPTION, APP_NAME, SITE_URL } from "@/lib/constants";
+import { APP_NAME, SEO_DESCRIPTION, SITE_URL } from "@/lib/constants";
 import { ADSENSE_CLIENT } from "@/lib/ads";
+
+const SITE_VERIFICATION = {
+  google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION?.trim(),
+  bing: process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION?.trim(),
+};
 
 const inter = Inter({
   subsets: ["latin"],
@@ -32,10 +37,13 @@ const mono = JetBrains_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${APP_NAME} — Pass your K53 licence faster`,
+    // Leads with what people type — "K53 learner's licence test" — and ends
+    // with the brand. The old default opened with the brand name, which nobody
+    // searching for a practice test has heard of yet.
+    default: `K53 Learner's Licence Test: Free Practice & Road Signs | ${APP_NAME}`,
     template: `%s · ${APP_NAME}`,
   },
-  description: APP_DESCRIPTION,
+  description: SEO_DESCRIPTION,
   applicationName: APP_NAME,
   // Site-ownership proof for AdSense. Google's reviewer reads public pages,
   // and the ad script itself only ever loads for signed-in free accounts, so
@@ -43,13 +51,46 @@ export const metadata: Metadata = {
   ...(ADSENSE_CLIENT ? { other: { "google-adsense-account": ADSENSE_CLIENT } } : {}),
   keywords: [
     "K53",
+    "K53 learners test",
+    "K53 learner's licence test",
+    "learners licence test South Africa",
+    "K53 questions and answers",
+    "K53 practice test",
+    "K53 mock test",
+    "K53 road signs",
+    "South African road signs",
     "learner's licence",
-    "driver's licence",
-    "South Africa",
-    "K53 test",
-    "AI tutor",
-    "driving test prep",
+    "driver's licence test",
+    "K53 driving test",
+    "K53 yard test",
+    "code 8 learners",
+    "code 10 learners",
+    "code 14 learners",
+    "motorcycle learners licence",
+    "K53 rules of the road",
+    "K53 vehicle controls",
   ],
+  category: "education",
+  // Explicit rather than relying on defaults: large image previews and
+  // unlimited snippets are opt-in for Google, and the sign pages and guides
+  // are exactly the content that earns the bigger result.
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  // Search Console / Bing Webmaster ownership tags. Env-driven so a preview
+  // deployment or a fork never claims the production property.
+  verification: {
+    ...(SITE_VERIFICATION.google ? { google: SITE_VERIFICATION.google } : {}),
+    ...(SITE_VERIFICATION.bing ? { other: { "msvalidate.01": SITE_VERIFICATION.bing } } : {}),
+  },
   // "./" resolves against metadataBase per route, so every page emits its own
   // canonical instead of none at all.
   alternates: { canonical: "./" },
@@ -58,7 +99,7 @@ export const metadata: Metadata = {
   // guide on WhatsApp — the SA sharing channel — showed the wrong headline.
   // Omitted, Next derives them from each page's own title.
   openGraph: {
-    description: APP_DESCRIPTION,
+    description: SEO_DESCRIPTION,
     // "./" like the canonical above: pinned to SITE_URL, every page's og:url
     // claimed to be the homepage, so a shared guide told scrapers its own URL
     // was a copy of / — and WhatsApp previews linked back to the wrong page.
@@ -67,7 +108,7 @@ export const metadata: Metadata = {
     locale: "en_ZA",
     type: "website",
   },
-  twitter: { card: "summary_large_image", description: APP_DESCRIPTION },
+  twitter: { card: "summary_large_image", description: SEO_DESCRIPTION },
   icons: {
     // SVG first so modern browsers take the crisp one. The .ico exists because
     // older crawlers and some social scrapers request /favicon.ico literally
@@ -98,7 +139,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="en"
+      // en-ZA, matching og:locale and the schema's inLanguage: the content is
+      // South African law in South African English, and a bare "en" gave
+      // search engines nothing to geo-target with.
+      lang="en-ZA"
       data-scroll-behavior="smooth"
       suppressHydrationWarning
       className={`${inter.variable} ${overpass.variable} ${mono.variable}`}

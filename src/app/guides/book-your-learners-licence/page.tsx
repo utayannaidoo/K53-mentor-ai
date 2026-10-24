@@ -13,7 +13,6 @@ export default function GuidePage() {
     <LegalPage
       articleSlug="book-your-learners-licence"
       title="Booking your learner's licence: DLTC, documents & validity"
-      updated="2026-08-22"
       intro="Booking is admin, not an exam — but arrive without the right paperwork and it becomes a wasted trip. Here's the whole errand: where to book, what to bring, what your eyes need to prove, and what your learner's lets you do once you hold it."
     >
       <section>

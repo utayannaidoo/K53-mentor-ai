@@ -5,6 +5,9 @@ import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
 import { SignBrowser } from "@/components/shared/sign-browser";
 import { VERIFIED_SIGNS } from "@/lib/content/signs";
+import { SIGN_CATEGORIES } from "@/lib/content/sign-categories";
+import { SIGN_PAGES } from "@/lib/content/sign-pages";
+import { JsonLd, breadcrumbSchema, itemListSchema } from "@/lib/seo";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -32,6 +35,15 @@ export const metadata: Metadata = {
 export default function RoadSignsPage() {
   return (
     <div className="flex min-h-dvh flex-col bg-app">
+      <JsonLd
+        data={[
+          breadcrumbSchema([{ name: "South African road signs", path: "/road-signs" }]),
+          itemListSchema(
+            "South African road signs and their meanings",
+            SIGN_PAGES.map((p) => ({ name: p.sign.name, path: `/road-signs/${p.slug}` })),
+          ),
+        ]}
+      />
       <MarketingNav />
       <main id="main-content" tabIndex={-1} className="container max-w-5xl flex-1 py-16">
         <h1 className="text-balance font-display text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
@@ -51,6 +63,42 @@ export default function RoadSignsPage() {
         <div className="mt-8">
           <SignBrowser signs={VERIFIED_SIGNS} initialFilter="all" />
         </div>
+
+        {/* The browser above opens each sign in a dialog, which has no URL. This
+            index is the crawlable path to every sign's own page — plain links,
+            grouped the way the manual groups them. */}
+        <section className="mt-16">
+          <h2 className="font-display text-xl font-semibold tracking-tight">
+            Every sign, with its own page
+          </h2>
+          <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
+            Each sign below has a page with its meaning, what kind of sign it is, and how it comes
+            up in the learner&apos;s test.
+          </p>
+          {SIGN_CATEGORIES.map((category) => {
+            const pages = SIGN_PAGES.filter((p) => p.sign.category === category.id);
+            if (pages.length === 0) return null;
+            return (
+              <div key={category.id} className="mt-6">
+                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+                  {category.label}
+                </h3>
+                <ul className="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
+                  {pages.map((p) => (
+                    <li key={p.slug}>
+                      <Link
+                        href={`/road-signs/${p.slug}`}
+                        className="inline-block py-0.5 text-primary underline-offset-4 hover:underline"
+                      >
+                        {p.sign.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </section>
 
         <div className="mt-16 rounded-2xl border border-border bg-card p-8 text-center">
           <h2 className="font-display text-xl font-semibold tracking-tight">

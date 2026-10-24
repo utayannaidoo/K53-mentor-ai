@@ -13,7 +13,7 @@ import { CtaBand } from "@/components/landing/cta-band";
 import { Footer } from "@/components/landing/footer";
 import { Reveal } from "@/components/shared/reveal";
 import { SmoothScroll } from "@/components/shared/smooth-scroll";
-import { APP_NAME, SITE_URL } from "@/lib/constants";
+import { APP_NAME, SEO_DESCRIPTION, SITE_URL } from "@/lib/constants";
 
 /**
  * Site-level entities for the homepage only.
@@ -39,6 +39,25 @@ const SITE_SCHEMA = {
       url: SITE_URL,
       name: APP_NAME,
       inLanguage: "en-ZA",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+    // What the site IS, for results that describe a product rather than a
+    // page. The free offer is real — every question, sign and mock is
+    // unmetered on the free plan — and it is the only offer listed, so there
+    // is no price here to drift from plans.ts.
+    {
+      "@type": "WebApplication",
+      "@id": `${SITE_URL}/#app`,
+      name: APP_NAME,
+      url: SITE_URL,
+      description: SEO_DESCRIPTION,
+      applicationCategory: "EducationalApplication",
+      operatingSystem: "Any (web browser)",
+      inLanguage: "en-ZA",
+      isAccessibleForFree: true,
+      audience: { "@type": "EducationalAudience", educationalRole: "student" },
+      areaServed: { "@type": "Country", name: "South Africa" },
+      offers: { "@type": "Offer", price: "0", priceCurrency: "ZAR" },
       publisher: { "@id": `${SITE_URL}/#organization` },
     },
   ],

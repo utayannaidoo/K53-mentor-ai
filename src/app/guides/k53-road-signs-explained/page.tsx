@@ -14,7 +14,6 @@ export default function GuidePage() {
       articleSlug="k53-road-signs-explained"
       quiz={{ categories: ["signs"] }}
       title="South African road signs explained: shapes, colours & categories"
-      updated="2026-08-22"
       intro="Nobody memorises South Africa's road signs one plate at a time — there are too many, and the test knows it. Category, shape and colour form a grammar that tells you what a sign is allowed to do before you've read it."
     >
       <section>

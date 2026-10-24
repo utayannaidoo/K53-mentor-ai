@@ -4,6 +4,7 @@ import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
 import { FreeQuiz } from "@/components/landing/free-quiz";
 import { EXAM_FORMAT } from "@/lib/constants";
+import { JsonLd, breadcrumbSchema } from "@/lib/seo";
 
 /**
  * Free practice quiz — no signup, no paywall.
@@ -26,6 +27,7 @@ export default function FreeQuizPage() {
     // atmosphere behind it reads as flat grey. `flex-1` keeps the footer at the
     // bottom on the results screen, which is shorter than the viewport.
     <div className="flex min-h-dvh flex-col bg-app">
+      <JsonLd data={breadcrumbSchema([{ name: "Free K53 practice test", path: "/free-quiz" }])} />
       <MarketingNav />
       <main id="main-content" tabIndex={-1} className="container max-w-2xl flex-1 py-16">
         <h1 className="text-balance font-display text-2xl font-semibold tracking-tight sm:text-3xl lg:text-4xl">
@@ -59,6 +61,10 @@ export default function FreeQuizPage() {
             or{" "}
             <Link href="/road-signs" className="text-primary underline">
               browse every road sign
+            </Link>
+            . Want to read rather than be tested? See the{" "}
+            <Link href="/k53-questions" className="text-primary underline">
+              K53 questions and answers
             </Link>
             .
           </p>
