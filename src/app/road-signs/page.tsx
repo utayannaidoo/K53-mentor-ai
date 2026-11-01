@@ -6,7 +6,7 @@ import { Footer } from "@/components/landing/footer";
 import { SignBrowser } from "@/components/shared/sign-browser";
 import { VERIFIED_SIGNS } from "@/lib/content/signs";
 import { SIGN_CATEGORIES } from "@/lib/content/sign-categories";
-import { SIGN_PAGES } from "@/lib/content/sign-pages";
+import { INDEXED_SIGN_PAGES, SIGN_PAGES } from "@/lib/content/sign-pages";
 import { JsonLd, breadcrumbSchema, itemListSchema } from "@/lib/seo";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
@@ -40,7 +40,7 @@ export default function RoadSignsPage() {
           breadcrumbSchema([{ name: "South African road signs", path: "/road-signs" }]),
           itemListSchema(
             "South African road signs and their meanings",
-            SIGN_PAGES.map((p) => ({ name: p.sign.name, path: `/road-signs/${p.slug}` })),
+            INDEXED_SIGN_PAGES.map((p) => ({ name: p.sign.name, path: `/road-signs/${p.slug}` })),
           ),
         ]}
       />

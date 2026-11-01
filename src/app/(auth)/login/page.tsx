@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "Log in",
   description:
     "Log in to K53 Mentor AI to continue your K53 study plan, practice questions and mock exams.",
+  // A form, not content: kept out of the index and the sitemap.
+  robots: { index: false, follow: true },
 };
 
 export default function LoginPage() {

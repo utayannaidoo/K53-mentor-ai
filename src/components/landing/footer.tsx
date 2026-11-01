@@ -33,6 +33,7 @@ const GROUPS = [
   {
     title: "Legal",
     links: [
+      { href: "/about", label: "About us" },
       { href: "/contact", label: "Contact & support" },
       { href: "/privacy", label: "Privacy policy" },
       { href: "/terms", label: "Terms of service" },

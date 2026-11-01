@@ -27,6 +27,34 @@ export const SIGN_PAGES: { slug: string; sign: RoadSign }[] = VERIFIED_SIGNS.map
   sign,
 }));
 
+/**
+ * Whether a sign's page says enough to deserve a place in the index.
+ *
+ * Every sign page shares its family copy, the test-section paragraph and the
+ * call to action; the meaning is the only part unique to it. When the meaning
+ * just restates the name ("Cattle ahead.") or is an extraction fragment cut
+ * mid-sentence ("…indicated on the"), the page is near-identical to a hundred
+ * others. That is the pattern AdSense rejected the site for as "low-value
+ * content" on 2026-11-01, when 152 such pages were 80% of the sitemap.
+ *
+ * Thin pages stay up for visitors and keep their links; they are left out of
+ * the sitemap and marked noindex. Fixing a sign's meaning in CURATED
+ * re-admits its page with no other change.
+ */
+export function isIndexableSign(sign: Pick<RoadSign, "name" | "meaning">): boolean {
+  const words = (s: string) => s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const name = new Set(words(sign.name));
+  const said = words(sign.meaning).filter((w) => !name.has(w)).length;
+  const meaning = sign.meaning.trim();
+  // A whole sentence: starts on a capital and ends on a full stop, not a
+  // lowercase tail of the previous caption or a cut-off clause.
+  const whole = /^[A-Z0-9]/.test(meaning) && /[.!?)]$/.test(meaning);
+  return said >= 6 && whole;
+}
+
+/** The sign pages submitted in the sitemap and open to indexing. */
+export const INDEXED_SIGN_PAGES = SIGN_PAGES.filter((p) => isIndexableSign(p.sign));
+
 const BY_SLUG = new Map(SIGN_PAGES.map((p) => [p.slug, p.sign]));
 
 export function signBySlug(slug: string): RoadSign | undefined {
