@@ -25,9 +25,24 @@ export interface EmailMessage {
 
 export const isEmailConfigured = Boolean(process.env.RESEND_API_KEY);
 
+/**
+ * Top-level domains reserved so they never resolve (RFC 2606, RFC 6761). The
+ * scripted QA signup check makes accounts on `k53mentor.test`, and those
+ * accounts were getting the weekly study reminder like anyone else: mail
+ * that can only ever bounce, each send a small mark against the domain.
+ */
+const RESERVED_TLDS = new Set(["test", "example", "invalid", "localhost"]);
+
+/** An address no mail server can ever deliver to. */
+export function isUndeliverableAddress(email: string): boolean {
+  const domain = email.trim().toLowerCase().split("@").pop() ?? "";
+  return RESERVED_TLDS.has(domain.split(".").pop() ?? "");
+}
+
 export async function sendEmail(msg: EmailMessage): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return false;
+  if (isUndeliverableAddress(msg.to)) return false;
 
   // Never mail an address that hard-bounced or reported us as spam. Both are
   // permanent signals, and continuing to send is what turns a bad address into
