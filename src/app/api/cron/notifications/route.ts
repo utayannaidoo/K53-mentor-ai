@@ -7,6 +7,7 @@ import {
   buildSubscriptionEndingEmail,
   type NotificationType,
 } from "@/lib/notify/templates";
+import { COOLDOWN_HOURS, pickNudge } from "@/lib/notify/nudge";
 import { PLAN_MAP } from "@/lib/billing/plans";
 import { reminderOptOutUrl } from "@/lib/notify/reminder-optout";
 import { buildPlanFollowupEmail } from "@/lib/notify/templates";
@@ -23,33 +24,15 @@ export const maxDuration = 60;
  * Daily engagement cron (see vercel.json — scheduled for 16:00 UTC, i.e. 18:00
  * South African time, when "your streak ends at midnight" is genuinely urgent).
  *
- * Sends at most ONE email per user per run, by priority:
- *   1. streak_risk  — studied yesterday but not today, streak >= 2
- *   2. dormant_7d   — inactive 7+ days, repeated once a week
- *   3. dormant_3d   — inactive 3–6 days
- *   4. due_review   — active recently, but has flashcards past due today
+ * Sends at most ONE study nudge per user per run, chosen by `pickNudge`
+ * (src/lib/notify/nudge.ts): a streak at risk, a 3-day check-in, three weekly
+ * "ready when you are" emails, or due flashcards — and nothing once someone
+ * has been away DORMANT_STOP_DAYS.
  *
  * Dedup windows (per type) stop repeat nagging; the notifications table is the
  * send ledger. Rows are only written after a successful send, so an
  * unconfigured or failing email provider never silently "uses up" a nudge.
  */
-
-/**
- * Weekly, for someone who has been away 7+ days. Just under seven days rather
- * than exactly: the cron runs once a day, last week's ledger row is stamped
- * after last week's run started, and cron start times drift by minutes — so a
- * full 168h gap is often just short at this week's run and slips to day 8.
- * Anything over six days still rules out a second send in the same week.
- */
-const WEEKLY_HOURS = 7 * 24 - 12;
-
-/** Per-type minimum gap between sends to the same user, in hours. */
-const COOLDOWN_HOURS: Record<NotificationType, number> = {
-  streak_risk: 20,
-  due_review: 48,
-  dormant_3d: 7 * 24,
-  dormant_7d: WEEKLY_HOURS,
-};
 
 /** South Africa has no DST — a fixed UTC+2 date key is always correct. */
 function sastDateKey(d: Date): string {
@@ -172,12 +155,7 @@ export async function GET(req: Request) {
       );
       const dueNow = Boolean(streak?.next_due_at && new Date(streak.next_due_at) <= now);
 
-      let type: NotificationType | null = null;
-      if (lastStudy === yesterday && current >= 2) type = "streak_risk";
-      else if (inactiveDays >= 7) type = "dormant_7d";
-      else if (inactiveDays >= 3) type = "dormant_3d";
-      else if (lastStudy !== today && dueNow) type = "due_review";
-
+      const type = pickNudge({ inactiveDays, lastStudy, streak: current, dueNow, today, yesterday });
       if (!type || onCooldown(profile.id, type)) continue;
 
       if (!isEmailConfigured) {
