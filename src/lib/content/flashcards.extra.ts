@@ -103,7 +103,7 @@ export const EXTRA_FLASHCARDS: Flashcard[] = [
   { id: "fc3_park_two_way", categoryId: "parking", front: "Which side may you park on a two-way road?", back: "Left side only, facing with the traffic. Parking against the flow is prohibited.", difficulty: 1 },
   { id: "fc3_park_unattended", categoryId: "parking", front: "Leaving the car unattended?", back: "Engine off, handbrake set, vehicle secured so it can't move or be driven away.", difficulty: 1 },
   { id: "fc3_park_downhill", categoryId: "parking", front: "Wheels when parked downhill at a kerb?", back: "Turned INTO the kerb (plus handbrake and gear) — the kerb catches a rolling car.", difficulty: 2 },
-  { id: "fc3_park_yellow_edge", categoryId: "parking", front: "Solid yellow line along the road edge?", back: "No stopping — except a genuine emergency or where a sign allows it.", difficulty: 2 },
+  { id: "fc3_park_yellow_edge", categoryId: "parking", front: "Solid yellow line beside the kerb in town?", back: "No parking at any time. A brief halt to load or drop off is allowed; it's the red line that bans stopping.", difficulty: 2 },
 
   // ── Following distance ─────────────────────────────────────
   { id: "fc3_fd_count", categoryId: "following_distance", front: "Counting the 2-second rule?", back: "Car ahead passes a fixed point → 'one-thousand-and-one, one-thousand-and-two'. Reach the point early = too close.", difficulty: 1 },
