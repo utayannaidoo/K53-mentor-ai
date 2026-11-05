@@ -17,7 +17,7 @@ import type { CategoryId } from "@/types";
  * catch accidental loss, not to force us to keep bad questions.
  */
 const MIN_QUESTIONS: Record<CategoryId, number> = {
-  signs: 498,
+  signs: 557,
   rules: 228,
   controls: 263,
   hazard_awareness: 85,
@@ -29,7 +29,7 @@ const MIN_QUESTIONS: Record<CategoryId, number> = {
 // Includes cards derived from the question bank (flashcards-derived.ts), which
 // top each category up to ~75% of its question count. Bump, never lower.
 const MIN_FLASHCARDS: Record<CategoryId, number> = {
-  signs: 374,
+  signs: 398,
   rules: 171,
   controls: 198,
   hazard_awareness: 64,

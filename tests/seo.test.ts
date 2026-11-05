@@ -245,8 +245,11 @@ describe("programmatic pages", () => {
     // AdSense rejected the site as "low-value content" while 152 near-identical
     // sign pages were 80% of the sitemap. A thin page may exist for visitors,
     // but submitting it is asking to be judged on it.
+    //
+    // Every verified sign has a real meaning today, so `thin` is empty until
+    // someone names a sign without writing one. The rule itself is pinned by the
+    // next test, so an empty list here can't hide a broken rule.
     const thin = SIGN_PAGES.filter((p) => !isIndexableSign(p.sign));
-    expect(thin.length).toBeGreaterThan(0);
     for (const p of thin) expect(paths).not.toContain(`/road-signs/${p.slug}`);
     const src = read("src/app/road-signs/[slug]/page.tsx");
     expect(src).toMatch(/!isIndexableSign\(sign\) && \{ robots: \{ index: false/);
@@ -278,7 +281,7 @@ describe("programmatic pages", () => {
 
   it("keeps at least as many sign pages indexed as it had when the rule landed", () => {
     // A ratchet, like content coverage: raise it as meanings are repaired.
-    expect(INDEXED_SIGN_PAGES.length).toBeGreaterThanOrEqual(70);
+    expect(INDEXED_SIGN_PAGES.length).toBeGreaterThanOrEqual(151);
   });
 
   it("no question page is thin", () => {

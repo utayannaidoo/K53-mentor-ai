@@ -677,7 +677,7 @@ export const SIGN_IMAGE_APPEARANCE: Record<string, string> = {
   "/signs/warning/warning-027-06.png": "triangular and red",
   "/signs/warning/warning-028-01.png": "triangular and red",
   "/signs/warning/warning-028-02.png": "triangular and red",
-  "/signs/warning/warning-028-03.png": "diamond-shaped and yellow",
+  "/signs/warning/warning-028-03.png": "triangular and red",
   "/signs/warning/warning-028-04.png": "triangular and red",
   "/signs/warning/warning-028-05.png": "triangular and red",
   "/signs/warning/warning-028-06.png": "triangular and red",

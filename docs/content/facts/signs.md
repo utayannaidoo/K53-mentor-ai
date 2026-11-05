@@ -88,3 +88,94 @@ names newly verified for this batch were spot-checked against the rendered PNGs.
 - **De-restriction**: a struck-through repeat cancels the restriction (mass restriction ends, lane reservation ends). Restrictions otherwise run until cancelled.
 - **Other surface/visibility warnings**: drift (water across the road — cross slowly, test brakes after), reduced visibility/mist, narrow structure (bridge too narrow to pass freely), jetty or river bank close to the road, agricultural vehicles.
 - **Class-specific prohibitions**: no overtaking *by goods vehicles* (the symbol says who the restriction is aimed at); no hooter (protects hospitals and residential areas).
+
+## Sign-page meanings batch (November 2026)
+
+Written for the `meaning` field of 81 signs in `CURATED` (`src/lib/content/signs.ts`), whose public pages were noindexed as thin after the AdSense "low-value content" rejection of 2026-11-01. Wording is original; these notes are paraphrase. Researched 2026-11-05.
+
+Source keys:
+- **[K53M p.N]**: the iDriving School K53 manual (`iDriving-School-K53_optimized.pdf`), the PDF `scripts/extract_signs.py` builds the catalogue from. Its text layer drops most body copy, which is why the catalogue held stubs like "Stop line:" and cut-offs like "…indicated on the". Pages were rendered and read visually for this batch.
+- **[RTSM §N]**: [SADC Road Traffic Signs Manual Vol 1 Ch 3, Warning Signs, May 2012](https://www.transport.gov.za/wp-content/uploads/2023/02/V1C3.pdf).
+- **[MOTUS]**: `motus-manual-11ed.md`, plus sheets 23 and 31 of the scan for the supplementary plates and marking codes.
+- **[AA-ANIMALS]**: [Arrive Alive, avoiding animals on the road](https://www.arrivealive.co.za/avoiding-animals-on-the-road). **[AA-SAFARI]**: [Arrive Alive, driving in a nature reserve](https://www.arrivealive.co.za/guide-to-safety-and-driving-on-safari-driving-in-the-nature-reserve). **[AA-WORKS]**: [Arrive Alive, roadworks](https://www.arrivealive.co.za/roadworks-and-road-safety). **[AA-GRAVEL]**: [Arrive Alive, gravel roads](https://www.arrivealive.mobi/driving-on-gravel-roads). **[AA-ARREST]**: [Arrive Alive, arrestor beds](https://www.arrivealive.mobi/arrestor-beds-and-road-safety).
+- **Bank**: a fact already recorded earlier in this file or in `rules.md` / `intersections.md`.
+
+The SARTSM regulatory and road-marking chapters (`V1C2.pdf`, `V1C7.pdf`) are over the fetch limit and were **not** re-read, so regulatory signs and markings rest on the K53 manual and Motus.
+
+### Control, command and prohibition
+- **regulatory-006-03 / 006-04, three-way and four-way stop**: stop in line with the sign or before the line; first to stop goes first [K53M p.6]. If uncertain, yield to the right [MOTUS pp.138-140]. The figure gives the number of approaches that stop (Bank: `motus-signs-pack`).
+- **regulatory-007-02, stop or turn left**: straight on or right, stop; left, may continue without stopping if safe, giving way to cross traffic and pedestrians [K53M p.7].
+- **regulatory-007-03, traffic circle**: clockwise round a mini-circle or roundabout [RTSM §3.3.1]; yield to the right and to vehicles already in the circle [MOTUS pp.58-59].
+- **regulatory-009-01, headlights on**: dip position, to see and be seen [K53M p.9]; cancelled by the crossed-out twin [K53M p.17].
+- **regulatory-010-01, taxis only**: road or part of it set aside for taxis [K53M p.10]; command signs name a class of user that must use a section others may not [K53M p.9].
+- **regulatory-011-01 / 011-02, no left / right turn**: turn prohibited [K53M p.11]; arrow direction from the images; yellow disc = temporary version [K53M p.11], same force (Bank: temporary signs).
+- **regulatory-011-06, no stopping**: protects traffic flow and drivers' view [K53M p.11]; bans even a brief halt (Bank: confusion pairs).
+- **regulatory-014-07, police parking**: reserved for police vehicles [K53M p.14].
+- **regulatory-016-01, residential area**: all figures and rules from [K53M p.16]: no through driving without stopping to break the journey; 30 km/h; pedestrians have right of way; over 3 500 kg or more than 10 passenger seats only for local access to load or offload.
+- **regulatory-017-01 / 017-03 / 017-05 / 017-06, de-restriction**: a red cross means the restriction, command or set of rules no longer applies [K53M p.17]. Road users barred from a freeway, and the bans on stopping and hand signals [K53M p.16; MOTUS p.64].
+- **regulatory-022-01, steady red**: stop behind the line [MOTUS pp.138-140]; a green arrow gives right of way if the intersection is clear [MOTUS pp.138-140].
+
+### Warning signs: road situations
+- **warning-027-02, gate / boom**: road may be closed by a gate, or a railway crossing with gates, booms or barriers [RTSM §3.4.12]. Stop at least 5 m from the nearest rail [MOTUS pp.138-140].
+- **warning-028-02, tar begins**: the change of surface may need less speed, and the join commonly breaks up and can become a hazard [RTSM §3.4.20]. Flying stones on gravel [AA-GRAVEL].
+- **warning-028-03, uneven road**: depression, ridge or potholes that call for less speed [RTSM §3.4.25]; yellow version [K53M p.28]. Firm grip on loose or uneven surfaces [AA-WORKS].
+- **warning-029-02, falling rocks**: rocks or stones in loose rock cuttings [RTSM §3.4.28]; especially after rain [K53M p.29]; watch the cutting (Bank: hazard batch).
+- **warning-029-04, jetty or river bank**: the road leads to one [RTSM §3.4.39], close to the road [K53M p.29].
+- **warning-030-01..03, 031-04, 031-05, dimension warnings**: the limit [K53M pp.30-31; RTSM §§3.4.16, 3.4.17, 3.4.48]. Long vehicles lack clearance on that layout [RTSM §3.4.17]. Triangle warns, red ring prohibits, passing it is the offence; width includes the load and length any trailer (Bank).
+- **warning-031-01, surface step**: sudden change of level, usually from resurfacing, often on the old lane line [RTSM §3.4.33]. Firm grip, smooth inputs [AA-WORKS].
+- **warning-031-02, soft shoulder**: softer than expected, a hazard to anyone pulling off [RTSM §3.4.34]. Keep to the surfaced lane (Bank: `signs-junctions-pack`).
+- **warning-031-03, loose stones**: fresh resealing, stones thrown up can damage vehicles [RTSM §3.4.31]; windscreens and paintwork [K53M p.28].
+
+### Warning signs: junctions
+- **warning-035-01, crossroad**: this version does not need to show priority, e.g. a four-way stop [RTSM §3.2.1]. With no control, look right and left and go when safe [MOTUS pp.138-140].
+- **warning-035-02 / 035-03, priority crossroads**: thick limb = priority road (Bank); the second warns of approaches controlled by stop or yield signs [RTSM §3.2.1]; right of way is given, never taken (Bank: `rules.md`).
+- **warning-035-04 / 035-05, T and skew T**: traffic must turn sharply or acutely left or right [RTSM §3.2.2]; at a T-junction your road ends, so give way both ways (Bank: `rules.md`).
+- **warning-035-06, side road**: joining or leaving traffic, or limited sight distance [RTSM §3.2.3].
+- **warning-035-07, staggered**: closely spaced side-road junctions, same dangers [RTSM §3.2.4]; poor place to overtake (Bank).
+
+### Warning signs: moving hazards
+- **warning-037-01, pedestrian crossing**: marked crossing ahead [RTSM §3.4.6]. Give way, and never overtake a vehicle stopped at it [MOTUS p.62].
+- **warning-037-02, pedestrians**: above-average numbers where no crossing is marked [RTSM §3.4.7].
+- **warning-037-03, children**: near schools, playgrounds, sports fields [RTSM §3.4.8]; between parked cars (Bank: `rules.md`).
+- **warning-037-04, cyclists**: crossing or travelling along the road [RTSM §3.4.9]; left mirror and blind spot before a left turn (Bank: `intersections.md`).
+- **warning-037-05, horses and riders**: ridden or led, a hazard if disturbed by traffic [RTSM §3.4.47]; pass wide, slow and quiet (Bank: `rules.md`).
+- **warning-037-06 / 037-07 / 038-01, horses, cattle, sheep**: crossing or straying [RTSM §3.4.10]. Expect more than one; missing fences; brake rather than swerve; tall hoofed animals come over the bonnet [AA-ANIMALS]. Stop if a herder signals [MOTUS p.60].
+- **warning-038-02..05, wild animals, warthog, elephant, hippo**: straying; the species signs are used where that animal is the specific problem [RTSM §3.4.11]. Night, woods and water, high beam, do not swerve [AA-ANIMALS]. Stay in the vehicle; others may follow; do not rev or hoot; back away from an agitated elephant [AA-SAFARI].
+- **warning-038-06, trams**: operating in the roadway [RTSM §3.4.50]; no other vehicle may drive, stop or park in a tram lane [K53M p.82].
+- **warning-038-07, agricultural vehicles**: tractors and other slow vehicles cross or enter, typically at a junction or farm access [RTSM §3.4.43].
+- **warning-039-01, road works**: construction or maintenance in progress [RTSM §3.4.29]. Slow early, expect unseen workers [AA-WORKS]; a flag person's board is a lawful instruction (Bank).
+- **warning-039-02, grader**: working on its own or as part of a wider site [RTSM §3.4.30]. Moving work and loose gravel damage [AA-WORKS].
+- **warning-039-03, construction vehicles**: enter or cross from left or right, particularly heavy vehicles [RTSM §3.4.36].
+
+### Supplementary plates
+- **information-045-02, recommended speed**: a maximum recommended for the hazard, set by road engineers. Not regulatory, but exceeding it can lead to prosecution after an incident [MOTUS sheet 23].
+- **information-045-06, blind people**: a text plate below the main sign [MOTUS sheet 23; K53M p.45]; visual signals are useless, so wait (Bank: `rules.md`).
+- **information-045-07, accident**: an accident site attended by emergency services [RTSM §3.4.44]; slowing to look causes crashes (Bank: `rules.md`).
+
+### Road markings
+- **marking-077-01, stop line**: stop before it, go when safe [K53M p.77]; rolling at the line is not a stop, and is an instant fail on the road test [MOTUS, instant failures on the road test]. The meaning omits the test detail because learner-scoped content may not mention the road test.
+- **marking-077-02, yield line**: give way to cross traffic and pedestrians; also at railway crossings [K53M p.77].
+- **marking-077-03 / 077-04, pedestrian crossings**: give way to anyone on or about to enter [K53M p.77]; stop behind the line, not on the stripes (Bank).
+- **marking-077-05, no-overtaking line**: no part of the vehicle may cross, except to reach a property or pass a stationary obstruction [K53M p.77].
+- **marking-078-01, no-crossing double line**: no crossing at any time; sometimes a broken line between [K53M p.78].
+- **marking-079-04, parking bay**: inside the demarcated area, not on sidewalk or verge [K53M p.79].
+- **marking-081-03, mandatory arrows**: yellow arrows [K53M p.81; MOTUS RM-8]; compulsory (Bank).
+- **marking-081-04 / 082-03, bus and bicycle lanes**: no other vehicle may drive, stop or park there [K53M pp.81-82]; a left turn sweeps across a cycle lane (Bank: `rules.md`).
+- **marking-082-04, box junction**: may not stop on it unless entering from the side to turn [K53M p.82]; keep-clear zone [MOTUS RM-10]; enter only when the exit is clear, even on green (Bank).
+- **marking-083-02 / 083-03, red lines**: no stopping at any time / during the times on the accompanying sign [K53M p.83].
+- **marking-083-04 / 084-01, yellow lines**: no parking at any time / during the times on the accompanying sign [K53M pp.83-84]; a brief halt is not parking (Bank: confusion pairs).
+- **marking-084-02, no motorcycles**: may not proceed beyond it [K53M p.84].
+- **marking-084-03, mini-circle**: clockwise; give way to a vehicle that will cross a yield line first [K53M p.84; MOTUS pp.58-59].
+- **marking-084-04, disabled parking**: reserved, no other vehicle may park [K53M p.84]; matching sign [K53M p.14].
+- **marking-086-01, railway crossing ahead**: [K53M p.86]; flashing signals mean wait (Bank); 5 m from the rail [MOTUS pp.138-140].
+- **marking-087-01, reversible lane**: the double-arrow lane carries oncoming traffic at set periods [K53M p.87].
+- **marking-087-03, no-overtaking line ahead**: solid line ahead, do not attempt to overtake [K53M p.87].
+- **marking-088-02, furcation arrows**: more lanes ahead in the arrows' direction [K53M p.88].
+- **marking-088-04, cycle crossing**: cyclists cross at the broken lines [K53M p.88]. The source gives no priority rule, so the meaning says only to slow and be ready to stop.
+- **marking-088-05, yield ahead**: warns of a yield sign or marking [K53M p.88]; the duty starts at the line (Bank).
+- **marking-089-03, escape road**: for emergencies [K53M p.89]; refuge for vehicles, mostly heavy, that cannot slow [AA-ARREST, which describes arrestor beds, the same purpose].
+
+### Conflicts found while sourcing (not changed by this batch)
+- **Solid yellow line**: the K53 manual's kerbside line is *no parking* [K53M p.83], and p.78 treats the yellow left edge line separately. `questions.extra.ts` ("A solid yellow line painted along the edge of the roadway") and `flashcards.extra.ts` (`fc3_park_yellow_edge`) teach the edge line as *no stopping*, as does the "Road markings" note above. Needs a read of SARTSM `V1C7.pdf`.
+- **Temporary warning signs**: `traitsFor()` calls them yellow diamonds. They are yellow-backed red-bordered triangles [K53M pp.28, 31, 39; RTSM §3.2.1 colour tables], so a public page can say "diamond-shaped" of a triangle.
+- **marking-084-05**: the K53 manual pairs a bicycle symbol with a caption about vehicles carrying disabled people [K53M p.84]. It stays unnamed.
