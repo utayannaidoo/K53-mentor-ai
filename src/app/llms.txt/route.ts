@@ -1,6 +1,6 @@
 import { APP_NAME, EXAM_FORMAT, SEO_DESCRIPTION, SITE_URL } from "@/lib/constants";
 import { QUESTION_PAGES } from "@/lib/content/question-pages";
-import { SIGN_PAGES } from "@/lib/content/sign-pages";
+import { INDEXED_SIGN_PAGES } from "@/lib/content/sign-pages";
 import { GUIDES } from "@/app/guides/guides";
 
 /**
@@ -51,11 +51,12 @@ export function GET() {
     "",
     "## Road signs",
     "",
-    ...SIGN_PAGES.map((p) => link(p.sign.name, `/road-signs/${p.slug}`, p.sign.meaning)),
+    ...INDEXED_SIGN_PAGES.map((p) => link(p.sign.name, `/road-signs/${p.slug}`, p.sign.meaning)),
     "",
     "## About",
     "",
     link("Pricing", "/pricing", "practice is free; paid plans add the AI tutor and remove ads"),
+    link("About", "/about", "what the site is, where its content comes from and how it is checked"),
     link("Content sources", "/sources"),
     link("For driving schools", "/for-driving-schools"),
     link("Contact", "/contact"),

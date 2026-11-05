@@ -15,6 +15,7 @@ import { describeAppearance } from "@/lib/content/sign-traits";
 import {
   SIGN_FAMILY_COPY,
   SIGN_PAGES,
+  isIndexableSign,
   signBySlug,
   signPath,
 } from "@/lib/content/sign-pages";
@@ -52,6 +53,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     description,
     alternates: { canonical: signPath(sign) },
     openGraph: { title, description, url: signPath(sign), type: "article" },
+    // Thin pages stay reachable but out of the index; links on them still
+    // count. See isIndexableSign.
+    ...(!isIndexableSign(sign) && { robots: { index: false, follow: true } }),
   };
 }
 

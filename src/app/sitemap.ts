@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/constants";
 import { QUESTION_PAGES } from "@/lib/content/question-pages";
-import { SIGN_PAGES } from "@/lib/content/sign-pages";
+import { INDEXED_SIGN_PAGES } from "@/lib/content/sign-pages";
 import { GUIDES } from "./guides/guides";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -30,14 +30,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // The school product page: software for driving schools.
     page("/for-driving-schools", 0.7),
     ...GUIDES.map((g) => ({ ...page(`/guides/${g.slug}`, 0.8), lastModified: g.updated })),
-    // One page per verified sign, each with its image so the sign can surface
-    // in image search — where "what does this sign mean" is often asked.
-    ...SIGN_PAGES.map(({ slug, sign }) => ({
+    // One page per verified sign whose meaning says more than its name, each
+    // with its image so the sign can surface in image search — where "what
+    // does this sign mean" is often asked. Thin ones are noindex; see
+    // isIndexableSign.
+    ...INDEXED_SIGN_PAGES.map(({ slug, sign }) => ({
       ...page(`/road-signs/${slug}`, 0.6),
       images: [`${SITE_URL}${sign.image}`],
     })),
-    page("/signup", 0.7),
-    page("/login", 0.4),
+    // No /login or /signup: a form is not content, and both are noindex.
+    page("/about", 0.5),
     page("/sources", 0.4),
     page("/contact", 0.3),
     page("/privacy", 0.2),
