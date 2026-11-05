@@ -17,7 +17,7 @@ Primary sources: the app's own catalogue `src/lib/content/signs.catalog.json` (4
 - regulatory-012-01: No overtaking (applies for next 500 m per manual note).
 - regulatory-012-02: No overtaking by goods vehicles (next 500 m).
 - regulatory-012-03: No excessive noise / hooter restriction past the sign.
-- regulatory-013-x: Reservation signs — lane left of the curved/solid yellow line reserved for the class shown (e.g. buses).
+- regulatory-013-x: Reservation signs — lane left of the broken yellow line (or starting at the curved one) reserved for the class shown (e.g. buses). The painted line is RM9, also broken; see "Lines along the road".
 - regulatory-022-01/03/04: robot red = stop; steady amber = stop unless too close to stop safely; green = go if clear.
 - warning-027-04/05: steep descent / ascent ahead. warning-040-07: railway crossing.
 - warning-037-01..04: pedestrian crossing / pedestrians / children / cyclists ahead.
@@ -32,14 +32,45 @@ Primary sources: the app's own catalogue `src/lib/content/signs.catalog.json` (4
 ## Road markings (sub-batch)
 - Solid line across lane = stop line; broken across = yield line.
 - Centre: broken = may cross to overtake when safe; solid (barrier) on your side = may not cross; solid + broken = obey the line nearest you.
-- Yellow edge line = no stopping alongside; red-flavoured/urban no-stopping conveyed by signs.
+- Yellow left edge line = stay off the shoulder beyond it; yellow line beside the kerb = no parking; red line = no stopping. Sourced below.
 - Painted island (diagonal stripes) = keep off; box junction = don't enter unless exit clear; lane arrows compulsory.
+
+## Lines along the road: yellow, red and white edge lines (settled 2026-11-05)
+
+The bank used to teach a solid yellow edge line as "no stopping". No source says that. A solid yellow line is one of two different markings, RM4.1 and RM13, and neither bans stopping. The no-stopping line is red.
+
+Source keys:
+- **[RTSM7 §N]**: SADC Road Traffic Signs Manual Vol 1 Ch 7, Road Markings, May 2012: the Department of Transport's [`V1C7.pdf`](https://www.transport.gov.za/wp-content/uploads/2023/02/V1C7.pdf) (12 MB, over the WebFetch limit). First read from the [copy hosted by SARTSMA](https://www.sartsma.co.za/_files/ugd/4f7773_c4e3f39ec22848b08d31fff846ce53ed.pdf), the road-sign manufacturers' trade association (8.7 MB). The two were compared page by page on 2026-11-05: all 81 pages carry the same text, apart from line-end hyphenation, text-extraction order and spacing, and an old "1 November 1997" footer on two roadstud pages of the SARTSMA copy.
+- **[Regs N]**: National Road Traffic Regulations, 2000, as reproduced by [Acts Online](https://source.acts.co.za/national-road-traffic-act-1996/r225_298a__prohibition_on_driv.php).
+- **[NRTA s1]**: [National Road Traffic Act 93 of 1996, section 1](https://source.acts.co.za/national-road-traffic-act-1996/1_definitions.php).
+- **[AARTO code]**: [AARTO Schedule 3 chargebook, July 2008](https://beeratings.com/wp-content/uploads/2019/10/027_AARTO-Chargebook-July-2008.pdf). Used for the wording of the charges only, not their amounts, because the schedule may have been updated since.
+- **[DOT p.N]**: [SA Learner Driver Manual, Road Traffic Signs, v1.00, June 2012](https://www.arrivealive.co.za/documents/presentations/2%20manual%20on%20road%20traffic%20signs%20jun%202012%20final.pdf), compiled by the Department of Transport. Printed page numbers. Its text gives each marking's meaning but not its colour, which comes from RTSM7 and K53M.
+- **[K53M p.N]**: the iDriving School K53 manual, rendered pages.
+
+**Not read:** Schedule 1 to the Regulations, which gives each marking its legal meaning [Regs 285(2A)]. Acts Online does not reproduce it and refers readers to the Department. The RTSM wording, the AARTO charges and both manuals agree on what each line bans, so nothing suggests it differs.
+
+Each marking and its rule:
+- **Left edge line, RM4.1: continuous solid yellow, at least 100 mm wide** [RTSM7 §7.2.8.2]. On a road with more than one lane in either direction, you may not drive on the shoulder to its left or use the shoulder to overtake, and in an emergency stop you must make every reasonable effort to get the whole vehicle to its left [RTSM7 §7.2.8.1]. If you break down, stop as far left of it as possible with your hazard lights on [DOT p.49]. It may run on any rural or urban road with a surfaced shoulder, and on freeways [RTSM7 §§7.1.9, 7.2.8.10]. Driving left of it is a charge [AARTO 4053].
+  - *Shoulder exception:* on a road with one lane each way, between sunrise and sunset, you may drive on the shoulder while being overtaken, if that endangers nobody and people and vehicles are visible for at least 150 m [Regs 298A(2); DOT p.49; K53M p.78]. It is allowed, not compulsory [DOT p.49]. Otherwise driving on the shoulder is prohibited [Regs 298A(1)].
+  - *Passing on the left:* even where allowed, it may never be done on the shoulder or verge [Regs 298(1)]. Doing so is a charge in its own right (AARTO Schedule 3, Reg. 298(1)).
+- **No parking line, RM13: yellow.** Solid = no parking alongside at any time. Broken = no parking during the times on the accompanying sign [RTSM7 §§7.2.17.1-2; K53M pp.83-84]. You may still stop for short periods [DOT p.51]. Parking on one is a charge [AARTO 4073].
+  - It may be marked only on an urban road under the general urban limit, never on a freeway, parallel to the kerb and 150 mm to 2,5 m from it [RTSM7 §§7.2.17.3-4]. The learner manual says more loosely that it is found on any road [DOT p.51]; the RTSM is the rule road authorities mark to, so it is followed here.
+  - A brief halt is not parking: to park is to stay longer than loading or unloading people or goods reasonably takes [NRTA s1; DOT p.51].
+- **No stopping line, RM12: red.** Solid (at least 150 mm) = no stopping alongside at any time. Broken = during the times on the sign [RTSM7 §§7.2.16.1-2; DOT p.51; K53M p.83]. The only exception is an emergency [DOT p.51]. It may be painted on the kerb itself [RTSM7 §7.2.16.3]. Stopping alongside one is a charge [AARTO 4071]. The chargebook has no charge for stopping beside a yellow line.
+- **Stopping in general:** a road marking is a road traffic sign [Regs 285(2)]. You may not stop on the roadway against one, unless it is to avoid an accident, on a traffic officer's direction, or for a cause beyond your control [Regs 304, 304(d)]. Other no-stopping rules still apply beside a yellow line, such as on a freeway (see `motus-manual-11ed.md`).
+- **Right edge line, RM4.2: continuous solid white.** Marks the right edge of a one-way carriageway beside a median; you may not cross it [RTSM7 §§7.2.8.1, 7.2.8.5-6; DOT p.49]. U-turns over it on a freeway are not permitted [K53M p.78]. Driving right of it is a charge [AARTO 4055]. There is no white left edge line: the chapter's left edge line is yellow only, and a continuous white line within a carriageway is a channelising line that may not be crossed [K53M p.78].
+- **Exclusive use lane line, RM9: broken yellow, not solid** [RTSM7 §7.2.13.3; K53M p.13].
+- **Centre lines are white, not yellow:** no overtaking line RM1 is solid white [RTSM7 §7.2.5.6], the no crossing line RM2 is two solid white lines [RTSM7 §7.2.6.2], and the dividing line WM3 is broken white [RTSM7 §7.3.3.2].
+
+**Telling the two solid yellow lines apart:** on a freeway or rural road it should only be the edge line, because the RTSM confines a no-parking line to urban roads. On an urban road, no source states a visual test. The K53 manual draws the edge line with a strip of shoulder beyond it and the no-parking line against the verge [K53M pp.78, 83], but a no-parking line may legally sit up to 2,5 m out, so position alone does not settle it. The bank therefore tests each one with its context stated in the prompt (edge of the road with a shoulder, or beside the kerb in town).
+
+**Painted kerbs:** red and yellow mean the same nationally, so they do not "vary by municipality". The only other kerb paint in the chapter is black-and-white kerbface marking GM8, which is guidance rather than a restriction [RTSM7 §7.4.8].
 
 ## Sprint 3 — road markings (deeper) + temporary signs
 Sources: official K53 manual road-markings section; SARTSM temporary-signs chapter; [Arrive Alive road markings](https://www.arrivealive.mobi/traffic-signs-of-south-africa); standard SA driving-school convention for road studs.
 - **Double solid centre lines**: neither direction may cross — total no-overtaking/no-crossing.
 - **Regulatory continuous line**: crossing a solid (barrier) line is an offence, not merely inadvisable.
-- **White edge (fog) line**: marks the left edge of the travelled lane; keep left of it, useful in poor visibility.
+- **White right edge line**: marks the right edge of a one-way carriageway beside the median; you may not cross to its right. Sourced under "Lines along the road".
 - **Yellow (shoulder) line on freeways**: marks the edge of the travelled way / start of the shoulder — the shoulder is not a driving or overtaking lane.
 - **Road studs (cat's eyes), SA convention**: white = lane/centre lines; red = left edge (crossing them = leaving the road on the left); yellow = right edge (median side); reflect your lights back at night.
 - **Box/yellow criss-cross junction**: do not enter until your exit is clear, even on green.
@@ -47,7 +78,7 @@ Sources: official K53 manual road-markings section; SARTSM temporary-signs chapt
 - **Turn-lane arrows / diagrammatic arrows**: compulsory direction; a lane-reduction arrow warns a lane is ending — merge in good time.
 - **Pedestrian-crossing markings**: stop line set back before the crossing; stop behind it, never on the stripes.
 - **Speed-hump / raised-crossing markings**: usually white triangles or bars warning to slow.
-- **Kerb markings**: painted kerbs indicate stopping/parking restrictions (colour conventions vary by municipality; obey accompanying signs).
+- **Kerb markings**: red = no stopping, yellow = no parking; solid applies at all times, broken during the hours on the accompanying sign. Sourced under "Lines along the road".
 
 ### Temporary signs
 - **Yellow background = temporary** (roadworks, incidents). Same legal force as permanent white/other signs, including temporary speed limits.
@@ -106,7 +137,7 @@ Source keys:
 - **[AA-ANIMALS]**: [Arrive Alive, avoiding animals on the road](https://www.arrivealive.co.za/avoiding-animals-on-the-road). **[AA-SAFARI]**: [Arrive Alive, driving in a nature reserve](https://www.arrivealive.co.za/guide-to-safety-and-driving-on-safari-driving-in-the-nature-reserve). **[AA-WORKS]**: [Arrive Alive, roadworks](https://www.arrivealive.co.za/roadworks-and-road-safety). **[AA-GRAVEL]**: [Arrive Alive, gravel roads](https://www.arrivealive.mobi/driving-on-gravel-roads). **[AA-ARREST]**: [Arrive Alive, arrestor beds](https://www.arrivealive.mobi/arrestor-beds-and-road-safety).
 - **Bank**: a fact already recorded earlier in this file or in `rules.md` / `intersections.md`.
 
-The SARTSM regulatory and road-marking chapters (`V1C2.pdf`, `V1C7.pdf`) are over the fetch limit and were **not** read, so regulatory signs and markings rest on [DOT], the K53 manual and Motus.
+The SARTSM regulatory and road-marking chapters (`V1C2.pdf`, `V1C7.pdf`) are over the fetch limit and were **not** read, so regulatory signs and markings rest on [DOT], the K53 manual and Motus. Chapter 7 was read afterwards for the edge, no-parking and no-stopping lines; see "Lines along the road".
 
 All 118 meanings were checked against [DOT], which corrected several first drafts. The notes in the first sections below record where each fact first came from; the section "Checked against the Department of Transport manual" records the [DOT] page and what it changed.
 
@@ -232,13 +263,13 @@ These first drafts changed after [DOT] was read:
 - **marking-088-02**: do not straddle the lane markings [DOT p.54].
 
 ### Conflicts found while sourcing
-Meanings follow the source order at the top of this section.
+Meanings follow the source order at the top of this section. Items marked *open* are not settled.
 - **Box junction**: [K53M p.82] allows stopping when entering from the side to turn; [DOT p.51] has no such exception, so the meaning omits it.
 - **Double no-crossing line**: [K53M p.78] says "at any time"; [DOT p.48] allows passing a stationary vehicle or obstruction. The meaning follows [DOT].
 - **No overtaking**: older text said it runs until a sign ends it. [DOT p.12] and [K53M p.12] say the next 500 m, so `q_sign_no_overtaking` and `fc_no_overtaking` were corrected with this batch. The "Restrictions" note above ("runs until cancelled") is too broad for this sign.
 - **Railway stopping distance** (settled: at least 5 m): [DOT p.34] says no closer than 3 m where there is no stop line or sign. The K53 test says at least 5 m for every licence code [K53T], as do [MOTUS pp.138-140] and [Arrive Alive](https://www.arrivealive.co.za/print.aspx?i=2863). Teach 5 m: it is what the test asks, and it also satisfies the 3 m figure. No regulation stating a distance was found; the offence that was found, Reg. 304(g), is stopping within the railway reserve [AARTO p.198], so the meanings say both.
 - **Goods-vehicle overtaking** (settled: goods vehicles may not overtake for 500 m): [DOT p.12] says a heavy vehicle may not overtake "another heavy vehicle". The official sign name [CHART], the gazetted offence [AARTO p.176] and [K53M p.12] have no such limit, so the meaning follows them, and `q4_sign_no_ot_trucks`, `fc4_no_ot_trucks` and the `signs-junctions-pack.ts` item were already right and stay unchanged. A goods vehicle that does not overtake complies under either reading. No mass threshold was found in these sources, so none is stated.
-- **Solid yellow line**: the K53 manual's kerbside line is *no parking* [K53M p.83], and p.78 treats the yellow left edge line separately. `questions.extra.ts` ("A solid yellow line painted along the edge of the roadway") and `flashcards.extra.ts` (`fc3_park_yellow_edge`) teach the edge line as *no stopping*, as does the "Road markings" note above. Needs a read of SARTSM `V1C7.pdf`.
+- **Road studs** (*open*): `markings-pack.ts` and the Sprint 3 note above teach red studs on the left edge and yellow studs on the right. The chapter pairs red with the right edge, no-overtaking and no-crossing lines and with wrong-way warnings, and yellow with yellow markings, which puts yellow on the left edge [RTSM7 §7.5.2].
 - **marking-084-05**: the K53 manual pairs a bicycle symbol with a caption about vehicles carrying disabled people [K53M p.84]. It stays unnamed.
 
 ### Temporary warning signs are yellow triangles

@@ -280,9 +280,10 @@ export const STARTER_QUESTIONS: Question[] = [
       "A bus-only kerb"
     ],
     "correctIndex": 1,
-    "explanation": "Painted kerbs flag stopping/parking rules (exact colour conventions vary by municipality). Read the nearby sign to know the specific restriction.",
+    "explanation": "Red means no stopping and yellow means no parking. A solid line applies at all times; a broken one applies only during the hours on the sign that goes with it.",
     "difficulty": 2,
-    "scope": "learners"
+    "scope": "learners",
+    "source": "SA Learner Driver Manual (Dept of Transport, 2012), p.51; SADC RTSM Vol 1 Ch 7, §§7.2.16-7.2.17"
   },
   {
     "id": "q2_sign_gravel_begins",
