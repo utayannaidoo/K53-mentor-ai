@@ -88,8 +88,30 @@ export const COLOUR_FILTERS: { id: SignColour; label: string }[] = [
  */
 const named = (s: RoadSign, re: RegExp) => re.test(s.name);
 
-/** Meanings are safe for coarse flags no other sign's prose would carry. */
-const has = (s: RoadSign, re: RegExp) => re.test(`${s.name} ${s.meaning}`);
+/**
+ * Warning signs shown on a yellow background: the temporary versions, with a
+ * black symbol on yellow inside the usual red triangle (RTSM Vol 1 §3.1.5; K53
+ * manual pp.28, 31, 39).
+ *
+ * Listed by id because no text field can tell us. The manual never calls road
+ * works, the grader or construction vehicles "temporary", and testing a meaning
+ * for that word reclassified signs whenever their prose was rewritten. This is
+ * the one per-sign visual claim in the file, so tests/sign-traits.test.ts checks
+ * it against the pixels of every warning crop.
+ */
+const YELLOW_WARNING_IDS: ReadonlySet<string> = new Set([
+  "warning-028-03", // uneven road
+  "warning-031-01", // surface step
+  "warning-031-02", // soft shoulder
+  "warning-031-03", // loose stones
+  "warning-031-04", // width restriction
+  "warning-031-05", // length restriction
+  "warning-031-06", // height restriction (crop also shows a white sign)
+  "warning-039-01", // road works
+  "warning-039-02", // grader working
+  "warning-039-03", // construction vehicles
+  "warning-039-04", // accident
+]);
 
 export function traitsFor(sign: RoadSign): SignTraits {
   const sub = sign.subcategory;
@@ -98,9 +120,10 @@ export function traitsFor(sign: RoadSign): SignTraits {
     // Hazard marker plates are boards, not the standard warning triangle.
     if (/hazard marker/i.test(sub))
       return { shape: "rectangle", colour: "varies", confident: false };
-    // Temporary works signs are yellow diamonds; permanent warnings are
-    // red-bordered triangles.
-    if (has(sign, /\btemporary\b/i)) return { shape: "diamond", colour: "yellow", confident: true };
+    // Every other warning is a red-bordered triangle: yellow inside on a
+    // temporary sign, white on a permanent one.
+    if (YELLOW_WARNING_IDS.has(sign.id))
+      return { shape: "triangle", colour: "yellow", confident: true };
     return { shape: "triangle", colour: "red", confident: true };
   }
 
@@ -111,20 +134,25 @@ export function traitsFor(sign: RoadSign): SignTraits {
     if (/reservation|comprehensive/i.test(sub))
       return { shape: "rectangle", colour: "blue", confident: true };
     if (/control/i.test(sub)) {
-      // The only family that genuinely mixes shapes — resolve the two we can
+      // The only family that genuinely mixes shapes — resolve the three we can
       // name, and admit the rest. Yield is tested first and by name only:
       // its own meaning contains the word "stop".
       if (named(sign, /yield|give way/i))
         return { shape: "inverted-triangle", colour: "red", confident: true };
       if (named(sign, /\bstop\b/i)) return { shape: "octagon", colour: "red", confident: true };
+      if (named(sign, /^pedestrian priority$/i))
+        return { shape: "diamond", colour: "red", confident: true };
       return { shape: "varies", colour: "varies", confident: false };
     }
     // Selective restriction and traffic signals span several presentations.
     return { shape: "varies", colour: "varies", confident: false };
   }
 
-  if (sign.category === "information")
+  if (sign.category === "information") {
+    if (named(sign, /^priority road$/i))
+      return { shape: "diamond", colour: "yellow", confident: true };
     return { shape: "rectangle", colour: "blue", confident: true };
+  }
 
   if (sign.category === "guidance") {
     if (/tourism/i.test(sub)) return { shape: "rectangle", colour: "brown", confident: true };

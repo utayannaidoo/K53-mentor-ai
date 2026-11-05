@@ -268,5 +268,12 @@ Meanings follow [DOT] where it speaks. Items marked *open* were not changed by t
 - **Railway stopping distance** (*open*): [MOTUS pp.138-140] says at least 5 m from the nearest rail; [DOT p.34] says no closer than 3 m. No meaning states a figure, and no question should until the regulations are checked.
 - **Goods-vehicle overtaking wording** (*open*): `signs-pack.ts` (`q4_sign_no_ot_trucks`, `fc4_no_ot_trucks`) and `signs-junctions-pack.ts` say goods vehicles may not overtake, without [DOT p.12]'s "another heavy vehicle".
 - **Road studs** (*open*): `markings-pack.ts` and the Sprint 3 note above teach red studs on the left edge and yellow studs on the right. The chapter pairs red with the right edge, no-overtaking and no-crossing lines and with wrong-way warnings, and yellow with yellow markings, which puts yellow on the left edge [RTSM7 §7.5.2].
-- **Temporary warning signs**: `traitsFor()` calls them yellow diamonds. They are yellow-backed red-bordered triangles [K53M pp.28, 31, 39; RTSM §3.2.1 colour tables], so a public page can say "diamond-shaped" of a triangle.
 - **marking-084-05**: the K53 manual pairs a bicycle symbol with a caption about vehicles carrying disabled people [K53M p.84]. It stays unnamed.
+
+### Temporary warning signs are yellow triangles
+All temporary advance warning signs are a black symbol on a yellow background with a red triangular border [RTSM §3.1.5; DOT p.3 on what yellow means]. Each sign's colour table repeats this [RTSM §3.2.1 onward], and the chapter has no diamond-shaped sign. `traitsFor()` used to call them yellow diamonds, and the road-signs guide listed diamonds as a warning shape. Both are corrected.
+
+The signs on a yellow background are `warning-028-03`, `warning-031-01..06` and `warning-039-01..04` [K53M pp.28, 31, 39], which is 11 of the 59 warning triangles. Road works and grader working are temporary signs in their own right [RTSM §§3.4.29-3.4.30, signs TW336 and TW337], though the manual's captions never use the word. `warning-031-06` is a composite crop whose second sign is white [K53M p.31]. `warning-030-04` is a white sign with a yellow lamp in it, not a yellow-backed one [K53M p.30]. `tests/sign-traits.test.ts` checks this list against the crops' pixels.
+
+### The two real diamonds
+Exactly two signs in the catalogue are diamonds, and neither is a warning. `regulatory-007-04` Pedestrian priority is a red diamond [K53M p.7; DOT p.2], and `information-043-05` Priority road is a yellow diamond on a white one [K53M p.43]. A geometric scan of all 439 crops, checked by eye, found no others. The library's Diamond filter now returns these two.
