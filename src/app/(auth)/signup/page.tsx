@@ -6,6 +6,8 @@ export const metadata: Metadata = {
   title: "Sign up",
   description:
     "Create a free K53 Mentor AI account — tell us what you find hardest, get your personalised study plan and start practising today.",
+  // A form, not content: kept out of the index and the sitemap.
+  robots: { index: false, follow: true },
 };
 
 export default function SignupPage() {

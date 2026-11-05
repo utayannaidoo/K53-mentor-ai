@@ -34,7 +34,7 @@ const CORE_FLASHCARDS: Flashcard[] = [
   { id: "fc_no_right", categoryId: "signs", image: signImg("no_right_turn"), front: "What does this sign prohibit?", back: "No right turn at this point.", difficulty: 1 },
   { id: "fc_no_uturn", categoryId: "signs", image: signImg("no_u_turn"), front: "What does this sign prohibit?", back: "No U-turn (you may not turn to face the opposite direction here).", difficulty: 1 },
   { id: "fc_no_parking", categoryId: "signs", image: signImg("no_parking"), front: "What does this sign mean?", back: "No parking — you may not leave the vehicle parked here (brief stops to load/set down are allowed).", difficulty: 2 },
-  { id: "fc_no_overtaking", categoryId: "signs", image: signImg("no_overtaking"), front: "What does this sign mean?", back: "No overtaking until you pass the sign that ends the restriction.", difficulty: 2 },
+  { id: "fc_no_overtaking", categoryId: "signs", image: signImg("no_overtaking"), front: "What does this sign mean?", back: "No overtaking any vehicle for the next 500 m, or for the distance on a plate below the sign.", difficulty: 2 },
   { id: "fc_speed", categoryId: "signs", image: signImg("speed_limit"), front: "What does a number in a red circle mean?", back: "The maximum legal speed, in km/h. Exceeding it is an offence.", difficulty: 1 },
   { id: "fc_robot_red", categoryId: "signs", image: signImg("robot_red"), front: "Steady red robot?", back: "Stop behind the line and wait until it turns green and the way is clear.", difficulty: 1 },
   { id: "fc_robot_amber", categoryId: "signs", image: signImg("robot_amber"), front: "Steady amber robot?", back: "Stop — unless you are so close that stopping cannot be done safely. It warns that red is next.", difficulty: 2 },

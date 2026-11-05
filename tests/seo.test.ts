@@ -5,7 +5,7 @@ import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { GUIDES } from "@/app/guides/guides";
 import { QUESTION_PAGES, questionsFor } from "@/lib/content/question-pages";
-import { SIGN_PAGES } from "@/lib/content/sign-pages";
+import { INDEXED_SIGN_PAGES, SIGN_PAGES, isIndexableSign } from "@/lib/content/sign-pages";
 
 const ROOT = path.resolve(__dirname, "..");
 const read = (p: string) => readFileSync(path.join(ROOT, p), "utf8");
@@ -155,8 +155,17 @@ describe("sitemap", () => {
   it("lists every public legal page — they are footer-linked and indexable", () => {
     // /refunds was missing for months: linked from the footer, crawlable, and
     // absent from the sitemap, so it depended entirely on link discovery.
-    for (const route of ["/privacy", "/terms", "/refunds", "/contact"]) {
+    for (const route of ["/privacy", "/terms", "/refunds", "/contact", "/about"]) {
       expect(paths, `${route} is public but not in the sitemap`).toContain(route);
+    }
+  });
+
+  it("leaves out the auth forms, which say noindex", () => {
+    // A login form is not content. Submitting two of them made the site look
+    // thinner to the AdSense review than it is.
+    for (const route of ["/login", "/signup"]) {
+      expect(paths).not.toContain(route);
+      expect(read(`src/app/(auth)${route}/page.tsx`)).toMatch(/robots: \{ index: false/);
     }
   });
 
@@ -226,10 +235,61 @@ describe("programmatic pages", () => {
     for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
   });
 
-  it("every sign page and question page is in the sitemap", () => {
-    for (const p of SIGN_PAGES) expect(paths).toContain(`/road-signs/${p.slug}`);
+  it("every indexable sign page and every question page is in the sitemap", () => {
+    for (const p of INDEXED_SIGN_PAGES) expect(paths).toContain(`/road-signs/${p.slug}`);
     for (const p of QUESTION_PAGES) expect(paths).toContain(`/k53-questions/${p.slug}`);
     expect(paths).toContain("/k53-questions");
+  });
+
+  it("no thin sign page is submitted, and each one says noindex", () => {
+    // AdSense rejected the site as "low-value content" while 152 near-identical
+    // sign pages were 80% of the sitemap. A thin page may exist for visitors,
+    // but submitting it is asking to be judged on it.
+    //
+    // Every verified sign has a real meaning today, so `thin` is empty until
+    // someone names a sign without writing one. The rule itself is pinned by the
+    // next test, so an empty list here can't hide a broken rule.
+    const thin = SIGN_PAGES.filter((p) => !isIndexableSign(p.sign));
+    for (const p of thin) expect(paths).not.toContain(`/road-signs/${p.slug}`);
+    const src = read("src/app/road-signs/[slug]/page.tsx");
+    expect(src).toMatch(/!isIndexableSign\(sign\) && \{ robots: \{ index: false/);
+  });
+
+  it("a sign is indexable only when its meaning says more than its name, in whole sentences", () => {
+    expect(isIndexableSign({ name: "Cattle ahead", meaning: "Cattle ahead." })).toBe(false);
+    expect(isIndexableSign({ name: "Stop line", meaning: "Stop line:" })).toBe(false);
+    // Extraction fragments: the tail of the previous caption, or a cut-off clause.
+    expect(
+      isIndexableSign({
+        name: "No stopping",
+        meaning: "not being impaired by stationary vehicles on the road here.",
+      }),
+    ).toBe(false);
+    expect(
+      isIndexableSign({
+        name: "Box junction",
+        meaning: "Box junction: You may not stop on this painted marking unless you are entering the",
+      }),
+    ).toBe(false);
+    expect(
+      isIndexableSign({
+        name: "No entry",
+        meaning: "No vehicles may enter this road in this direction at any time.",
+      }),
+    ).toBe(true);
+  });
+
+  it("keeps at least as many sign pages indexed as it had when the rule landed", () => {
+    // A ratchet, like content coverage: raise it as meanings are repaired.
+    expect(INDEXED_SIGN_PAGES.length).toBeGreaterThanOrEqual(151);
+  });
+
+  it("no indexed sign page has a meaning under 15 words", () => {
+    // isIndexableSign only asks for six words beyond the name, and the meaning
+    // is the one part of the page that is unique to it. Every page clears this
+    // today, so a shorter meaning is a regression.
+    const short = INDEXED_SIGN_PAGES.filter((p) => p.sign.meaning.trim().split(/\s+/).length < 15);
+    expect(short.map((p) => p.slug)).toEqual([]);
   });
 
   it("no question page is thin", () => {

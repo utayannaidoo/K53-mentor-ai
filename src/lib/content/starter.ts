@@ -19,288 +19,192 @@ import type { Flashcard, Question, Scenario } from "@/types";
 
 export const STARTER_QUESTIONS: Question[] = [
   {
-    "id": "gen-sign-regulatory-006-01-meaning",
+    "id": "qs3_warning_no_obligation",
     "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
+    "prompt": "A warning sign differs from a regulatory sign in that a warning sign:",
     "options": [
-      "Come to a complete stop behind the stop line every time — even if the road is empty — then move off only when it is safe.",
-      "This is a manually operated sign, with the word STOP on one side and GO on the other.",
-      "You no longer need to drive with your headlights switched on.",
-      "Give way to all cross-traffic and to pedestrians crossing or about to cross."
+      "Describes what is ahead and leaves the response to your judgement, rather than imposing a specific act",
+      "May be ignored if the hazard is not visible",
+      "Applies only outside urban areas",
+      "Is always advisory and carries no consequence"
     ],
     "correctIndex": 0,
-    "explanation": "Stop: Come to a complete stop behind the stop line every time — even if the road is empty — then move off only when it is safe.",
-    "difficulty": 1,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-006-01.png"
-  },
-  {
-    "id": "gen-sign-regulatory-009-02-meaning",
-    "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
-    "options": [
-      "To give drivers an opportunity to follow an alternate route or proceed on the route and pay toll fees.",
-      "Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow.",
-      "The maximum speed, in km/h, at which you may drive past this sign.",
-      "To indicate that road users must drive to the side of an obstruction where the sign is displayed."
-    ],
-    "correctIndex": 0,
-    "explanation": "Alternative route to toll road: To give drivers an opportunity to follow an alternate route or proceed on the route and pay toll fees.",
+    "explanation": "Ignoring a warning is not itself an offence the way passing a red-ringed prohibition is — but driving without adjusting to a hazard you were warned about is negligent driving.",
     "difficulty": 3,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-009-02.png"
+    "scope": "learners"
   },
   {
-    "id": "q4_sign_reserved_lane",
+    "id": "qs3_no_hooter",
     "categoryId": "signs",
-    "image": "/signs/regulatory/regulatory-013-01.png",
-    "prompt": "A reservation sign with a bus symbol above a lane means:",
+    "image": "/signs/regulatory/regulatory-012-03.png",
+    "prompt": "A red-ringed sign showing a hooter crossed out means:",
     "options": [
-      "Buses may not use this lane",
-      "The lane (left of the solid yellow line) is for the exclusive use of buses",
-      "Bus stop ahead",
-      "All heavy vehicles must use this lane"
+      "You may not sound your hooter past this sign except in an emergency",
+      "Your vehicle's hooter must be disconnected",
+      "Hooting is discouraged but not prohibited",
+      "The sign applies only to heavy vehicles"
     ],
-    "correctIndex": 1,
-    "explanation": "Reservation signs dedicate a lane to the class shown. Other vehicles stay out of it except to cross for a turn where permitted.",
+    "correctIndex": 0,
+    "explanation": "These protect hospitals and residential areas from noise. The general rule still stands that a hooter is for warning others of your presence, not for expressing impatience.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "gen-sign-regulatory-020-04-meaning",
+    "id": "q4_sign_grammar_triangle",
     "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
+    "prompt": "Red-bordered triangular signs (point up) are used to:",
     "options": [
-      "Speed limit of 60km/h applies to motorcycles only.",
-      "To indicate that road users must drive to the side of an obstruction where the sign is displayed.",
-      "No over taking vehicles by goods vehicles for the next 500m.",
-      "The maximum speed, in km/h, at which you may drive past this sign."
-    ],
-    "correctIndex": 0,
-    "explanation": "This regulatory sign: Speed limit of 60km/h applies to motorcycles only.",
-    "difficulty": 3,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-020-04.png"
-  },
-  {
-    "id": "gen-sign-regulatory-012-02-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "No overtaking by goods vehicles",
-      "No right turn",
-      "No picking up of passengers",
-      "No U-turn"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"No overtaking by goods vehicles\". No over taking vehicles by goods vehicles for the next 500m.",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-012-02.png"
-  },
-  {
-    "id": "q_sign_robot_amber",
-    "categoryId": "signs",
-    "image": "/signs/regulatory/regulatory-022-03.png",
-    "prompt": "A steady amber (yellow) traffic signal means:",
-    "options": [
-      "Speed up to clear the intersection",
-      "Stop, unless you are so close that stopping cannot be done safely",
-      "The light is faulty — ignore it",
-      "Give way to the left only"
+      "Prohibit turning",
+      "Warn you of a hazard or change in the road ahead",
+      "Show compulsory actions",
+      "Mark freeway exits"
     ],
     "correctIndex": 1,
-    "explanation": "Amber means stop. You should only continue if you are so close to the line that stopping suddenly would be unsafe. It is a warning that red is next, not a cue to accelerate.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "gen-sign-marking-079-04-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Parking bay markings",
-      "Box junction",
-      "No-overtaking line ahead",
-      "Pedestrian crossing markings"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the road marking \"Parking bay markings\". Parking bay:",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/marking/marking-079-04.png"
-  },
-  {
-    "id": "gen-sign-regulatory-009-05-meaning",
-    "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
-    "options": [
-      "Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow.",
-      "To indicate that road users must drive to the side of an obstruction where the sign is displayed.",
-      "To indicate that you must move in a clockwise direction at the junction.",
-      "To indicate that the road or part of it is set aside for use by goods vehicles only."
-    ],
-    "correctIndex": 0,
-    "explanation": "Proceed in the direction shown: Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow.",
-    "difficulty": 3,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-009-05.png"
-  },
-  {
-    "id": "gen-sign-regulatory-014-06-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Time-limited parking",
-      "Dual-carriage freeway begins",
-      "Residential area",
-      "Bus lane reservation"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"Time-limited parking\". This area is reserved for parking, up to a maximum of 60 minutes.",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-014-06.png"
-  },
-  {
-    "id": "q2_sign_brown_tourism",
-    "categoryId": "signs",
-    "prompt": "A brown road sign with white lettering indicates:",
-    "options": [
-      "A gravel road ahead",
-      "A tourist attraction or place of interest",
-      "A rest area for trucks only",
-      "A prohibited area"
-    ],
-    "correctIndex": 1,
-    "explanation": "Brown signs are tourism guidance signs — game reserves, wine routes, monuments and similar destinations.",
+    "explanation": "Warning signs are triangles with a red border. They demand earlier scanning and often a lower speed — the hazard itself follows after the sign.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "gen-sign-marking-077-05-name",
+    "id": "q4_sign_proceed_direction",
     "categoryId": "signs",
-    "prompt": "Which sign is this?",
+    "image": "/signs/regulatory/regulatory-009-05.png",
+    "prompt": "This blue sign with a single arrow means:",
     "options": [
-      "No-overtaking line",
-      "No parking — broken yellow line",
-      "Yield line",
-      "No-crossing double line"
+      "One-way street ends ahead",
+      "You must proceed only in the direction of the arrow",
+      "Overtaking allowed in that direction",
+      "Parking that side only"
     ],
-    "correctIndex": 0,
-    "explanation": "This is the road marking \"No-overtaking line\". No overtaking line: part of the vehicle to cross the line, except to access property on the other",
+    "correctIndex": 1,
+    "explanation": "Proceed-direction commands leave no choice: drive only where the arrow points. (The similar-looking one-way sign describes the road; this one orders your movement.)",
     "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/marking/marking-077-05.png"
+    "scope": "learners"
   },
   {
-    "id": "gen-sign-information-044-03-name",
+    "id": "gen-sign-warning-029-02-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
+    "options": [
+      "Rocks or stones can fall onto the road ahead from a cutting, especially after rain.",
+      "The road gets narrower for a short stretch at a bridge ahead.",
+      "Tractors or other slow farm vehicles regularly cross or enter the road ahead.",
+      "An overhead structure or height gauge ahead limits vehicle height to the figure shown in metres."
+    ],
+    "correctIndex": 0,
+    "explanation": "Falling rocks ahead: Rocks or stones can fall onto the road ahead from a cutting, especially after rain. Slow down, watch the rock face as well as the surface, and be ready to stop for broken rock lying in your lane.",
+    "difficulty": 3,
+    "scope": "learners",
+    "image": "/signs/warning/warning-029-02.png"
+  },
+  {
+    "id": "gen-sign-information-045-07-name",
     "categoryId": "signs",
     "prompt": "Which sign is this?",
     "options": [
+      "Accident plate (temporary)",
+      "Priority road",
+      "Information centre",
+      "No through road"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is the information sign \"Accident plate (temporary)\". This yellow plate below another sign warns of an accident on the road ahead. Slow down and be ready to stop for emergency vehicles and people on the road. Keep your eyes on your own lane, because slowing to look at a crash can cause another one.",
+    "difficulty": 2,
+    "scope": "learners",
+    "image": "/signs/information/information-045-07.png"
+  },
+  {
+    "id": "gen-sign-marking-088-05-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
+    "options": [
+      "This long white triangle warns that a yield sign or yield line is coming up.",
+      "You may not park here during the times shown on the road sign that goes with this line.",
+      "These arrows warn that a solid line you may not cross is coming up in the road.",
+      "Traffic on neither side may cross these two solid white lines."
+    ],
+    "correctIndex": 0,
+    "explanation": "Yield ahead marking: This long white triangle warns that a yield sign or yield line is coming up. It is advance notice only, so ease off now. Your duty to give way starts at the yield line.",
+    "difficulty": 3,
+    "scope": "learners",
+    "image": "/signs/marking/marking-088-05.png"
+  },
+  {
+    "id": "gen-sign-information-045-06-name",
+    "categoryId": "signs",
+    "prompt": "Which sign is this?",
+    "options": [
+      "Blind people plate",
       "Modal transfer point",
-      "Recommended speed plate",
-      "Freeway exit countdown markers",
-      "Priority road"
+      "Accident plate (temporary)",
+      "Recommended speed plate"
     ],
     "correctIndex": 0,
-    "explanation": "This is the information sign \"Modal transfer point\". Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus.",
+    "explanation": "This is the information sign \"Blind people plate\". Fitted below another sign, this plate tells you that blind people may be on or crossing the road ahead. Ease off and be prepared to stop for them. Flashing your lights or waving will not help, so wait until they have finished crossing.",
     "difficulty": 2,
     "scope": "learners",
-    "image": "/signs/information/information-044-03.png"
+    "image": "/signs/information/information-045-06.png"
   },
   {
-    "id": "gen-sign-warning-029-04-meaning",
+    "id": "gen-sign-marking-088-04-name",
+    "categoryId": "signs",
+    "prompt": "Which sign is this?",
+    "options": [
+      "Cycle crossing",
+      "No motorcycles marking",
+      "Mini-circle marking",
+      "Furcation arrows"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is the road marking \"Cycle crossing\". Two broken lines across the road mark a place where cyclists cross. Slow down and look both ways, and be ready to stop for a rider already on the crossing.",
+    "difficulty": 2,
+    "scope": "learners",
+    "image": "/signs/marking/marking-088-04.png"
+  },
+  {
+    "id": "gen-sign-regulatory-007-02-meaning",
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "Jetty edge or river bank ahead, close to the road.",
-      "Road narrows at a bridge ahead.",
-      "Hazard ahead. Slow down and approach with caution.",
-      "Priority road with secondary crossroad ahead."
+      "Going straight on or turning right, you must stop in line with the sign or behind the line.",
+      "This is a manually operated sign, with the word STOP on one side and GO on the other.",
+      "Come to a complete stop behind the stop line every time — even if the road is empty — then move off only when it is safe.",
+      "Traffic on all four approaches to this junction has to stop, and the order of stopping decides who goes."
     ],
     "correctIndex": 0,
-    "explanation": "Jetty or river bank ahead: Jetty edge or river bank ahead, close to the road.",
+    "explanation": "Stop, or turn left without stopping: Going straight on or turning right, you must stop in line with the sign or behind the line. Turning left, you may keep moving without stopping if it is safe, but you still give way to cross traffic and pedestrians.",
     "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/warning/warning-029-04.png"
+    "image": "/signs/regulatory/regulatory-007-02.png"
   },
   {
-    "id": "qs2_loose_stones",
+    "id": "gen-sign-regulatory-007-04-meaning",
     "categoryId": "signs",
-    "prompt": "A warning sign showing stones flying up from a vehicle's wheels means:",
+    "prompt": "What does this road sign mean?",
     "options": [
-      "Loose stones or chippings ahead — drop your speed and your following distance",
-      "The road ahead is closed to vehicles without mudflaps",
-      "A gravel road begins permanently",
-      "Stone-throwing has been reported in the area"
+      "The area is set aside for pedestrians.",
+      "Vehicles may not turn left here, but you may go straight on or turn right.",
+      "Turn right at the next junction during these times.",
+      "Steady red: stop behind the stop line and stay stopped until the signal changes."
     ],
     "correctIndex": 0,
-    "explanation": "Loose chippings are usually fresh surfacing. Speed flings them into windscreens — including yours — and grip is poorer than it looks, so leave a bigger gap.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q_sign_yield_ped",
-    "categoryId": "signs",
-    "image": "/signs/regulatory/regulatory-006-05.png",
-    "prompt": "What must you do at this sign?",
-    "options": [
-      "Sound your hooter to warn pedestrians",
-      "Give way to pedestrians on, or about to enter, the crossing on your side",
-      "Stop only if a pedestrian is already in the road",
-      "Proceed — pedestrians must wait for vehicles"
-    ],
-    "correctIndex": 1,
-    "explanation": "This sign warns of a pedestrian crossing where you must give way to any pedestrians on, or about to step onto, the crossing on your side of the road.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "gen-sign-regulatory-013-06-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Reserved stop zone",
-      "Temporary parking reservation",
-      "Parking for people with disabilities",
-      "Bus lane reservation"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"Reserved stop zone\". This stop zone is reserved for the exclusive use of the class of vehicle and organization shown by the symbol and logo.",
-    "difficulty": 2,
+    "explanation": "Pedestrian priority: The area is set aside for pedestrians. Vehicles may enter only to load/offload or for an emergency, must yield to pedestrians, and may not exceed 15 km/h.",
+    "difficulty": 1,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-013-06.png"
+    "image": "/signs/regulatory/regulatory-007-04.png"
   },
   {
-    "id": "gen-sign-regulatory-011-04-name",
+    "id": "qs2_crossing_flashing_red",
     "categoryId": "signs",
-    "prompt": "Which sign is this?",
+    "prompt": "Red lights begin flashing at a level crossing as you approach. You must:",
     "options": [
-      "No right turn at intersection",
-      "No overtaking by goods vehicles",
-      "No motorcycles",
-      "No hooter"
+      "Stop before the crossing and wait until the lights stop flashing, even if you cannot see a train",
+      "Cross quickly before the train arrives",
+      "Proceed if the boom has not yet come down",
+      "Stop only if you can hear a train approaching"
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"No right turn at intersection\". To prohibit vehicles from turning right at an intersection.",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-011-04.png"
-  },
-  {
-    "id": "qs2_end_of_restriction",
-    "categoryId": "signs",
-    "prompt": "A sign repeating a restriction with a diagonal line struck through it means:",
-    "options": [
-      "That particular restriction now ends",
-      "The restriction is temporarily suspended",
-      "The restriction now applies more strictly",
-      "The restriction applies only to heavy vehicles"
-    ],
-    "correctIndex": 0,
-    "explanation": "The struck-through version cancels the restriction it repeats. Until you pass it — or a sign setting a new limit — the original one is still in force.",
-    "difficulty": 2,
+    "explanation": "The lights start well before the train reaches you, and a second train can follow the first. Not seeing a train is not evidence there isn't one.",
+    "difficulty": 1,
     "scope": "learners"
   },
   {
@@ -319,321 +223,428 @@ export const STARTER_QUESTIONS: Question[] = [
     "scope": "learners"
   },
   {
-    "id": "gen-sign-regulatory-007-03-meaning",
+    "id": "qs4_bus_signal_bar",
     "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
+    "prompt": "A traffic signal showing a white horizontal bar or bus symbol applies to:",
     "options": [
-      "A traffic circle (mini-circle or roundabout) is ahead.",
-      "End of lane use reservation and all vehicles may now use this lane.",
-      "End of residential area and rules for a residential area no longer apply.",
-      "End of single carriage freeway and freeway rules no longer apply."
+      "Public-transport vehicles in a reserved lane, not to general traffic",
+      "All traffic, as an alternative to the normal signal",
+      "Pedestrians crossing at that point",
+      "Vehicles turning right only"
     ],
     "correctIndex": 0,
-    "explanation": "Traffic circle ahead: A traffic circle (mini-circle or roundabout) is ahead.",
-    "difficulty": 1,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-007-03.png"
-  },
-  {
-    "id": "q_sign_default_rural",
-    "categoryId": "signs",
-    "prompt": "On a public road outside an urban area, with no sign shown, the default speed limit is:",
-    "options": [
-      "80 km/h",
-      "100 km/h",
-      "120 km/h",
-      "There is no limit"
-    ],
-    "correctIndex": 1,
-    "explanation": "Outside urban areas the default limit is 100 km/h unless a sign shows otherwise; on a freeway it is 120 km/h.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q_sign_box_junction",
-    "categoryId": "signs",
-    "prompt": "Yellow criss-cross lines painted in a box at an intersection mean:",
-    "options": [
-      "Park inside the box",
-      "Do not enter the box unless your exit is clear",
-      "Stop inside the box and wait",
-      "Pedestrian crossing"
-    ],
-    "correctIndex": 1,
-    "explanation": "A yellow box junction must be kept clear: do not enter it unless your exit is clear, so you never block cross-traffic.",
+    "explanation": "Dedicated signals release the bus lane on its own phase, often a few seconds early. Ordinary traffic obeys the ordinary signal beside it.",
     "difficulty": 3,
     "scope": "learners"
   },
   {
-    "id": "q4_sign_children_response",
+    "id": "gen-sign-marking-083-03-meaning",
     "categoryId": "signs",
-    "image": "/signs/warning/warning-037-03.png",
-    "prompt": "Past this warning sign the K53 defensive response is to:",
+    "prompt": "What does this road sign mean?",
     "options": [
-      "Maintain speed but hoot at intervals",
-      "Reduce speed, cover the brake and scan verges and parked cars for children",
-      "Switch on headlights",
-      "Change to a higher gear"
-    ],
-    "correctIndex": 1,
-    "explanation": "Children are small, fast and unpredictable — near schools expect one to appear from between parked cars. Speed down, foot ready.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "gen-sign-regulatory-010-04-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Heavy goods vehicles only",
-      "Buses and minibuses only",
-      "Taxis only",
-      "Pass on the side shown"
+      "You may not stop here during the times shown on the road sign that goes with this line.",
+      "This lane is for buses only, during the times shown on the sign that goes with it.",
+      "Yellow arrows in a lane show the direction traffic in that lane must take.",
+      "Broad white blocks across the road mark a pedestrian crossing, the zebra-style version."
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"Heavy goods vehicles only\". To indicate that the road or part of it is set aside for use by goods vehicles with a gross vehicle mass or gross combination mass exceeding the mass indicated in tons by a number on such a sign.",
-    "difficulty": 2,
+    "explanation": "No stopping — broken red line: You may not stop here during the times shown on the road sign that goes with this line. Read the sign before you pull over, because the broken red line only applies during those hours.",
+    "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-010-04.png"
+    "image": "/signs/marking/marking-083-03.png"
   },
   {
-    "id": "gen-sign-regulatory-014-03-name",
+    "id": "gen-sign-regulatory-006-05-name",
     "categoryId": "signs",
     "prompt": "Which sign is this?",
     "options": [
+      "Pedestrian crossing (yield)",
+      "Yield",
       "Parking for people with disabilities",
-      "Reserved stop zone",
-      "Bus lane reservation",
-      "Parking reservation"
+      "Stop, or turn left without stopping"
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"Parking for people with disabilities\". Parking here is reserved for a vehicle carrying people with disabilities.",
-    "difficulty": 2,
+    "explanation": "This is the regulatory sign \"Pedestrian crossing (yield)\". Give way to any pedestrians on, or about to enter, the pedestrian crossing on your side of the road.",
+    "difficulty": 1,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-014-03.png"
+    "image": "/signs/regulatory/regulatory-006-05.png"
   },
   {
-    "id": "qs2_hospital_sign",
+    "id": "q6_mark_kerb_paint",
     "categoryId": "signs",
-    "prompt": "A blue information sign showing an 'H' indicates:",
+    "prompt": "A painted (coloured) kerb generally indicates:",
     "options": [
-      "A hospital, where you should expect ambulances and reduce noise",
-      "A helipad for air ambulances only",
-      "A hazardous-goods depot",
-      "A heavy-vehicle inspection point"
+      "Extra-wide parking",
+      "A stopping or parking restriction — obey it and any accompanying sign",
+      "A cycle lane",
+      "A bus-only kerb"
     ],
-    "correctIndex": 0,
-    "explanation": "Blue rectangles inform. Around a hospital, expect emergency vehicles arriving from unexpected directions and pedestrians who are distracted or distressed.",
+    "correctIndex": 1,
+    "explanation": "Painted kerbs flag stopping/parking rules (exact colour conventions vary by municipality). Read the nearby sign to know the specific restriction.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q2_sign_gravel_begins",
+    "categoryId": "signs",
+    "prompt": "A sign warns that the tarred road ends and gravel begins. What changes?",
+    "options": [
+      "Nothing — drive exactly as on tar",
+      "Braking distances get much longer and grip drops — slow down before the surface changes",
+      "You must switch on your main beams",
+      "The speed limit no longer applies"
+    ],
+    "correctIndex": 1,
+    "explanation": "Gravel offers far less grip: stopping distances stretch, dust hides hazards and loose stones deflect the wheels. Reduce speed before you reach it, not on it.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q2_sign_ped_blocks",
+    "categoryId": "signs",
+    "prompt": "Broad painted blocks across the road mark a pedestrian crossing. Approaching it, you must:",
+    "options": [
+      "Maintain speed unless someone is already halfway across",
+      "Slow down and give way to pedestrians on, or clearly about to enter, the crossing",
+      "Stop and wave pedestrians across even if none are near",
+      "Hoot before crossing the blocks"
+    ],
+    "correctIndex": 1,
+    "explanation": "Zebra-style block markings work like a yield to pedestrians: approach at a speed that lets you stop, and give way to anyone using or stepping onto the crossing.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "gen-sign-information-045-06-name",
+    "id": "gen-sign-regulatory-008-03-name",
     "categoryId": "signs",
     "prompt": "Which sign is this?",
     "options": [
-      "Blind people plate",
-      "Modal transfer point",
-      "Accident plate (temporary)",
-      "Recommended speed plate"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the information sign \"Blind people plate\". Blind people.",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/information/information-045-06.png"
-  },
-  {
-    "id": "gen-sign-warning-028-02-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Tarred road begins",
-      "Slippery road ahead",
-      "Pedestrians ahead",
-      "Crossroad ahead"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the warning sign \"Tarred road begins\". Gravel road becomes a tarred road ahead.",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/warning/warning-028-02.png"
-  },
-  {
-    "id": "gen-sign-information-043-03-meaning",
-    "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
-    "options": [
-      "No through road ahead, as indicated by the red bar.",
-      "Temporary high speed exit countdown sign.",
-      "High speed freeway exit countdown signs.",
-      "Priority road. The road you are travelling on has priority at the junction ahead."
-    ],
-    "correctIndex": 0,
-    "explanation": "No through road: No through road ahead, as indicated by the red bar.",
-    "difficulty": 3,
-    "scope": "learners",
-    "image": "/signs/information/information-043-03.png"
-  },
-  {
-    "id": "gen-sign-warning-038-03-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Warthogs ahead",
-      "Trams ahead",
-      "Elephants ahead",
-      "Staggered junctions ahead"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the warning sign \"Warthogs ahead\". Warthogs ahead.",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/warning/warning-038-03.png"
-  },
-  {
-    "id": "gen-sign-regulatory-008-02-meaning",
-    "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
-    "options": [
-      "This is to indicate that there is a one-way carriageway to the left, proceed in the direction of the arrow indicated.",
-      "Turn right at the next junction during these times.",
-      "Overtaking other vehicles is prohibited until you pass the sign that ends the restriction.",
-      "Goods vehicles must travel at 50km/h or faster."
-    ],
-    "correctIndex": 0,
-    "explanation": "One-way roadway (left): This is to indicate that there is a one-way carriageway to the left, proceed in the direction of the arrow indicated.",
-    "difficulty": 1,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-008-02.png"
-  },
-  {
-    "id": "gen-sign-regulatory-011-03-meaning",
-    "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
-    "options": [
-      "To prohibit vehicles from turning left at an intersection.",
-      "To prohibit noise, if the noise level of your vehicle is high, you may not proceed past the sign.",
-      "Overtaking other vehicles is prohibited until you pass the sign that ends the restriction.",
-      "To prohibit vehicles from turning around (u-turn) so that it faces the opposite direction."
-    ],
-    "correctIndex": 0,
-    "explanation": "No left turn at intersection: To prohibit vehicles from turning left at an intersection.",
-    "difficulty": 3,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-011-03.png"
-  },
-  {
-    "id": "gen-sign-regulatory-010-07-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Cyclists and pedestrians only",
-      "Pass on the side shown",
-      "Pedestrians only",
+      "One-way roadway (right)",
+      "Heavy goods vehicles only",
+      "Three-way stop",
       "Alternative route to toll road"
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"Cyclists and pedestrians only\". To indicate that the road or part of it may be used by cyclists and pedestrians only. Indicates to cyclists and pedestrians which part of the road they may use.",
-    "difficulty": 2,
+    "explanation": "This is the regulatory sign \"One-way roadway (right)\". This is to indicate that there is a one-way carriageway to the right, proceed in the direction of the arrow indicated.",
+    "difficulty": 1,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-010-07.png"
+    "image": "/signs/regulatory/regulatory-008-03.png"
   },
   {
-    "id": "gen-sign-regulatory-017-02-meaning",
+    "id": "gen-sign-regulatory-012-02-name",
+    "categoryId": "signs",
+    "prompt": "Which sign is this?",
+    "options": [
+      "No overtaking by goods vehicles",
+      "No right turn",
+      "No picking up of passengers",
+      "No U-turn"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is the regulatory sign \"No overtaking by goods vehicles\". Drivers of heavy motor vehicles may not overtake another heavy vehicle for the next 500 m past this sign. The lorries in the symbol show who the ban is aimed at, so other vehicles may still overtake where road markings and conditions allow it.",
+    "difficulty": 2,
+    "scope": "learners",
+    "image": "/signs/regulatory/regulatory-012-02.png"
+  },
+  {
+    "id": "qs3_reservation_meaning",
+    "categoryId": "signs",
+    "prompt": "On South African signs, a large letter 'R' alongside a vehicle symbol indicates:",
+    "options": [
+      "A reservation — that road, lane or area is set aside for the class of vehicle shown",
+      "A restriction on that class of vehicle",
+      "A recommended route for that class of vehicle",
+      "A rest area for that class of vehicle"
+    ],
+    "correctIndex": 0,
+    "explanation": "Reservation signs give a space to one class rather than taking it away. Read the symbol to see who it is for — buses, taxis, goods vehicles or the disabled.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "gen-sign-warning-039-02-name",
+    "categoryId": "signs",
+    "prompt": "Which sign is this?",
+    "options": [
+      "Grader working ahead",
+      "Children ahead",
+      "Uneven road ahead",
+      "Speed humps ahead"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is the warning sign \"Grader working ahead\". A grader is working on the road ahead, on its own or as part of larger road works. Drive slowly past it, because the full width of the road may not be available, and sand or gravel on the surface can affect how your vehicle handles.",
+    "difficulty": 2,
+    "scope": "learners",
+    "image": "/signs/warning/warning-039-02.png"
+  },
+  {
+    "id": "gen-sign-regulatory-011-06-meaning",
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "You no longer need to drive with your headlights switched on.",
-      "End of dual carriage freeway and freeway rules no longer apply.",
-      "End of residential area and rules for a residential area no longer apply.",
-      "Vehicle mass restriction no longer applies."
+      "You may not stop here, not even for a moment to drop someone off.",
+      "You may not turn left at the intersection ahead.",
+      "To prohibit pedestrians from proceeding past this sign where they could cause danger to themselves and vehicles.",
+      "To prohibit noise, if the noise level of your vehicle is high, you may not proceed past the sign."
     ],
     "correctIndex": 0,
-    "explanation": "End of headlights-on requirement: You no longer need to drive with your headlights switched on.",
+    "explanation": "No stopping: You may not stop here, not even for a moment to drop someone off. The only exceptions are to obey a traffic light or traffic officer or to avoid a collision. The ban keeps traffic flowing and stops stationary vehicles from blocking other drivers' view.",
     "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-017-02.png"
+    "image": "/signs/regulatory/regulatory-011-06.png"
   },
   {
-    "id": "gen-sign-regulatory-012-01-name",
+    "id": "gen-sign-marking-082-03-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
+    "options": [
+      "This lane is for bicycles only, so no other vehicle may drive, stop or park in it.",
+      "This long white X painted in your lane warns that a railway crossing is coming up.",
+      "You may not stop here during the times shown on the road sign that goes with this line.",
+      "Come to a complete stop behind this solid white line, and move off only when it is safe."
+    ],
+    "correctIndex": 0,
+    "explanation": "Lane reserved for bicycles: This lane is for bicycles only, so no other vehicle may drive, stop or park in it. A left turn can sweep across it, so check your mirror and blind spot for riders first.",
+    "difficulty": 3,
+    "scope": "learners",
+    "image": "/signs/marking/marking-082-03.png"
+  },
+  {
+    "id": "q_sign_info_colour",
+    "categoryId": "signs",
+    "prompt": "Blue rectangular signs are generally used to:",
+    "options": [
+      "Prohibit an action",
+      "Give information or a positive instruction, such as a one-way or parking area",
+      "Warn of danger ahead",
+      "Mark the national speed limit"
+    ],
+    "correctIndex": 1,
+    "explanation": "Blue is used for information and command signs — for example one-way roadways, parking areas and lanes reserved for particular vehicles.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q6_mark_cross_barrier_legal",
+    "categoryId": "signs",
+    "prompt": "Crossing a solid (barrier) centre line where it applies to you is:",
+    "options": [
+      "A judgement call left to the driver",
+      "A traffic offence, not merely inadvisable",
+      "Allowed if no traffic is oncoming",
+      "Allowed to pass a cyclist"
+    ],
+    "correctIndex": 1,
+    "explanation": "A barrier line is a regulatory marking. Crossing it is an offence in its own right — the empty road doesn't make it legal.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q_sign_no_left",
+    "categoryId": "signs",
+    "image": "/signs/regulatory/regulatory-011-01.png",
+    "prompt": "This sign means:",
+    "options": [
+      "Left turn ahead",
+      "No left turn",
+      "Keep left",
+      "One-way to the left"
+    ],
+    "correctIndex": 1,
+    "explanation": "A red circle with a black left arrow crossed out prohibits turning left at that point.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "qsg_end_toll_road",
+    "categoryId": "signs",
+    "prompt": "What does this sign indicate?",
+    "image": "/signs/regulatory/regulatory-017-01.png",
+    "options": [
+      "The end of the toll road",
+      "The start of a toll road",
+      "A toll plaza 500 m ahead",
+      "That tolls may not be paid in cash here"
+    ],
+    "correctIndex": 0,
+    "explanation": "A red diagonal cross over a sign is the general way of cancelling it — the restriction or condition it named stops applying from this point.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qsg_qual_local_access",
+    "categoryId": "signs",
+    "prompt": "A plate reading 'and Local Access Only' beneath a restriction sign means:",
+    "image": "/signs/regulatory/regulatory-019-06.png",
+    "imageDetail": true,
+    "options": [
+      "Traffic with business in the area may still use the road",
+      "Only residents who live on that street may enter",
+      "The road is closed to everyone",
+      "Access is allowed only outside business hours"
+    ],
+    "correctIndex": 0,
+    "explanation": "The restriction is aimed at through traffic. If you have a reason to be there — a delivery, a visit, your own driveway — you may still enter; you simply may not use the road as a shortcut.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "q6_mark_stop_line_setback",
+    "categoryId": "signs",
+    "prompt": "At a marked pedestrian crossing, the stop line is set back BEFORE the striped area so that:",
+    "options": [
+      "Drivers can park on the stripes",
+      "A stopped vehicle leaves the crossing itself clear and doesn't block other drivers' view of pedestrians",
+      "Cyclists can filter past",
+      "The crossing looks longer"
+    ],
+    "correctIndex": 1,
+    "explanation": "Stopping behind the set-back line keeps the crossing open and lets the next lane's driver see pedestrians. Creeping onto the stripes hides the very people it protects.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "gen-sign-regulatory-011-04-name",
     "categoryId": "signs",
     "prompt": "Which sign is this?",
     "options": [
-      "No overtaking",
-      "No left turn",
-      "No parking",
-      "No hawkers"
+      "No right turn at intersection",
+      "No overtaking by goods vehicles",
+      "No motorcycles",
+      "No hooter"
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"No overtaking\". Overtaking other vehicles is prohibited until you pass the sign that ends the restriction.",
+    "explanation": "This is the regulatory sign \"No right turn at intersection\". You may not turn right at the intersection ahead. The yellow background marks a temporary version, which binds you just the same, so stay out of any right-turn lane and take another route.",
+    "difficulty": 2,
+    "scope": "learners",
+    "image": "/signs/regulatory/regulatory-011-04.png"
+  },
+  {
+    "id": "gen-sign-regulatory-011-02-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
+    "options": [
+      "Vehicles may not turn right here, but you may go straight on or turn left.",
+      "To prohibit noise, if the noise level of your vehicle is high, you may not proceed past the sign.",
+      "You may not turn left at the intersection ahead.",
+      "You may not overtake any vehicle for the next 500 m past this sign, or for the distance on a plate below it."
+    ],
+    "correctIndex": 0,
+    "explanation": "No right turn: Vehicles may not turn right here, but you may go straight on or turn left. A yellow disc in place of the white one marks a temporary version, and it binds you just the same.",
     "difficulty": 1,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-012-01.png"
+    "image": "/signs/regulatory/regulatory-011-02.png"
   },
   {
-    "id": "gen-sign-warning-028-07-name",
+    "id": "gen-sign-regulatory-009-06-meaning",
     "categoryId": "signs",
-    "prompt": "Which sign is this?",
+    "prompt": "What does this road sign mean?",
     "options": [
-      "Road narrows at a bridge",
-      "Warthogs ahead",
-      "Jetty or river bank ahead",
-      "Road works ahead"
+      "Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow at the next junction.",
+      "The maximum speed, in km/h, at which you may drive past this sign.",
+      "To indicate that road users must drive to the side of an obstruction where the sign is displayed.",
+      "To indicate that the road or part of it is set aside for use by buses and minibuses only."
     ],
     "correctIndex": 0,
-    "explanation": "This is the warning sign \"Road narrows at a bridge\". Road narrows at a bridge ahead. Slow down and approach with caution.",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/warning/warning-028-07.png"
-  },
-  {
-    "id": "gen-sign-warning-028-01-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Gravel road begins",
-      "Reduced visibility ahead",
-      "Road narrows from both sides",
-      "Height restriction ahead"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the warning sign \"Gravel road begins\". Tarred road becomes a gravel road ahead, with loose stones that can damage windscreens and paintwork.",
-    "difficulty": 2,
-    "scope": "learners",
-    "image": "/signs/warning/warning-028-01.png"
-  },
-  {
-    "id": "gen-sign-regulatory-009-06-name",
-    "categoryId": "signs",
-    "prompt": "Which sign is this?",
-    "options": [
-      "Proceed in the direction shown (temporary)",
-      "Goods vehicles only",
-      "Pedestrians only",
-      "Cyclists and pedestrians only"
-    ],
-    "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"Proceed in the direction shown (temporary)\". Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow at the next junction.",
-    "difficulty": 2,
+    "explanation": "Proceed in the direction shown (temporary): Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow at the next junction.",
+    "difficulty": 3,
     "scope": "learners",
     "image": "/signs/regulatory/regulatory-009-06.png"
   },
   {
-    "id": "gen-sign-warning-035-06-name",
+    "id": "qs2_cyclists_ahead",
     "categoryId": "signs",
-    "prompt": "Which sign is this?",
+    "prompt": "A warning sign showing a bicycle tells you that:",
     "options": [
-      "Side road junction ahead",
-      "Horses ahead",
-      "Falling rocks ahead",
-      "General warning"
+      "Cyclists are likely to be on or crossing the road ahead",
+      "A cycle path replaces the road ahead",
+      "Bicycles are prohibited beyond this point",
+      "A cycle race is in progress"
     ],
     "correctIndex": 0,
-    "explanation": "This is the warning sign \"Side road junction ahead\". Side road junction ahead.",
-    "difficulty": 2,
+    "explanation": "A warning sign reports what to expect; a prohibition would carry a red ring and a diagonal bar. Expect cyclists, give them room, and check for them before turning across their path.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "gen-sign-regulatory-017-04-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
+    "options": [
+      "The reserved lane ends here, and all vehicles may now use it.",
+      "You no longer have to keep your headlights on from this sign onwards.",
+      "The toll road finishes at this sign, so its toll rules no longer apply.",
+      "This dual-carriage freeway ends here, and freeway rules no longer apply beyond the sign."
+    ],
+    "correctIndex": 0,
+    "explanation": "End of lane reservation: The reserved lane ends here, and all vehicles may now use it. Check your mirrors and blind spot before moving across, because other traffic may already be travelling in it.",
+    "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/warning/warning-035-06.png"
+    "image": "/signs/regulatory/regulatory-017-04.png"
+  },
+  {
+    "id": "gen-sign-regulatory-006-03-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
+    "options": [
+      "Three approaches to this junction each have a stop sign, so nobody has automatic priority.",
+      "Going straight on or turning right, you must stop in line with the sign or behind the line.",
+      "This is a manually operated sign, with the word STOP on one side and GO on the other.",
+      "Traffic on all four approaches to this junction has to stop, and the order of stopping decides who goes."
+    ],
+    "correctIndex": 0,
+    "explanation": "Three-way stop: Three approaches to this junction each have a stop sign, so nobody has automatic priority. Stop in line with the sign or behind the line, and the vehicle that stopped first moves off first. If you are unsure who that was, yield to the right.",
+    "difficulty": 3,
+    "scope": "learners",
+    "image": "/signs/regulatory/regulatory-006-03.png"
+  },
+  {
+    "id": "qs3_reduced_visibility",
+    "categoryId": "signs",
+    "image": "/signs/warning/warning-029-06.png",
+    "prompt": "A warning sign for reduced visibility ahead usually marks a stretch where:",
+    "options": [
+      "Mist or fog forms frequently — be ready to slow and use dipped headlights",
+      "Street lighting has been removed",
+      "The sun causes glare at certain times only",
+      "Overtaking is prohibited at night"
+    ],
+    "correctIndex": 0,
+    "explanation": "These go up where local conditions produce mist regularly — passes, valleys and coastal stretches. The sign warns you before you are in it, when slowing is still easy.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "gen-sign-marking-087-01-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
+    "options": [
+      "Short double white lines warn that a neighbouring lane carries oncoming traffic during certain periods.",
+      "The number of lanes increases ahead, in the direction or directions the arrows point.",
+      "These painted marks show the space you may park in.",
+      "These arrows warn that a solid line you may not cross is coming up in the road."
+    ],
+    "correctIndex": 0,
+    "explanation": "Reversible lane double lines: Short double white lines warn that a neighbouring lane carries oncoming traffic during certain periods. Look for the double-headed arrow that marks the reversible lane, and check which way it is running before you use it.",
+    "difficulty": 3,
+    "scope": "learners",
+    "image": "/signs/marking/marking-087-01.png"
+  },
+  {
+    "id": "gen-sign-warning-029-05-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
+    "options": [
+      "Water crosses the road at a drift ahead.",
+      "The road gets narrower for a short stretch at a bridge ahead.",
+      "Two side roads join yours ahead, close together and on opposite sides but not directly across from each other.",
+      "A crossroad is coming up, and this sign gives no indication of which road has priority."
+    ],
+    "correctIndex": 0,
+    "explanation": "Drift ahead: Water crosses the road at a drift ahead. Go very slowly and test the brakes afterwards.",
+    "difficulty": 3,
+    "scope": "learners",
+    "image": "/signs/warning/warning-029-05.png"
   },
   {
     "id": "gen-sign-information-045-02-name",
@@ -646,491 +657,321 @@ export const STARTER_QUESTIONS: Question[] = [
       "Modal transfer point"
     ],
     "correctIndex": 0,
-    "explanation": "This is the information sign \"Recommended speed plate\". Recommended speed.",
+    "explanation": "This is the information sign \"Recommended speed plate\". This plate gives the maximum speed recommended for the hazard shown on the sign above it. Road engineers calculate the figure for your safety. It is not a regulatory limit, but if you crash while travelling above it you can still face prosecution.",
     "difficulty": 2,
     "scope": "learners",
     "image": "/signs/information/information-045-02.png"
   },
   {
-    "id": "qs2_slippery",
+    "id": "q_sign_no_uturn",
     "categoryId": "signs",
-    "prompt": "A warning sign showing a car with curved skid marks behind it means:",
+    "image": "/signs/regulatory/regulatory-011-05.png",
+    "prompt": "What does this sign prohibit?",
     "options": [
-      "The road ahead is slippery — reduce speed and avoid sudden steering or braking",
-      "Skidding is common because the road is always wet",
-      "The road ahead is used for driver training",
-      "Anti-lock brakes are required beyond this point"
+      "Right turns",
+      "Making a U-turn",
+      "Overtaking",
+      "Three-point turns only"
     ],
-    "correctIndex": 0,
-    "explanation": "Slippery-road signs go up where the surface loses grip — polished tar, frequent spillage, or a bend that catches water. Everything you do there should be gradual.",
+    "correctIndex": 1,
+    "explanation": "This regulatory sign prohibits making a U-turn (turning the vehicle to face the opposite direction) at that point.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "gen-sign-warning-029-06-meaning",
+    "id": "gen-sign-marking-083-02-meaning",
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "Reduced visibility can be expected ahead (e.g. frequent mist).",
-      "General warning sign, usually with an explanatory plate beneath it.",
-      "Speed humps ahead. Slow down and obey any speed limit sign.",
-      "Steep uphill ahead. You may not cross a No Overtaking line to overtake a slow moving vehicle."
+      "You may not stop on or next to this solid red line at any time, except in an emergency.",
+      "This bay is kept for a vehicle carrying a disabled person, and no other vehicle may park in it.",
+      "Yellow arrows in a lane show the direction traffic in that lane must take.",
+      "Come to a complete stop behind this solid white line, and move off only when it is safe."
     ],
     "correctIndex": 0,
-    "explanation": "Reduced visibility ahead: Reduced visibility can be expected ahead (e.g. frequent mist).",
+    "explanation": "No stopping — solid red line: You may not stop on or next to this solid red line at any time, except in an emergency. It is stricter than a yellow line, because even a quick halt to drop someone off is banned.",
     "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/warning/warning-029-06.png"
+    "image": "/signs/marking/marking-083-02.png"
   },
   {
-    "id": "gen-sign-regulatory-009-03-meaning",
+    "id": "qs4_exit_countdown_markers",
     "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
+    "image": "/signs/information/information-043-01.png",
+    "prompt": "The countdown markers with diagonal bars before a freeway exit tell you:",
     "options": [
-      "The maximum speed, in km/h, at which you may drive past this sign.",
-      "To indicate that the road or part of it is set aside for use by goods vehicles only.",
-      "To give drivers an opportunity to follow an alternate route or proceed on the route and pay toll fees.",
-      "Indicates the direction in which you must proceed, drive only in the direction indicated by the arrow."
+      "How far the exit is, each bar representing a fixed distance",
+      "How many lanes the exit has",
+      "The speed limit on the off-ramp",
+      "How many exits remain on this route"
     ],
     "correctIndex": 0,
-    "explanation": "Speed limit: The maximum speed, in km/h, at which you may drive past this sign. Exceeding it is an offence.",
-    "difficulty": 1,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-009-03.png"
+    "explanation": "They count you down to the off-ramp when destination boards are behind you. If you are still in the wrong lane at the last marker, take the next exit instead.",
+    "difficulty": 2,
+    "scope": "learners"
   },
   {
-    "id": "gen-sign-warning-030-03-meaning",
+    "id": "gen-sign-information-044-03-meaning",
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "Road width regulatory restriction ahead.",
-      "Tarred road becomes a gravel road ahead, with loose stones that can damage windscreens and paintwork.",
-      "General warning sign, usually with an explanatory plate beneath it.",
-      "Construction vehicles entering or crossing the road ahead."
-    ],
-    "correctIndex": 0,
-    "explanation": "Width restriction ahead: Road width regulatory restriction ahead.",
-    "difficulty": 3,
-    "scope": "learners",
-    "image": "/signs/warning/warning-030-03.png"
-  },
-  {
-    "id": "gen-sign-information-043-05-meaning",
-    "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
-    "options": [
-      "Priority road. The road you are travelling on has priority at the junction ahead.",
+      "Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus.",
       "Temporary high speed exit countdown sign.",
-      "High speed freeway exit countdown signs.",
-      "Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus."
+      "Fitted below another sign, this plate tells you that blind people may be on or crossing the road ahead.",
+      "Each white bar on these signs counts down 100 m to the next freeway exit."
     ],
     "correctIndex": 0,
-    "explanation": "Priority road: Priority road. The road you are travelling on has priority at the junction ahead.",
+    "explanation": "Modal transfer point: Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus.",
     "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/information/information-043-05.png"
+    "image": "/signs/information/information-044-03.png"
   },
   {
-    "id": "gen-sign-regulatory-014-02-meaning",
+    "id": "gen-sign-warning-038-01-meaning",
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "This area is reserved for parking by the class of vehicle shown.",
-      "This stop zone is reserved for the exclusive use of the class of vehicle and organization shown by the symbol and logo.",
-      "Parking here is reserved for a vehicle carrying people with disabilities.",
-      "The lane on the right of the yellow line is reserved for the exclusive use of the class of vehicle indicated."
+      "Sheep may be crossing or straying on the road ahead, often where fences are missing.",
+      "The gravel road you are on changes to a tarred surface ahead.",
+      "Antelope and other wild animals may stray onto the road ahead.",
+      "The road gets narrower for a short stretch at a bridge ahead."
     ],
     "correctIndex": 0,
-    "explanation": "Parking for the class shown: This area is reserved for parking by the class of vehicle shown.",
+    "explanation": "Sheep ahead: Sheep may be crossing or straying on the road ahead, often where fences are missing. Slow down, watch both sides of the road for the next 2 km and brake rather than swerve if one steps out.",
     "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-014-02.png"
+    "image": "/signs/warning/warning-038-01.png"
   },
   {
-    "id": "qs2_uneven",
+    "id": "q_sign_warn_shape",
     "categoryId": "signs",
-    "prompt": "A warning sign showing an uneven or bumpy road surface means you should:",
+    "prompt": "What shape and colour are warning signs?",
     "options": [
-      "Reduce speed — the surface ahead is rough enough to affect your control",
-      "Expect roadworks with a flag person",
-      "Change to a lower gear to protect the gearbox",
-      "Move into the right-hand lane"
+      "Round and blue",
+      "Triangular with a red border",
+      "Rectangular and green",
+      "Octagonal and red"
     ],
-    "correctIndex": 0,
-    "explanation": "A rough surface upsets steering and braking, and at speed it can throw a light vehicle or a motorcycle off line. The sign asks for less speed, not a lane change.",
+    "correctIndex": 1,
+    "explanation": "Warning signs are triangular with a red border and warn of a hazard ahead, such as a bend, crossing or pedestrians.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "gen-sign-warning-031-04-meaning",
+    "id": "gen-sign-warning-037-06-meaning",
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "Road width regulatory restriction ahead (temporary version).",
-      "Loose stones on road surface ahead (temporary version).",
-      "Soft shoulder at road's edge ahead (temporary version).",
-      "Temporary uneven, potholed, or bumpy road surface ahead."
+      "Horses with no rider may be straying on or crossing the road ahead.",
+      "Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right.",
+      "Steep uphill ahead. You may not cross a No Overtaking line to overtake a slow moving vehicle.",
+      "A crossroad is coming up, and this sign gives no indication of which road has priority."
     ],
     "correctIndex": 0,
-    "explanation": "Width restriction ahead (temporary): Road width regulatory restriction ahead (temporary version).",
+    "explanation": "Horses ahead: Horses with no rider may be straying on or crossing the road ahead. Slow down and be ready to brake firmly without swerving. A horse stands high on its legs, so in a collision it can come over the bonnet and into the windscreen.",
     "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/warning/warning-031-04.png"
+    "image": "/signs/warning/warning-037-06.png"
   },
   {
-    "id": "qsg_qualifier_principle",
+    "id": "q4_sign_speed_min",
     "categoryId": "signs",
-    "prompt": "A small rectangular plate is mounted directly beneath a road sign. Its job is to:",
+    "prompt": "A speed shown in a blue circular sign (not red-ringed) indicates:",
     "options": [
-      "Limit when, where or to whom the sign above it applies",
-      "Repeat the sign above it for drivers further back",
-      "Show which authority erected the sign",
-      "Warn that the sign above is about to be removed"
+      "The usual maximum speed",
+      "A minimum speed — you may not travel slower where conditions allow",
+      "The recommended parking duration",
+      "A truck-only limit"
     ],
-    "correctIndex": 0,
-    "explanation": "These are qualifier plates, and they are not decoration — the plate is what decides whether the sign applies to you at this moment. Read the pair together or you will obey a restriction that was never yours, or ignore one that was.",
+    "correctIndex": 1,
+    "explanation": "Blue circle = command, so a number in blue commands a MINIMUM speed (used on freeways). Red ring = maximum. Same number, opposite meaning.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "q2_sign_clearance",
+    "categoryId": "signs",
+    "prompt": "A sign on a low bridge reads '3,7 m'. What does it mean?",
+    "options": [
+      "The bridge is 3,7 km ahead",
+      "Only vehicles (including load) lower than 3,7 m may pass under it",
+      "The maximum speed under the bridge is 37 km/h",
+      "The bridge can carry 3,7 tonnes"
+    ],
+    "correctIndex": 1,
+    "explanation": "A clearance sign gives the safe height under the structure. If your vehicle or load is taller, you must find another route.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "q2_sign_stop_vs_yield_line",
-    "categoryId": "signs",
-    "prompt": "What is the difference between a solid and a broken white line painted across your lane?",
-    "options": [
-      "Solid = yield line, broken = stop line",
-      "Solid = stop line (stop behind it), broken = yield line (give way, stop only if needed)",
-      "Both mean the same thing",
-      "They only apply to trucks"
-    ],
-    "correctIndex": 1,
-    "explanation": "A solid transverse line is a stop line — your front wheels must not cross it while stopped. A broken transverse line marks a yield: give way, and stop only if the way isn't clear.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q_sign_ped_crossing",
-    "categoryId": "signs",
-    "image": "/signs/warning/warning-037-01.png",
-    "prompt": "This warning sign tells you that ahead there is a:",
-    "options": [
-      "Bus stop",
-      "Marked pedestrian crossing",
-      "Place where pedestrians are banned",
-      "Picnic site"
-    ],
-    "correctIndex": 1,
-    "explanation": "The sign warns of a marked pedestrian crossing ahead. Slow down and be prepared to give way to people crossing.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "gen-sign-regulatory-007-01-meaning",
-    "categoryId": "signs",
-    "prompt": "What does this road sign mean?",
-    "options": [
-      "This is a manually operated sign, with the word STOP on one side and GO on the other.",
-      "Come to a complete stop behind the stop line every time — even if the road is empty — then move off only when it is safe.",
-      "To prohibit vehicles from turning left at an intersection.",
-      "This area is reserved for parking by authorized vehicles."
-    ],
-    "correctIndex": 0,
-    "explanation": "Stop / Go (manually operated): This is a manually operated sign, with the word STOP on one side and GO on the other. Stop when necessary and proceed cautiously when GO is displayed.",
-    "difficulty": 3,
-    "scope": "learners",
-    "image": "/signs/regulatory/regulatory-007-01.png"
-  },
-  {
-    "id": "gen-sign-regulatory-017-01-name",
+    "id": "gen-sign-regulatory-014-07-name",
     "categoryId": "signs",
     "prompt": "Which sign is this?",
     "options": [
-      "End of toll road",
-      "End of headlights-on requirement",
-      "End of single-carriage freeway",
-      "End of dual-carriage freeway"
+      "Parking for police vehicles",
+      "Residential area",
+      "Temporary parking reservation",
+      "Parking for people with disabilities"
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"End of toll road\". End of toll road.",
+    "explanation": "This is the regulatory sign \"Parking for police vehicles\". Only police vehicles may park in this area. The blue sign with a P marks a parking reservation, and the police badge below the P shows who it is kept for.",
     "difficulty": 2,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-017-01.png"
+    "image": "/signs/regulatory/regulatory-014-07.png"
   },
   {
-    "id": "gen-sign-regulatory-013-02-meaning",
+    "id": "gen-sign-regulatory-009-04-name",
+    "categoryId": "signs",
+    "prompt": "Which sign is this?",
+    "options": [
+      "Pass on the side shown",
+      "Proceed in the direction shown (temporary)",
+      "Heavy goods vehicles only",
+      "Pedestrians only"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is the regulatory sign \"Pass on the side shown\". To indicate that road users must drive to the side of an obstruction where the sign is displayed.",
+    "difficulty": 2,
+    "scope": "learners",
+    "image": "/signs/regulatory/regulatory-009-04.png"
+  },
+  {
+    "id": "qs2_hazard_marker",
+    "categoryId": "signs",
+    "prompt": "Black-and-yellow striped marker boards placed at an obstruction indicate:",
+    "options": [
+      "A physical hazard at the roadside, and which side of it the traffic must pass",
+      "A pedestrian crossing point",
+      "A temporary speed restriction",
+      "The boundary of a municipal area"
+    ],
+    "correctIndex": 0,
+    "explanation": "They mark the thing itself — a bridge pier, an island nose, a culvert end. The direction the stripes slope shows the side you should be passing on.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q2_sign_command_blue",
+    "categoryId": "signs",
+    "prompt": "A round blue sign with a white arrow (a command sign) tells you:",
+    "options": [
+      "The action shown is recommended but optional",
+      "You must perform the action shown — for example keep left of an island",
+      "The route is for buses only",
+      "You are entering a one-way street"
+    ],
+    "correctIndex": 1,
+    "explanation": "Blue circular command signs are compulsory instructions — 'keep left', 'proceed straight' — with the same legal force as any regulatory sign.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "gen-sign-marking-078-01-name",
+    "categoryId": "signs",
+    "prompt": "Which sign is this?",
+    "options": [
+      "No-crossing double line",
+      "Box junction",
+      "Disabled persons parking bay",
+      "Parking bay markings"
+    ],
+    "correctIndex": 0,
+    "explanation": "This is the road marking \"No-crossing double line\". Traffic on neither side may cross these two solid white lines. The only exception is to get around a stationary vehicle or obstruction in the road. The pair sometimes has a broken line running between them.",
+    "difficulty": 2,
+    "scope": "learners",
+    "image": "/signs/marking/marking-078-01.png"
+  },
+  {
+    "id": "gen-sign-warning-038-04-meaning",
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "The curved yellow line indicates the start of a lane reserved for the exclusive use of the class of vehicle indicated.",
-      "This area is reserved for parking by the class of vehicle shown.",
-      "This area is reserved for parking by authorized vehicles.",
-      "This area is reserved for parking by police vehicles."
+      "Elephants are known to stray onto the road in this area.",
+      "Cattle may be crossing or straying on the road ahead, and where you see one, expect more.",
+      "Your road ends at a T-junction ahead, so you will have to turn sharply left or right.",
+      "A lesser road crosses your priority road ahead, so crossing traffic should give way to you."
     ],
     "correctIndex": 0,
-    "explanation": "This regulatory sign: The curved yellow line indicates the start of a lane reserved for the exclusive use of the class of vehicle indicated.",
+    "explanation": "Elephants ahead: Elephants are known to stray onto the road in this area. Slow right down, stay in your vehicle and keep your distance. Do not rev or hoot, since either can be taken as a challenge, and move slowly away if one looks agitated.",
     "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-013-02.png"
+    "image": "/signs/warning/warning-038-04.png"
   },
   {
-    "id": "q6_temp_detour",
+    "id": "q2_sign_two_way",
     "categoryId": "signs",
-    "prompt": "A temporary DETOUR sign points away from your normal route because the road ahead is closed. You should:",
+    "prompt": "After a one-way section, a sign warns of two-way traffic ahead. This means:",
     "options": [
-      "Ignore it and push through the closure",
-      "Follow the detour — temporary route signs override the normal route while in place",
-      "Wait at the closure until it reopens",
-      "Reverse and find your own way"
+      "You may now overtake freely",
+      "Keep left — oncoming vehicles will now share the roadway",
+      "The speed limit doubles",
+      "The road becomes a freeway"
     ],
     "correctIndex": 1,
-    "explanation": "Detour signs reroute you around a closure or hazard. They take priority over the usual direction until the situation clears.",
+    "explanation": "The two-way traffic warning marks the end of one-way running. Move back into the habit of keeping left and expecting oncoming vehicles.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "q_sign_reg_shape",
-    "categoryId": "signs",
-    "prompt": "Round signs with a red border give you:",
-    "options": [
-      "A warning of a hazard ahead",
-      "A regulatory order you must obey",
-      "Tourist information",
-      "Directions to a town"
-    ],
-    "correctIndex": 1,
-    "explanation": "Round, red-bordered signs are regulatory — they give an order you must obey, such as speed limits, no entry or no overtaking.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q2_sign_robot_green",
-    "categoryId": "signs",
-    "image": "/signs/regulatory/regulatory-022-04.png",
-    "prompt": "The robot ahead is a steady green. You may:",
-    "options": [
-      "Proceed immediately — green guarantees the way is clear",
-      "Proceed, but only once you've checked the intersection is clear and it is safe",
-      "Proceed only if turning left",
-      "Speed up so you get through before it changes"
-    ],
-    "correctIndex": 1,
-    "explanation": "Green gives you the right to proceed — it does not guarantee safety. Check for red-light runners, pedestrians still crossing and blocked exits before entering.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q6_temp_flagperson",
-    "categoryId": "signs",
-    "prompt": "At roadworks a flag person turns their board to STOP. You must:",
-    "options": [
-      "Slow down but keep rolling if the road looks clear",
-      "Stop completely — the STOP board is a lawful stop instruction",
-      "Wave to ask permission and proceed",
-      "Ignore it; only officers can stop you"
-    ],
-    "correctIndex": 1,
-    "explanation": "The STOP-GO board carries legal authority at the works. STOP means stop and wait; when it turns to GO you proceed with caution through the site.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "gen-sign-regulatory-012-06-meaning",
+    "id": "gen-sign-regulatory-010-01-meaning",
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "To prohibit hawkers in this area during any time of the day or night.",
-      "To prohibit pedestrians from proceeding past this sign where they could cause danger to themselves and vehicles.",
-      "To prohibit motorcycles on a part of a carriageway for safety reasons.",
-      "No over taking vehicles by goods vehicles for the next 500m."
+      "This road, or the part of it the sign applies to, is set aside for taxis only.",
+      "To indicate that the road or part of it may be used by pedestrians only.",
+      "To give drivers an opportunity to follow an alternate route or proceed on the route and pay toll fees.",
+      "To indicate that road users must drive to the side of an obstruction where the sign is displayed."
     ],
     "correctIndex": 0,
-    "explanation": "No hawkers: To prohibit hawkers in this area during any time of the day or night.",
+    "explanation": "Taxis only: This road, or the part of it the sign applies to, is set aside for taxis only. A blue command disc like this tells one class of road user which section to use, so every other driver must keep out, even when it looks empty.",
     "difficulty": 3,
     "scope": "learners",
-    "image": "/signs/regulatory/regulatory-012-06.png"
+    "image": "/signs/regulatory/regulatory-010-01.png"
   },
   {
-    "id": "qsg_no_passenger_pickup",
+    "id": "gen-sign-warning-035-05-meaning",
     "categoryId": "signs",
-    "prompt": "What does this sign prohibit?",
-    "image": "/signs/regulatory/regulatory-012-04.png",
+    "prompt": "What does this road sign mean?",
     "options": [
-      "Picking up passengers along the stretch of road indicated",
-      "Hitchhiking by pedestrians only",
-      "Overtaking on the left",
-      "Parking for longer than 500 m of roadway"
+      "Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right.",
+      "Warthogs are known to stray onto the road in this area.",
+      "A marked pedestrian crossing is coming up, and people may be on it when you arrive.",
+      "More people than usual may be crossing or walking beside the road ahead, with no marked crossing."
     ],
     "correctIndex": 0,
-    "explanation": "Aimed at the stopping that picking someone up requires, which on a fast or narrow road is the actual hazard. It typically covers a stated distance rather than a single point.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "qr2_animal_drawn",
-    "categoryId": "rules",
-    "prompt": "You come up behind an animal-drawn cart on a rural road. You should:",
-    "options": [
-      "Slow right down and pass wide only when you can see well ahead — animals can move unpredictably",
-      "Sound your hooter continuously so the driver moves over",
-      "Overtake immediately, since the cart is travelling slowly",
-      "Follow closely so you can pass at the first opportunity"
-    ],
-    "correctIndex": 0,
-    "explanation": "A hooter or a close pass can startle the animal into the road. Treat it like any slow vehicle that might swerve without warning: space and patience.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qmr_divided_road_crossing",
-    "categoryId": "rules",
-    "prompt": "Where a road is divided by a painted line or a physical barrier, you may cross it:",
-    "options": [
-      "Only at an opening or space specifically provided",
-      "Anywhere, provided it is safe",
-      "Only outside urban areas",
-      "Only to make a U-turn"
-    ],
-    "correctIndex": 0,
-    "explanation": "The division exists to keep opposing traffic apart. Crossing it anywhere else puts you head-on into a lane whose drivers have no reason to expect you.",
-    "difficulty": 2,
-    "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
-  },
-  {
-    "id": "q_rules_overtake_left",
-    "categoryId": "rules",
-    "prompt": "Overtaking on the left is permitted when:",
-    "options": [
-      "You are in a hurry",
-      "The vehicle ahead is turning right (or has signalled right), or the road is a one-way",
-      "There is a solid yellow edge line",
-      "It is never permitted"
-    ],
-    "correctIndex": 1,
-    "explanation": "You may pass on the left when the vehicle ahead is turning or signalling right, or on a one-way road — but never by crossing the yellow left edge line.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "qmr_hampering_control",
-    "categoryId": "rules",
-    "prompt": "The rule against letting a person, animal or load hamper your control of the vehicle covers your ability to:",
-    "options": [
-      "Observe, hear, signal, slow down and change direction",
-      "Reach the radio and climate controls",
-      "See the instrument panel only",
-      "Reach the handbrake only"
-    ],
-    "correctIndex": 0,
-    "explanation": "It is written broadly on purpose. A dog on your lap, a passenger against your shoulder or a load blocking the rear window each defeats a different one of those five, and any one of them is enough.",
+    "explanation": "Skew T-junction ahead: Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right. Because the roads meet at an angle, one of the turns is much tighter than the other, so slow down early and give way to traffic on the road you are joining.",
     "difficulty": 3,
     "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
+    "image": "/signs/warning/warning-035-05.png"
   },
   {
-    "id": "q3_rule_speed_urban",
-    "categoryId": "rules",
-    "prompt": "Unless a sign says otherwise, the general speed limit in an urban area is:",
+    "id": "gen-sign-regulatory-013-04-meaning",
+    "categoryId": "signs",
+    "prompt": "What does this road sign mean?",
     "options": [
-      "40 km/h",
-      "60 km/h",
-      "80 km/h",
-      "100 km/h"
-    ],
-    "correctIndex": 1,
-    "explanation": "The default limits are 60 km/h in urban areas, 100 km/h on public roads outside urban areas, and 120 km/h on freeways — signs can lower any of them.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "qr3_plates_legible",
-    "categoryId": "rules",
-    "prompt": "Your number plates must be:",
-    "options": [
-      "Fitted as required and kept legible — obscured or damaged plates are an offence",
-      "Legible only at the rear of the vehicle",
-      "Cleaned only before a roadworthy test",
-      "Visible only when the vehicle is stationary"
+      "The lane on the left of the yellow line is reserved for the exclusive use of authorized public transport vehicles.",
+      "Only police vehicles may park in this area.",
+      "Only the class of vehicle shown by the symbol may park in this area.",
+      "This area is set aside for parking, as the white P on the blue sign shows."
     ],
     "correctIndex": 0,
-    "explanation": "The plate is how the vehicle is identified after an incident. Mud, a tow bar, a bicycle rack or a cracked plate all defeat that, and all of them are the driver's responsibility.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "qmr_body_protruding",
-    "categoryId": "rules",
-    "prompt": "Having part of your body protruding from the vehicle while driving is prohibited, except when:",
-    "options": [
-      "You are executing a hand signal",
-      "You are reversing",
-      "The vehicle is stationary in traffic",
-      "You are checking a blind spot"
-    ],
-    "correctIndex": 0,
-    "explanation": "The hand-signal exception is the only one, and it applies to passengers as well as the driver — an arm out of a rear window is an offence, not a joke.",
-    "difficulty": 2,
-    "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
-  },
-  {
-    "id": "qmr_smoke_fumes",
-    "categoryId": "rules",
-    "prompt": "Running an engine that gives off excessive smoke or fumes is:",
-    "options": [
-      "Prohibited",
-      "Permitted while the engine warms up",
-      "Permitted on diesel vehicles",
-      "Permitted outside urban areas"
-    ],
-    "correctIndex": 0,
-    "explanation": "Both an emissions matter and a visibility one — a smoking exhaust blinds the driver behind you. It also usually means a fault worth fixing before it becomes a breakdown.",
-    "difficulty": 2,
-    "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
-  },
-  {
-    "id": "qr3_stationary_bus",
-    "categoryId": "rules",
-    "prompt": "Passing a bus or minibus stopped at the roadside to set down passengers, you should:",
-    "options": [
-      "Slow right down and watch for people stepping out from in front of and behind it",
-      "Maintain speed, since passengers must wait for traffic",
-      "Sound your hooter and pass close to save time",
-      "Overtake on the left where there is space"
-    ],
-    "correctIndex": 0,
-    "explanation": "A stopped bus hides the people it just dropped off, and they often cross immediately, in front of or behind it. It is one of the most predictable pedestrian hazards on any road.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qmr_seatbelt_beltless_seat",
-    "categoryId": "rules",
-    "prompt": "An adult passenger may not sit in a seat without a seat belt if:",
-    "options": [
-      "Another seat fitted with a belt is available",
-      "The journey is longer than 20 km",
-      "The vehicle is travelling above 60 km/h",
-      "They are over the age of 65"
-    ],
-    "correctIndex": 0,
-    "explanation": "Belted seats are filled first. It stops the beltless seat being treated as an ordinary option when a safe one is standing empty.",
+    "explanation": "This regulatory sign: The lane on the left of the yellow line is reserved for the exclusive use of authorized public transport vehicles.",
     "difficulty": 3,
     "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
+    "image": "/signs/regulatory/regulatory-013-04.png"
   },
   {
-    "id": "qr3_collision_duty",
+    "id": "qr5_overtake_return_gap",
     "categoryId": "rules",
-    "prompt": "After a collision in which someone is injured, the driver must:",
+    "prompt": "Having overtaken a vehicle, you should return to the left:",
     "options": [
-      "Stop, render what assistance they can, and give their particulars",
-      "Move the vehicles and continue if the damage looks minor",
-      "Wait only if the other driver asks them to",
-      "Leave the scene and report it at a police station later that week"
+      "Once you can see the whole vehicle you passed in your interior mirror",
+      "As soon as your rear bumper clears its front bumper",
+      "Only after passing two more vehicles",
+      "Whenever the driver behind flashes you in"
     ],
     "correctIndex": 0,
-    "explanation": "Stopping is not optional, and neither is identifying yourself. Leaving the scene of an injury collision is a serious offence quite apart from any fault for the crash itself.",
+    "explanation": "Seeing the whole car in the mirror is the reliable test that there is room. Cutting back early is what forces the overtaken driver to brake — and it is how many overtakes end badly.",
     "difficulty": 2,
     "scope": "learners"
   },
@@ -1150,187 +991,220 @@ export const STARTER_QUESTIONS: Question[] = [
     "scope": "learners"
   },
   {
-    "id": "qmr_main_beam_100m",
+    "id": "q_rules_alcohol",
     "categoryId": "rules",
-    "prompt": "Main beam (bright) headlights should be able to illuminate objects up to:",
+    "prompt": "The legal blood-alcohol limit for an ordinary driver is below:",
     "options": [
-      "100 m ahead",
-      "45 m ahead",
-      "250 m ahead",
-      "500 m ahead"
+      "0.02 g per 100 ml",
+      "0.05 g per 100 ml",
+      "0.08 g per 100 ml",
+      "There is no legal limit"
+    ],
+    "correctIndex": 1,
+    "explanation": "The limit is a blood-alcohol concentration of less than 0.05 g per 100 ml (0.02 for professional drivers). The safest choice is not to drink and drive at all.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qmr_reverse_longer_than_necessary",
+    "categoryId": "rules",
+    "prompt": "The rule on reversing is that you may not travel backwards:",
+    "options": [
+      "For longer than is necessary, and only when it is safe to do so",
+      "For more than 20 metres",
+      "On any public road",
+      "Without a passenger guiding you"
     ],
     "correctIndex": 0,
-    "explanation": "If your brights fall well short of that, they need aiming or replacing — you are outdriving your lights every time you use them.",
-    "difficulty": 3,
+    "explanation": "There is no fixed distance — the test is necessity. Reversing is the manoeuvre with the worst visibility you routinely perform, so the law asks you to spend as little time doing it as the situation allows.",
+    "difficulty": 2,
     "scope": "learners",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
-    "id": "qmr_tow_steering_control",
+    "id": "q2_rules_tow_gap",
     "categoryId": "rules",
-    "prompt": "A licensed driver must sit in the towed vehicle to steer it, unless:",
+    "prompt": "When one vehicle tows another, the gap between them may not exceed:",
     "options": [
-      "Its front wheels are clear of the ground, or a device controls the steering",
-      "The tow is under 5 km",
-      "The towing vehicle is a recovery truck",
-      "It is being towed at under 30 km/h"
+      "1,8 metres",
+      "3,5 metres",
+      "5 metres",
+      "10 metres"
     ],
-    "correctIndex": 0,
-    "explanation": "Someone or something has to steer it. Lifting the front wheels or fitting a steering device removes the need for a person; nothing else does.",
-    "difficulty": 3,
-    "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
-  },
-  {
-    "id": "qr4_reckless_vs_negligent",
-    "categoryId": "rules",
-    "prompt": "The difference between negligent driving and reckless driving is essentially:",
-    "options": [
-      "Negligent driving falls short of the care a reasonable driver would take; reckless driving shows deliberate disregard for the danger created",
-      "Negligent driving happens in town and reckless driving on freeways",
-      "Negligent driving involves damage and reckless driving does not",
-      "They are two names for the same offence"
-    ],
-    "correctIndex": 0,
-    "explanation": "It is a question of state of mind, not of outcome. Reckless is the graver charge because the driver knew the risk and drove on anyway — which is why no crash needs to happen for it to be proved.",
+    "correctIndex": 1,
+    "explanation": "The towing connection may not be longer than 3,5 m, and the person steering the towed vehicle must hold a valid licence for it.",
     "difficulty": 3,
     "scope": "learners"
   },
   {
-    "id": "qmr_accident_moving_vehicle",
+    "id": "qmr_no_overtake_stopped_at_crossing",
     "categoryId": "rules",
-    "prompt": "Someone has been injured in the accident. Your vehicle may be moved:",
+    "prompt": "A vehicle ahead has stopped at a pedestrian crossing. You may:",
     "options": [
-      "Only with an official's authorisation, and only after its position has been marked",
-      "As soon as it is obstructing traffic",
-      "Immediately, to clear the road",
-      "Only after your insurer has inspected it"
+      "Not overtake it",
+      "Overtake it slowly on the right",
+      "Overtake it if no pedestrian is visible",
+      "Overtake it after sounding your hooter"
     ],
     "correctIndex": 0,
-    "explanation": "Where there are injuries the scene is evidence. If nobody is hurt the rule relaxes — you may move the vehicle if it is obstructing traffic.",
-    "difficulty": 3,
-    "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
-  },
-  {
-    "id": "qmr_tow_passengers",
-    "categoryId": "rules",
-    "prompt": "Passengers in a towed vehicle are:",
-    "options": [
-      "Not allowed, unless the towed vehicle is a semi-trailer",
-      "Allowed if they wear seat belts",
-      "Allowed if a licensed driver is steering",
-      "Allowed on journeys under 5 km"
-    ],
-    "correctIndex": 0,
-    "explanation": "A towed vehicle usually has no brakes, no power steering and no engine to move it out of trouble. There is no reason for anyone to be in it who is not steering it.",
-    "difficulty": 3,
-    "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
-  },
-  {
-    "id": "qr4_aarto_paying_fine",
-    "categoryId": "rules",
-    "prompt": "Paying an AARTO infringement notice rather than contesting it:",
-    "options": [
-      "Settles the fine but does not remove the demerit points attached to that infringement",
-      "Cancels the infringement entirely, including any points",
-      "Doubles the points as an admission",
-      "Has no effect on your record either way"
-    ],
-    "correctIndex": 0,
-    "explanation": "Paying is an admission, so the points follow. Drivers who assume a paid fine is the end of it are exactly the ones surprised by a suspension later.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "qr5_slow_lane_freeway",
-    "categoryId": "rules",
-    "prompt": "A vehicle unable to maintain a reasonable freeway speed should:",
-    "options": [
-      "Keep to the left-hand lane and let faster traffic pass",
-      "Use the right-hand lane to stay out of merging traffic",
-      "Travel in the middle lane at all times",
-      "Use the shoulder to keep the lanes clear"
-    ],
-    "correctIndex": 0,
-    "explanation": "Freeway lanes are ordered by speed, so a slow vehicle in a fast lane forces everyone around it. The shoulder is never an answer — it is for emergencies only.",
+    "explanation": "It stopped for a reason you cannot see — a pedestrian hidden by that very vehicle. Overtaking puts you across the crossing at speed exactly where they are walking.",
     "difficulty": 1,
+    "scope": "learners",
+    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
+  },
+  {
+    "id": "q_rules_seatbelt",
+    "categoryId": "rules",
+    "prompt": "Who is responsible for ensuring that a child under the prescribed age is restrained?",
+    "options": [
+      "The child",
+      "The driver of the vehicle",
+      "Only the parent, if present",
+      "Nobody — it is optional"
+    ],
+    "correctIndex": 1,
+    "explanation": "The driver is legally responsible for ensuring all occupants, including children, are properly restrained where seatbelts or child seats are fitted.",
+    "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qr3_footwear_control",
+    "id": "qmr_depositing_refuse",
     "categoryId": "rules",
-    "prompt": "Driving in loose sandals or with wet, slippery shoes matters because:",
+    "prompt": "Depositing fuel, oil, grease, ashes or other refuse onto the road is:",
     "options": [
-      "You must stay in proper control — footwear that slips off or jams under a pedal takes that away",
-      "It is specifically banned in the K53 syllabus",
-      "It only matters in a manual vehicle",
-      "It only affects the handbrake"
+      "Prohibited",
+      "Permitted if cleared within 24 hours",
+      "Permitted outside urban areas",
+      "Permitted if it is biodegradable"
     ],
     "correctIndex": 0,
-    "explanation": "The rule that bites is the general duty to remain in full control. A sandal wedged under the brake pedal is the moment that duty is tested, and no separate footwear regulation is needed to make it your fault.",
-    "difficulty": 2,
-    "scope": "learners"
+    "explanation": "Oil and grease on tarmac are as slippery as ice for a motorcycle, and stay there long after you have gone.",
+    "difficulty": 1,
+    "scope": "learners",
+    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
-    "id": "q2_rules_tow_rope_speed",
+    "id": "q2_rules_coasting",
     "categoryId": "rules",
-    "prompt": "What is the maximum speed when towing another vehicle with a rope?",
+    "prompt": "Why should you not coast downhill in neutral or with the clutch held in?",
     "options": [
-      "60 km/h",
-      "30 km/h",
-      "80 km/h",
-      "45 km/h"
+      "It uses more fuel",
+      "You lose engine braking and some control, and the vehicle keeps gaining speed",
+      "It damages the hooter",
+      "It's fine — coasting is recommended"
     ],
     "correctIndex": 1,
-    "explanation": "With a tow rope or chain the limit is 30 km/h. Only a proper drawbar or tow-bar coupling allows normal (higher) towing speeds.",
+    "explanation": "Coasting removes engine braking, so the brakes must do all the work and can overheat, while your ability to accelerate out of trouble is gone. Stay in gear.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "q5_rule_hand_signal_right",
+    "id": "qmr_tow_defective_brakes",
     "categoryId": "rules",
-    "prompt": "Your indicators fail. To signal a RIGHT turn by hand you:",
+    "prompt": "If the brakes of the towed vehicle are defective, it must be:",
     "options": [
-      "Point straight up out of the window",
-      "Extend your right arm horizontally, straight out of the window",
-      "Wave your arm in circles",
-      "Flash your headlights twice"
-    ],
-    "correctIndex": 1,
-    "explanation": "Arm straight out = turning right. Rotating the extended arm anticlockwise = slowing/stopping. Hand signals are the legal fallback when lamps fail.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q_rules_unattended",
-    "categoryId": "rules",
-    "prompt": "Before leaving your vehicle unattended you must:",
-    "options": [
-      "Leave the engine running",
-      "Apply the parking brake (and take steps to stop it moving) and switch off the engine",
-      "Leave it in neutral with the engine on",
-      "Leave the keys in the ignition"
-    ],
-    "correctIndex": 1,
-    "explanation": "You may not leave a vehicle unattended without setting the parking brake or otherwise preventing it from moving, and you may not leave the engine running unattended.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qmr_shoulder_conditions",
-    "categoryId": "rules",
-    "prompt": "Moving onto the shoulder to let a vehicle overtake is permitted only when all of these hold:",
-    "options": [
-      "Single-lane road, between sunrise and sunset, and 150 m of clear view ahead",
-      "Any road, at any time, if the shoulder is paved",
-      "Outside urban areas only, at any hour",
-      "When the vehicle behind flashes its lights"
+      "Coupled by means of an appropriate tow-bar",
+      "Towed with a rope no longer than 1,5 m",
+      "Towed only at night",
+      "Towed with its hazard lights on"
     ],
     "correctIndex": 0,
-    "explanation": "Three conditions, all required. The shoulder is where pedestrians and stopped vehicles are, which is why the courtesy is fenced in so tightly — and why driving on it continuously is prohibited outright.",
+    "explanation": "With no brakes of its own, the towed vehicle is stopped entirely by the one in front — which only works if the coupling can push as well as pull.",
     "difficulty": 3,
+    "scope": "learners",
+    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
+  },
+  {
+    "id": "q_rules_divided_solid",
+    "categoryId": "rules",
+    "prompt": "A solid line or barrier divides the road. You may:",
+    "options": [
+      "Cross it whenever traffic is light",
+      "Not cross it — stay on the left of the division",
+      "Cross it to reach a shop on the right",
+      "Cross it only at night"
+    ],
+    "correctIndex": 1,
+    "explanation": "On a divided road you must stay left of the division. Crossing a solid dividing line is a rule violation; a broken line may be crossed only to overtake or make a legal U-turn.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "aarto_q_paying_fine",
+    "categoryId": "rules",
+    "prompt": "Does paying an AARTO infringement fine stop the demerit points from being added?",
+    "options": [
+      "No — paying the fine still records the points",
+      "Yes — paying the fine cancels the points",
+      "Only if you pay within 24 hours",
+      "Only for first offences"
+    ],
+    "correctIndex": 0,
+    "explanation": "The points are recorded whether you pay the fine, receive an enforcement order, or are convicted in court. Paying settles the money, not the points.",
+    "difficulty": 3,
+    "scope": "learners",
+    "source": "AARTO Act 46 of 1998 & the published demerit-point schedule"
+  },
+  {
+    "id": "qr3_hazards_while_moving",
+    "categoryId": "rules",
+    "prompt": "Driving along with your hazard lights flashing is:",
+    "options": [
+      "Wrong in normal driving — they hide your indicators, so nobody can read your intentions",
+      "A sensible way to warn others that you are driving slowly",
+      "Required whenever it rains",
+      "The correct signal that you intend to go straight at a circle"
+    ],
+    "correctIndex": 0,
+    "explanation": "With hazards on, both indicators are already flashing, so a turn signal becomes invisible. They are for warning others that you are a stationary hazard, not a running commentary on your speed.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qmr_freeway_hand_signals",
+    "categoryId": "rules",
+    "prompt": "Hand signals on a freeway are:",
+    "options": [
+      "Not to be used, unless you are in a situation beyond your control",
+      "Required when changing lanes",
+      "Required when leaving the freeway",
+      "Used in the same way as on any other road"
+    ],
+    "correctIndex": 0,
+    "explanation": "At freeway speeds an arm out of a window is both unreadable and dangerous. The exception exists for a failed indicator on a vehicle you cannot immediately stop.",
+    "difficulty": 3,
+    "scope": "learners",
+    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
+  },
+  {
+    "id": "aarto_q_when_added",
+    "categoryId": "rules",
+    "prompt": "AARTO demerit points are added to your record when:",
+    "options": [
+      "The fine is paid, an enforcement order is issued, or you're convicted in court",
+      "Only if a court convicts you",
+      "Only if you ignore the fine",
+      "The moment a camera flashes, automatically"
+    ],
+    "correctIndex": 0,
+    "explanation": "There are three trigger points: paying the infringement, an enforcement order being issued against you, or a court conviction.",
+    "difficulty": 3,
+    "scope": "learners",
+    "source": "AARTO Act 46 of 1998 & the published demerit-point schedule"
+  },
+  {
+    "id": "qmr_tow_length",
+    "categoryId": "rules",
+    "prompt": "The tow-rope, tow-bar or chain between two vehicles may not exceed:",
+    "options": [
+      "3,5 m",
+      "1,5 m",
+      "5 m",
+      "10 m"
+    ],
+    "correctIndex": 0,
+    "explanation": "Long enough to absorb a little slack, short enough that no third vehicle mistakes the gap for a space to move into.",
+    "difficulty": 2,
     "scope": "learners",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
@@ -1351,79 +1225,323 @@ export const STARTER_QUESTIONS: Question[] = [
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
-    "id": "qr4_licence_disc_display",
+    "id": "aarto_q_cancellation",
     "categoryId": "rules",
-    "prompt": "The vehicle licence disc must be displayed on the windscreen so that:",
+    "prompt": "Under AARTO, what eventually happens to a driver who is suspended three times?",
     "options": [
-      "It can be read from outside the vehicle — an expired or hidden disc is an offence",
-      "The driver can check the expiry date while driving",
-      "It shields the driver from glare",
-      "It proves the vehicle is insured"
+      "The licence is cancelled and they must re-apply and re-test",
+      "Nothing changes after the third time",
+      "They pay a single large fine and continue",
+      "The points are wiped clean"
     ],
     "correctIndex": 0,
-    "explanation": "It is a public record that the vehicle is licensed for the road, so it has to face outward. Keeping a valid one in the cubbyhole is the same as not having it.",
-    "difficulty": 1,
+    "explanation": "A third suspension leads to cancellation — the driver loses the licence entirely and has to start the application and testing process again.",
+    "difficulty": 3,
+    "scope": "learners",
+    "source": "AARTO Act 46 of 1998 & the published demerit-point schedule"
+  },
+  {
+    "id": "qr3_footwear_control",
+    "categoryId": "rules",
+    "prompt": "Driving in loose sandals or with wet, slippery shoes matters because:",
+    "options": [
+      "You must stay in proper control — footwear that slips off or jams under a pedal takes that away",
+      "It is specifically banned in the K53 syllabus",
+      "It only matters in a manual vehicle",
+      "It only affects the handbrake"
+    ],
+    "correctIndex": 0,
+    "explanation": "The rule that bites is the general duty to remain in full control. A sandal wedged under the brake pedal is the moment that duty is tested, and no separate footwear regulation is needed to make it your fault.",
+    "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "q3_rule_learner_age",
+    "id": "qr4_refusing_test",
     "categoryId": "rules",
-    "prompt": "The minimum age to obtain a learner's licence for a light motor vehicle (Code 8) is:",
+    "prompt": "A driver who refuses to provide a breath or blood specimen when lawfully required to:",
     "options": [
-      "16",
-      "17",
-      "18",
-      "21"
+      "Commits an offence by refusing — you cannot avoid the consequences by declining the test",
+      "Is within their rights and cannot be charged",
+      "May refuse if they have not been drinking",
+      "May insist on being tested only at a hospital of their choice"
     ],
-    "correctIndex": 1,
-    "explanation": "You can hold a Code 8 learner's licence from 17, and a full light-vehicle driving licence from 18.",
-    "difficulty": 1,
+    "correctIndex": 0,
+    "explanation": "The refusal is itself the offence. Declining is not a way out of a drink-driving charge — it simply adds a second charge to the first.",
+    "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qr5_road_workers",
+    "id": "qmr_tyre_condition",
     "categoryId": "rules",
-    "prompt": "At roadworks, a flag person turns their board from GO to STOP as you approach. You must:",
+    "prompt": "Besides tread depth, a legal tyre must have:",
     "options": [
-      "Stop — the board is a lawful instruction, the same as a road sign",
-      "Continue if the road ahead looks clear",
-      "Slow down but keep moving through",
-      "Stop only if machinery is crossing"
+      "No bulges and no visible canvas",
+      "A matching brand on the same axle",
+      "Been fitted within the last five years",
+      "A white sidewall marking"
     ],
     "correctIndex": 0,
-    "explanation": "The flag person is holding a single lane for alternating traffic. Driving past a STOP board sends you into oncoming vehicles that have been released.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "qmr_accident_report_24h",
-    "categoryId": "rules",
-    "prompt": "After an accident you must report it at the nearest police station within:",
-    "options": [
-      "24 hours, with your driving licence on you",
-      "7 days, with proof of insurance",
-      "48 hours, with the other driver present",
-      "Immediately, or not at all"
-    ],
-    "correctIndex": 0,
-    "explanation": "Twenty-four hours, and take your licence — turning up without it turns one problem into two.",
+    "explanation": "A bulge means the casing has already failed internally and the tyre is holding together on air pressure alone. Visible canvas means it is through the rubber entirely.",
     "difficulty": 2,
     "scope": "learners",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
-    "id": "q2_rules_caravan_people",
+    "id": "q5_rule_overtake_where_not",
     "categoryId": "rules",
-    "prompt": "May passengers ride inside a caravan or trailer while it is being towed?",
+    "prompt": "Where is overtaking PROHIBITED even without a sign?",
     "options": [
-      "Yes, if they are seated",
-      "No — no person may be carried in a towed caravan or trailer",
-      "Yes, but only adults",
-      "Only on gravel roads"
+      "On any rural road",
+      "Where you can't see the road ahead is clear — e.g. on a blind rise or curve, or when approaching a pedestrian crossing",
+      "Within 5 km of a town",
+      "Behind a truck"
     ],
     "correctIndex": 1,
-    "explanation": "Riding in a towed caravan or trailer is prohibited — it has no crash protection and the combination can sway or detach.",
+    "explanation": "The standing rule: only overtake when you can see the way is clear and can return to your side safely. Blind rises, curves and crossings fail that test by definition.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qmr_accident_first_step",
+    "categoryId": "rules",
+    "prompt": "The first thing you must do when involved in any accident is:",
+    "options": [
+      "Stop your vehicle immediately",
+      "Photograph the damage",
+      "Exchange insurance details",
+      "Move your vehicle off the road"
+    ],
+    "correctIndex": 0,
+    "explanation": "Stopping is what separates an accident from a hit-and-run. Everything else — checking for injuries, calling the police, exchanging details — follows from it.",
     "difficulty": 1,
+    "scope": "learners",
+    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
+  },
+  {
+    "id": "qr2_right_of_way_given",
+    "categoryId": "rules",
+    "prompt": "The most accurate way to think about 'right of way' is that it is:",
+    "options": [
+      "Something another road user gives you, never something you may take",
+      "A legal entitlement you may insist on once it is yours",
+      "Decided by whichever vehicle is larger",
+      "Only relevant at intersections controlled by signs"
+    ],
+    "correctIndex": 0,
+    "explanation": "Being entitled to proceed is not the same as it being safe to. The rules decide who should yield; they cannot make another driver actually do it.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q5_rule_herded_animals",
+    "categoryId": "rules",
+    "prompt": "A herder is moving cattle across the road and signals you to stop. You must:",
+    "options": [
+      "Hoot to scatter the animals",
+      "Stop when signalled and wait — you must comply with the person in charge of the animals",
+      "Drive slowly through the herd",
+      "Reverse away"
+    ],
+    "correctIndex": 1,
+    "explanation": "You must stop when the person in charge of animals signals it. Hooting scatters livestock into your path — the opposite of what you want.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q3_rule_cellphone",
+    "categoryId": "rules",
+    "prompt": "While driving, holding a cellphone in your hand or against your head is:",
+    "options": [
+      "Allowed for calls under a minute",
+      "An offence — a phone may only be used completely hands-free",
+      "Allowed at red traffic lights",
+      "Allowed for navigation only"
+    ],
+    "correctIndex": 1,
+    "explanation": "Holding or supporting a phone with any part of your body while driving is prohibited. Even hands-free, a conversation stretches your reaction distance.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "qr4_passengers_goods_area",
+    "categoryId": "rules",
+    "prompt": "Carrying passengers in the open goods compartment of a bakkie is restricted mainly because:",
+    "options": [
+      "Occupants there have no restraint and are thrown out in a crash or a hard stop",
+      "It makes the vehicle harder to steer",
+      "It affects the vehicle's licensing category",
+      "It obstructs the driver's rear view"
+    ],
+    "correctIndex": 0,
+    "explanation": "There is nothing to hold anyone in. Even a heavy brake, let alone a collision, ejects an unrestrained person over the side or the tailgate.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qr5_overtake_prohibited_where",
+    "categoryId": "rules",
+    "prompt": "Even with no sign or barrier line, overtaking is prohibited or unsafe:",
+    "options": [
+      "Approaching a rise, a bend, an intersection or a pedestrian crossing — anywhere your view is not certain",
+      "Only where a solid line is painted",
+      "Only in urban areas",
+      "Only when a vehicle is towing"
+    ],
+    "correctIndex": 0,
+    "explanation": "Markings cannot cover every hazard, so the underlying duty is to see the road you are committing to. If you cannot see far enough to complete the pass and return, you may not start it.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q5_rule_reversing",
+    "categoryId": "rules",
+    "prompt": "You need to reverse out of a driveway across a busy pavement. The K53 approach is:",
+    "options": [
+      "Reverse quickly to minimise time in the danger zone",
+      "Full observation before AND during the reverse — pedestrians and traffic have right of way over your blind manoeuvre",
+      "Hoot twice and reverse",
+      "Ask a passenger to wave you out and rely on their signal"
+    ],
+    "correctIndex": 1,
+    "explanation": "Reversing is legally limited to what is safe and necessary. Across a pavement you're crossing pedestrian space blind — look through the rear window and mirrors continuously, and stop the instant anything enters your path.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qmr_accident_moving_vehicle",
+    "categoryId": "rules",
+    "prompt": "Someone has been injured in the accident. Your vehicle may be moved:",
+    "options": [
+      "Only with an official's authorisation, and only after its position has been marked",
+      "As soon as it is obstructing traffic",
+      "Immediately, to clear the road",
+      "Only after your insurer has inspected it"
+    ],
+    "correctIndex": 0,
+    "explanation": "Where there are injuries the scene is evidence. If nobody is hurt the rule relaxes — you may move the vehicle if it is obstructing traffic.",
+    "difficulty": 3,
+    "scope": "learners",
+    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
+  },
+  {
+    "id": "qc3_low_pressure_handling",
+    "categoryId": "controls",
+    "prompt": "Driving on significantly under-inflated tyres affects the vehicle by:",
+    "options": [
+      "Making steering vague, lengthening stopping distance and overheating the tyre",
+      "Improving grip because more rubber touches the road",
+      "Affecting only fuel consumption",
+      "Making the ride harsher"
+    ],
+    "correctIndex": 0,
+    "explanation": "A soft tyre flexes and builds heat, which is what causes a blowout at speed. It also rolls on its edges, so the part designed to grip is not the part doing the work.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qm_handbrake_release_method",
+    "categoryId": "controls",
+    "prompt": "The correct way to release a fully engaged parking brake is to:",
+    "options": [
+      "Lift the lever slightly, press the button fully in, lower it, and release the button last",
+      "Press the button and pull the lever up hard",
+      "Push the lever straight down without the button",
+      "Release the button first, then lower the lever"
+    ],
+    "correctIndex": 0,
+    "explanation": "Lifting first takes the load off the ratchet so the button can move. Releasing the button before the lever is down lets the teeth clatter back into place.",
+    "difficulty": 3,
+    "scope": "learners",
+    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
+  },
+  {
+    "id": "q_ctrl_handbrake_motion",
+    "categoryId": "controls",
+    "prompt": "The parking brake (handbrake) should generally not be applied:",
+    "options": [
+      "When parked on a hill",
+      "While the vehicle is in motion, except if the service brake fails",
+      "When stopped for any length of time",
+      "When there is a risk of rolling"
+    ],
+    "correctIndex": 1,
+    "explanation": "Apply the handbrake whenever the vehicle is parked or stopped for a while, but not while moving — the only exception is a service-brake failure.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qc5_abs_not_shorter",
+    "categoryId": "controls",
+    "prompt": "On loose gravel or snow, ABS may actually:",
+    "options": [
+      "Lengthen the stopping distance slightly, because a locked wheel would dig in and build a wedge of material",
+      "Stop working altogether",
+      "Halve the stopping distance",
+      "Lock the wheels deliberately for grip"
+    ],
+    "correctIndex": 0,
+    "explanation": "It is a genuine trade-off, not a flaw. You give up a little distance on loose surfaces and get steering control back, which is almost always the better bargain.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "qc5_demist_fastest",
+    "categoryId": "controls",
+    "prompt": "The fastest way to clear a misted-up windscreen is to:",
+    "options": [
+      "Use the demister with the air conditioning on, which dries the air",
+      "Wipe it with a cloth and drive on",
+      "Open all the windows and drive faster",
+      "Turn the heater off so the glass cools"
+    ],
+    "correctIndex": 0,
+    "explanation": "Misting is moisture condensing on cold glass. Air conditioning removes the moisture rather than just moving it around, which is why it clears far faster than wiping.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "q_ctrl_abs",
+    "categoryId": "controls",
+    "prompt": "The ABS warning light staying on while driving indicates:",
+    "options": [
+      "The anti-lock braking system may be faulty",
+      "Your seatbelt is undone",
+      "The fuel is low",
+      "The headlights are on"
+    ],
+    "correctIndex": 0,
+    "explanation": "A persistent ABS light means a possible fault in the anti-lock braking system. Normal braking usually still works, but have it checked promptly.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qc5_tread_water_job",
+    "categoryId": "controls",
+    "prompt": "The grooves in a tyre's tread exist mainly to:",
+    "options": [
+      "Channel water out from under the tyre so the rubber can reach the road",
+      "Make the tyre grip better on dry tar",
+      "Reduce road noise",
+      "Help the tyre run cooler"
+    ],
+    "correctIndex": 0,
+    "explanation": "On a dry road a slick would grip best — the grooves are entirely about water. A worn tyre has nowhere to put it, which is why wet grip collapses long before the tyre looks finished.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qx_ctrl_engine_light",
+    "categoryId": "controls",
+    "prompt": "The engine-management warning light comes on and stays on while you drive. It means:",
+    "options": [
+      "The engine's control system has detected a fault that needs checking",
+      "The engine has reached its normal operating temperature",
+      "You are due for a licence renewal",
+      "The fuel in the tank is of poor quality"
+    ],
+    "correctIndex": 0,
+    "explanation": "It reports a fault the engine's control system has picked up. A steady light usually means drive on gently and get it read; a flashing one means stop as soon as it is safe.",
+    "difficulty": 2,
     "scope": "learners"
   },
   {
@@ -1442,591 +1560,635 @@ export const STARTER_QUESTIONS: Question[] = [
     "scope": "learners"
   },
   {
-    "id": "qm_seatbelt_reversing",
+    "id": "qc4_towing_mirror_view",
     "categoryId": "controls",
-    "prompt": "The requirement to wear a seat belt:",
+    "prompt": "Towing a caravan wider than your car, the usual reason for fitting extension mirrors is that:",
     "options": [
-      "Does not apply while you are reversing",
-      "Applies at all times without exception",
-      "Does not apply below 40 km/h",
-      "Does not apply to the driver, only to passengers"
+      "The standard mirrors show only the caravan, leaving you blind to traffic alongside and behind",
+      "The law requires four mirrors on any combination",
+      "They reduce buffeting from passing trucks",
+      "They make the caravan easier to reverse"
     ],
     "correctIndex": 0,
-    "explanation": "The exemption exists so you can turn far enough to look properly out of the rear window. It ends the moment you select a forward gear.",
-    "difficulty": 3,
-    "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
-  },
-  {
-    "id": "qx_ctrl_engine_light",
-    "categoryId": "controls",
-    "prompt": "The engine-management warning light comes on and stays on while you drive. It means:",
-    "options": [
-      "The engine's control system has detected a fault that needs checking",
-      "The engine has reached its normal operating temperature",
-      "You are due for a licence renewal",
-      "The fuel in the tank is of poor quality"
-    ],
-    "correctIndex": 0,
-    "explanation": "It reports a fault the engine's control system has picked up. A steady light usually means drive on gently and get it read; a flashing one means stop as soon as it is safe.",
+    "explanation": "A wide load fills the mirror with its own flank. Without extensions you cannot see the lane you are about to move into, which is the manoeuvre that most often goes wrong when towing.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qc5_dirty_lights",
+    "id": "qx_ctrl_side_mirror_aim",
     "categoryId": "controls",
-    "prompt": "After a long trip on a dusty or wet road, headlights and tail lights should be:",
+    "prompt": "Your side (door) mirrors are best set so that you see:",
     "options": [
-      "Wiped clean — a film of dirt cuts their output dramatically",
-      "Left alone, since the lenses are sealed",
-      "Cleaned only at a service",
-      "Polished with an abrasive to restore brightness"
+      "Mostly the lane beside you, with just a sliver of your own vehicle at the inner edge",
+      "As much of your own vehicle's side as possible",
+      "Only the sky and the horizon behind you",
+      "The same image as the interior mirror"
     ],
     "correctIndex": 0,
-    "explanation": "A grey film costs a surprising share of the light getting out and of your visibility to others. It is a thirty-second job with the same effect as an upgrade.",
+    "explanation": "A thin strip of your own car gives you a reference point; the rest of the glass should be doing useful work showing the lane next to you. Filling the mirror with your own bodywork widens your blind spot.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qx_ctrl_interior_mirror_aim",
+    "categoryId": "controls",
+    "prompt": "The interior (rear-view) mirror is correctly adjusted when it:",
+    "options": [
+      "Frames the whole rear window with as little of the car's interior as possible",
+      "Shows mostly the back seat so you can watch passengers",
+      "Points at the road surface just behind the rear bumper",
+      "Shows the same view as the left side mirror"
+    ],
+    "correctIndex": 0,
+    "explanation": "Aim the interior mirror to fill it with the rear window. Anything else — seats, roof lining, your own head — is view you have given away.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "qc5_reversing_camera_limits",
+    "id": "qx_ctrl_tyre_blowout",
     "categoryId": "controls",
-    "prompt": "A reversing camera or parking sensors should be treated as:",
+    "prompt": "A front tyre bursts at speed. You should:",
     "options": [
-      "An aid that supplements looking around — they miss things approaching from the side",
-      "A complete replacement for looking over your shoulder",
-      "Reliable enough to reverse at normal road speed",
-      "Accurate for judging the speed of approaching vehicles"
+      "Hold the wheel firmly, ease off the accelerator and slow gradually before pulling off",
+      "Brake as hard as you can immediately",
+      "Steer sharply onto the shoulder straight away",
+      "Pull the handbrake up to stop as quickly as possible"
     ],
     "correctIndex": 0,
-    "explanation": "A camera frames what is directly behind. A child running in from the side, or a cyclist coming up the kerb, arrives from outside that frame — and sensors rarely see them in time.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qc4_roof_load_handling",
-    "categoryId": "controls",
-    "prompt": "Carrying a heavy load on a roof rack affects the vehicle by:",
-    "options": [
-      "Raising its centre of gravity, making it lean more in corners and less stable in a swerve",
-      "Improving stability by adding weight",
-      "Having no effect provided the load is strapped down",
-      "Affecting only fuel consumption"
-    ],
-    "correctIndex": 0,
-    "explanation": "Weight up high is the worst place for it. The car rolls further in a corner and recovers less willingly from a sudden avoidance — and its overall height has changed too.",
+    "explanation": "A burst front tyre drags the car toward that side, and hard braking or sharp steering on top of that can spin it. Grip the wheel, lift off, and let the speed fall away before you leave the road.",
     "difficulty": 3,
     "scope": "learners"
   },
   {
-    "id": "qx_ctrl_signal_no_permission",
+    "id": "qc4_hot_coolant_cap",
     "categoryId": "controls",
-    "prompt": "Signalling your intention to pull out means that:",
+    "prompt": "The engine has overheated. You should never:",
     "options": [
-      "You have told others what you intend — you must still check it is safe before moving",
-      "Other traffic is now obliged to make room for you",
-      "You have right of way over vehicles already in the lane",
-      "You no longer need to check your blind spot"
+      "Open the radiator or coolant cap while it is still hot — the system is pressurised and will spray scalding coolant",
+      "Switch the engine off",
+      "Open the bonnet at all",
+      "Let the engine idle to cool down"
     ],
     "correctIndex": 0,
-    "explanation": "An indicator asks; it does not take. The observation still decides whether you go, which is why the look comes after the signal and immediately before the move.",
+    "explanation": "A hot cooling system is well above boiling point and held there by pressure. Releasing the cap drops the pressure and the coolant flashes to steam, straight at whoever is standing over it.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qc5_handbrake_ratchet",
+    "id": "qc5_tyre_pressure_cold",
     "categoryId": "controls",
-    "prompt": "A handbrake that pulls up much further than it used to:",
+    "prompt": "Tyre pressures should be checked:",
     "options": [
-      "Needs adjustment — it may not hold the vehicle on a slope",
-      "Is working better as the cable stretches",
-      "Should simply be pulled harder",
-      "Is normal and needs no attention"
+      "When the tyres are cold, since driving heats the air and raises the reading",
+      "Immediately after a long fast drive",
+      "Only when a tyre looks flat",
+      "Once a year at the roadworthy test"
     ],
     "correctIndex": 0,
-    "explanation": "Cables stretch and shoes wear, so the lever travels further for less braking. The first real test of a neglected handbrake is usually a hill, which is a poor place to find out.",
+    "explanation": "Hot tyres read high, so setting them warm leaves them under-inflated once they cool. Check them before you set off, not at the end of the journey.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qx_ctrl_power_steering_heavy",
+    "id": "q_ctrl_clutch_control",
     "categoryId": "controls",
-    "prompt": "The steering suddenly becomes very heavy while driving, though the engine is still running. You should:",
+    "prompt": "'Clutch control' (finding the biting point) means:",
     "options": [
-      "Keep a firm two-handed grip, slow down and stop somewhere safe to investigate",
-      "Let go of the wheel briefly to see if it self-centres",
-      "Speed up, since power steering works better at speed",
-      "Carry on to your destination — heavy steering is normal when warm"
+      "Pressing the clutch flat to the floor",
+      "Releasing the clutch to the point where it starts to take up drive without rolling",
+      "Revving hard with the clutch up",
+      "Using the clutch as a footrest"
     ],
-    "correctIndex": 0,
-    "explanation": "Heavy steering with the engine running points at a power-steering failure. The car still steers, but it needs real effort — hold on with both hands, shed speed, and get off the road.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "qx_ctrl_wet_brake_dry",
-    "categoryId": "controls",
-    "prompt": "After driving through deep standing water, your brakes may feel weak. The recommended response is to:",
-    "options": [
-      "Dry them by driving slowly while applying light brake pressure",
-      "Brake hard once at speed to clear the water",
-      "Stop and wait for them to dry on their own",
-      "Pump the handbrake repeatedly while driving"
-    ],
-    "correctIndex": 0,
-    "explanation": "Water between pad and disc kills friction. Gentle, sustained pressure at low speed heats and wipes them dry — and you should test them before you need them in anger.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "qx_ctrl_handbrake_hard_park",
-    "categoryId": "controls",
-    "prompt": "When parking on a steep slope, the handbrake should be:",
-    "options": [
-      "Applied firmly, with a gear (or Park) selected as well",
-      "Applied only lightly, to avoid straining the cable",
-      "Left off, with the vehicle in neutral",
-      "Replaced by leaving the footbrake pressed"
-    ],
-    "correctIndex": 0,
-    "explanation": "On a slope the handbrake alone carries the whole load. Leaving a gear engaged — or Park in an automatic — gives a second line of defence if the cable slips.",
+    "correctIndex": 1,
+    "explanation": "The biting point is where the clutch just starts to transmit power and the vehicle neither rolls forward nor back. It is essential for smooth hill starts and slow manoeuvres.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qm_neutral_position",
+    "id": "qc3_cruise_control_when_not",
     "categoryId": "controls",
-    "prompt": "On a typical manual gearbox, the neutral passage sits:",
+    "prompt": "Cruise control should NOT be used:",
     "options": [
-      "Between the 3rd and 4th gear positions",
-      "Between 1st and 2nd",
-      "To the far left, beyond 1st",
-      "Behind 5th"
+      "In heavy traffic, on wet or slippery roads, or on winding roads",
+      "On long straight stretches of freeway",
+      "When travelling alone",
+      "In daylight"
     ],
     "correctIndex": 0,
-    "explanation": "The lever is spring-loaded to rest there, which is why 3rd and 4th are the easiest gears to find blind. First and reverse both need the lever moved across that passage first.",
+    "explanation": "Cruise control holds speed when you should be varying it, and adds a step between you and slowing down. In the wet it can also drive a slipping wheel rather than easing off.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qm_wheels_straight_waiting",
+    "categoryId": "controls",
+    "prompt": "Waiting to turn right at an intersection, your front wheels should point straight ahead because:",
+    "options": [
+      "Being shunted from behind would otherwise push you into oncoming traffic",
+      "It reduces tyre wear while stationary",
+      "It makes the turn easier to start",
+      "It keeps the steering lock from engaging"
+    ],
+    "correctIndex": 0,
+    "explanation": "A rear-end shunt turns your car into a projectile aimed wherever the wheels point. Straight ahead means you are pushed up the road you are already in. It is three points on the sheet and a great deal more than that in real life.",
     "difficulty": 2,
     "scope": "learners",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
-    "id": "q8_ctrl_hands_on",
+    "id": "q8_ctrl_stall_recovery",
     "categoryId": "controls",
-    "prompt": "While driving normally you should keep:",
+    "prompt": "You stall at a traffic light. The correct recovery is to:",
     "options": [
-      "One hand on the wheel and one on the gear lever at all times",
-      "Both hands on the wheel except briefly when changing gear or operating a control",
-      "Both hands off on straight roads",
-      "One hand resting out the window"
+      "Restart quickly while still in gear and revs high",
+      "Apply the handbrake, select neutral, restart, then move off with the full procedure",
+      "Push the car out of the way",
+      "Switch on hazards and wait for help"
     ],
     "correctIndex": 1,
-    "explanation": "Two hands give the control you need for a sudden swerve. Take a hand off only as long as a gear change or control needs it, then straight back on.",
-    "difficulty": 1,
+    "explanation": "Handbrake up secures the car, neutral lets it start safely, then move off properly. A panicked restart in gear can jerk you into the intersection.",
+    "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qx_ctrl_securing_on_leaving",
+    "id": "qx_ctrl_blind_spot_meaning",
     "categoryId": "controls",
-    "prompt": "Before you leave a parked vehicle, you should:",
+    "prompt": "The 'blind spot' is:",
     "options": [
-      "Apply the handbrake firmly, switch off the engine and take the key with you",
-      "Leave it in neutral with the engine running if you will only be a moment",
-      "Leave the handbrake off so the vehicle can be pushed if needed",
-      "Switch off the engine but leave the key in the ignition"
+      "The area around your vehicle that your mirrors do not show you",
+      "The area directly in front of the bonnet",
+      "Any part of the road hidden by rain or fog",
+      "The gap between your headlights' beams at night"
     ],
     "correctIndex": 0,
-    "explanation": "Handbrake on, engine off, key with you. A vehicle left running and unattended can be driven off by anyone, and one left without a handbrake can roll on a slope you did not notice.",
+    "explanation": "Mirrors cannot cover everything — a vehicle alongside and slightly behind can sit completely unseen. That is why K53 asks for a physical head check, not just a mirror glance, before you change direction.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "q8_ctrl_progressive_brake",
+    "id": "qc5_wet_brake_test",
     "categoryId": "controls",
-    "prompt": "Smooth, safe braking means you:",
+    "prompt": "After driving through standing water, you should:",
     "options": [
-      "Stamp hard at the last moment",
-      "Look well ahead and brake progressively (squeeze) in good time",
-      "Pump the brakes rapidly on dry roads",
-      "Brake only with the handbrake"
+      "Test the brakes gently at low speed and dry them with light pressure if they feel weak",
+      "Brake hard once at speed to clear them",
+      "Assume they are fine if the pedal feels normal",
+      "Drive faster so airflow dries them"
+    ],
+    "correctIndex": 0,
+    "explanation": "Water between pad and disc removes most of the friction. Light, sustained pressure at low speed heats and wipes them dry — and the test tells you whether you needed to.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qc5_stuck_in_water",
+    "categoryId": "controls",
+    "prompt": "Your vehicle stalls in rising water. The priority is to:",
+    "options": [
+      "Get out and to higher ground immediately — the vehicle is replaceable and water rises fast",
+      "Stay inside and wait for the water to recede",
+      "Try repeatedly to restart the engine",
+      "Open the bonnet to dry the electrics"
+    ],
+    "correctIndex": 0,
+    "explanation": "Moving water shifts a car in surprisingly little depth, and doors become impossible to open against pressure. Leaving early is the only reliable option.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "qc5_main_beam_when",
+    "categoryId": "controls",
+    "prompt": "Main-beam headlights should be dipped:",
+    "options": [
+      "When you meet oncoming traffic and when following another vehicle closely",
+      "Only when meeting oncoming traffic",
+      "Only in built-up areas",
+      "Only when it starts to rain"
+    ],
+    "correctIndex": 0,
+    "explanation": "Following traffic is the half drivers forget. Your main beam fills the mirror of the car ahead and dazzles that driver just as effectively as an oncoming one.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qc5_wheel_alignment_symptom",
+    "categoryId": "controls",
+    "prompt": "A car that pulls steadily to one side on a level, straight road most likely has:",
+    "options": [
+      "A tyre pressure or wheel alignment problem — it also wears tyres unevenly",
+      "A faulty handbrake",
+      "Too much oil in the engine",
+      "A blown fuse"
+    ],
+    "correctIndex": 0,
+    "explanation": "You end up holding a constant correction without noticing, which is tiring and hides what the car is really doing. It also scrubs a tyre out long before its time.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "qx_ctrl_brake_fade",
+    "categoryId": "controls",
+    "prompt": "Riding the brakes continuously down a long descent is unwise mainly because:",
+    "options": [
+      "The brakes overheat and become less effective — brake fade",
+      "It wears the tyres out faster than the brakes",
+      "The brake lights will burn out from constant use",
+      "It uses more fuel than engine braking"
+    ],
+    "correctIndex": 0,
+    "explanation": "Brakes shed speed by turning it into heat, and hot brakes stop working as well just as you need them most. Let a lower gear hold the speed and use the brakes in firm, brief applications.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "qr3_slip_lane_merge",
+    "categoryId": "intersections",
+    "prompt": "Joining a main road from an acceleration (slip) lane, you should:",
+    "options": [
+      "Match the speed of the traffic and merge into a gap, giving way to vehicles already on the road",
+      "Stop at the end of the lane and wait for a complete break in traffic",
+      "Maintain your speed and expect traffic to move over for you",
+      "Merge as early as possible regardless of the gap"
+    ],
+    "correctIndex": 0,
+    "explanation": "The slip lane exists so you can arrive at traffic speed. Stopping at its end forces you to rejoin from a standstill, which is far more dangerous than merging at pace.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q3_int_dead_robot",
+    "categoryId": "intersections",
+    "prompt": "The traffic lights at an intersection are out of order. You must:",
+    "options": [
+      "Proceed at normal speed — lights out means no rules apply",
+      "Treat the intersection as a 4-way stop: stop fully, then proceed in turn",
+      "Yield only to traffic from the left",
+      "Wait for a traffic officer before crossing"
     ],
     "correctIndex": 1,
-    "explanation": "Progressive braking — early, squeezed, easing off as you stop — keeps the car stable and passengers comfortable, and leaves room if something changes.",
+    "explanation": "A dead robot legally becomes a stop for every direction. Stop completely, take your turn in order of arrival, and watch for drivers who don't.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "qc5_rear_skid_correct",
-    "categoryId": "controls",
-    "prompt": "The back of the car slides out to the right in a bend. You should:",
+    "id": "qr4_turn_on_arrow_only",
+    "categoryId": "intersections",
+    "prompt": "Your traffic signal shows a red light with a green arrow pointing right. You may:",
     "options": [
-      "Ease off, look where you want to go and steer gently in the direction the rear is sliding",
+      "Turn right only, giving way to anything already lawfully in the intersection",
+      "Turn right or go straight ahead",
+      "Proceed in any direction, since a green arrow overrides the red",
+      "Turn right without checking, since the arrow guarantees a clear path"
+    ],
+    "correctIndex": 0,
+    "explanation": "The arrow releases one movement and the red holds the rest. It usually does mean the conflicting streams are stopped — but pedestrians and a vehicle still clearing the box are not.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q7_int_turn_right_no_arrow",
+    "categoryId": "intersections",
+    "prompt": "Your light is a full green (no right-turn arrow) and you want to turn right, but oncoming traffic is heavy. You should:",
+    "options": [
+      "Wait behind the stop line until the light turns red",
+      "Move forward into the intersection and complete the turn when a safe gap appears — even as the light changes",
+      "Turn immediately; green gives you priority",
+      "Reverse and wait for a quieter time"
+    ],
+    "correctIndex": 1,
+    "explanation": "With no filter arrow you may edge into the intersection and turn when a gap opens, clearing on amber/red if needed. Waiting behind the line means never getting a turn.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "q7_int_circle_gap",
+    "categoryId": "intersections",
+    "prompt": "Approaching a traffic circle with vehicles already circulating, you must:",
+    "options": [
+      "Enter immediately — entering traffic has priority",
+      "Wait and enter only into a safe gap; vehicles already in the circle have priority",
+      "Force your way in so you don't hold up the queue",
+      "Stop fully in the circle before choosing an exit"
+    ],
+    "correctIndex": 1,
+    "explanation": "Circulating traffic (coming from your right) has priority. Enter only when there's a real gap — nudging in expecting others to brake causes the typical circle bump.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qr2_traffic_circle_exit_signal",
+    "categoryId": "intersections",
+    "prompt": "When leaving a traffic circle, you should:",
+    "options": [
+      "Signal left as you pass the exit before the one you want",
+      "Signal right throughout, until you have left",
+      "Not signal at all — circles are exempt",
+      "Signal left only after you have already begun to exit"
+    ],
+    "correctIndex": 0,
+    "explanation": "Signalling left on the approach to your exit tells drivers waiting to enter that the circle is about to clear. Signalling as you leave tells them nothing in time.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q_int_emergency_intersection",
+    "categoryId": "intersections",
+    "prompt": "You are crossing an intersection on green when an emergency vehicle approaches with sirens. You should:",
+    "options": [
+      "Stop immediately in the middle of the intersection",
+      "Clear the intersection, then pull over and give way where it is safe",
+      "Reverse out of the intersection",
+      "Ignore it — you have green"
+    ],
+    "correctIndex": 1,
+    "explanation": "Do not stop in the intersection. Continue through, then move left and stop where it is safe so the emergency vehicle can pass.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "qr5_railway_multiple_tracks",
+    "categoryId": "intersections",
+    "prompt": "At a level crossing with more than one track, the danger after a train passes is that:",
+    "options": [
+      "A second train may be approaching on another track, hidden by the first",
+      "The rails will be slippery",
+      "The boom may close again immediately",
+      "The crossing surface becomes uneven"
+    ],
+    "correctIndex": 0,
+    "explanation": "The passing train both hides and drowns out the second one. Wait until the signals stop and you can see clearly along every track before crossing.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "q2_int_left_position",
+    "categoryId": "intersections",
+    "prompt": "The correct position for a left turn at an intersection is:",
+    "options": [
+      "Swing wide to the right first for a smooth arc",
+      "As close to the left edge as is safe, turning into the nearest lane of the new road",
+      "From the middle of the road",
+      "Any lane, as long as you signal"
+    ],
+    "correctIndex": 1,
+    "explanation": "Turn left from the left edge into the left lane. Swinging out first invites vehicles (especially motorcycles) into the gap on your inside.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "q_int_circle",
+    "categoryId": "intersections",
+    "image": "/signs/regulatory/regulatory-007-03.png",
+    "prompt": "When entering a traffic circle (roundabout), you must give way to:",
+    "options": [
+      "Traffic approaching from your left",
+      "Traffic already in the circle, approaching from your right",
+      "Nobody — circles have no right-of-way rules",
+      "Only large vehicles"
+    ],
+    "correctIndex": 1,
+    "explanation": "At a traffic circle you yield to vehicles already in the circle, which approach from your right. Signal left when you are about to exit.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q7_int_minor_major",
+    "categoryId": "intersections",
+    "prompt": "A minor side road meets a main through road with no stop or yield line. As you approach on the minor road you should:",
+    "options": [
+      "Continue — you have equal right of way",
+      "Give way to traffic on the through road; the terminating road yields",
+      "Speed up to merge before the main-road traffic",
+      "Stop only if a sign tells you to"
+    ],
+    "correctIndex": 1,
+    "explanation": "Traffic on the road that ends at the junction yields to the through road. Even without a sign, defensive practice is to give way to the established flow.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q_int_mini_circle",
+    "categoryId": "intersections",
+    "prompt": "At a mini-circle, if two vehicles arrive at the same time, priority is given to:",
+    "options": [
+      "The vehicle on the left",
+      "The vehicle that arrived first; if simultaneous, the one on the right",
+      "The vehicle going straight",
+      "The vehicle turning right"
+    ],
+    "correctIndex": 1,
+    "explanation": "A mini-circle follows first-come-first-go like a four-way stop; when vehicles arrive together, the one on the right has priority. You still pass to the left of the central island.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "q_int_ped_crossing",
+    "categoryId": "intersections",
+    "prompt": "You are turning at an intersection and pedestrians are crossing the road you are entering. You must:",
+    "options": [
+      "Hoot so they hurry",
+      "Give way to the pedestrians and let them finish crossing",
+      "Turn around them quickly",
+      "Carry on — vehicles have priority"
+    ],
+    "correctIndex": 1,
+    "explanation": "Turning traffic must give way to pedestrians already crossing the road being entered. Wait for them to clear before completing the turn.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qr4_pedestrian_crossing_overtake",
+    "categoryId": "intersections",
+    "prompt": "A vehicle ahead of you has stopped at a pedestrian crossing. You should:",
+    "options": [
+      "Stop behind it and not overtake — it has almost certainly stopped for someone you cannot see",
+      "Overtake carefully if the crossing looks clear from your position",
+      "Sound your hooter and pass",
+      "Overtake on the left where there is room"
+    ],
+    "correctIndex": 0,
+    "explanation": "The stopped vehicle is the warning. Overtaking it puts you onto the crossing at speed exactly where the pedestrian it stopped for is walking.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q3_int_emergency",
+    "categoryId": "intersections",
+    "prompt": "You're inside an intersection when an ambulance with siren approaches from behind. You should:",
+    "options": [
+      "Stop immediately where you are",
+      "Clear the intersection first, then pull over to the left and stop",
+      "Speed up to outrun it",
+      "Reverse out of the intersection"
+    ],
+    "correctIndex": 1,
+    "explanation": "Stopping inside the intersection blocks the emergency vehicle's path. Clear the junction, then move left and stop so it can pass.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q_haz_blind_spot",
+    "categoryId": "hazard_awareness",
+    "prompt": "Before changing lanes, in addition to checking your mirrors you must:",
+    "options": [
+      "Sound your hooter",
+      "Glance over your shoulder to check the blind spot",
+      "Switch on your headlights",
+      "Nothing — mirrors show everything"
+    ],
+    "correctIndex": 1,
+    "explanation": "Mirrors leave a blind spot beside and behind the vehicle. A quick shoulder check before changing lanes catches a vehicle the mirrors cannot show. Keep your wheels straight while you check.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "q_haz_scan",
+    "categoryId": "hazard_awareness",
+    "prompt": "Good defensive driving means you should:",
+    "options": [
+      "Focus only on the car directly ahead",
+      "Continuously scan far ahead, to the sides and your mirrors for developing hazards",
+      "Drive faster to clear hazards quickly",
+      "Rely on other drivers to avoid you"
+    ],
+    "correctIndex": 1,
+    "explanation": "Defensive driving means actively scanning the whole scene — far ahead, the sides and mirrors — so you anticipate hazards early and always have an escape plan.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "q_haz_aquaplane",
+    "categoryId": "hazard_awareness",
+    "prompt": "If your vehicle begins to aquaplane (skim on water), you should:",
+    "options": [
       "Brake hard immediately",
+      "Ease off the accelerator and hold the steering steady until grip returns",
+      "Accelerate to push through the water",
+      "Swerve sharply to one side"
+    ],
+    "correctIndex": 1,
+    "explanation": "During aquaplaning the tyres lose contact with the road. Avoid sudden braking or steering — gently lift off the accelerator and keep the wheel steady until the tyres regain grip.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "q_haz_skid",
+    "categoryId": "hazard_awareness",
+    "prompt": "Your rear wheels begin to skid to the right. You should:",
+    "options": [
+      "Brake as hard as you can",
+      "Ease off the accelerator and steer gently in the direction the rear is sliding",
       "Steer sharply the opposite way",
-      "Accelerate hard to pull the car straight"
+      "Pull the handbrake"
     ],
-    "correctIndex": 0,
-    "explanation": "Steering into the slide points the front wheels where the car is actually travelling and lets it line up again. Braking or a sharp correction usually swaps one skid for a worse one in the other direction.",
+    "correctIndex": 1,
+    "explanation": "To correct a skid, ease off the power and steer gently into the slide (the direction the rear is going) to regain alignment. Harsh braking or steering makes it worse.",
     "difficulty": 3,
     "scope": "learners"
   },
   {
-    "id": "qc3_headlight_aim_loaded",
-    "categoryId": "controls",
-    "prompt": "With a heavily loaded boot, your headlights may:",
+    "id": "q2_haz_breakdown_freeway",
+    "categoryId": "hazard_awareness",
+    "prompt": "Your car breaks down on a freeway. The safest sequence is:",
     "options": [
-      "Aim too high and dazzle oncoming drivers, so the beam should be adjusted if the car allows it",
-      "Aim too low and become useless",
-      "Be unaffected — headlights are fixed",
-      "Automatically switch to main beam"
+      "Stop in your lane and put hazards on",
+      "Get fully onto the emergency shoulder, hazards on, triangle at least 45 m behind, and wait away from the traffic side",
+      "Abandon the car exactly where it stops",
+      "Reverse along the shoulder to the previous off-ramp"
     ],
-    "correctIndex": 0,
-    "explanation": "Weight in the back lifts the nose and lifts the beam with it. Many cars have a levelling control for exactly this; using it is the difference between lighting the road and blinding people.",
-    "difficulty": 3,
+    "correctIndex": 1,
+    "explanation": "Clear the traffic lanes, warn approaching drivers (hazards + triangle 45 m back), and keep yourself and passengers behind the barrier or well clear of the traffic side.",
+    "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qx_ctrl_doors_closed",
-    "categoryId": "controls",
-    "prompt": "During the cockpit drill, the doors must be:",
+    "id": "qr4_hz_fatigue_only_cure",
+    "categoryId": "hazard_awareness",
+    "prompt": "The only reliable remedy for driver fatigue is:",
     "options": [
-      "Closed and secure before the vehicle moves",
-      "Left slightly ajar so you can hear traffic",
-      "Unlocked and open until you have adjusted the mirrors",
-      "Locked only after you have moved off"
+      "To stop and rest properly — coffee, fresh air and loud music delay it at best",
+      "Opening the windows and turning the radio up",
+      "Drinking a caffeinated drink and continuing",
+      "Driving faster to finish the journey sooner"
     ],
     "correctIndex": 0,
-    "explanation": "All doors closed and secure is part of the pre-drive routine — an unlatched door can swing open in a turn and is a scored item on test.",
+    "explanation": "The tricks buy minutes and mask how impaired you already are. Micro-sleeps of a few seconds happen without the driver noticing, and at open-road speed that is hundreds of metres unattended.",
     "difficulty": 1,
     "scope": "learners"
   },
   {
-    "id": "q_ctrl_clutch",
-    "categoryId": "controls",
-    "prompt": "What is the main function of the clutch in a manual vehicle?",
+    "id": "q2_haz_first_rain",
+    "categoryId": "hazard_awareness",
+    "prompt": "Why is the road extra slippery in the first minutes of rain after a long dry spell?",
     "options": [
-      "To brake the vehicle",
-      "To engage and disengage the engine from the gearbox when changing gears",
-      "To increase fuel flow",
-      "To operate the indicators"
+      "Rainwater is naturally oily",
+      "Accumulated oil and rubber on the surface float up before being washed away",
+      "Tyres shrink in the rain",
+      "It isn't — light rain has no effect"
     ],
     "correctIndex": 1,
-    "explanation": "The clutch temporarily disconnects engine power from the gearbox so you can select gears or stop without stalling.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q_ctrl_footbrake",
-    "categoryId": "controls",
-    "prompt": "When using the foot (service) brake, you should:",
-    "options": [
-      "Stamp on it hard with your left foot",
-      "Apply it smoothly and progressively with your right foot, keeping both hands on the wheel",
-      "Pump it rapidly at all times",
-      "Use it only together with the handbrake"
-    ],
-    "correctIndex": 1,
-    "explanation": "Brake smoothly and progressively with the right foot, ideally on a straight course, without locking the wheels, while keeping both hands on the steering wheel for control.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qc5_skid_cause",
-    "categoryId": "controls",
-    "prompt": "Skids are almost always caused by:",
-    "options": [
-      "The driver asking more of the tyres than the surface can give — braking, steering or accelerating too hard for the conditions",
-      "Faulty brakes",
-      "Bad luck with the road surface",
-      "Driving too slowly for the conditions"
-    ],
-    "correctIndex": 0,
-    "explanation": "Grip is a budget shared between turning, stopping and accelerating. A skid is what happens when you spend more than you have, which is why smoothness is the whole defence.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qc5_spare_check",
-    "categoryId": "controls",
-    "prompt": "The most commonly neglected item in a pre-trip check is:",
-    "options": [
-      "The spare wheel's pressure and the presence of the jack and wheel spanner",
-      "The interior mirror",
-      "The fuel gauge",
-      "The horn"
-    ],
-    "correctIndex": 0,
-    "explanation": "A flat spare and a missing spanner are discovered at the roadside in the dark, which is the worst possible moment. Check them before a long trip, not during one.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "qx_ctrl_brake_light_check",
-    "categoryId": "controls",
-    "prompt": "During a pre-trip walk-around, brake lights are best checked by:",
-    "options": [
-      "Having someone press the brake pedal while you look, or using a reflective surface behind you",
-      "Pressing the pedal yourself and listening for a click",
-      "Assuming they work if the dashboard shows no warning",
-      "Checking them only when the vehicle goes for a service"
-    ],
-    "correctIndex": 0,
-    "explanation": "Brake lights only light while the pedal is down, so they cannot be checked from the driver's seat alone. A helper, or the reflection in a window or wall behind you, is how you actually confirm them.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q8_ctrl_right_gear",
-    "categoryId": "controls",
-    "prompt": "Choosing the correct gear for your speed means:",
-    "options": [
-      "Always using the highest gear to save fuel",
-      "Matching the gear to the road speed — not labouring in too high a gear or over-revving in too low",
-      "Staying in first gear in town",
-      "Changing gear as rarely as possible"
-    ],
-    "correctIndex": 1,
-    "explanation": "The right gear keeps the engine in its comfortable range, ready to respond. Too high labours and stalls; too low over-revs and wastes control and fuel.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qm_handbrake_before_neutral",
-    "categoryId": "controls",
-    "prompt": "When securing the vehicle at a stop, the parking brake is applied:",
-    "options": [
-      "Before the gear lever goes into neutral",
-      "After selecting neutral",
-      "Only if the road is on a slope",
-      "At the same time as the clutch is released"
-    ],
-    "correctIndex": 0,
-    "explanation": "Neutral first leaves a moment where nothing is holding the car. Brake first, and there is no such moment — which is exactly what the examiner is watching the order for.",
-    "difficulty": 3,
-    "scope": "learners",
-    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
-  },
-  {
-    "id": "q7_int_uncontrolled_right",
-    "categoryId": "intersections",
-    "prompt": "You and another car reach an unmarked intersection (no signs, robots or lines) at the same moment. Priority goes to:",
-    "options": [
-      "The faster vehicle",
-      "The vehicle on your right",
-      "The larger vehicle",
-      "Whoever hoots first"
-    ],
-    "correctIndex": 1,
-    "explanation": "At an uncontrolled intersection the first to arrive goes first; if you arrive together, give way to the vehicle on your right. Approach ready to yield either way.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr4_turning_traffic_yield_straight",
-    "categoryId": "intersections",
-    "prompt": "Two vehicles approach an intersection from opposite directions; one is going straight and the other turning across its path. Generally:",
-    "options": [
-      "The turning vehicle gives way to the one going straight",
-      "The vehicle going straight gives way to the turning one",
-      "Whichever arrives first proceeds, regardless of direction",
-      "The larger vehicle proceeds first"
-    ],
-    "correctIndex": 0,
-    "explanation": "Turning across an oncoming stream is the manoeuvre that creates the conflict, so the obligation sits with the driver making it.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q_int_blocked",
-    "categoryId": "intersections",
-    "prompt": "The traffic light is green but the intersection ahead is blocked with traffic. You should:",
-    "options": [
-      "Move in anyway because it is green",
-      "Wait behind the line until you can clear the intersection without blocking it",
-      "Hoot until cars move",
-      "Use the pavement to get around"
-    ],
-    "correctIndex": 1,
-    "explanation": "Never enter an intersection you cannot clear, even on green. Stopping in the box blocks cross-traffic when their light goes green and causes gridlock.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q3_int_mini_circle",
-    "categoryId": "intersections",
-    "prompt": "At a mini-circle, right of way belongs to:",
-    "options": [
-      "The vehicle that reaches the circle first",
-      "The largest vehicle",
-      "The vehicle turning right",
-      "Whoever is on the main road"
-    ],
-    "correctIndex": 0,
-    "explanation": "Mini-circles work like courtesy crossings: first to arrive crosses first. That's different from a roundabout, where the circulating traffic from your right has priority.",
+    "explanation": "The first shower lifts months of oil, diesel and rubber dust into a greasy film. Grip returns somewhat once heavier rain washes it off — treat those first minutes like ice.",
     "difficulty": 3,
     "scope": "learners"
   },
   {
-    "id": "q7_int_zip_merge",
-    "categoryId": "intersections",
-    "prompt": "Two lanes of moving traffic are merging into one where a lane ends. The correct method is to:",
+    "id": "q9_haz_medication",
+    "categoryId": "hazard_awareness",
+    "prompt": "Your medicine's label warns it may cause drowsiness. Before driving you should:",
     "options": [
-      "Force your way to the front",
-      "Zip merge — take turns, one vehicle from each lane, merging in good time",
-      "Stop and wait for a total gap",
-      "Straddle both lanes to block others"
+      "Drive anyway — it's not alcohol",
+      "Not drive if it impairs you; some medication dulls reactions as much as alcohol",
+      "Drive only on quiet roads",
+      "Take a double dose to get it over with"
     ],
     "correctIndex": 1,
-    "explanation": "A zip merge alternates one car from each lane. Merging early and taking turns keeps traffic moving; racing to the front or blocking causes the jam.",
+    "explanation": "Impairment is impairment, whatever the cause. Drowsy medication stretches your reaction time — heed the warning and find another way to travel.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "q_int_turn_right",
-    "categoryId": "intersections",
-    "prompt": "You are turning right at an intersection. Oncoming traffic is approaching. You should:",
+    "id": "q9_haz_scan_ahead",
+    "categoryId": "hazard_awareness",
+    "prompt": "Good hazard perception means your eyes should mostly be:",
     "options": [
-      "Turn quickly before they arrive",
-      "Yield to oncoming traffic and only turn when there is a safe gap",
-      "Expect oncoming traffic to stop for you",
-      "Sound your hooter and turn"
+      "Fixed on the bumper of the car directly ahead",
+      "Scanning far up the road (about 12 seconds ahead) so you spot hazards early",
+      "On the speedometer",
+      "On the road surface just in front of your car"
     ],
     "correctIndex": 1,
-    "explanation": "A right-turning driver must give way to oncoming traffic going straight or turning left, and only complete the turn when there is a safe gap.",
+    "explanation": "Looking well ahead gives you time to plan. Staring at the car in front means you only react when it does — far too late for a developing hazard.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "q7_int_stale_green",
-    "categoryId": "intersections",
-    "prompt": "A robot has been green for a while as you approach at speed. The best defensive action is to:",
+    "id": "q9_haz_debris_swerve",
+    "categoryId": "hazard_awareness",
+    "prompt": "An object has fallen off a truck into your lane. Before you react you should:",
     "options": [
-      "Accelerate to get through before it changes",
-      "Ease off, cover the brake and be ready to stop — a 'stale' green is about to change",
-      "Maintain speed and assume it stays green",
-      "Hoot to warn cross traffic"
+      "Swerve immediately without looking",
+      "Check your mirrors first — braking straight is often safer than a sudden swerve into another vehicle",
+      "Close your eyes and hope",
+      "Accelerate over it"
     ],
     "correctIndex": 1,
-    "explanation": "A long-standing green is a stale green: it will change. Anticipate amber, ease off and cover the brake so you're not forced to gamble on beating the light.",
+    "explanation": "A panic swerve can put you into a car alongside or into oncoming traffic. A quick mirror check and straight-line braking usually beats an instinctive swerve.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qr2_yield_no_stop_needed",
-    "categoryId": "intersections",
-    "prompt": "At a yield sign with a completely clear road, you:",
+    "id": "qr2_hazard_indicator_trust",
+    "categoryId": "hazard_awareness",
+    "prompt": "A vehicle waiting at a side road is indicating that it will turn away from you. You should:",
     "options": [
-      "May proceed without stopping, provided you have genuinely checked and can give way if needed",
-      "Must always come to a complete stop first",
-      "Must stop only if another vehicle is visible",
-      "May proceed without slowing at all"
+      "Wait until it actually begins to move that way before you commit",
+      "Proceed immediately, since it has signalled its intention",
+      "Flash your lights to confirm it should go",
+      "Sound your hooter as you pass"
     ],
     "correctIndex": 0,
-    "explanation": "Yield requires you to be able to give way, not necessarily to stop. That means arriving slowly enough that stopping is still an option.",
+    "explanation": "Indicators get left on from the last turn, and drivers change their minds. Movement is evidence; a blinking light is only a claim.",
     "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q2_int_uncontrolled",
-    "categoryId": "intersections",
-    "prompt": "You approach an intersection with no signs, robots or markings. You must:",
-    "options": [
-      "Proceed at normal speed — no control means no rules",
-      "Slow down, be ready to stop, and give way to any vehicle already in or entering the intersection before you",
-      "Always come to a complete stop",
-      "Hoot and proceed first"
-    ],
-    "correctIndex": 1,
-    "explanation": "An uncontrolled intersection still has rules: approach at a speed that lets you stop, and yield to traffic that reaches or enters it before you do.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q3_int_four_way",
-    "categoryId": "intersections",
-    "prompt": "At a 4-way stop, who proceeds first?",
-    "options": [
-      "The vehicle on the widest road",
-      "Vehicles proceed in the order they arrived and stopped",
-      "The vehicle turning left",
-      "Whoever hoots first"
-    ],
-    "correctIndex": 1,
-    "explanation": "A 4-way stop works on first-to-stop, first-to-go. If two vehicles stop at the same moment, be ready to yield — never force the sequence.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q7_int_blind_junction",
-    "categoryId": "intersections",
-    "prompt": "A parked truck hides your view as you approach an intersection you must cross. You should:",
-    "options": [
-      "Cross quickly while you have a gap in what you can see",
-      "Creep forward slowly until you can actually see both ways, then proceed when clear",
-      "Rely on hearing for approaching traffic",
-      "Hoot once and go"
-    ],
-    "correctIndex": 1,
-    "explanation": "You can't yield to what you can't see. Edge out just far enough to get a clear view before committing — never cross on an assumption.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr5_filter_lane_yield",
-    "categoryId": "intersections",
-    "prompt": "A dedicated left-turn filter lane separated by an island means you:",
-    "options": [
-      "Still give way to traffic and pedestrians on the road you are joining, unless a signal releases you",
-      "Have automatic right of way into the new road",
-      "Need not check for pedestrians",
-      "May proceed without slowing"
-    ],
-    "correctIndex": 0,
-    "explanation": "The island separates you from the intersection; it does not grant priority. Filter lanes are exactly where drivers roll out without looking because the geometry feels like a slip road.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "qr3_blocked_box_wait",
-    "categoryId": "intersections",
-    "prompt": "Traffic ahead is stationary and your green light is about to change. You should:",
-    "options": [
-      "Wait behind the line — entering now would leave you stranded in the intersection",
-      "Move into the intersection so you are first away when it clears",
-      "Move up as far as the middle of the intersection",
-      "Follow the car in front regardless of the space beyond"
-    ],
-    "correctIndex": 0,
-    "explanation": "A vehicle stuck in the intersection blocks every other direction's phase. The green permits you to go; it does not promise there is anywhere to arrive.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr4_emergency_stopped_shoulder",
-    "categoryId": "intersections",
-    "prompt": "Passing an emergency vehicle stopped on the shoulder with its lights flashing, you should:",
-    "options": [
-      "Slow down and move over a lane if you safely can, leaving room for people working beside it",
-      "Maintain speed, since it is stationary and off the roadway",
-      "Stop until it moves off",
-      "Sound your hooter to signal that you have seen it"
-    ],
-    "correctIndex": 0,
-    "explanation": "Paramedics and officers work with their backs to fast traffic and no protection at all. Space and reduced speed are the only things standing between them and a passing vehicle.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr2_emergency_at_red",
-    "categoryId": "intersections",
-    "prompt": "You are stopped at a red light and an ambulance behind you needs to get through. You should:",
-    "options": [
-      "Move aside only when you can do so safely and lawfully, without entering the intersection against the red",
-      "Drive through the red light immediately to clear the way",
-      "Stay exactly where you are under all circumstances",
-      "Reverse to create a gap"
-    ],
-    "correctIndex": 0,
-    "explanation": "Helping an emergency vehicle never requires committing an offence that endangers cross-traffic. Make room where you safely can; the ambulance is trained to work around a red.",
-    "difficulty": 3,
     "scope": "learners"
   },
   {
@@ -2041,141 +2203,6 @@ export const STARTER_QUESTIONS: Question[] = [
     ],
     "correctIndex": 1,
     "explanation": "Space is time. Room around you — and a planned escape route — turns a sudden hazard into a manageable one instead of a collision.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr3_hz_low_sun_others",
-    "categoryId": "hazard_awareness",
-    "prompt": "Driving with the low sun behind you, the extra risk is that:",
-    "options": [
-      "Drivers coming toward you are dazzled and may not see you at all",
-      "Your own brakes will fade in the heat",
-      "Your headlights become less effective",
-      "Your tyres lose grip in the glare"
-    ],
-    "correctIndex": 0,
-    "explanation": "The dazzle you should worry about is the one you are not experiencing. Oncoming drivers are looking straight into it, so assume they have not seen you and give them room.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "q2_haz_night_glare",
-    "categoryId": "hazard_awareness",
-    "prompt": "An oncoming vehicle's main beams are dazzling you. You should:",
-    "options": [
-      "Stare at their lights so your eyes adjust",
-      "Look slightly left toward your lane edge or the left line, slow down, and don't retaliate with your own beams",
-      "Close one eye",
-      "Brake to a stop in your lane"
-    ],
-    "correctIndex": 1,
-    "explanation": "Use the left road edge as your steering reference until they've passed. Retaliating with main beam just creates two blind drivers heading at each other.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr3_hz_load_shifting",
-    "categoryId": "hazard_awareness",
-    "prompt": "The vehicle ahead is visibly leaning or swaying as it corners. The safest assumption is:",
-    "options": [
-      "Its load may be badly secured or shifting — drop back and do not sit alongside it",
-      "The driver is inexperienced but the vehicle is fine",
-      "It has a slow puncture that will fix itself",
-      "It is normal for any loaded vehicle"
-    ],
-    "correctIndex": 0,
-    "explanation": "A swaying load can come off or roll the vehicle. Neither is survivable from directly behind or alongside, and both are entirely avoidable by giving it room.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q9_haz_smoke",
-    "categoryId": "hazard_awareness",
-    "prompt": "Smoke from a veld fire is drifting thickly across the road ahead. You should:",
-    "options": [
-      "Speed up to get through it quickly",
-      "Treat it like fog — slow right down, switch on your lights, and be ready to stop",
-      "Switch on your brights and maintain speed",
-      "Follow closely behind the car ahead"
-    ],
-    "correctIndex": 1,
-    "explanation": "Smoke hides stopped cars and animals just like fog. Slow down, lights on, and don't drive blind into it — vehicles pile up inside smoke banks.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q11_haz_total_brake_failure",
-    "categoryId": "hazard_awareness",
-    "prompt": "Your foot brake goes right to the floor with no effect while driving. Your first actions should be to:",
-    "options": [
-      "Switch the engine off immediately and coast",
-      "Pump the pedal, change down to a lower gear and apply the handbrake gently while steering to safety",
-      "Steer sharply off the road at once",
-      "Take both hands off the wheel and brace"
-    ],
-    "correctIndex": 1,
-    "explanation": "Pumping can restore some pressure, engine braking in a low gear slows you, and a gentle handbrake avoids a skid. Switching off the engine risks losing steering assistance and locking the wheel.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "qr5_hz_crash_scene_pass",
-    "categoryId": "hazard_awareness",
-    "prompt": "Passing the scene of a crash on the opposite carriageway, the main risk to you is:",
-    "options": [
-      "Slowing to look, which causes collisions in your own direction",
-      "Debris crossing the median",
-      "Emergency vehicles turning across you",
-      "Losing radio reception"
-    ],
-    "correctIndex": 0,
-    "explanation": "Rubbernecking causes a second crash behind the first with grim regularity. Keep your eyes on your own lane and your speed steady unless you are actually stopping to help.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q9_haz_stray_animal",
-    "categoryId": "hazard_awareness",
-    "prompt": "A cow wanders into the road ahead on a rural route. The safest response is to:",
-    "options": [
-      "Swerve hard around it",
-      "Slow down and be ready to stop; brake in a straight line rather than swerving violently",
-      "Accelerate past before it moves",
-      "Hoot and keep your speed"
-    ],
-    "correctIndex": 1,
-    "explanation": "Livestock is unpredictable and there's often more than one. A violent swerve can roll the car or put you in oncoming traffic — slow, straight braking is safer.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr2_hazard_emerging_vehicle",
-    "categoryId": "hazard_awareness",
-    "prompt": "You are passing a line of driveways in a residential street. The defensive approach is to:",
-    "options": [
-      "Cover the brake and watch for reversing lights and movement in each opening",
-      "Maintain speed and rely on the other driver to check before emerging",
-      "Move to the middle of the road to gain distance",
-      "Sound your hooter as you pass each driveway"
-    ],
-    "correctIndex": 0,
-    "explanation": "A vehicle reversing out of a driveway has almost no view of the road. Reversing lights and any movement in the gap are your only early warning.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr3_hz_reversing_lights",
-    "categoryId": "hazard_awareness",
-    "prompt": "The first sign that a parked car is about to pull out is usually:",
-    "options": [
-      "Exhaust smoke, wheels turning slightly, or a head visible in the driver's seat",
-      "Its hazard lights coming on",
-      "The driver sounding the hooter",
-      "Its brake lights going off"
-    ],
-    "correctIndex": 0,
-    "explanation": "Drivers pull out before they indicate, if they indicate at all. The clues are all small and all earlier than the signal — which is why hazard perception is about looking, not waiting.",
     "difficulty": 2,
     "scope": "learners"
   },
@@ -2195,168 +2222,34 @@ export const STARTER_QUESTIONS: Question[] = [
     "scope": "learners"
   },
   {
-    "id": "qr3_hz_queue_hazards",
+    "id": "qmr_overtake_blind_rise",
     "categoryId": "hazard_awareness",
-    "prompt": "Coming to a stop at the back of stationary traffic on a fast road, a useful precaution is to:",
+    "prompt": "Overtaking where your view ahead is limited by a blind rise or a curve is:",
     "options": [
-      "Switch on your hazard lights briefly to warn drivers still approaching",
-      "Switch off your lights so you are not mistaken for a moving vehicle",
-      "Sound your hooter to alert following traffic",
-      "Get out and warn traffic on foot"
+      "Prohibited — you cannot see what you are pulling out into",
+      "Permitted if you sound your hooter first",
+      "Permitted if the road is marked with a broken line",
+      "Permitted below 60 km/h"
     ],
     "correctIndex": 0,
-    "explanation": "This is one of the few moving-traffic uses of hazard lights: you have become a stationary hazard on a road where others are still travelling fast.",
+    "explanation": "A broken line permits overtaking; it does not promise the road is clear. The line is drawn for average conditions, and your eyes decide the rest.",
     "difficulty": 2,
-    "scope": "learners"
+    "scope": "learners",
+    "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
-    "id": "q_haz_fatigue",
+    "id": "q_haz_children",
     "categoryId": "hazard_awareness",
-    "prompt": "You start feeling drowsy on a long drive. The safest action is to:",
+    "prompt": "You are driving past a parked ice-cream van with children nearby. You should:",
     "options": [
-      "Open the window and push on",
-      "Stop in a safe place and rest before continuing",
-      "Drink coffee and double your speed",
-      "Turn the music up loud"
+      "Maintain speed and hoot",
+      "Slow down and cover the brake, anticipating a child running into the road",
+      "Speed up to pass quickly",
+      "Flash your lights and continue"
     ],
     "correctIndex": 1,
-    "explanation": "Fatigue badly impairs reaction time and judgement. The only real fix is to stop somewhere safe and rest; tricks like fresh air only mask the problem briefly.",
+    "explanation": "Children are unpredictable and may run out without looking. Reduce speed, cover the brake and be ready to stop.",
     "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q2_haz_fog_bank",
-    "categoryId": "hazard_awareness",
-    "prompt": "You see a dense fog bank across the road ahead. Before entering it you should:",
-    "options": [
-      "Switch to main beam for maximum light",
-      "Slow down first, switch to dipped beams, and increase following distance",
-      "Stop in your lane until it lifts",
-      "Follow the car ahead closely so you don't lose it"
-    ],
-    "correctIndex": 1,
-    "explanation": "Main beam reflects off fog and blinds you. Shed speed before you enter, use dipped beams (and fog lights if fitted), and never stop on the roadway itself.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q9_haz_medication",
-    "categoryId": "hazard_awareness",
-    "prompt": "Your medicine's label warns it may cause drowsiness. Before driving you should:",
-    "options": [
-      "Drive anyway — it's not alcohol",
-      "Not drive if it impairs you; some medication dulls reactions as much as alcohol",
-      "Drive only on quiet roads",
-      "Take a double dose to get it over with"
-    ],
-    "correctIndex": 1,
-    "explanation": "Impairment is impairment, whatever the cause. Drowsy medication stretches your reaction time — heed the warning and find another way to travel.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr3_park_abreast",
-    "categoryId": "parking",
-    "prompt": "Parking alongside another already-parked vehicle, leaving a narrow gap for traffic, is:",
-    "options": [
-      "An obstruction — the roadway must stay usable by passing traffic",
-      "Acceptable if you stay with the vehicle",
-      "Acceptable during off-peak hours",
-      "Acceptable if your hazard lights are on"
-    ],
-    "correctIndex": 0,
-    "explanation": "Double parking narrows the road to a single lane and forces oncoming traffic into conflict. Staying in the car does not widen the road.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q2_park_narrow_road",
-    "categoryId": "parking",
-    "prompt": "You may not park alongside or directly opposite another vehicle where the roadway is:",
-    "options": [
-      "Narrower than 5 m",
-      "Narrower than 9 m",
-      "Narrower than 12 m",
-      "A one-way street"
-    ],
-    "correctIndex": 1,
-    "explanation": "On a roadway less than 9 m wide, parking next to or opposite another vehicle squeezes moving traffic into an unsafe gap.",
-    "difficulty": 3,
-    "scope": "learners"
-  },
-  {
-    "id": "qr4_park_narrow_road_both_sides",
-    "categoryId": "parking",
-    "prompt": "On a narrow residential street with vehicles already parked on one side, parking opposite them is:",
-    "options": [
-      "Likely to be an obstruction — what remains must still let traffic, including emergency vehicles, through",
-      "Acceptable, since both sides are equally available",
-      "Acceptable if you park close to the kerb",
-      "Only a problem during the day"
-    ],
-    "correctIndex": 0,
-    "explanation": "A fire engine or ambulance needs a continuous width, not an average one. Streets where residents park both sides are exactly where crews get stuck.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q2_park_double",
-    "categoryId": "parking",
-    "prompt": "'Double parking' (stopping in the traffic lane next to a parked car) is:",
-    "options": [
-      "Allowed with hazard lights on",
-      "Prohibited — you're obstructing a traffic lane",
-      "Allowed for deliveries only",
-      "Allowed for up to two minutes"
-    ],
-    "correctIndex": 1,
-    "explanation": "Hazard lights don't legalise obstruction. Stopping beside a parked vehicle blocks the lane and hides pedestrians stepping out.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "qr2_park_children_exit",
-    "categoryId": "parking",
-    "prompt": "Parked at the kerb with children in the car, you should let them get out:",
-    "options": [
-      "On the kerb side only, and only once you have checked for cyclists and traffic",
-      "On whichever side is closest to where they are going",
-      "On the traffic side, so you can watch them cross",
-      "Immediately, before you switch the engine off"
-    ],
-    "correctIndex": 0,
-    "explanation": "Children step out without looking. The kerb side puts the vehicle between them and the traffic, and the check catches a cyclist coming up the gutter.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q11_park_stop_vs_park",
-    "categoryId": "parking",
-    "prompt": "How does a 'no stopping' restriction differ from a 'no parking' one?",
-    "options": [
-      "They mean exactly the same thing",
-      "No stopping forbids halting even for a moment; no parking still lets you halt briefly to load or set down a passenger",
-      "No parking is stricter than no stopping",
-      "No stopping only applies at night"
-    ],
-    "correctIndex": 1,
-    "explanation": "A no-stopping zone (red kerb line / red-ringed sign) means you may not halt at all. A no-parking restriction lets you stop momentarily to pick up or drop off, but you may not leave the vehicle or wait.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "qr4_park_blocking_hydrant",
-    "categoryId": "parking",
-    "prompt": "Parking in front of a fire hydrant is prohibited because:",
-    "options": [
-      "It costs the fire service time they may not have — they cannot wait for you to move",
-      "Vehicles corrode from the water",
-      "Hydrants are municipal property that may not be approached",
-      "It is only prohibited during dry seasons"
-    ],
-    "correctIndex": 0,
-    "explanation": "Crews connect to the nearest hydrant on arrival. A car parked over it means either a longer run of hose or a broken window to pass one through.",
-    "difficulty": 1,
     "scope": "learners"
   },
   {
@@ -2375,124 +2268,259 @@ export const STARTER_QUESTIONS: Question[] = [
     "scope": "learners"
   },
   {
-    "id": "qm_stop_rail_reserve",
+    "id": "q9_park_dooring",
     "categoryId": "parking",
-    "prompt": "Stopping within the rail reserve at a level crossing is:",
+    "prompt": "Before opening your door to get out of a parked car, you should:",
     "options": [
-      "Prohibited",
-      "Permitted while the boom is up",
-      "Permitted if you stay in the vehicle",
-      "Permitted for up to two minutes"
+      "Open it quickly to save time",
+      "Check the mirror and glance over your shoulder for cyclists and passing traffic",
+      "Only check if you hear a car",
+      "Open it fully and step out"
+    ],
+    "correctIndex": 1,
+    "explanation": "A door flung open into a passing cyclist ('dooring') causes serious injury and is an offence. A mirror-and-shoulder check before opening prevents it.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "qr2_park_hazard_lights_myth",
+    "categoryId": "parking",
+    "prompt": "Switching on your hazard lights while stopped somewhere you may not stop:",
+    "options": [
+      "Does not make it lawful — hazards warn others, they do not create permission",
+      "Makes a brief stop lawful anywhere",
+      "Is required whenever you park legally",
+      "Transfers responsibility to passing drivers"
     ],
     "correctIndex": 0,
-    "explanation": "A train cannot swerve and cannot stop in the distance it can see you. Never enter a crossing at all unless the road beyond is clear enough for you to leave it.",
-    "difficulty": 1,
+    "explanation": "Hazards say 'I am a hazard', which is an admission rather than an excuse. If stopping there is prohibited, it stays prohibited with the lights flashing.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qm_park_penalty",
+    "categoryId": "parking",
+    "prompt": "The consequence of breaching the parking restrictions is:",
+    "options": [
+      "A fine, and possibly having your vehicle impounded",
+      "A fine only",
+      "Demerit points only",
+      "A warning on the first occasion"
+    ],
+    "correctIndex": 0,
+    "explanation": "Impoundment is the part people forget. A car left somewhere that blocks traffic or emergency access can be towed, and recovering it costs considerably more than the fine.",
+    "difficulty": 2,
     "scope": "learners",
     "source": "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed."
   },
   {
-    "id": "q_park_no_stopping",
+    "id": "q2_park_direction",
     "categoryId": "parking",
-    "prompt": "A 'no stopping' restriction (red circle / red kerb line) means:",
+    "prompt": "When parking parallel on a two-way road you must park:",
     "options": [
-      "You may stop briefly to drop off passengers",
-      "You may not stop at all, even momentarily, in that zone",
-      "You may park for under 5 minutes",
-      "You may stop only to load goods"
+      "Facing oncoming traffic so you can see it when leaving",
+      "On the left side, facing the same direction as the traffic flow",
+      "On whichever side has more shade",
+      "Half on the sidewalk to leave more room"
     ],
     "correctIndex": 1,
-    "explanation": "No stopping prohibits stopping for any reason in the zone — stricter than no parking, which only prohibits leaving the vehicle parked.",
+    "explanation": "Park on the left, with the flow. Parking against the flow confuses other drivers and at night shows them your (dark) rear instead of reflectors and lamps set up for it.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "qr3_fd_dazzle_gap",
-    "categoryId": "following_distance",
-    "prompt": "Dazzled by the headlights of an oncoming vehicle at night, you should:",
+    "id": "q_park_incline_up",
+    "categoryId": "parking",
+    "prompt": "When parking facing uphill next to a kerb, you should turn your front wheels:",
     "options": [
-      "Look to the left edge of the road, slow down, and keep your distance from anything ahead",
-      "Look directly at the lights so your eyes adjust faster",
-      "Switch your own lights to main beam in response",
-      "Close one eye until they have passed"
-    ],
-    "correctIndex": 0,
-    "explanation": "Looking away from the source preserves what night vision you have, and the left edge still gives you the road's line. Speed is the only other thing you control.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q9_fd_approach_queue",
-    "categoryId": "following_distance",
-    "prompt": "Approaching stationary or slowing traffic ahead, you should:",
-    "options": [
-      "Keep your speed and brake hard at the last moment",
-      "Ease off early and slow gradually, arriving with a gap rather than stopping abruptly",
-      "Change lanes without looking",
-      "Close right up to the car in front"
+      "Toward the kerb",
+      "Away from the kerb (so a roll-back is caught by the kerb)",
+      "Straight ahead",
+      "Fully to the right always"
     ],
     "correctIndex": 1,
-    "explanation": "Braking early and smoothly warns the driver behind and keeps a buffer if the queue lurches. Late, hard braking is how rear-end concertinas start.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q3_fd_two_second_how",
-    "categoryId": "following_distance",
-    "prompt": "How do you actually measure a 2-second following distance?",
-    "options": [
-      "Stay two car-lengths behind at any speed",
-      "When the vehicle ahead passes a fixed point, count 'one-thousand-and-one, one-thousand-and-two' — you must not reach that point before you finish",
-      "Keep the vehicle's tyres visible in your windscreen",
-      "Stay 20 metres behind"
-    ],
-    "correctIndex": 1,
-    "explanation": "The 2-second rule self-adjusts to speed: pick a pole or mark, and count from when the car ahead passes it. Reaching it early means you're too close.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q2_fd_reaction_100",
-    "categoryId": "following_distance",
-    "prompt": "At 100 km/h, roughly how far do you travel during one second of reaction time?",
-    "options": [
-      "About 5 metres",
-      "About 28 metres",
-      "About 100 metres",
-      "About 60 metres"
-    ],
-    "correctIndex": 1,
-    "explanation": "100 km/h ≈ 28 m per second — before your foot even reaches the brake. That's why tailgating at speed leaves no physical way to stop in time.",
+    "explanation": "Facing uphill, turn the wheels away from the kerb so that if the car rolls back the wheels catch the kerb. Apply the handbrake and leave it in gear.",
     "difficulty": 3,
     "scope": "learners"
   },
   {
-    "id": "q3_fd_tailgater",
-    "categoryId": "following_distance",
-    "prompt": "A vehicle is tailgating you. The defensive response is to:",
+    "id": "qr3_park_taxi_rank",
+    "categoryId": "parking",
+    "prompt": "Parking a private car in a marked taxi rank is:",
     "options": [
-      "Brake sharply to warn them off",
-      "Increase YOUR following distance ahead and let them pass when safe",
-      "Speed up to restore their gap",
-      "Ignore it — their gap is their problem"
+      "Not allowed — the rank is reserved for the class of vehicle marked",
+      "Allowed outside peak hours",
+      "Allowed if no taxis are present",
+      "Allowed for up to fifteen minutes"
+    ],
+    "correctIndex": 0,
+    "explanation": "A reserved rank is class-restricted the same way a bus lane is. Occupying it pushes taxis into the traffic lane to load, which is the hazard the rank prevents.",
+    "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "q9_park_angle_reverse",
+    "categoryId": "parking",
+    "prompt": "Leaving an angled (echelon) bay where you nosed in, the safest method is to:",
+    "options": [
+      "Reverse out fast before anyone comes",
+      "Reverse out slowly with full observation, edging back until you can see clearly, giving way to passing traffic",
+      "Pull forward over the kerb",
+      "Wait for someone to wave you out"
     ],
     "correctIndex": 1,
-    "explanation": "You can't control their gap, only yours. More space ahead lets you brake gently and early, protecting both of you; then let the tailgater by.",
+    "explanation": "Backing out of an angled bay is a blind manoeuvre — creep back, keep looking all round, and yield to traffic and pedestrians until you can see it's clear.",
     "difficulty": 2,
     "scope": "learners"
   },
   {
-    "id": "q3_fd_wet",
-    "categoryId": "following_distance",
-    "prompt": "In rain or poor visibility, your following distance should become:",
+    "id": "q11_park_stop_vs_park",
+    "categoryId": "parking",
+    "prompt": "How does a 'no stopping' restriction differ from a 'no parking' one?",
     "options": [
-      "2 seconds — the rule never changes",
-      "At least 4 seconds — braking distances roughly double on a wet road",
-      "1 second, to see past the spray",
-      "Whatever the car behind you allows"
+      "They mean exactly the same thing",
+      "No stopping forbids halting even for a moment; no parking still lets you halt briefly to load or set down a passenger",
+      "No parking is stricter than no stopping",
+      "No stopping only applies at night"
     ],
     "correctIndex": 1,
-    "explanation": "Wet tar gives less grip and spray hides hazards. Doubling the gap to 4 seconds buys back the braking distance the water took away.",
+    "explanation": "A no-stopping zone (red kerb line / red-ringed sign) means you may not halt at all. A no-parking restriction lets you stop momentarily to pick up or drop off, but you may not leave the vehicle or wait.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q9_park_obstruct_line",
+    "categoryId": "parking",
+    "prompt": "You should not park where leaving the space would force other drivers to:",
+    "options": [
+      "Use their indicators",
+      "Cross a barrier (solid) line or swing into oncoming traffic to get around you",
+      "Slow down briefly",
+      "Change to a lower gear"
+    ],
+    "correctIndex": 1,
+    "explanation": "A badly chosen spot makes everyone else break the rules or take a risk to pass. Park where the road stays usable and safe for others.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qr3_fd_convoy",
+    "categoryId": "following_distance",
+    "prompt": "Travelling as part of a group of vehicles on a long trip, the safe approach is to:",
+    "options": [
+      "Keep normal following distances and let the group spread out",
+      "Stay tightly bunched so nobody gets separated",
+      "Match the lead vehicle's speed exactly regardless of the gap",
+      "Drive two abreast so the group stays together"
+    ],
+    "correctIndex": 0,
+    "explanation": "Bunching turns one driver's mistake into a multi-vehicle crash, and a tight convoy leaves overtaking traffic nowhere to pull in. Arrange to regroup at stops instead.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q_fd_tailgated",
+    "categoryId": "following_distance",
+    "prompt": "If the vehicle behind you is following too closely (tailgating), the safest response is to:",
+    "options": [
+      "Brake suddenly to warn them",
+      "Increase your own following distance to the car ahead and let them pass",
+      "Speed up well over the limit",
+      "Switch on your hazards and stop"
+    ],
+    "correctIndex": 1,
+    "explanation": "Tailgating removes your safety buffer. Increase the gap in front so you can brake gently, and allow the tailgater to overtake when it is safe.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "q9_fd_helps_behind",
+    "categoryId": "following_distance",
+    "prompt": "Leaving a generous gap to the car ahead also helps the driver BEHIND you because:",
+    "options": [
+      "It doesn't affect them at all",
+      "It lets you brake gently and early instead of suddenly, reducing the chance of a chain-reaction rear-end",
+      "It makes them drive faster",
+      "It blocks them from overtaking"
+    ],
+    "correctIndex": 1,
+    "explanation": "Your gap absorbs the shocks in the traffic ahead so you brake smoothly. Tailgating forces hard braking that ripples back into a pile-up.",
+    "difficulty": 3,
+    "scope": "learners"
+  },
+  {
+    "id": "q2_fd_taxi_gap",
+    "categoryId": "following_distance",
+    "prompt": "Driving behind a minibus taxi in town, the wise following strategy is:",
+    "options": [
+      "Close the gap so it can't stop suddenly",
+      "Add extra following distance — taxis stop frequently and often without warning",
+      "Overtake immediately, wherever you are",
+      "Match its speed exactly at one car length"
+    ],
+    "correctIndex": 1,
+    "explanation": "Taxis stop for passengers anywhere, sometimes without indicating. The extra second or two of space is what turns a sudden stop into a non-event.",
     "difficulty": 1,
+    "scope": "learners"
+  },
+  {
+    "id": "qr3_fd_tunnel_gap",
+    "categoryId": "following_distance",
+    "prompt": "Following another vehicle through a long tunnel, you should:",
+    "options": [
+      "Keep your normal gap or more — there is no shoulder and no way around a stopped vehicle",
+      "Close up so more vehicles fit through at once",
+      "Switch off your headlights to avoid dazzle",
+      "Overtake early to get clear of the tunnel"
+    ],
+    "correctIndex": 0,
+    "explanation": "A tunnel removes every escape route at once: no shoulder, no verge, nowhere to swerve. The gap in front is the only space you have.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qr4_fd_two_second_why_time",
+    "categoryId": "following_distance",
+    "prompt": "The following-distance rule is expressed in seconds rather than metres because:",
+    "options": [
+      "A time gap automatically scales with speed, whereas a fixed distance does not",
+      "Seconds are easier to measure with a watch",
+      "Metres vary between vehicle types",
+      "It matches the way speed limits are written"
+    ],
+    "correctIndex": 0,
+    "explanation": "The reaction time you need barely changes with speed, but the ground it covers does. Counting seconds gives you the right gap at 60 and at 120 without any arithmetic.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qr4_fd_wet_grip_loss",
+    "categoryId": "following_distance",
+    "prompt": "Your following distance should be increased in the wet mainly because:",
+    "options": [
+      "Tyres have less grip, so the braking part of your stopping distance grows",
+      "Your reaction time slows down in cold weather",
+      "Brake lights are harder to see in rain",
+      "Wet roads make the engine less responsive"
+    ],
+    "correctIndex": 0,
+    "explanation": "Reaction time is much the same wet or dry; what changes is how much road the tyres need once you are on the brakes. That is the part the bigger gap has to cover.",
+    "difficulty": 2,
+    "scope": "learners"
+  },
+  {
+    "id": "qr3_fd_emergency_lane_gap",
+    "categoryId": "following_distance",
+    "prompt": "Traffic on a freeway slows to a crawl and an ambulance is approaching from behind. Drivers should:",
+    "options": [
+      "Move as far to the sides as they safely can to open a path between the lanes",
+      "All move into the emergency lane on the left",
+      "Stop where they are and switch off",
+      "Speed up to clear the area ahead"
+    ],
+    "correctIndex": 0,
+    "explanation": "Opening a channel between lanes gives the ambulance a continuous path. Everyone crowding into the left lane blocks the very shoulder an emergency vehicle may need.",
+    "difficulty": 3,
     "scope": "learners"
   },
   {
@@ -2511,53 +2539,77 @@ export const STARTER_QUESTIONS: Question[] = [
     "scope": "learners"
   },
   {
-    "id": "qr2_following_reason_space",
+    "id": "qr3_fd_lateral_space",
     "categoryId": "following_distance",
-    "prompt": "The single biggest benefit of a generous following distance is that it:",
+    "prompt": "Keeping space to the SIDES of your vehicle matters because:",
     "options": [
-      "Buys time — the one thing you cannot manufacture once something goes wrong",
-      "Reduces fuel consumption",
-      "Lets you travel faster overall",
-      "Keeps your vehicle cleaner in the wet"
+      "Your escape route in an emergency is sideways as often as it is forwards",
+      "It reduces wind resistance",
+      "It is required only for heavy vehicles",
+      "It keeps your mirrors cleaner"
     ],
     "correctIndex": 0,
-    "explanation": "Every emergency response you have — braking, steering, deciding — is bought with time. Distance is simply how you store it in advance.",
-    "difficulty": 1,
-    "scope": "learners"
-  },
-  {
-    "id": "q2_fd_gravel",
-    "categoryId": "following_distance",
-    "prompt": "On a gravel road your following distance should be:",
-    "options": [
-      "The same as tar",
-      "At least doubled — braking takes far longer and dust hides the vehicle ahead",
-      "Halved, to stay out of the dust cloud",
-      "Exactly 2 seconds"
-    ],
-    "correctIndex": 1,
-    "explanation": "Loose gravel roughly doubles braking distances, and the leading vehicle's dust can hide its brake lights completely. Hang well back, out of the dust.",
-    "difficulty": 2,
-    "scope": "learners"
-  },
-  {
-    "id": "q_fd_wet",
-    "categoryId": "following_distance",
-    "prompt": "In rain or poor visibility, your following distance should be:",
-    "options": [
-      "Reduced to keep up with traffic",
-      "Increased to at least three to four seconds",
-      "Kept exactly the same",
-      "Ignored if you have ABS"
-    ],
-    "correctIndex": 1,
-    "explanation": "Wet roads lengthen braking distance, so increase the gap to at least three to four seconds to give yourself time to stop.",
-    "difficulty": 2,
+    "explanation": "Braking is not always enough. Drivers who avoid a collision usually steer into a space they already knew was there — which means not driving boxed in alongside others.",
+    "difficulty": 3,
     "scope": "learners"
   }
 ];
 
 export const STARTER_FLASHCARDS: Flashcard[] = [
+  {
+    "id": "fcd_qsg_blue_disc_commands",
+    "categoryId": "signs",
+    "front": "A road sign consisting of a white symbol on a solid blue disc is:",
+    "back": "Blue discs command, red rings prohibit. The distinction is worth learning as a rule rather than sign by sign, because it tells you what a sign wants even when you have never seen that particular symbol.",
+    "difficulty": 2
+  },
+  {
+    "id": "fcd_qsg_qual_local_access",
+    "categoryId": "signs",
+    "front": "A plate reading 'and Local Access Only' beneath a restriction sign means:",
+    "back": "The restriction is aimed at through traffic. If you have a reason to be there — a delivery, a visit, your own driveway — you may still enter; you simply may not use the road as a shortcut.",
+    "difficulty": 3,
+    "image": "/signs/regulatory/regulatory-019-06.png"
+  },
+  {
+    "id": "fcd_qs3_time_limited_parking",
+    "categoryId": "signs",
+    "front": "A parking reservation sign showing a time limit means:",
+    "back": "You may park there only up to the period shown, after which you must move — A time-limited bay turns over so more drivers can use it. Overstaying is a parking offence whether or not the bay is needed at that moment.",
+    "difficulty": 2,
+    "image": "/signs/regulatory/regulatory-014-06.png"
+  },
+  {
+    "id": "fcd_gen-sign-regulatory-014-03-meaning",
+    "categoryId": "signs",
+    "front": "What does this road sign mean?",
+    "back": "Parking for people with disabilities: Parking here is only for a vehicle carrying people with disabilities. The wheelchair symbol below the P shows who it is kept for, and the same symbol may be painted in the bay itself.",
+    "difficulty": 3,
+    "image": "/signs/regulatory/regulatory-014-03.png"
+  },
+  {
+    "id": "fcd_gen-sign-regulatory-017-05-meaning",
+    "categoryId": "signs",
+    "front": "What does this road sign mean?",
+    "back": "End of dual-carriage freeway: This dual-carriage freeway ends here, and freeway rules no longer apply beyond the sign. Expect road users a freeway keeps out, such as pedestrians, cyclists and tractors, and check the speed limit now in…",
+    "difficulty": 3,
+    "image": "/signs/regulatory/regulatory-017-05.png"
+  },
+  {
+    "id": "fc6_temp_cones",
+    "categoryId": "signs",
+    "front": "Cones/barricades at roadworks?",
+    "back": "Follow the coned path only. Never enter or move the barriers.",
+    "difficulty": 1
+  },
+  {
+    "id": "fcd_qs3_agricultural_vehicles",
+    "categoryId": "signs",
+    "front": "A warning sign showing a tractor means you should expect:",
+    "back": "Tractors travel far below the limit, are often wider than a lane, and turn into gateways that are hard to see. The closing speed catches drivers out on open rural roads.",
+    "difficulty": 1,
+    "image": "/signs/warning/warning-038-07.png"
+  },
   {
     "id": "fcd_qs4_general_warning_plate",
     "categoryId": "signs",
@@ -2567,12 +2619,35 @@ export const STARTER_FLASHCARDS: Flashcard[] = [
     "image": "/signs/warning/warning-029-03.png"
   },
   {
-    "id": "fcd_qs3_parking_reservation",
+    "id": "fc_ped_warn",
     "categoryId": "signs",
-    "front": "A blue sign marking an area reserved for parking tells you:",
-    "back": "Parking is permitted in that area, subject to any plate beneath the sign — Blue reservation signs permit rather than prohibit. The plate underneath is what narrows it — a vehicle class, a time limit or a payment requirement.",
-    "difficulty": 2,
-    "image": "/signs/regulatory/regulatory-014-01.png"
+    "image": "/signs/warning/warning-037-02.png",
+    "front": "What does this warning sign mean?",
+    "back": "Pedestrians may be in or near the road ahead — slow down and be ready to stop.",
+    "difficulty": 1
+  },
+  {
+    "id": "fcd_qsg_qualifier_ignore_plate",
+    "categoryId": "signs",
+    "front": "You read the main sign but not the plate beneath it. The risk is that you:",
+    "back": "Both errors are real. A '60' with a motorcycle plate does not slow a car down; a 'no right turn' with a bus plate does not stop a car turning. Reading only half the message gets you the wrong answer in both directions.",
+    "difficulty": 2
+  },
+  {
+    "id": "fcd_gen-sign-marking-079-04-meaning",
+    "categoryId": "signs",
+    "front": "What does this road sign mean?",
+    "back": "Parking bay markings: These painted marks show the space you may park in. Keep the whole vehicle inside one marked bay, and never park on the sidewalk or verge.",
+    "difficulty": 3,
+    "image": "/signs/marking/marking-079-04.png"
+  },
+  {
+    "id": "fc_yield",
+    "categoryId": "signs",
+    "image": "/signs/regulatory/regulatory-006-02.png",
+    "front": "What does this sign require?",
+    "back": "YIELD: give right of way to crossing traffic and pedestrians. You need not stop if clear, but must be ready to.",
+    "difficulty": 1
   },
   {
     "id": "fcd_gen-sign-warning-040-02-meaning",
@@ -2583,157 +2658,102 @@ export const STARTER_FLASHCARDS: Flashcard[] = [
     "image": "/signs/warning/warning-040-02.png"
   },
   {
-    "id": "fc4_grammar_yellow_bg",
+    "id": "fcd_q2_sign_brown_tourism",
     "categoryId": "signs",
-    "front": "Sign on a yellow background?",
-    "back": "Temporary (roadworks) — same legal force as the permanent white version.",
+    "front": "A brown road sign with white lettering indicates:",
+    "back": "A tourist attraction or place of interest — Brown signs are tourism guidance signs — game reserves, wine routes, monuments and similar destinations.",
     "difficulty": 1
   },
   {
-    "id": "fcd_qs2_blue_vs_red_circle",
+    "id": "fcd_qs2_climbing_lane",
     "categoryId": "signs",
-    "front": "The essential difference between a blue circular sign and a red-ringed circular sign is that:",
-    "back": "Both are compulsory — the difference is direction. Blue commands an action, red forbids one. Reading the shape and colour first tells you which kind of instruction you are getting.",
+    "front": "A sign announcing a climbing (passing) lane ahead is most useful because it tells you:",
+    "back": "Most dangerous overtaking on a rural road happens within a few kilometres of a climbing lane the driver didn't know was coming. Waiting costs a minute.",
     "difficulty": 2
   },
   {
-    "id": "fcd_gen-sign-information-045-06-name",
-    "categoryId": "signs",
-    "front": "Which sign is this?",
-    "back": "This is the information sign \"Blind people plate\". Blind people.",
-    "difficulty": 2,
-    "image": "/signs/information/information-045-06.png"
-  },
-  {
-    "id": "fcd_qs2_delineator_posts",
-    "categoryId": "signs",
-    "front": "Reflective marker posts spaced along the edge of a rural road are there mainly to:",
-    "back": "Show the line of the road ahead at night or in poor visibility — They trace the road's course beyond your headlights, so you can read a curve before you are in it. They are guidance, not permission to use the verge.",
-    "difficulty": 2
-  },
-  {
-    "id": "fc2_brown_signs",
-    "categoryId": "signs",
-    "front": "Brown road signs?",
-    "back": "Tourism guidance — attractions and places of interest.",
-    "difficulty": 1
-  },
-  {
-    "id": "fcd_gen-sign-warning-029-01-meaning",
+    "id": "fcd_gen-sign-regulatory-011-06-meaning",
     "categoryId": "signs",
     "front": "What does this road sign mean?",
-    "back": "Slippery road ahead: Slippery road ahead, especially when wet. Drive with caution.",
+    "back": "No stopping: You may not stop here, not even for a moment to drop someone off. The only exceptions are to obey a traffic light or traffic officer or to avoid a collision.",
     "difficulty": 3,
-    "image": "/signs/warning/warning-029-01.png"
+    "image": "/signs/regulatory/regulatory-011-06.png"
   },
   {
-    "id": "fc4_mark_arrows",
+    "id": "fcd_q_sign_reg_shape",
     "categoryId": "signs",
-    "front": "Painted lane arrow — advisory or law?",
-    "back": "Regulatory: in an arrow lane you must move in that direction, even if there by mistake.",
-    "difficulty": 2
-  },
-  {
-    "id": "fcd_qs4_exit_countdown_markers",
-    "categoryId": "signs",
-    "front": "The countdown markers with diagonal bars before a freeway exit tell you:",
-    "back": "How far the exit is, each bar representing a fixed distance — They count you down to the off-ramp when destination boards are behind you. If you are still in the wrong lane at the last marker, take the next exit instead.",
-    "difficulty": 2,
-    "image": "/signs/information/information-043-01.png"
-  },
-  {
-    "id": "fc4_circle_cmd",
-    "categoryId": "signs",
-    "image": "/signs/regulatory/regulatory-009-07.png",
-    "front": "Blue circular-arrows sign at a junction?",
-    "back": "Traffic circle: circulate clockwise; yield per circle rules.",
-    "difficulty": 2
-  },
-  {
-    "id": "fsg_red_cross_cancels",
-    "categoryId": "signs",
-    "front": "What does a red diagonal cross over a sign mean?",
-    "back": "It cancels the sign — the restriction or condition it named stops applying from that point. That is how 'end of toll road' and 'end of headlights-on' are shown.",
-    "difficulty": 2
-  },
-  {
-    "id": "fcd_q6_mark_white_edge",
-    "categoryId": "signs",
-    "front": "A continuous WHITE line along the left edge of your lane is:",
-    "back": "The edge (fog) line marking the left boundary of the travelled lane — useful in poor visibility — The white edge line shows where your lane ends and the shoulder begins. In rain or mist it's a vital reference for staying in lane.",
-    "difficulty": 2
-  },
-  {
-    "id": "fc4_grammar_circle_red",
-    "categoryId": "signs",
-    "front": "Red-ringed circle?",
-    "back": "Prohibition — the action/vehicle shown is forbidden.",
+    "front": "Round signs with a red border give you:",
+    "back": "A regulatory order you must obey — Round, red-bordered signs are regulatory — they give an order you must obey, such as speed limits, no entry or no overtaking.",
     "difficulty": 1
   },
   {
-    "id": "fcd_qs2_mass_limit",
+    "id": "fcd_q_sign_de_restriction",
     "categoryId": "signs",
-    "front": "A red-bordered round sign showing a mass in tonnes means:",
-    "back": "Mass restrictions protect bridges and weak surfaces. Exceeding one risks a collapse, so it is enforced against the driver regardless of who loaded the vehicle.",
-    "difficulty": 2
-  },
-  {
-    "id": "fc6_keep_clear",
-    "categoryId": "signs",
-    "front": "'KEEP CLEAR' painted on the road?",
-    "back": "Leave it open — never stop or queue over it.",
-    "difficulty": 1
-  },
-  {
-    "id": "fcd_gen-sign-warning-028-03-meaning",
-    "categoryId": "signs",
-    "front": "What does this road sign mean?",
-    "back": "Uneven road ahead: Temporary uneven, potholed, or bumpy road surface ahead.",
-    "difficulty": 3,
-    "image": "/signs/warning/warning-028-03.png"
-  },
-  {
-    "id": "fcd_gen-sign-regulatory-021-03-meaning",
-    "categoryId": "signs",
-    "front": "What does this road sign mean?",
-    "back": "This regulatory sign: Overtaking prohibited for the next 2km.",
-    "difficulty": 3,
-    "image": "/signs/regulatory/regulatory-021-03.png"
-  },
-  {
-    "id": "fc4_mark_across",
-    "categoryId": "signs",
-    "front": "Line ACROSS your lane: solid vs broken?",
-    "back": "Solid = stop line. Broken = yield line.",
-    "difficulty": 1
-  },
-  {
-    "id": "fc_robot_red",
-    "categoryId": "signs",
-    "image": "/signs/regulatory/regulatory-022-01.png",
-    "front": "Steady red robot?",
-    "back": "Stop behind the line and wait until it turns green and the way is clear.",
-    "difficulty": 1
-  },
-  {
-    "id": "fc6_studs_colours",
-    "categoryId": "signs",
-    "front": "Cat's-eye stud colours (SA)?",
-    "back": "White = lanes/centre · red = left edge · yellow = right edge.",
+    "front": "A sign with a diagonal line (or grey bars) through a previous regulatory sign means:",
+    "back": "The previous restriction now ends / no longer applies — A de-restriction sign cancels a previous regulatory instruction — for example, ending a no-overtaking zone or a speed restriction.",
     "difficulty": 3
   },
   {
-    "id": "fc_divided",
-    "categoryId": "rules",
-    "front": "Crossing a road's dividing line?",
-    "back": "Stay left of it. Never cross a solid division; cross a broken one only to overtake or make a legal U-turn.",
+    "id": "fcd_qsg_qualifier_principle",
+    "categoryId": "signs",
+    "front": "A small rectangular plate is mounted directly beneath a road sign. Its job is to:",
+    "back": "These are qualifier plates, and they are not decoration — the plate is what decides whether the sign applies to you at this moment. Read the pair together or you will obey a restriction that was never yours, or ignore one that was.",
     "difficulty": 2
   },
   {
-    "id": "fcd_q2_rules_caravan_people",
+    "id": "fcd_q4_sign_no_stopping_vs_parking",
+    "categoryId": "signs",
+    "front": "The difference between a NO STOPPING and a NO PARKING restriction is:",
+    "back": "No-stopping is the stricter one: wheels may not stop turning there at all. Under no-parking you may pause to set down a passenger, but not leave the vehicle.",
+    "difficulty": 2
+  },
+  {
+    "id": "fcd_qs2_crossing_flashing_red",
+    "categoryId": "signs",
+    "front": "Red lights begin flashing at a level crossing as you approach. You must:",
+    "back": "The lights start well before the train reaches you, and a second train can follow the first. Not seeing a train is not evidence there isn't one.",
+    "difficulty": 1
+  },
+  {
+    "id": "fsg_blue_vs_red",
+    "categoryId": "signs",
+    "front": "Blue disc versus red ring — what is the difference?",
+    "back": "A blue disc commands (you must). A red ring prohibits (you may not). Same number in each means opposite things: red ring = maximum speed, blue disc = minimum speed.",
+    "difficulty": 2
+  },
+  {
+    "id": "fcd_q2_rules_learner_validity",
     "categoryId": "rules",
-    "front": "May passengers ride inside a caravan or trailer while it is being towed?",
-    "back": "No — no person may be carried in a towed caravan or trailer — Riding in a towed caravan or trailer is prohibited — it has no crash protection and the combination can sway or detach.",
+    "front": "How long is a learner's licence valid?",
+    "back": "A learner's licence is valid for 24 months. If it expires before you pass your driving test, you must apply and test again.",
+    "difficulty": 1
+  },
+  {
+    "id": "fc5_signal_early",
+    "categoryId": "rules",
+    "front": "When to signal?",
+    "back": "In good time BEFORE the manoeuvre — others must see, understand and react first.",
+    "difficulty": 1
+  },
+  {
+    "id": "fcd_q_rules_freeway_stop",
+    "categoryId": "rules",
+    "front": "Stopping on a freeway is:",
+    "back": "Prohibited except in an emergency or a designated stopping area — You may not stop on a freeway except for an emergency or in a designated stopping area. Pedestrians, animals and pedal cycles are also not allowed on freeways.",
+    "difficulty": 2
+  },
+  {
+    "id": "fmr_seatbelt_rules",
+    "categoryId": "rules",
+    "front": "The seat-belt rules beyond 'wear one'.",
+    "back": "Exception while reversing or parking · a child under 14 sits in the back unless taller than 1,5 m · infants under 3 need an appropriate restraint (not in public transport) · an adult may not take a beltless seat while a belted one is free · fitted belts must work.",
+    "difficulty": 3
+  },
+  {
+    "id": "fc2_officer",
+    "categoryId": "rules",
+    "front": "Officer's signal vs red robot?",
+    "back": "The traffic officer overrides robots and signs — obey the officer.",
     "difficulty": 1
   },
   {
@@ -2744,88 +2764,32 @@ export const STARTER_FLASHCARDS: Flashcard[] = [
     "difficulty": 1
   },
   {
-    "id": "fca_when_added",
+    "id": "fca_start_date",
     "categoryId": "rules",
-    "front": "When are demerit points added?",
-    "back": "When the fine is paid, an enforcement order is issued, or you're convicted in court.",
-    "difficulty": 3
-  },
-  {
-    "id": "fc5_freeway_banned",
-    "categoryId": "rules",
-    "front": "Banned from freeways?",
-    "back": "Pedestrians, animals, pedal cycles, motorcycles under 50 cm³.",
-    "difficulty": 2
-  },
-  {
-    "id": "fmr_freeway_learner",
-    "categoryId": "rules",
-    "front": "Can you drive on a freeway with a learner's licence?",
-    "back": "Yes — provided you are accompanied by someone holding a valid driving licence of the same category, exactly as on any other road.",
-    "difficulty": 2
-  },
-  {
-    "id": "fca_meaning",
-    "categoryId": "rules",
-    "front": "What does AARTO stand for?",
-    "back": "Administrative Adjudication of Road Traffic Offences — the demerit + fine system.",
+    "front": "Where should you verify current AARTO demerit-point rollout dates?",
+    "back": "Use the latest official Department of Transport or South African Government notice because rollout dates can change.",
     "difficulty": 1
   },
   {
-    "id": "fc_ped_rights",
+    "id": "fca_learner_threshold",
     "categoryId": "rules",
-    "front": "Hit a pedestrian — who is prosecuted?",
-    "back": "The driver, irrespective of who had right of way. Drive defensively around pedestrians.",
-    "difficulty": 3
-  },
-  {
-    "id": "fcd_q8_ctrl_cover_brake",
-    "categoryId": "controls",
-    "front": "'Covering the brake' means:",
-    "back": "Near schools, crossings and blind spots, hovering over the brake shaves crucial metres off your reaction — you're already halfway to stopping if a child steps out.",
+    "front": "Learner driver's demerit-point threshold?",
+    "back": "6 points — stricter than the 15 allowed for a fully licensed driver.",
     "difficulty": 2
   },
   {
-    "id": "fc_accelerator",
+    "id": "fcd_qx_ctrl_seatbelt_before_start",
     "categoryId": "controls",
-    "front": "Function of the accelerator?",
-    "back": "Controls engine power to increase or ease the vehicle's speed.",
+    "front": "In the cockpit routine, your seatbelt should be fastened:",
+    "back": "After the seat, head restraint and mirrors are set, and before you move off — Set the seat first — the belt only sits correctly once you are in your final driving position. Then belt up, and only then move off.",
     "difficulty": 1
   },
   {
-    "id": "fcd_q8_ctrl_right_gear",
+    "id": "fcd_q_ctrl_footbrake",
     "categoryId": "controls",
-    "front": "Choosing the correct gear for your speed means:",
-    "back": "The right gear keeps the engine in its comfortable range, ready to respond. Too high labours and stalls; too low over-revs and wastes control and fuel.",
+    "front": "When using the foot (service) brake, you should:",
+    "back": "Brake smoothly and progressively with the right foot, ideally on a straight course, without locking the wheels, while keeping both hands on the steering wheel for control.",
     "difficulty": 2
-  },
-  {
-    "id": "fc8_reverse_look",
-    "categoryId": "controls",
-    "front": "Observing while reversing?",
-    "back": "Look over your shoulder through the rear window — not just mirrors/camera.",
-    "difficulty": 2
-  },
-  {
-    "id": "fc_clutch_control",
-    "categoryId": "controls",
-    "front": "What is the clutch 'biting point'?",
-    "back": "Where the clutch just starts to take up drive and the car won't roll — key for hill starts and slow control.",
-    "difficulty": 2
-  },
-  {
-    "id": "fcd_qx_ctrl_blind_spot_meaning",
-    "categoryId": "controls",
-    "front": "The 'blind spot' is:",
-    "back": "Mirrors cannot cover everything — a vehicle alongside and slightly behind can sit completely unseen. That is why K53 asks for a physical head check, not just a mirror glance, before you change direction.",
-    "difficulty": 1
-  },
-  {
-    "id": "fm_biting_point_revs",
-    "categoryId": "controls",
-    "front": "What do the revs do at the biting point?",
-    "back": "Set about 1 000 r/min, ease the clutch out, and the revs drop to around 750 as the engine takes up the car's weight. Without a rev counter: the bonnet lifts slightly.",
-    "difficulty": 3
   },
   {
     "id": "fc8_hands_on",
@@ -2835,6 +2799,48 @@ export const STARTER_FLASHCARDS: Flashcard[] = [
     "difficulty": 1
   },
   {
+    "id": "fcd_q2_ctrl_headrest",
+    "categoryId": "controls",
+    "front": "The correct headrest position is:",
+    "back": "Top of the headrest about level with the top of your head, close to it — A properly set headrest catches your head in a rear-end crash and prevents whiplash. Too low and your neck bends over it.",
+    "difficulty": 2
+  },
+  {
+    "id": "fcd_q_ctrl_clutch_control",
+    "categoryId": "controls",
+    "front": "'Clutch control' (finding the biting point) means:",
+    "back": "The biting point is where the clutch just starts to transmit power and the vehicle neither rolls forward nor back. It is essential for smooth hill starts and slow manoeuvres.",
+    "difficulty": 2
+  },
+  {
+    "id": "fc8_ride_clutch",
+    "categoryId": "controls",
+    "front": "Riding the clutch — why bad?",
+    "back": "Wears it out and cuts your control. Foot off except to change gear or move off/stop.",
+    "difficulty": 2
+  },
+  {
+    "id": "fc2_dry_steer",
+    "categoryId": "controls",
+    "front": "'Dry steering'?",
+    "back": "Turning the wheel while stationary — strains the steering and scrubs tyres. Steer while creeping.",
+    "difficulty": 3
+  },
+  {
+    "id": "fc_accelerator",
+    "categoryId": "controls",
+    "front": "Function of the accelerator?",
+    "back": "Controls engine power to increase or ease the vehicle's speed.",
+    "difficulty": 1
+  },
+  {
+    "id": "fc7_circle_gap",
+    "categoryId": "intersections",
+    "front": "Entering a circle with traffic circulating?",
+    "back": "Circulating traffic (from your right) has priority — enter only on a safe gap.",
+    "difficulty": 2
+  },
+  {
     "id": "fc_box_clear",
     "categoryId": "intersections",
     "front": "Green light but the intersection is blocked?",
@@ -2842,74 +2848,46 @@ export const STARTER_FLASHCARDS: Flashcard[] = [
     "difficulty": 2
   },
   {
-    "id": "fcd_q_int_green_arrow",
+    "id": "fcd_q_int_4way_same_time",
     "categoryId": "intersections",
-    "front": "A green arrow shown at a traffic signal means:",
-    "back": "You may go only in the direction of the arrow, when safe — A green arrow gives right of way to move in the direction it points, provided the way is clear. Other movements must still wait for their signal.",
+    "front": "Two vehicles reach a four-way stop at exactly the same time, side by side. Who goes first?",
+    "back": "The vehicle on the right — When vehicles stop simultaneously, the one on the right has right of way and the driver on the left should yield.",
     "difficulty": 2
   },
   {
-    "id": "fc3_int_dead_robot",
+    "id": "fcd_q2_int_multilane_circle",
     "categoryId": "intersections",
-    "front": "Traffic lights out of order?",
-    "back": "Treat as a 4-way stop: full stop, proceed in order of arrival, expect others not to.",
-    "difficulty": 1
-  },
-  {
-    "id": "fcd_q2_int_green_ped_still",
-    "categoryId": "intersections",
-    "front": "Your light turns green but an elderly pedestrian is still crossing your side. You must:",
-    "back": "Wait until they have safely cleared your path before moving — Pedestrians lawfully in the intersection keep right of way until they've crossed. Green lets you go only when the way is actually clear.",
-    "difficulty": 1
-  },
-  {
-    "id": "fc2_red_arrow",
-    "categoryId": "intersections",
-    "front": "Steady red arrow?",
-    "back": "That movement stops — even if the main light is green.",
+    "front": "Approaching a multi-lane traffic circle, which lane should you choose?",
+    "back": "Choose your lane before entering: generally left lane for left/straight, right lane for right/full circle, following the painted arrows — and don't change lanes inside the circle.",
     "difficulty": 2
   },
   {
-    "id": "fc7_right_no_arrow",
+    "id": "fc11_int_slipway",
     "categoryId": "intersections",
-    "front": "Turning right, full green, no filter arrow?",
-    "back": "Move into the intersection; complete the turn on a safe gap, clearing on amber/red.",
-    "difficulty": 3
-  },
-  {
-    "id": "fcd_q2_int_uncontrolled",
-    "categoryId": "intersections",
-    "front": "You approach an intersection with no signs, robots or markings. You must:",
-    "back": "An uncontrolled intersection still has rules: approach at a speed that lets you stop, and yield to traffic that reaches or enters it before you do.",
+    "front": "Joining a road via a slip lane?",
+    "back": "Give way to traffic already on the road you're joining; merge only into a safe gap.",
     "difficulty": 2
   },
   {
-    "id": "fc_skid",
-    "categoryId": "hazard_awareness",
-    "front": "Rear wheels start to skid?",
-    "back": "Ease off the power and steer gently into the slide; avoid harsh braking or steering.",
-    "difficulty": 3
+    "id": "fcd_q_int_ped_crossing",
+    "categoryId": "intersections",
+    "front": "You are turning at an intersection and pedestrians are crossing the road you are entering. You must:",
+    "back": "Give way to the pedestrians and let them finish crossing — Turning traffic must give way to pedestrians already crossing the road being entered. Wait for them to clear before completing the turn.",
+    "difficulty": 2
   },
   {
-    "id": "fc_aquaplane",
-    "categoryId": "hazard_awareness",
-    "front": "If you start to aquaplane?",
-    "back": "Ease off the accelerator, hold the wheel steady, avoid hard braking until grip returns.",
-    "difficulty": 3
+    "id": "fc3_int_blocked_box",
+    "categoryId": "intersections",
+    "front": "Green light, blocked intersection?",
+    "back": "Wait behind the line until your exit is clear — never trap yourself in the box.",
+    "difficulty": 2
   },
   {
-    "id": "fcd_q_haz_brake_fail",
+    "id": "fc11_haz_low_sun",
     "categoryId": "hazard_awareness",
-    "front": "Your foot brake suddenly fails while driving. Your first actions should be:",
-    "back": "If the service brake fails, pump the pedal, change down for engine braking and apply the handbrake gradually (not violently) while steering to a safe stop and warning others.",
-    "difficulty": 3
-  },
-  {
-    "id": "fcd_q_haz_skid",
-    "categoryId": "hazard_awareness",
-    "front": "Your rear wheels begin to skid to the right. You should:",
-    "back": "To correct a skid, ease off the power and steer gently into the slide (the direction the rear is going) to regain alignment. Harsh braking or steering makes it worse.",
-    "difficulty": 3
+    "front": "Driving into low, blinding sun?",
+    "back": "Slow down, use the sun visor and increase your following distance.",
+    "difficulty": 2
   },
   {
     "id": "fcd_q_haz_children",
@@ -2919,74 +2897,95 @@ export const STARTER_FLASHCARDS: Flashcard[] = [
     "difficulty": 2
   },
   {
-    "id": "fc11_park_bridge",
-    "categoryId": "parking",
-    "front": "Stopping on/under a bridge or on a narrow section of road?",
-    "back": "A no-stopping situation — you may not stop there at all.",
-    "difficulty": 2
-  },
-  {
-    "id": "fmr_abandoned",
-    "categoryId": "parking",
-    "front": "When does a parked vehicle count as abandoned?",
-    "back": "After **24 hours** outside an urban area, or **7 days** within one — or immediately if it obstructs, sits in a prohibited or no-stopping area, or has no licence or registration number. Abandoned vehicles are removed and impounded.",
+    "id": "fcd_q_haz_aquaplane",
+    "categoryId": "hazard_awareness",
+    "front": "If your vehicle begins to aquaplane (skim on water), you should:",
+    "back": "During aquaplaning the tyres lose contact with the road. Avoid sudden braking or steering — gently lift off the accelerator and keep the wheel steady until the tyres regain grip.",
     "difficulty": 3
   },
   {
-    "id": "fc11_park_freeway",
-    "categoryId": "parking",
-    "front": "Stopping or parking on a freeway?",
-    "back": "Prohibited except in a genuine emergency (or where an authorised sign allows it).",
+    "id": "fcd_q_haz_blind_spot",
+    "categoryId": "hazard_awareness",
+    "front": "Before changing lanes, in addition to checking your mirrors you must:",
+    "back": "Glance over your shoulder to check the blind spot — Mirrors leave a blind spot beside and behind the vehicle. A quick shoulder check before changing lanes catches a vehicle the mirrors cannot show. Keep your wheels straight while you check.",
     "difficulty": 1
   },
   {
-    "id": "fc3_park_unattended",
+    "id": "fc_skid",
+    "categoryId": "hazard_awareness",
+    "front": "Rear wheels start to skid?",
+    "back": "Ease off the power and steer gently into the slide; avoid harsh braking or steering.",
+    "difficulty": 3
+  },
+  {
+    "id": "fc9_door",
     "categoryId": "parking",
-    "front": "Leaving the car unattended?",
-    "back": "Engine off, handbrake set, vehicle secured so it can't move or be driven away.",
+    "front": "Before opening your door?",
+    "back": "Check mirror + over your shoulder for cyclists ('dooring' is an offence).",
     "difficulty": 1
   },
   {
-    "id": "fc9_corner",
+    "id": "fc_park_intersection",
     "categoryId": "parking",
-    "front": "Why not park on a bend/crest?",
-    "back": "Your car cuts visibility — others see the hazard too late.",
+    "front": "How close to an intersection may you park?",
+    "back": "No closer than 5 metres.",
+    "difficulty": 3
+  },
+  {
+    "id": "fc2_park_kerb",
+    "categoryId": "parking",
+    "front": "Parallel-park distance from the kerb?",
+    "back": "Close and parallel — within about 450 mm, wheels straight.",
     "difficulty": 2
   },
   {
-    "id": "fc3_fd_queue",
-    "categoryId": "following_distance",
-    "front": "Gap when stopped in a queue?",
-    "back": "See the rear tyres of the car ahead touching the tar — enough room to steer out without reversing.",
-    "difficulty": 2
+    "id": "fc_park_uphill",
+    "categoryId": "parking",
+    "front": "Parking facing uphill — wheels?",
+    "back": "Turn front wheels away from the kerb so a roll-back is caught; handbrake on, in gear.",
+    "difficulty": 3
   },
   {
-    "id": "fc_truck_gap",
-    "categoryId": "following_distance",
-    "front": "Following a heavy truck?",
-    "back": "Leave a bigger gap (about 6 s) — it blocks your view and needs more room to stop.",
-    "difficulty": 2
-  },
-  {
-    "id": "fcd_q_fd_tailgated",
-    "categoryId": "following_distance",
-    "front": "If the vehicle behind you is following too closely (tailgating), the safest response is to:",
-    "back": "Increase your own following distance to the car ahead and let them pass — Tailgating removes your safety buffer. Increase the gap in front so you can brake gently, and allow the tailgater to overtake when it is safe.",
-    "difficulty": 2
-  },
-  {
-    "id": "fcd_q_fd_night",
-    "categoryId": "following_distance",
-    "front": "At night or in fog, your following distance should be:",
-    "back": "Increased, because you can see less and need more reaction time — Reduced visibility shortens how far ahead you can see hazards, so increase your gap and reduce speed at night and in fog.",
-    "difficulty": 2
-  },
-  {
-    "id": "fc9_erratic",
-    "categoryId": "following_distance",
-    "front": "Car ahead weaving/braking oddly?",
-    "back": "Increase your gap — you need more reaction time.",
+    "id": "fcd_q2_park_double",
+    "categoryId": "parking",
+    "front": "'Double parking' (stopping in the traffic lane next to a parked car) is:",
+    "back": "Prohibited — you're obstructing a traffic lane — Hazard lights don't legalise obstruction. Stopping beside a parked vehicle blocks the lane and hides pedestrians stepping out.",
     "difficulty": 1
+  },
+  {
+    "id": "fcd_q_fd_measure",
+    "categoryId": "following_distance",
+    "front": "How do you check your following distance with the two-second rule?",
+    "back": "Pick a fixed point; you should reach it at least two seconds after the car ahead — Choose a fixed object ahead. When the vehicle in front passes it, start counting — you should not reach the same point in under two seconds.",
+    "difficulty": 2
+  },
+  {
+    "id": "fc11_fd_following_bike",
+    "categoryId": "following_distance",
+    "front": "Following a motorcycle?",
+    "back": "Keep at least the normal 2 seconds, more in the wet — bikes can stop fast and may fall in a slide.",
+    "difficulty": 2
+  },
+  {
+    "id": "fc9_new_driver",
+    "categoryId": "following_distance",
+    "front": "Following distance as a new driver?",
+    "back": "At least the full 2 seconds (more in poor conditions) — reactions aren't practised yet.",
+    "difficulty": 1
+  },
+  {
+    "id": "fc2_gravel_gap",
+    "categoryId": "following_distance",
+    "front": "Following distance on gravel?",
+    "back": "At least double — braking takes far longer and dust hides brake lights. Stay out of the dust cloud.",
+    "difficulty": 2
+  },
+  {
+    "id": "fcd_q_fd_truck",
+    "categoryId": "following_distance",
+    "front": "Following a heavy goods vehicle, the recommended safe gap is roughly:",
+    "back": "Larger — around six seconds — because it blocks your view and needs more room to stop — A heavy vehicle blocks your view and needs more distance to stop, so keep a larger gap — about six seconds — and pull back so you can see past it.",
+    "difficulty": 2
   }
 ];
 
