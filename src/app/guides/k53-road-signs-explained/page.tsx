@@ -60,8 +60,8 @@ export default function GuidePage() {
             compulsory direction on blue discs.
           </li>
           <li>
-            <strong>Upright triangles and diamonds</strong> — warnings about
-            conditions on the road ahead.
+            <strong>Upright triangles</strong> — warnings about conditions on
+            the road ahead.
           </li>
           <li>
             <strong>Rectangles</strong> — information and guidance: directions,

@@ -86,9 +86,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Rocks or stones can fall onto the road ahead from a cutting, especially after rain.",
-      "The road gets narrower for a short stretch at a bridge ahead.",
-      "Tractors or other slow farm vehicles regularly cross or enter the road ahead.",
-      "An overhead structure or height gauge ahead limits vehicle height to the figure shown in metres."
+      "More people than usual may be crossing or walking beside the road ahead, with no marked crossing.",
+      "Children may be on or near the road ahead, close to a school, playground or sports field.",
+      "A hazard of a general or unusual kind is ahead, often explained on a plate below the sign."
     ],
     "correctIndex": 0,
     "explanation": "Falling rocks ahead: Rocks or stones can fall onto the road ahead from a cutting, especially after rain. Slow down, watch the rock face as well as the surface, and be ready to stop for broken rock lying in your lane.",
@@ -102,9 +102,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Accident plate (temporary)",
-      "Priority road",
+      "No through road",
       "Information centre",
-      "No through road"
+      "Modal transfer point"
     ],
     "correctIndex": 0,
     "explanation": "This is the information sign \"Accident plate (temporary)\". This yellow plate below another sign warns of an accident on the road ahead. Slow down and be ready to stop for emergency vehicles and people on the road. Keep your eyes on your own lane, because slowing to look at a crash can cause another one.",
@@ -135,8 +135,8 @@ export const STARTER_QUESTIONS: Question[] = [
     "options": [
       "Blind people plate",
       "Modal transfer point",
-      "Accident plate (temporary)",
-      "Recommended speed plate"
+      "No through road",
+      "Information centre"
     ],
     "correctIndex": 0,
     "explanation": "This is the information sign \"Blind people plate\". Fitted below another sign, this plate tells you that blind people may be on or crossing the road ahead. Ease off and be prepared to stop for them. Flashing your lights or waving will not help, so wait until they have finished crossing.",
@@ -367,9 +367,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Grader working ahead",
-      "Children ahead",
-      "Uneven road ahead",
-      "Speed humps ahead"
+      "Construction vehicles ahead",
+      "Loose stones ahead (temporary)",
+      "Surface step ahead (temporary)"
     ],
     "correctIndex": 0,
     "explanation": "This is the warning sign \"Grader working ahead\". A grader is working on the road ahead, on its own or as part of larger road works. Drive slowly past it, because the full width of the road may not be available, and sand or gravel on the surface can affect how your vehicle handles.",
@@ -636,9 +636,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Water crosses the road at a drift ahead.",
-      "The road gets narrower for a short stretch at a bridge ahead.",
-      "Two side roads join yours ahead, close together and on opposite sides but not directly across from each other.",
-      "A crossroad is coming up, and this sign gives no indication of which road has priority."
+      "More people than usual may be crossing or walking beside the road ahead, with no marked crossing.",
+      "The road ahead narrows from both sides, and stays narrower for some distance.",
+      "Your road ends at a T-junction ahead, so you will have to turn sharply left or right."
     ],
     "correctIndex": 0,
     "explanation": "Drift ahead: Water crosses the road at a drift ahead. Go very slowly and test the brakes afterwards.",
@@ -652,9 +652,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "Which sign is this?",
     "options": [
       "Recommended speed plate",
-      "Information centre",
+      "Accident plate (temporary)",
       "Freeway exit countdown markers",
-      "Modal transfer point"
+      "Blind people plate"
     ],
     "correctIndex": 0,
     "explanation": "This is the information sign \"Recommended speed plate\". This plate gives the maximum speed recommended for the hazard shown on the sign above it. Road engineers calculate the figure for your safety. It is not a regulatory limit, but if you crash while travelling above it you can still face prosecution.",
@@ -717,8 +717,8 @@ export const STARTER_QUESTIONS: Question[] = [
     "options": [
       "Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus.",
       "Temporary high speed exit countdown sign.",
-      "Fitted below another sign, this plate tells you that blind people may be on or crossing the road ahead.",
-      "Each white bar on these signs counts down 100 m to the next freeway exit."
+      "Information centre where you can obtain information about the local area, directions and so on.",
+      "This yellow plate below another sign warns of an accident on the road ahead."
     ],
     "correctIndex": 0,
     "explanation": "Modal transfer point: Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus.",
@@ -732,9 +732,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Sheep may be crossing or straying on the road ahead, often where fences are missing.",
-      "The gravel road you are on changes to a tarred surface ahead.",
-      "Antelope and other wild animals may stray onto the road ahead.",
-      "The road gets narrower for a short stretch at a bridge ahead."
+      "A hazard of a general or unusual kind is ahead, often explained on a plate below the sign.",
+      "A side road joins yours ahead, on the side the sign shows, and traffic may turn in or out there.",
+      "Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right."
     ],
     "correctIndex": 0,
     "explanation": "Sheep ahead: Sheep may be crossing or straying on the road ahead, often where fences are missing. Slow down, watch both sides of the road for the next 2 km and brake rather than swerve if one steps out.",
@@ -763,9 +763,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Horses with no rider may be straying on or crossing the road ahead.",
-      "Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right.",
-      "Steep uphill ahead. You may not cross a No Overtaking line to overtake a slow moving vehicle.",
-      "A crossroad is coming up, and this sign gives no indication of which road has priority."
+      "A hazard of a general or unusual kind is ahead, often explained on a plate below the sign.",
+      "A bridge or other structure less than 5 m wide is ahead, with room for only one vehicle at a time.",
+      "Steep uphill ahead. You may not cross a No Overtaking line to overtake a slow moving vehicle."
     ],
     "correctIndex": 0,
     "explanation": "Horses ahead: Horses with no rider may be straying on or crossing the road ahead. Slow down and be ready to brake firmly without swerving. A horse stands high on its legs, so in a collision it can come over the bonnet and into the windscreen.",
@@ -887,9 +887,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Elephants are known to stray onto the road in this area.",
-      "Cattle may be crossing or straying on the road ahead, and where you see one, expect more.",
-      "Your road ends at a T-junction ahead, so you will have to turn sharply left or right.",
-      "A lesser road crosses your priority road ahead, so crossing traffic should give way to you."
+      "Speed humps have been built across the road ahead to slow traffic down.",
+      "Warthogs are known to stray onto the road in this area.",
+      "You are on the lesser road, and a priority road crosses it ahead."
     ],
     "correctIndex": 0,
     "explanation": "Elephants ahead: Elephants are known to stray onto the road in this area. Slow right down, stay in your vehicle and keep your distance. Do not rev or hoot, since either can be taken as a challenge, and move slowly away if one looks agitated.",
@@ -934,9 +934,9 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right.",
-      "Warthogs are known to stray onto the road in this area.",
       "A marked pedestrian crossing is coming up, and people may be on it when you arrive.",
-      "More people than usual may be crossing or walking beside the road ahead, with no marked crossing."
+      "Cattle may be crossing or straying on the road ahead, and where you see one, expect more.",
+      "The road ahead may be closed by a gate, or a railway crossing with gates, booms or barriers is coming up."
     ],
     "correctIndex": 0,
     "explanation": "Skew T-junction ahead: Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right. Because the roads meet at an angle, one of the turns is much tighter than the other, so slow down early and give way to traffic on the road you are joining.",

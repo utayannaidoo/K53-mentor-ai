@@ -29,8 +29,9 @@ interface RawSign {
  * alone as an option, and the rest says what the driver must do. Every fact is
  * sourced in docs/content/facts/signs.md ("Sign-page meanings batch").
  *
- * On a warning sign, avoid the word "temporary" unless the name has it:
- * traitsFor() reads it out of the meaning and reclassifies the sign.
+ * A meaning can't use a word of five letters or more that the sign's appearance
+ * text uses (tests/sign-dimensions.test.ts), such as "yellow" on a sign in
+ * YELLOW_WARNING_IDS (sign-traits.ts).
  */
 const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-006-01": {
