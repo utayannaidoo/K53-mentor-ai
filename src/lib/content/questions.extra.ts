@@ -1843,18 +1843,19 @@ export const EXTRA_QUESTIONS: Question[] = [
   {
     id: "q3_park_yellow_line",
     categoryId: "parking",
-    prompt: "A solid yellow line painted along the edge of the roadway means:",
+    prompt: "On a town street, a solid yellow line is painted beside the kerb. Alongside it you:",
     options: [
-      "Free parking",
-      "No stopping alongside it, except in an emergency or where a sign allows",
-      "Loading zone for trucks only",
-      "Bus lane",
+      "May not stop at all, not even for a moment",
+      "May not park, but may halt briefly to load or drop off",
+      "May park if you stay with the vehicle",
+      "May park outside business hours",
     ],
     correctIndex: 1,
     explanation:
-      "A yellow edge line is a no-stopping line. Treat it like a continuous 'keep moving' instruction for that stretch of road.",
+      "Yellow bans parking and red bans stopping. Parking means staying longer than it takes to load or set down, so a quick drop-off is fine here. A broken yellow line only applies during the hours on its sign.",
     difficulty: 2,
     scope: "learners",
+    source: "SA Learner Driver Manual (Dept of Transport, 2012), p.51; SADC RTSM Vol 1 Ch 7, §7.2.17 (RM13)",
   },
   {
     id: "q3_park_reverse_bay",

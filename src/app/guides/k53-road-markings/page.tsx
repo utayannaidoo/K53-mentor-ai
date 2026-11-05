@@ -39,8 +39,26 @@ export default function GuidePage() {
         </p>
         <ul>
           <li>
-            <strong>Continuous white edge line</strong> — the boundary of the
-            drivable surface; hold your position inside it.
+            <strong>Continuous yellow line along the left edge</strong> — the
+            left edge line. The shoulder beyond it isn't a lane, so don't drive
+            or overtake on it. It doesn't ban stopping: in an emergency, get
+            the whole car to the left of it.
+          </li>
+          <li>
+            <strong>Solid yellow line beside the kerb in town</strong> — no
+            parking at any time, though you may halt briefly to load or drop
+            off. A <strong>broken</strong> yellow line bans parking only during
+            the hours on its sign.
+          </li>
+          <li>
+            <strong>Solid red line beside the kerb</strong> — no stopping at
+            all, at any time. A <strong>broken</strong> red line bans stopping
+            during the hours on its sign.
+          </li>
+          <li>
+            <strong>Continuous white line along the right edge</strong> — the
+            right edge line beside a median. Don't drive or cross to the right
+            of it.
           </li>
           <li>
             <strong>Continuous white line between you and another lane</strong>{" "}
@@ -52,11 +70,11 @@ export default function GuidePage() {
           </li>
         </ul>
         <p>
-          The centre of a two-way road belongs to <strong>yellow</strong>, and
-          the pattern carries the whole message: a <strong>broken</strong>{" "}
-          yellow line may be crossed to overtake when it's safe; a{" "}
-          <strong>continuous</strong> yellow line means stay on your side;{" "}
-          <strong>two continuous yellow lines</strong> forbid crossing or
+          The centre of a two-way road is <strong>white</strong> too, and the
+          pattern carries the whole message: a <strong>broken</strong> white
+          line may be crossed to overtake when it's safe; a{" "}
+          <strong>continuous</strong> white line means stay on your side;{" "}
+          <strong>two continuous white lines</strong> forbid crossing or
           overtaking in <em>either</em> direction; and where a continuous line
           is paired with a broken one, only traffic on the broken side may
           cross.
@@ -102,19 +120,21 @@ export default function GuidePage() {
         </p>
       </section>
       <section>
-        <h2>Why white and yellow mean different things</h2>
+        <h2>Why white, yellow and red mean different things</h2>
         <ul>
           <li>
-            <strong>White</strong> organises traffic moving in the{" "}
-            <em>same</em> direction — lane dividers and edge lines — and
-            carries nearly all the across-the-road commands: stop bars, yield
-            triangles, zebra blocks, hatching.
+            <strong>White</strong> organises moving traffic: centre lines, lane
+            dividers and the right edge line. It also carries nearly all the
+            across-the-road commands: stop lines, yield lines and pedestrian
+            crossings.
           </li>
           <li>
-            <strong>Yellow</strong> owns the centre of two-way roads,
-            separating opposing flows, and steps in for temporary layouts at
-            roadworks, where the fresh paint supersedes the permanent markings
-            until the work ends.
+            <strong>Yellow</strong> marks the left edge of the road and limits
+            how you may use it: no-parking lines, box junctions, reserved lanes
+            and compulsory lane arrows.
+          </li>
+          <li>
+            <strong>Red</strong> has one job on the road edge: no stopping.
           </li>
         </ul>
         <p>
