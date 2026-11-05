@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { inflateSync } from "node:zlib";
 import { describe, expect, it } from "vitest";
 import { SIGNS, SIGNS_BY_ID } from "@/lib/content/signs";
 import {
@@ -6,9 +8,55 @@ import {
   looksLike,
   findSignByName,
   similarSigns,
+  SHAPE_FILTERS,
 } from "@/lib/content/sign-traits";
 import { signQuestionAlt } from "@/lib/content/sign-alt";
 import { GENERATED_SIGN_QUESTIONS } from "@/lib/content/signs-generated";
+
+/**
+ * Share of a crop's pixels that are sign yellow. Every warning crop is an 8-bit
+ * RGB PNG, so inflating it and undoing the row filters is all the decoding this
+ * needs, and the suite stays free of an image dependency.
+ */
+function yellowShare(image: string): number {
+  const png = readFileSync(new URL(`../public${image}`, import.meta.url));
+  const width = png.readUInt32BE(16);
+  const height = png.readUInt32BE(20);
+  // Bit depth, colour type, interlace.
+  expect([png[24], png[25], png[28]], image).toEqual([8, 2, 0]);
+
+  const idat: Buffer[] = [];
+  for (let at = 8; at < png.length; at += 12 + png.readUInt32BE(at)) {
+    if (png.toString("latin1", at + 4, at + 8) !== "IDAT") continue;
+    idat.push(png.subarray(at + 8, at + 8 + png.readUInt32BE(at)));
+  }
+  const raw = inflateSync(Buffer.concat(idat));
+
+  const stride = width * 3;
+  let above = new Uint8Array(stride);
+  let yellow = 0;
+  for (let y = 0; y < height; y++) {
+    const start = y * (stride + 1);
+    const filter = raw[start];
+    const row = new Uint8Array(stride);
+    for (let i = 0; i < stride; i++) {
+      const a = i >= 3 ? row[i - 3] : 0;
+      const b = above[i];
+      const c = i >= 3 ? above[i - 3] : 0;
+      const pa = Math.abs(b - c);
+      const pb = Math.abs(a - c);
+      const pc = Math.abs(a + b - 2 * c);
+      const paeth = pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+      const predicted = [0, a, b, (a + b) >> 1, paeth][filter];
+      row[i] = raw[start + 1 + i] + predicted;
+    }
+    for (let i = 0; i < stride; i += 3) {
+      if (row[i] > 200 && row[i + 1] > 170 && row[i + 2] < 90) yellow += 1;
+    }
+    above = row;
+  }
+  return yellow / (width * height);
+}
 
 describe("sign traits", () => {
   it("classifies the signs every learner meets", () => {
@@ -36,6 +84,48 @@ describe("sign traits", () => {
       (s) => s.category === "warning" && !/hazard marker/i.test(s.subcategory),
     )!;
     expect(traitsFor(warning)).toMatchObject({ shape: "triangle", colour: "red" });
+  });
+
+  describe("temporary warning signs", () => {
+    const triangles = SIGNS.filter(
+      (s) => s.category === "warning" && !/hazard marker/i.test(s.subcategory),
+    );
+
+    it("are triangles, like every other warning sign", () => {
+      expect(triangles.filter((s) => traitsFor(s).shape !== "triangle")).toEqual([]);
+      expect(describeAppearance(SIGNS_BY_ID["warning-031-01"])).toBe("triangular and yellow");
+    });
+
+    it("are yellow exactly where the picture has a yellow background", () => {
+      // The yellow lamp on warning-030-04, a white sign, covers 3% of its crop.
+      // The smallest real background is 8%, on a crop shared with a second sign.
+      const inPixels = triangles.filter((s) => yellowShare(s.image) > 0.05).map((s) => s.id);
+      const inTraits = triangles.filter((s) => traitsFor(s).colour === "yellow").map((s) => s.id);
+      expect(inTraits).toEqual(inPixels);
+      expect(inTraits).toHaveLength(11);
+    });
+
+    it("are not read out of a sign's prose", () => {
+      // A meaning rewrite must not recolour a sign, in either direction.
+      const white = SIGNS_BY_ID["warning-027-01"];
+      const reworded = { ...white, name: `${white.name} (temporary)`, meaning: "A temporary gate." };
+      expect(traitsFor(reworded).colour).toBe("red");
+      const yellow = SIGNS_BY_ID["warning-039-01"];
+      expect(traitsFor({ ...yellow, meaning: "Road works." }).colour).toBe("yellow");
+    });
+  });
+
+  it("keeps diamond for the two signs that really are diamonds", () => {
+    const diamonds = SIGNS.filter((s) => traitsFor(s).shape === "diamond").map((s) => s.id);
+    expect(diamonds.sort()).toEqual(["information-043-05", "regulatory-007-04"]);
+    expect(describeAppearance(SIGNS_BY_ID["information-043-05"])).toBe("diamond-shaped and yellow");
+    expect(describeAppearance(SIGNS_BY_ID["regulatory-007-04"])).toBe("diamond-shaped and red");
+  });
+
+  it("offers no shape filter that no sign can match", () => {
+    for (const { id } of SHAPE_FILTERS) {
+      expect(SIGNS.some((s) => traitsFor(s).shape === id), id).toBe(true);
+    }
   });
 
   it("refuses to guess where a family genuinely mixes presentations", () => {

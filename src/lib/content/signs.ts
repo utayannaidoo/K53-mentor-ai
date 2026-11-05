@@ -29,8 +29,9 @@ interface RawSign {
  * alone as an option, and the rest says what the driver must do. Every fact is
  * sourced in docs/content/facts/signs.md ("Sign-page meanings batch").
  *
- * On a warning sign, avoid the word "temporary" unless the name has it:
- * traitsFor() reads it out of the meaning and reclassifies the sign.
+ * A meaning can't use a word of five letters or more that the sign's appearance
+ * text uses (tests/sign-dimensions.test.ts), such as "yellow" on a sign in
+ * YELLOW_WARNING_IDS (sign-traits.ts).
  */
 const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-006-01": {
@@ -151,7 +152,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-028-03": {
     name: "Uneven road ahead",
     meaning:
-      "The road surface ahead is uneven, with a dip, a ridge or potholes. Its yellow background shows this is a changed condition rather than the normal state of the road, so slow down early and hold the wheel firmly.",
+      "The road surface ahead is temporarily uneven, with a dip, a ridge or potholes. This is a changed condition rather than the normal state of the road, so slow down early and hold the wheel firmly.",
   },
   "warning-028-04": { name: "Speed humps ahead" },
   "warning-028-05": { name: "Road narrows from both sides" },

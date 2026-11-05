@@ -177,5 +177,12 @@ The SARTSM regulatory and road-marking chapters (`V1C2.pdf`, `V1C7.pdf`) are ove
 
 ### Conflicts found while sourcing (not changed by this batch)
 - **Solid yellow line**: the K53 manual's kerbside line is *no parking* [K53M p.83], and p.78 treats the yellow left edge line separately. `questions.extra.ts` ("A solid yellow line painted along the edge of the roadway") and `flashcards.extra.ts` (`fc3_park_yellow_edge`) teach the edge line as *no stopping*, as does the "Road markings" note above. Needs a read of SARTSM `V1C7.pdf`.
-- **Temporary warning signs**: `traitsFor()` calls them yellow diamonds. They are yellow-backed red-bordered triangles [K53M pp.28, 31, 39; RTSM §3.2.1 colour tables], so a public page can say "diamond-shaped" of a triangle.
 - **marking-084-05**: the K53 manual pairs a bicycle symbol with a caption about vehicles carrying disabled people [K53M p.84]. It stays unnamed.
+
+### Temporary warning signs are yellow triangles
+All temporary advance warning signs are a black symbol on a yellow background with a red triangular border [RTSM §3.1.5]. Each sign's colour table repeats this [RTSM §3.2.1 onward], and the chapter has no diamond-shaped sign. `traitsFor()` used to call them yellow diamonds, and the road-signs guide listed diamonds as a warning shape. Both are corrected.
+
+The signs on a yellow background are `warning-028-03`, `warning-031-01..06` and `warning-039-01..04` [K53M pp.28, 31, 39], which is 11 of the 59 warning triangles. Road works and grader working are temporary signs in their own right [RTSM §§3.4.29-3.4.30, signs TW336 and TW337], though the manual's captions never use the word. `warning-031-06` is a composite crop whose second sign is white [K53M p.31]. `warning-030-04` is a white sign with a yellow lamp in it, not a yellow-backed one [K53M p.30]. `tests/sign-traits.test.ts` checks this list against the crops' pixels.
+
+### The two real diamonds
+Exactly two signs in the catalogue are diamonds, and neither is a warning. `regulatory-007-04` Pedestrian priority is a red diamond [K53M p.7; [SA Dept of Transport, Road Traffic Signs manual, June 2012](https://www.arrivealive.co.za/documents/presentations/2%20manual%20on%20road%20traffic%20signs%20jun%202012%20final.pdf), printed p.2], and `information-043-05` Priority road is a yellow diamond on a white one [K53M p.43]. A geometric scan of all 439 crops, checked by eye, found no others. The library's Diamond filter now returns these two.
