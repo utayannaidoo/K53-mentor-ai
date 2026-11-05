@@ -284,6 +284,14 @@ describe("programmatic pages", () => {
     expect(INDEXED_SIGN_PAGES.length).toBeGreaterThanOrEqual(151);
   });
 
+  it("no indexed sign page has a meaning under 15 words", () => {
+    // isIndexableSign only asks for six words beyond the name, and the meaning
+    // is the one part of the page that is unique to it. Every page clears this
+    // today, so a shorter meaning is a regression.
+    const short = INDEXED_SIGN_PAGES.filter((p) => p.sign.meaning.trim().split(/\s+/).length < 15);
+    expect(short.map((p) => p.slug)).toEqual([]);
+  });
+
   it("no question page is thin", () => {
     // A category page with a handful of questions is the thin, near-duplicate
     // page that drags a whole section down. The starter pack is generated, so
