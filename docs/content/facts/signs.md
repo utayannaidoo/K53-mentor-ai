@@ -123,7 +123,7 @@ All 118 meanings were checked against [DOT], which corrected several first draft
 ### Warning signs: road situations
 - **warning-027-02, gate / boom**: road may be closed by a gate, or a railway crossing with gates, booms or barriers [RTSM §3.4.12]. Be ready to stop if it is closing or closed [DOT p.28].
 - **warning-028-02, tar begins**: the change of surface may need less speed, and the join commonly breaks up and can become a hazard [RTSM §3.4.20]. Flying stones on gravel [AA-GRAVEL].
-- **warning-028-03, uneven road**: depression, ridge or potholes that call for less speed [RTSM §3.4.25]; yellow version [K53M p.28]. Firm grip on loose or uneven surfaces [AA-WORKS].
+- **warning-028-03, uneven road**: depression, ridge or potholes that call for less speed [RTSM §3.4.25]; the temporary yellow version [K53M p.28]. Slow down to avoid potholes without endangering other traffic [DOT p.29].
 - **warning-029-02, falling rocks**: rocks or stones in loose rock cuttings [RTSM §3.4.28]; especially after rain [K53M p.29]; watch the cutting (Bank: hazard batch).
 - **warning-029-04, jetty or river bank**: the road leads to one [RTSM §3.4.39], close to the road [K53M p.29].
 - **warning-030-01..03, 031-04, 031-05, dimension warnings**: the limit [K53M pp.30-31; RTSM §§3.4.16, 3.4.17, 3.4.48]. Long vehicles lack clearance on that layout [RTSM §3.4.17]. Triangle warns, red ring prohibits, passing it is the offence; width includes the load and length any trailer (Bank).

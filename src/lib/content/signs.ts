@@ -174,7 +174,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-028-03": {
     name: "Uneven road ahead",
     meaning:
-      "The road surface ahead is uneven, with a dip, a ridge or potholes. Its yellow background shows this is a changed condition rather than the normal state of the road, so slow down early and steer around potholes only where that does not endanger other traffic.",
+      "The road surface ahead is temporarily uneven, with a dip, a ridge or potholes. This is a changed condition rather than the normal state of the road, so slow down early and steer around potholes only where that does not endanger other traffic.",
   },
   "warning-028-04": {
     name: "Speed humps ahead",
