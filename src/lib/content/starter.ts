@@ -341,7 +341,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "No U-turn"
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"No overtaking by goods vehicles\". Drivers of heavy motor vehicles may not overtake another heavy vehicle for the next 500 m past this sign. The lorries in the symbol show who the ban is aimed at, so other vehicles may still overtake where road markings and conditions allow it.",
+    "explanation": "This is the regulatory sign \"No overtaking by goods vehicles\". Goods vehicles may not overtake for the next 500 m past this sign. The lorries in the symbol show who the ban is aimed at, so other vehicles may still overtake where road markings and conditions allow it.",
     "difficulty": 2,
     "scope": "learners",
     "image": "/signs/regulatory/regulatory-012-02.png"

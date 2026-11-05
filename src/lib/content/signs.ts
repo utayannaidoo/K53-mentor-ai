@@ -113,7 +113,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-027-02": {
     name: "Gate / railway boom ahead",
     meaning:
-      "The road ahead may be closed by a gate, or a railway crossing with gates, booms or barriers is coming up. Slow down and be ready to stop if the gate or boom is closing or already closed.",
+      "The road ahead may be closed by a gate, or a railway crossing with gates, booms or barriers is coming up. Slow down and be ready to stop if the gate or boom is closing or already closed. At a railway crossing, stop at least 5 m from the nearest rail.",
   },
   "warning-027-04": {
     name: "Steep descent ahead",
@@ -144,7 +144,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-040-07": {
     name: "Railway crossing",
     meaning:
-      "Railway lines cross the road here, so reduce speed and take extreme care. A second, lower cross shows two or more tracks, where one train can hide another. Look both ways, and if a train is coming, stop clear of the tracks and outside the railway reserve.",
+      "Railway lines cross the road here, so reduce speed and take extreme care. A second, lower cross shows two or more tracks, where one train can hide another. Look both ways, and if a train is coming, stop at least 5 m from the nearest rail and outside the railway reserve.",
   },
 
   // Batch 5 — names taken from the catalogue meanings, which state the sign
@@ -235,7 +235,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-012-06": {
     name: "No hawkers",
     meaning:
-      "Hawkers may not trade in this area at any time of the day or night. Drivers may not stop or park for hawkers here either, because this sign is used where the road is narrow or a parked vehicle could block other drivers' view.",
+      "Hawkers may not trade within 75 m on either side of this sign, at any time of the day or night. Do not stop or park for hawkers here either, because this sign is used where the road is narrow or a parked vehicle could block other drivers' view.",
   },
   "regulatory-012-07": { name: "No pedestrians" },
   "regulatory-014-03": {
@@ -371,7 +371,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-012-02": {
     name: "No overtaking by goods vehicles",
     meaning:
-      "Drivers of heavy motor vehicles may not overtake another heavy vehicle for the next 500 m past this sign. The lorries in the symbol show who the ban is aimed at, so other vehicles may still overtake where road markings and conditions allow it.",
+      "Goods vehicles may not overtake for the next 500 m past this sign. The lorries in the symbol show who the ban is aimed at, so other vehicles may still overtake where road markings and conditions allow it.",
   },
   "regulatory-012-03": { name: "No hooter" },
   "regulatory-013-01": { name: "Bus lane reservation" },
@@ -705,7 +705,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "marking-086-01": {
     name: "Railway crossing ahead marking",
     meaning:
-      "This long white X painted in your lane warns that a railway crossing is coming up. Slow down and look for trains and signals. If signals are flashing, wait until they stop, even with no train in sight, and stay off the tracks and out of the railway reserve.",
+      "This long white X painted in your lane warns that a railway crossing is coming up. Slow down and look for trains and signals. If signals are flashing, wait until they stop, even with no train in sight. Stop at least 5 m from the nearest rail and outside the railway reserve.",
   },
   "marking-087-01": {
     name: "Reversible lane double lines",
