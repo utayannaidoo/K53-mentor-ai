@@ -86,7 +86,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Rocks or stones can fall onto the road ahead from a cutting, especially after rain.",
-      "Road narrows at a bridge ahead.",
+      "The road gets narrower for a short stretch at a bridge ahead.",
       "Tractors or other slow farm vehicles regularly cross or enter the road ahead.",
       "An overhead structure or height gauge ahead limits vehicle height to the figure shown in metres."
     ],
@@ -120,7 +120,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "This long white triangle warns that a yield sign or yield line is coming up.",
       "You may not park here during the times shown on the road sign that goes with this line.",
       "These arrows warn that a solid line you may not cross is coming up in the road.",
-      "Traffic on neither side may cross these two solid white lines at any time."
+      "Traffic on neither side may cross these two solid white lines."
     ],
     "correctIndex": 0,
     "explanation": "Yield ahead marking: This long white triangle warns that a yield sign or yield line is coming up. It is advance notice only, so ease off now. Your duty to give way starts at the yield line.",
@@ -182,7 +182,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "The area is set aside for pedestrians.",
-      "Vehicles may not turn left here, so carry on and reach your destination another way.",
+      "Vehicles may not turn left here, but you may go straight on or turn right.",
       "Turn right at the next junction during these times.",
       "Steady red: stop behind the stop line and stay stopped until the signal changes."
     ],
@@ -243,7 +243,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "You may not stop here during the times shown on the road sign that goes with this line.",
-      "This lane is for buses only, so no other vehicle may drive, stop or park in it.",
+      "This lane is for buses only, during the times shown on the sign that goes with it.",
       "Yellow arrows in a lane show the direction traffic in that lane must take.",
       "Broad white blocks across the road mark a pedestrian crossing, the zebra-style version."
     ],
@@ -341,7 +341,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "No U-turn"
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"No overtaking by goods vehicles\". No over taking vehicles by goods vehicles for the next 500m.",
+    "explanation": "This is the regulatory sign \"No overtaking by goods vehicles\". Drivers of heavy motor vehicles may not overtake another heavy vehicle for the next 500 m past this sign. The lorries in the symbol show who the ban is aimed at, so other vehicles may still overtake where road markings and conditions allow it.",
     "difficulty": 2,
     "scope": "learners",
     "image": "/signs/regulatory/regulatory-012-02.png"
@@ -372,7 +372,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "Speed humps ahead"
     ],
     "correctIndex": 0,
-    "explanation": "This is the warning sign \"Grader working ahead\". A grader is working on the road ahead, on its own or as part of larger road works. Slow down and give it room. Work like this moves along the road, and loose material can damage your vehicle, so overtake only when you can see the way is clear.",
+    "explanation": "This is the warning sign \"Grader working ahead\". A grader is working on the road ahead, on its own or as part of larger road works. Drive slowly past it, because the full width of the road may not be available, and sand or gravel on the surface can affect how your vehicle handles.",
     "difficulty": 2,
     "scope": "learners",
     "image": "/signs/warning/warning-039-02.png"
@@ -382,13 +382,13 @@ export const STARTER_QUESTIONS: Question[] = [
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "You may not stop here at all, not even for a moment to drop someone off.",
-      "To prohibit vehicles from turning left at an intersection.",
+      "You may not stop here, not even for a moment to drop someone off.",
+      "You may not turn left at the intersection ahead.",
       "To prohibit pedestrians from proceeding past this sign where they could cause danger to themselves and vehicles.",
       "To prohibit noise, if the noise level of your vehicle is high, you may not proceed past the sign."
     ],
     "correctIndex": 0,
-    "explanation": "No stopping: You may not stop here at all, not even for a moment to drop someone off. The ban keeps traffic flowing and stops stationary vehicles from blocking other drivers' view.",
+    "explanation": "No stopping: You may not stop here, not even for a moment to drop someone off. The only exceptions are to obey a traffic light or traffic officer or to avoid a collision. The ban keeps traffic flowing and stops stationary vehicles from blocking other drivers' view.",
     "difficulty": 3,
     "scope": "learners",
     "image": "/signs/regulatory/regulatory-011-06.png"
@@ -514,7 +514,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "No hooter"
     ],
     "correctIndex": 0,
-    "explanation": "This is the regulatory sign \"No right turn at intersection\". To prohibit vehicles from turning right at an intersection.",
+    "explanation": "This is the regulatory sign \"No right turn at intersection\". You may not turn right at the intersection ahead. The yellow background marks a temporary version, which binds you just the same, so stay out of any right-turn lane and take another route.",
     "difficulty": 2,
     "scope": "learners",
     "image": "/signs/regulatory/regulatory-011-04.png"
@@ -524,13 +524,13 @@ export const STARTER_QUESTIONS: Question[] = [
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "Vehicles may not turn right here, so plan another route before you reach this point.",
+      "Vehicles may not turn right here, but you may go straight on or turn left.",
       "To prohibit noise, if the noise level of your vehicle is high, you may not proceed past the sign.",
-      "To prohibit vehicles from turning left at an intersection.",
-      "Overtaking other vehicles is prohibited until you pass the sign that ends the restriction."
+      "You may not turn left at the intersection ahead.",
+      "You may not overtake any vehicle for the next 500 m past this sign, or for the distance on a plate below it."
     ],
     "correctIndex": 0,
-    "explanation": "No right turn: Vehicles may not turn right here, so plan another route before you reach this point. A yellow disc in place of the white one marks a temporary version, and it binds you just the same.",
+    "explanation": "No right turn: Vehicles may not turn right here, but you may go straight on or turn left. A yellow disc in place of the white one marks a temporary version, and it binds you just the same.",
     "difficulty": 1,
     "scope": "learners",
     "image": "/signs/regulatory/regulatory-011-02.png"
@@ -571,13 +571,13 @@ export const STARTER_QUESTIONS: Question[] = [
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "End of lane use reservation and all vehicles may now use this lane.",
-      "You no longer need to drive with your headlights switched on.",
+      "The reserved lane ends here, and all vehicles may now use it.",
+      "You no longer have to keep your headlights on from this sign onwards.",
       "The toll road finishes at this sign, so its toll rules no longer apply.",
       "This dual-carriage freeway ends here, and freeway rules no longer apply beyond the sign."
     ],
     "correctIndex": 0,
-    "explanation": "End of lane reservation: End of lane use reservation and all vehicles may now use this lane.",
+    "explanation": "End of lane reservation: The reserved lane ends here, and all vehicles may now use it. Check your mirrors and blind spot before moving across, because other traffic may already be travelling in it.",
     "difficulty": 3,
     "scope": "learners",
     "image": "/signs/regulatory/regulatory-017-04.png"
@@ -636,7 +636,7 @@ export const STARTER_QUESTIONS: Question[] = [
     "prompt": "What does this road sign mean?",
     "options": [
       "Water crosses the road at a drift ahead.",
-      "Road narrows at a bridge ahead.",
+      "The road gets narrower for a short stretch at a bridge ahead.",
       "Two side roads join yours ahead, close together and on opposite sides but not directly across from each other.",
       "A crossroad is coming up, and this sign gives no indication of which road has priority."
     ],
@@ -683,13 +683,13 @@ export const STARTER_QUESTIONS: Question[] = [
     "categoryId": "signs",
     "prompt": "What does this road sign mean?",
     "options": [
-      "You may not stop on or next to this solid red line at any time.",
+      "You may not stop on or next to this solid red line at any time, except in an emergency.",
       "This bay is kept for a vehicle carrying a disabled person, and no other vehicle may park in it.",
       "Yellow arrows in a lane show the direction traffic in that lane must take.",
       "Come to a complete stop behind this solid white line, and move off only when it is safe."
     ],
     "correctIndex": 0,
-    "explanation": "No stopping — solid red line: You may not stop on or next to this solid red line at any time. It is stricter than a yellow line, because even a quick halt to drop someone off is banned.",
+    "explanation": "No stopping — solid red line: You may not stop on or next to this solid red line at any time, except in an emergency. It is stricter than a yellow line, because even a quick halt to drop someone off is banned.",
     "difficulty": 3,
     "scope": "learners",
     "image": "/signs/marking/marking-083-02.png"
@@ -718,7 +718,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus.",
       "Temporary high speed exit countdown sign.",
       "Fitted below another sign, this plate tells you that blind people may be on or crossing the road ahead.",
-      "High speed freeway exit countdown signs."
+      "Each white bar on these signs counts down 100 m to the next freeway exit."
     ],
     "correctIndex": 0,
     "explanation": "Modal transfer point: Modal transfer. At this point you can change your mode of transport, e.g. from car to train or from train to bus.",
@@ -734,10 +734,10 @@ export const STARTER_QUESTIONS: Question[] = [
       "Sheep may be crossing or straying on the road ahead, often where fences are missing.",
       "The gravel road you are on changes to a tarred surface ahead.",
       "Antelope and other wild animals may stray onto the road ahead.",
-      "Road narrows at a bridge ahead."
+      "The road gets narrower for a short stretch at a bridge ahead."
     ],
     "correctIndex": 0,
-    "explanation": "Sheep ahead: Sheep may be crossing or straying on the road ahead, often where fences are missing. Slow down, watch both sides of the road and brake rather than swerve if one steps out.",
+    "explanation": "Sheep ahead: Sheep may be crossing or straying on the road ahead, often where fences are missing. Slow down, watch both sides of the road for the next 2 km and brake rather than swerve if one steps out.",
     "difficulty": 3,
     "scope": "learners",
     "image": "/signs/warning/warning-038-01.png"
@@ -876,7 +876,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "Parking bay markings"
     ],
     "correctIndex": 0,
-    "explanation": "This is the road marking \"No-crossing double line\". Traffic on neither side may cross these two solid white lines at any time. No part of your vehicle may go over, and the pair sometimes has a broken line running between them.",
+    "explanation": "This is the road marking \"No-crossing double line\". Traffic on neither side may cross these two solid white lines. The only exception is to get around a stationary vehicle or obstruction in the road. The pair sometimes has a broken line running between them.",
     "difficulty": 2,
     "scope": "learners",
     "image": "/signs/marking/marking-078-01.png"
@@ -936,7 +936,7 @@ export const STARTER_QUESTIONS: Question[] = [
       "Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right.",
       "Warthogs are known to stray onto the road in this area.",
       "A marked pedestrian crossing is coming up, and people may be on it when you arrive.",
-      "More people than usual may be walking on or beside the road ahead, with no marked crossing."
+      "More people than usual may be crossing or walking beside the road ahead, with no marked crossing."
     ],
     "correctIndex": 0,
     "explanation": "Skew T-junction ahead: Your road ends ahead at a T-junction set at an angle, so you will have to turn left or right. Because the roads meet at an angle, one of the turns is much tighter than the other, so slow down early and give way to traffic on the road you are joining.",
@@ -951,8 +951,8 @@ export const STARTER_QUESTIONS: Question[] = [
     "options": [
       "The lane on the left of the yellow line is reserved for the exclusive use of authorized public transport vehicles.",
       "Only police vehicles may park in this area.",
-      "This area is reserved for parking by the class of vehicle shown.",
-      "This area is reserved for parking, up to a maximum of 60 minutes."
+      "Only the class of vehicle shown by the symbol may park in this area.",
+      "This area is set aside for parking, as the white P on the blue sign shows."
     ],
     "correctIndex": 0,
     "explanation": "This regulatory sign: The lane on the left of the yellow line is reserved for the exclusive use of authorized public transport vehicles.",
@@ -2583,7 +2583,7 @@ export const STARTER_FLASHCARDS: Flashcard[] = [
     "id": "fcd_gen-sign-regulatory-014-03-meaning",
     "categoryId": "signs",
     "front": "What does this road sign mean?",
-    "back": "Parking for people with disabilities: Parking here is reserved for a vehicle carrying people with disabilities.",
+    "back": "Parking for people with disabilities: Parking here is only for a vehicle carrying people with disabilities. The wheelchair symbol below the P shows who it is kept for, and the same symbol may be painted in the bay itself.",
     "difficulty": 3,
     "image": "/signs/regulatory/regulatory-014-03.png"
   },
@@ -2675,7 +2675,7 @@ export const STARTER_FLASHCARDS: Flashcard[] = [
     "id": "fcd_gen-sign-regulatory-011-06-meaning",
     "categoryId": "signs",
     "front": "What does this road sign mean?",
-    "back": "No stopping: You may not stop here at all, not even for a moment to drop someone off. The ban keeps traffic flowing and stops stationary vehicles from blocking other drivers' view.",
+    "back": "No stopping: You may not stop here, not even for a moment to drop someone off. The only exceptions are to obey a traffic light or traffic officer or to avoid a collision.",
     "difficulty": 3,
     "image": "/signs/regulatory/regulatory-011-06.png"
   },

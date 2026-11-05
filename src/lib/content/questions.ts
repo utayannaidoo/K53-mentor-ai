@@ -222,7 +222,7 @@ const CORE_QUESTIONS: Question[] = [
     ],
     correctIndex: 1,
     explanation:
-      "The 'no overtaking' sign prohibits passing other vehicles until you pass the sign that ends the restriction. It is a regulatory (red-bordered) sign.",
+      "The 'no overtaking' sign prohibits passing any vehicle for the next 500 m, or for the distance on a plate below it. It is a regulatory (red-bordered) sign.",
     difficulty: 2,
     scope: "learners",
   },

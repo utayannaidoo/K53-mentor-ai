@@ -51,7 +51,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-007-03": {
     name: "Traffic circle ahead",
     meaning:
-      "A mini-circle or roundabout is ahead, and you must be ready to yield when you reach it. Slow down, give way to vehicles already in the circle and to those on your right, and travel clockwise around it.",
+      "A mini-circle or roundabout is ahead, and you must be ready to yield when you reach it. Slow down, give way to vehicles already in the circle and to any that will cross their yield line before you cross yours, and travel clockwise around it.",
   },
   "regulatory-007-04": {
     name: "Pedestrian priority",
@@ -60,7 +60,8 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   },
   "regulatory-008-01": {
     name: "No entry",
-    meaning: "No vehicles may enter this road in this direction at any time.",
+    meaning:
+      "No vehicles may enter this road in this direction at any time. You will usually meet it at the end of a one-way street or off-ramp, where traffic would be coming towards you, so find another route rather than turning in.",
   },
   "regulatory-008-02": { name: "One-way roadway (left)" },
   "regulatory-008-03": { name: "One-way roadway (right)" },
@@ -72,14 +73,18 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-011-01": {
     name: "No left turn",
     meaning:
-      "Vehicles may not turn left here, so carry on and reach your destination another way. The arrow inside the red ring shows which turn is banned, and its twin with the arrow pointing right bans the right turn instead.",
+      "Vehicles may not turn left here, but you may go straight on or turn right. The arrow inside the red ring shows which turn is banned, and its twin with the arrow pointing right bans the right turn instead.",
   },
   "regulatory-011-02": {
     name: "No right turn",
     meaning:
-      "Vehicles may not turn right here, so plan another route before you reach this point. A yellow disc in place of the white one marks a temporary version, and it binds you just the same.",
+      "Vehicles may not turn right here, but you may go straight on or turn left. A yellow disc in place of the white one marks a temporary version, and it binds you just the same.",
   },
-  "regulatory-011-05": { name: "No U-turn" },
+  "regulatory-011-05": {
+    name: "No U-turn",
+    meaning:
+      "You may not turn your vehicle around here to face the opposite direction. Carry on to a place where turning is allowed. A plate below the sign can limit the ban to certain times, such as at night.",
+  },
   "regulatory-011-07": {
     name: "No parking",
     meaning:
@@ -88,7 +93,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-012-01": {
     name: "No overtaking",
     meaning:
-      "Overtaking other vehicles is prohibited until you pass the sign that ends the restriction.",
+      "You may not overtake any vehicle for the next 500 m past this sign, or for the distance on a plate below it. Stay in line behind the vehicle ahead, however slowly it is moving, until the restriction has ended.",
   },
   "regulatory-022-01": {
     name: "Traffic signal — red",
@@ -97,18 +102,24 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   },
   "regulatory-022-03": {
     name: "Traffic signal — amber",
-    meaning: "Steady amber: stop, unless you are too close to stop safely.",
+    meaning:
+      "Steady amber: stop, unless you are too close to stop safely. Slow down as soon as it shows and wait behind the line for green. Drive through only if you could not stop safely before the line, never to beat the red.",
   },
   "regulatory-022-04": {
     name: "Traffic signal — green",
-    meaning: "Steady green: you may proceed if the way is clear.",
+    meaning:
+      "Steady green: you may proceed if the way is clear. You may go in any direction, subject to any road signs, but first give way to vehicles and pedestrians still crossing. Green gives you permission to go, not priority over them.",
   },
   "warning-027-02": {
     name: "Gate / railway boom ahead",
     meaning:
-      "The road ahead may be closed by a gate, or a railway crossing with gates, booms or barriers is coming up. Slow down and be ready to stop before it. At a railway crossing, stop at least 5 m from the nearest rail.",
+      "The road ahead may be closed by a gate, or a railway crossing with gates, booms or barriers is coming up. Slow down and be ready to stop if the gate or boom is closing or already closed.",
   },
-  "warning-027-04": { name: "Steep descent ahead" },
+  "warning-027-04": {
+    name: "Steep descent ahead",
+    meaning:
+      "A steep downhill stretch is ahead, which can be a particular hazard for heavy vehicles. Change to a lower gear before you start down if necessary, to protect your brakes from overheating, and allow a longer stopping distance, especially when heavily laden.",
+  },
   "warning-027-05": { name: "Steep ascent ahead" },
   "warning-037-01": {
     name: "Pedestrian crossing ahead",
@@ -118,19 +129,23 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-037-02": {
     name: "Pedestrians ahead",
     meaning:
-      "More people than usual may be walking on or beside the road ahead, with no marked crossing. Slow down and be ready to stop, as someone can step or run onto the road with little warning.",
+      "More people than usual may be crossing or walking beside the road ahead, with no marked crossing. Slow down and keep watching for the next 2 km, as someone can step or run onto the road with little warning.",
   },
   "warning-037-03": {
     name: "Children ahead",
     meaning:
-      "Children may be on or near the road ahead, close to a school, playground or sports field. Slow right down and cover the brake, and assume a child can run out from between parked cars without looking.",
+      "Children may be on or near the road ahead, close to a school, playground or sports field. Slow right down and cover the brake. Children can cross unexpectedly or even be playing in the road, and one can run out from between parked cars without looking.",
   },
   "warning-037-04": {
     name: "Cyclists ahead",
     meaning:
-      "Cyclists may be riding along or crossing the road ahead. Slow down and pass only when you can give them room. Before any left turn, check your left mirror and blind spot, because a rider may be beside you.",
+      "Cyclists may be riding along or crossing the road ahead. Slow down, watch for them for the next 2 km and pass only when you can give them room. Before any left turn, check your left mirror and blind spot, because a rider may be beside you.",
   },
-  "warning-040-07": { name: "Railway crossing" },
+  "warning-040-07": {
+    name: "Railway crossing",
+    meaning:
+      "Railway lines cross the road here, so reduce speed and take extreme care. A second, lower cross shows two or more tracks, where one train can hide another. Look both ways, and if a train is coming, stop clear of the tracks and outside the railway reserve.",
+  },
 
   // Batch 5 — names taken from the catalogue meanings, which state the sign
   // unambiguously for these ("Speed humps ahead.", "To prohibit hawkers…").
@@ -139,25 +154,53 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   // residential area) — all four matched. Naming a sign is what the generated
   // `name` questions quiz, so only signs whose identity is beyond doubt belong
   // here; anything needing a judgement call about which sign it is was left out.
-  "warning-027-01": { name: "Cattle grid ahead" },
-  "warning-027-03": { name: "Tunnel ahead" },
+  "warning-027-01": {
+    name: "Cattle grid ahead",
+    meaning:
+      "A motor gate with a cattle grid is ahead, on the side of the road the arrow shows. Slow down and pass through on that side, and make sure no oncoming vehicle is about to use the same gate.",
+  },
+  "warning-027-03": {
+    name: "Tunnel ahead",
+    meaning:
+      "A tunnel is coming up on the road ahead, and you may need your headlights to see in it. Slow down, switch them on dipped before you enter and do not overtake. You may not stop inside it or within 6 m of it.",
+  },
   "warning-027-06": { name: "Slow-moving vehicles ahead" },
   "warning-028-01": { name: "Gravel road begins" },
   "warning-028-02": {
     name: "Tarred road begins",
     meaning:
-      "The gravel road you are on changes to a tarred surface ahead. Slow down for the change, because the join itself often breaks up and can become a hazard, and keep your distance until you are clear of flying stones.",
+      "The gravel road you are on changes to a tarred surface ahead. Slow down for the change and look out for ditches or potholes at the join, which often breaks up, and keep your distance until you are clear of flying stones.",
   },
   "warning-028-03": {
     name: "Uneven road ahead",
     meaning:
-      "The road surface ahead is uneven, with a dip, a ridge or potholes. Its yellow background shows this is a changed condition rather than the normal state of the road, so slow down early and hold the wheel firmly.",
+      "The road surface ahead is uneven, with a dip, a ridge or potholes. Its yellow background shows this is a changed condition rather than the normal state of the road, so slow down early and steer around potholes only where that does not endanger other traffic.",
   },
-  "warning-028-04": { name: "Speed humps ahead" },
-  "warning-028-05": { name: "Road narrows from both sides" },
-  "warning-028-06": { name: "Road narrows from one side" },
-  "warning-028-07": { name: "Road narrows at a bridge" },
-  "warning-029-01": { name: "Slippery road ahead" },
+  "warning-028-04": {
+    name: "Speed humps ahead",
+    meaning:
+      "Speed humps have been built across the road ahead to slow traffic down. Slow down enough to cross them without damaging the vehicle or losing control, release the brake before each hump, and obey any speed limit sign posted with them.",
+  },
+  "warning-028-05": {
+    name: "Road narrows from both sides",
+    meaning:
+      "The road ahead narrows from both sides, and stays narrower for some distance. Slow down and keep well to the left, because oncoming vehicles will pass close to you.",
+  },
+  "warning-028-06": {
+    name: "Road narrows from one side",
+    meaning:
+      "The road ahead narrows from one side only, and stays narrower for some distance. Slow down and adjust your position, keeping well to the left, and if the narrowing is on your side, check your mirrors before moving across.",
+  },
+  "warning-028-07": {
+    name: "Road narrows at a bridge",
+    meaning:
+      "The road gets narrower for a short stretch at a bridge ahead. Slow down and approach with caution, and try not to cross at the same time as an oncoming vehicle. You may not stop on the bridge or within 6 m of it.",
+  },
+  "warning-029-01": {
+    name: "Slippery road ahead",
+    meaning:
+      "The road ahead can be unusually slippery, especially when wet. Slow down, because sudden braking or harsh steering can start a skid sooner than usual for about the next 2 km. If the vehicle skids, ease off and steer gently where you want to go.",
+  },
   "warning-029-02": {
     name: "Falling rocks ahead",
     meaning:
@@ -165,24 +208,56 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   },
   "regulatory-007-01": { name: "Stop / Go (manually operated)" },
   "regulatory-008-04": { name: "One-way roadway (straight ahead)" },
-  "regulatory-009-07": { name: "Proceed clockwise at the junction" },
+  "regulatory-009-07": {
+    name: "Proceed clockwise at the junction",
+    meaning:
+      "You must travel clockwise around the junction ahead, keeping the centre on your right. This blue disc is a command rather than a warning. Yield to vehicles approaching from your right in the roundabout when they are close enough to be a danger.",
+  },
   "regulatory-010-02": { name: "Buses and minibuses only" },
   "regulatory-010-05": { name: "Goods vehicles only" },
   "regulatory-010-06": { name: "Pedestrians only" },
   "regulatory-010-07": { name: "Cyclists and pedestrians only" },
-  "regulatory-011-03": { name: "No left turn at intersection" },
-  "regulatory-011-04": { name: "No right turn at intersection" },
-  "regulatory-012-05": { name: "No motorcycles" },
-  "regulatory-012-06": { name: "No hawkers" },
+  "regulatory-011-03": {
+    name: "No left turn at intersection",
+    meaning:
+      "You may not turn left at the intersection ahead. The bent arrow shows the ban applies at the junction, so get into a lane for another direction before you reach it and take a different route.",
+  },
+  "regulatory-011-04": {
+    name: "No right turn at intersection",
+    meaning:
+      "You may not turn right at the intersection ahead. The yellow background marks a temporary version, which binds you just the same, so stay out of any right-turn lane and take another route.",
+  },
+  "regulatory-012-05": {
+    name: "No motorcycles",
+    meaning:
+      "Motorcycles may not use this part of the carriageway, for safety reasons. Riders must stay out, and on a freeway they must leave at the first exit. The yellow background marks a temporary version with the same force as a permanent sign.",
+  },
+  "regulatory-012-06": {
+    name: "No hawkers",
+    meaning:
+      "Hawkers may not trade in this area at any time of the day or night. Drivers may not stop or park for hawkers here either, because this sign is used where the road is narrow or a parked vehicle could block other drivers' view.",
+  },
   "regulatory-012-07": { name: "No pedestrians" },
-  "regulatory-014-03": { name: "Parking for people with disabilities" },
-  "regulatory-014-05": { name: "Parking for authorised vehicles" },
+  "regulatory-014-03": {
+    name: "Parking for people with disabilities",
+    meaning:
+      "Parking here is only for a vehicle carrying people with disabilities. The wheelchair symbol below the P shows who it is kept for, and the same symbol may be painted in the bay itself.",
+  },
+  "regulatory-014-05": {
+    name: "Parking for authorised vehicles",
+    meaning:
+      "Only authorised vehicles, such as diplomatic cars, may park in this area, as the marking below the P shows. Everyone else must find parking elsewhere, however empty the space looks.",
+  },
   "regulatory-014-07": {
     name: "Parking for police vehicles",
     meaning:
       "Only police vehicles may park in this area. The blue sign with a P marks a parking reservation, and the police badge below the P shows who it is kept for.",
   },
-  "regulatory-017-02": { name: "End of headlights-on requirement" },
+  "regulatory-017-02": {
+    name: "End of headlights-on requirement",
+    meaning:
+      "You no longer have to keep your headlights on from this sign onwards. It cancels only the earlier instruction, so you still need lights between sunset and sunrise and whenever visibility drops below 150 m. Motorcyclists keep theirs on at all times.",
+  },
   "regulatory-017-05": {
     name: "End of dual-carriage freeway",
     meaning:
@@ -193,7 +268,11 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
     meaning:
       "This single-carriage freeway ends here, and freeway rules no longer apply beyond the sign. The freeway bans on stopping and on hand signals fall away, so watch for vehicles slowing or stopping at the roadside.",
   },
-  "regulatory-017-07": { name: "End of residential area" },
+  "regulatory-017-07": {
+    name: "End of residential area",
+    meaning:
+      "The residential area ends here, and its special rules stop applying. The 30 km/h limit no longer holds, so check for the speed limit now in force. Pedestrians may still be about, so keep watching for them.",
+  },
 
   // Batch 6 — junction-priority, dimension-warning, temporary and reservation
   // families. Same method as batch 5: the catalogue meaning names the sign
@@ -207,11 +286,19 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-029-04": {
     name: "Jetty or river bank ahead",
     meaning:
-      "The road ahead leads to a jetty edge or river bank, so there may be water just beyond the road. Slow down well before it and be ready to stop, because there may be little margin if you run wide.",
+      "The road ahead leads to a jetty edge or river bank, so there may be water just beyond the road. Slow down and look out for where the road ends, so that you can stop in time.",
   },
   "warning-029-05": { name: "Drift ahead" },
-  "warning-029-06": { name: "Reduced visibility ahead" },
-  "warning-029-07": { name: "Narrow structure ahead" },
+  "warning-029-06": {
+    name: "Reduced visibility ahead",
+    meaning:
+      "Mist, fog or smoke often cuts visibility on the road ahead. Slow down considerably, switch your headlights on and look out for slow-moving vehicles hidden in it.",
+  },
+  "warning-029-07": {
+    name: "Narrow structure ahead",
+    meaning:
+      "A bridge or other structure less than 5 m wide is ahead, with room for only one vehicle at a time. Slow down, and if there is oncoming traffic, stop at least 6 m from the structure and yield.",
+  },
   "warning-030-01": {
     name: "Length restriction ahead",
     meaning:
@@ -231,17 +318,17 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-031-01": {
     name: "Surface step ahead (temporary)",
     meaning:
-      "The level of the road surface changes suddenly ahead, usually where one section has been resurfaced. The step often lies along the old lane line, so slow down, hold the wheel firmly and steer smoothly if you have to cross it.",
+      "The level of the road surface changes suddenly ahead, usually where one section has been resurfaced. Slow down and avoid straddling the step, because the vehicle can pull to one side or react suddenly as a wheel climbs it. Do not jerk the steering.",
   },
   "warning-031-02": {
     name: "Soft shoulder ahead (temporary)",
     meaning:
-      "The shoulder at the edge of the road ahead is softer than you would expect, which makes pulling off dangerous. Stay on the surfaced lane unless you have no choice, because a wheel that drops onto it can drag the vehicle off the road.",
+      "The shoulder at the edge of the road ahead is softer than you would expect, which makes pulling off dangerous. Do not drive or stop on it. If you have no choice, for example to avoid a collision, slow down as much as possible, because the soft edge will pull the vehicle towards it.",
   },
   "warning-031-03": {
     name: "Loose stones ahead (temporary)",
     meaning:
-      "Loose stones or gravel lie on the road surface ahead, often after fresh resealing. Slow down and leave a longer gap, because stones thrown up by other vehicles can damage windscreens and paintwork.",
+      "Loose stones or gravel lie on the road surface ahead, often after fresh resealing. Slow down, because stones thrown up by other vehicles can damage windscreens and paintwork, and your braking and steering will be affected too.",
   },
   "warning-031-04": {
     name: "Width restriction ahead (temporary)",
@@ -262,7 +349,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-035-03": {
     name: "Priority crossroad ahead",
     meaning:
-      "You are on the lesser road, and a priority road crosses it ahead. The thick bar across the sign is the other road, so expect to give way to its traffic and be ready to stop.",
+      "You are on the lesser road, and a priority road crosses it ahead. The thick bar across the sign is the other road, so approach cautiously and yield to its traffic from the left and right.",
   },
   "warning-035-06": {
     name: "Side road junction ahead",
@@ -281,17 +368,33 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   },
   "regulatory-009-04": { name: "Pass on the side shown" },
   "regulatory-009-05": { name: "Proceed in the direction shown" },
-  "regulatory-012-02": { name: "No overtaking by goods vehicles" },
+  "regulatory-012-02": {
+    name: "No overtaking by goods vehicles",
+    meaning:
+      "Drivers of heavy motor vehicles may not overtake another heavy vehicle for the next 500 m past this sign. The lorries in the symbol show who the ban is aimed at, so other vehicles may still overtake where road markings and conditions allow it.",
+  },
   "regulatory-012-03": { name: "No hooter" },
   "regulatory-013-01": { name: "Bus lane reservation" },
-  "regulatory-014-01": { name: "Parking reservation" },
-  "regulatory-014-06": { name: "Time-limited parking" },
+  "regulatory-014-01": {
+    name: "Parking reservation",
+    meaning:
+      "This area is set aside for parking, as the white P on the blue sign shows. It is meant for vehicles under 3 500 kg, so park inside the marked bay and pay any fee that applies. A symbol or plate may limit it further.",
+  },
+  "regulatory-014-06": {
+    name: "Time-limited parking",
+    meaning:
+      "You may park here only for the time shown on the sign, such as 60 minutes. Pay any fee that applies, note when you arrive and move the vehicle before the limit is up.",
+  },
   "regulatory-017-03": {
     name: "End of mass restriction",
     meaning:
       "The vehicle mass limit posted earlier stops applying at this sign. Only the figure inside the crossed-out ring is lifted, so a new limit further on would apply in full.",
   },
-  "regulatory-017-04": { name: "End of lane reservation" },
+  "regulatory-017-04": {
+    name: "End of lane reservation",
+    meaning:
+      "The reserved lane ends here, and all vehicles may now use it. Check your mirrors and blind spot before moving across, because other traffic may already be travelling in it.",
+  },
 
   // Batch 7 — danger plates, information signs and the remaining reservation
   // variants. Danger-plate chevrons spot-checked against the rendered PNG.
@@ -301,25 +404,57 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   // variants of one marker), and the 013-02..05 reservation set, which differs
   // only by which side of the yellow line the lane sits. Two quiz answers that
   // differ by a detail the meaning does not state make a question a coin toss.
-  "warning-029-03": { name: "General warning" },
+  "warning-029-03": {
+    name: "General warning",
+    meaning:
+      "A hazard of a general or unusual kind is ahead, often explained on a plate below the sign. It covers things like fallen trees or subsidence, so slow down and look out for anything on or beside the road that could make you change speed or direction.",
+  },
   "warning-039-03": {
     name: "Construction vehicles ahead",
     meaning:
-      "Construction vehicles may enter or cross the road ahead, from the left, the right or both sides. Many are heavy and slow to clear the road, so ease off, watch the site entrances and leave a longer gap.",
+      "Construction vehicles may enter or cross the road ahead, from the left, the right or both sides. Many are heavy and slow to clear the road, so ease off and watch for anything they have spilt or dropped, such as gravel, sand or water.",
   },
-  "warning-040-01": { name: "Danger plate — pass this side" },
-  "warning-040-04": { name: "Overhead structure marker" },
-  "information-043-01": { name: "Freeway exit countdown markers" },
-  "information-043-03": { name: "No through road" },
-  "information-043-05": { name: "Priority road" },
+  "warning-040-01": {
+    name: "Danger plate — pass this side",
+    meaning:
+      "Pass the hazard on the side the arrowhead points to. These red and white plates are fixed to obstructions close to the road, such as bridge supports, culvert walls or unprotected posts, so slow down and keep clear.",
+  },
+  "warning-040-04": {
+    name: "Overhead structure marker",
+    meaning:
+      "This plate marks a bridge or other structure across the road above you. It is fixed where clearance is low, usually beside a height limit sign, so check that your vehicle and load fit before you drive under.",
+  },
+  "information-043-01": {
+    name: "Freeway exit countdown markers",
+    meaning:
+      "Each white bar on these signs counts down 100 m to the next freeway exit. You pass three bars at 300 m, two at 200 m and one at 100 m. If you are leaving the freeway, you should be in the left-hand lane by the time you reach them.",
+  },
+  "information-043-03": {
+    name: "No through road",
+    meaning:
+      "The red bar across the top shows that the road ahead is a dead end. Do not turn into it unless you are going to a destination on that road. The yellow version is the temporary form of the same sign.",
+  },
+  "information-043-05": {
+    name: "Priority road",
+    meaning:
+      "The road you are travelling on has priority at the junction ahead. Do not slow down unnecessarily, but make sure that other traffic is actually yielding before you go through.",
+  },
   "information-044-03": { name: "Modal transfer point" },
   "information-044-04": { name: "Information centre" },
   "regulatory-009-02": { name: "Alternative route to toll road" },
   "regulatory-010-04": { name: "Heavy goods vehicles only" },
   "regulatory-013-06": { name: "Reserved stop zone" },
   "regulatory-013-07": { name: "Temporary lane reservation" },
-  "regulatory-014-02": { name: "Parking for the class shown" },
-  "regulatory-014-04": { name: "Temporary parking reservation" },
+  "regulatory-014-02": {
+    name: "Parking for the class shown",
+    meaning:
+      "Only the class of vehicle shown by the symbol may park in this area. Any other vehicle must stay out, even when the space is empty. A reservation sets a space aside for that class rather than banning it.",
+  },
+  "regulatory-014-04": {
+    name: "Temporary parking reservation",
+    meaning:
+      "This area is reserved for the class of vehicle shown, but only for a limited period. Its yellow background marks it as temporary, with the same force as a permanent sign, so other vehicles must stay out while it is up.",
+  },
   "marking-081-01": { name: "Exclusive parking bay" },
 
   // Batch 8 — moving-hazard animals, junction layouts, and the stop/command
@@ -367,17 +502,17 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-037-07": {
     name: "Cattle ahead",
     meaning:
-      "Cattle may be crossing or straying on the road ahead, and where you see one, expect more. Slow down and be ready to stop. If someone herding them signals you to stop, you must.",
+      "Cattle may be crossing or straying on the road ahead, and where you see one, expect more. Slow down and keep watching for the next 2 km. If someone herding them signals you to stop, you must.",
   },
   "warning-038-01": {
     name: "Sheep ahead",
     meaning:
-      "Sheep may be crossing or straying on the road ahead, often where fences are missing. Slow down, watch both sides of the road and brake rather than swerve if one steps out.",
+      "Sheep may be crossing or straying on the road ahead, often where fences are missing. Slow down, watch both sides of the road for the next 2 km and brake rather than swerve if one steps out.",
   },
   "warning-038-02": {
     name: "Wild animals ahead",
     meaning:
-      "Antelope and other wild animals may stray onto the road ahead. Take special care at night and near bush or water, use your high beam when it is safe, and brake firmly rather than swerve if one jumps out.",
+      "Antelope and other wild animals may stray onto the road ahead. Slow down and look out for them for the next 2 km. Take special care at night and near bush or water, and brake firmly rather than swerve if one jumps out.",
   },
   "warning-038-03": {
     name: "Warthogs ahead",
@@ -402,12 +537,12 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "warning-039-01": {
     name: "Road works ahead",
     meaning:
-      "Road construction or maintenance is in progress ahead, so the lanes and surface may change. Slow down early, obey any speed limit and flag person, and expect workers on the road even if you cannot see them.",
+      "Road construction or maintenance is in progress ahead, so the lanes and surface may change. Slow down early, look out for other signs and people directing traffic or crossing the road, and expect workers even if you cannot see them.",
   },
   "warning-039-02": {
     name: "Grader working ahead",
     meaning:
-      "A grader is working on the road ahead, on its own or as part of larger road works. Slow down and give it room. Work like this moves along the road, and loose material can damage your vehicle, so overtake only when you can see the way is clear.",
+      "A grader is working on the road ahead, on its own or as part of larger road works. Drive slowly past it, because the full width of the road may not be available, and sand or gravel on the surface can affect how your vehicle handles.",
   },
   "regulatory-006-03": {
     name: "Three-way stop",
@@ -438,7 +573,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-011-06": {
     name: "No stopping",
     meaning:
-      "You may not stop here at all, not even for a moment to drop someone off. The ban keeps traffic flowing and stops stationary vehicles from blocking other drivers' view.",
+      "You may not stop here, not even for a moment to drop someone off. The only exceptions are to obey a traffic light or traffic officer or to avoid a collision. The ban keeps traffic flowing and stops stationary vehicles from blocking other drivers' view.",
   },
   "regulatory-012-04": { name: "No picking up of passengers" },
   "regulatory-017-01": {
@@ -480,12 +615,12 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "marking-077-01": {
     name: "Stop line",
     meaning:
-      "Come to a complete stop behind this solid white line, and move off only when it is safe. Do this every time, even if the road looks empty, because rolling slowly over the line does not count as stopping.",
+      "Come to a complete stop behind this solid white line, and move off only when it is safe. Do this every time, even if the road looks empty. Where there is no stop sign, the line on its own has the same force as one.",
   },
   "marking-077-02": {
     name: "Yield line",
     meaning:
-      "This broken white line across your lane is where you slow down and give way. Yield to cross traffic and to pedestrians crossing or waiting to cross, stopping only if the way is not clear. The same line applies at a railway crossing.",
+      "This broken white line across your lane is where you slow down and give way. Yield to anyone crossing or wanting to cross your path, stopping only if the way is not clear. It binds you even with no yield sign, and it also applies at a railway crossing.",
   },
   "marking-077-03": {
     name: "Pedestrian crossing markings",
@@ -500,12 +635,12 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "marking-077-05": {
     name: "No-overtaking line",
     meaning:
-      "No part of your vehicle may cross this solid white line, on its own or on your side of a broken line. The only exceptions are to reach a property on the other side or to get past a stationary obstruction.",
+      "No part of your vehicle may cross this solid white line, on its own or on your side of a broken line. The only exceptions are to reach or leave an entrance on the other side or to get past a stationary obstruction, and only when it is safe.",
   },
   "marking-078-01": {
     name: "No-crossing double line",
     meaning:
-      "Traffic on neither side may cross these two solid white lines at any time. No part of your vehicle may go over, and the pair sometimes has a broken line running between them.",
+      "Traffic on neither side may cross these two solid white lines. The only exception is to get around a stationary vehicle or obstruction in the road. The pair sometimes has a broken line running between them.",
   },
   "marking-079-04": {
     name: "Parking bay markings",
@@ -520,7 +655,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "marking-081-04": {
     name: "Lane reserved for buses",
     meaning:
-      "This lane is for buses only, so no other vehicle may drive, stop or park in it. The word BUS and a broken yellow line beside the lane show where the reservation runs.",
+      "This lane is for buses only, during the times shown on the sign that goes with it. No other vehicle may drive, stop or park in it then. The word BUS and a broken yellow line beside the lane show where the reservation runs.",
   },
   "marking-082-03": {
     name: "Lane reserved for bicycles",
@@ -530,12 +665,12 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "marking-082-04": {
     name: "Box junction",
     meaning:
-      "You may not stop on this yellow box unless you are entering the road from the side to turn left or right. Through traffic should wait behind it until the exit is clear, even on a green light, so the box stays open for vehicles coming out of the side road.",
+      "You may not stop inside this yellow box, because a vehicle waiting there blocks other traffic from turning or driving on. Enter only when you can see you will get right through the junction, even if your signal is green.",
   },
   "marking-083-02": {
     name: "No stopping — solid red line",
     meaning:
-      "You may not stop on or next to this solid red line at any time. It is stricter than a yellow line, because even a quick halt to drop someone off is banned.",
+      "You may not stop on or next to this solid red line at any time, except in an emergency. It is stricter than a yellow line, because even a quick halt to drop someone off is banned.",
   },
   "marking-083-03": {
     name: "No stopping — broken red line",
@@ -545,7 +680,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "marking-083-04": {
     name: "No parking — solid yellow line",
     meaning:
-      "You may not park on or next to this solid yellow line at any time. A brief halt to load or set someone down is still allowed, which is the difference from a solid red line.",
+      "You may not park on or next to this solid yellow line at any time. You may stop briefly, for no longer than it takes to load or drop off goods or passengers, which is the difference from a solid red line.",
   },
   "marking-084-01": {
     name: "No parking — broken yellow line",
@@ -570,7 +705,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "marking-086-01": {
     name: "Railway crossing ahead marking",
     meaning:
-      "This long white X painted in your lane warns that a railway crossing is coming up. Slow down and look for trains and signals. If signals are flashing, wait even with no train in sight, and stop at least 5 m from the nearest rail.",
+      "This long white X painted in your lane warns that a railway crossing is coming up. Slow down and look for trains and signals. If signals are flashing, wait until they stop, even with no train in sight, and stay off the tracks and out of the railway reserve.",
   },
   "marking-087-01": {
     name: "Reversible lane double lines",
@@ -580,12 +715,12 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "marking-087-03": {
     name: "No-overtaking line ahead",
     meaning:
-      "These arrows warn that a solid line you may not cross is coming up in the road. Do not start to overtake here, because you would have to cross that line to finish.",
+      "These arrows warn that a solid line you may not cross is coming up in the road. Do not start to overtake here, and if you are already on the right-hand side, move back to the left before the line begins.",
   },
   "marking-088-02": {
     name: "Furcation arrows",
     meaning:
-      "The number of lanes increases ahead, in the direction or directions the arrows point. Read them early and move smoothly into the lane for your route rather than cutting across at the last moment.",
+      "The number of lanes increases ahead, in the direction or directions the arrows point. Read them early and move smoothly into the lane for your route, taking care not to straddle the lane markings.",
   },
   "marking-088-04": {
     name: "Cycle crossing",
@@ -605,7 +740,7 @@ const CURATED: Record<string, { name: string; meaning?: string }> = {
   "regulatory-016-01": {
     name: "Residential area",
     meaning:
-      "Access is allowed, but you may not drive through a residential area without stopping to break your journey. Keep to 30 km/h and give way to all pedestrians, who have right of way. Vehicles over 3 500 kg or with more than 10 passenger seats may enter only for local access to load or offload goods.",
+      "Access is allowed, but you may not drive through a residential area without stopping to break your journey. Keep to 30 km/h, give way to all pedestrians and watch for children playing in the street. Vehicles over 3 500 kg or with more than 10 passenger seats may enter only for local access or deliveries.",
   },
   "regulatory-016-02": { name: "Dual-carriage freeway begins" },
   "regulatory-016-03": { name: "Single-carriage freeway begins" },
