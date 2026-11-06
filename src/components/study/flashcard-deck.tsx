@@ -12,6 +12,7 @@ import { useSpeechInput } from "@/hooks/use-speech-input";
 import { SpeakButton } from "@/components/study/speak-button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SessionProgress } from "@/components/ui/session-progress";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
@@ -377,6 +378,8 @@ export function FlashcardDeck() {
       <p className="mt-3 text-center text-xs text-muted-foreground">
         Rate honestly — it sets when you&apos;ll see this card again.
       </p>
+      {/* Well clear of the rating row, which is tapped over and over. */}
+      <AdSlot className="mt-16" />
     </div>
   );
 }
@@ -463,6 +466,8 @@ function Completion({
           cta={nextStep.cta}
         />
       )}
+      {/* The end of a session is the natural break: result and next step first. */}
+      <AdSlot className="mt-8" />
       <SessionRecap data={recap} className="mt-5" />
     </div>
   );

@@ -30,7 +30,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { useStudyStore } from "@/hooks/use-study-store";
 import { hasFeature, PLAN_MAP, studyCodeOf } from "@/lib/billing/plans";
 import { AdSlot } from "@/components/ads/ad-slot";
-import { routeAllowsAds } from "@/lib/ads";
+import { shellPlacesAd } from "@/lib/ads";
 import { groupOf } from "@/lib/content/vehicle";
 import { cn } from "@/lib/utils";
 
@@ -200,8 +200,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {pathname !== "/tutor" && <StreakBanner />}
           {children}
           {/* Free plan only, below the page's own content so it never sits
-              between a learner and the thing they came to do. */}
-          {routeAllowsAds(pathname) && <AdSlot className="mt-10" />}
+              between a learner and the thing they came to do. Keyed on the
+              route: this shell survives navigation within a section, so without
+              the key /study → /study/signs → /study is one ad for three pages. */}
+          {shellPlacesAd(pathname) && <AdSlot key={pathname} className="mt-10" />}
         </main>
         <RankUpToast />
         <TestDayDialog />

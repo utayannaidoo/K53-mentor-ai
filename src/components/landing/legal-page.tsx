@@ -1,3 +1,4 @@
+import * as React from "react";
 import Link from "next/link";
 import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
@@ -5,7 +6,25 @@ import { SITE_URL } from "@/lib/constants";
 import { JsonLd, PUBLISHER, breadcrumbSchema } from "@/lib/seo";
 import { GUIDES } from "@/app/guides/guides";
 import { GuideQuiz } from "@/components/guides/guide-quiz";
+import { PublicAdSlot } from "@/components/ads/public-ad-slot";
 import type { CategoryId } from "@/types";
+
+/**
+ * A guide's sections with an ad between them, halfway down. A reader who gets
+ * their answer early never reaches the end of the article, so the closing slot
+ * alone misses them. Every guide has at least four sections today; a shorter one
+ * would keep just the closing slot.
+ */
+function withMidArticleAd(children: React.ReactNode): React.ReactNode {
+  const sections = React.Children.toArray(children);
+  if (sections.length < 4) return children;
+  const middle = Math.ceil(sections.length / 2);
+  return [
+    ...sections.slice(0, middle),
+    <PublicAdSlot key="mid-article-ad" />,
+    ...sections.slice(middle),
+  ];
+}
 
 /** Shared chrome + prose layout for the legal/info pages linked from the footer. */
 export function LegalPage({
@@ -134,7 +153,8 @@ export function LegalPage({
           )}
           <p className="mt-4 text-muted-foreground">{intro}</p>
           <div className="mt-10 space-y-8 [&_h2]:font-display [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:tracking-tight [&_p]:mt-2 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-muted-foreground [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:space-y-1.5 [&_ul]:pl-5 [&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-muted-foreground [&_section_a]:font-medium [&_section_a]:text-primary [&_section_a]:underline [&_section_a]:underline-offset-4">
-            {children}
+            {/* Guides only. Terms, privacy and refunds never carry an ad. */}
+            {articleSlug ? withMidArticleAd(children) : children}
             {faq && faq.length > 0 && (
               <section>
                 <h2>Common questions</h2>
@@ -154,6 +174,7 @@ export function LegalPage({
               <GuideQuiz slug={articleSlug} categories={quiz.categories} />
             </div>
           )}
+          {articleSlug && <PublicAdSlot className="mt-12" />}
           {siblings.length > 0 && (
             <nav aria-label="More K53 guides" className="mt-14 border-t border-border pt-8">
               {/* Same type scale as the article's own sections — this reads as

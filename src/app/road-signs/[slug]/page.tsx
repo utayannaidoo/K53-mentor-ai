@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { MarketingNav } from "@/components/landing/marketing-nav";
+import { PublicAdSlot } from "@/components/ads/public-ad-slot";
 import { Footer } from "@/components/landing/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -187,6 +188,8 @@ export default async function SignPage({ params }: Props) {
             </section>
           )}
         </div>
+
+        <PublicAdSlot className="mt-10" />
 
         {related.length > 0 && (
           <nav aria-label="Related road signs" className="mt-12 border-t border-border pt-8">

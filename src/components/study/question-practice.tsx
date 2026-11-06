@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SessionProgress, type SessionOutcome } from "@/components/ui/session-progress";
 import { SessionNavRow } from "@/components/ui/session-nav";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { Paywall } from "@/components/app/paywall";
 import { sourceFor } from "@/lib/content/provenance";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
@@ -495,6 +496,8 @@ export function QuestionPractice() {
         finish={isLast}
         finishLabel="Finish session"
       />
+      {/* Well clear of the phone's Next bar, which is tapped over and over. */}
+      <AdSlot className="mt-16" />
     </div>
   );
 }
@@ -606,6 +609,8 @@ function Summary({
           onRepeat={onPracticeMore}
         />
       )}
+      {/* The end of a session is the natural break: score and next step first. */}
+      <AdSlot className="mt-8" />
       <SessionRecap data={recap} className="mt-5" />
     </div>
   );

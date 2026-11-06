@@ -19,6 +19,7 @@ import {
   Target,
   Timer,
 } from "lucide-react";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { PageHeader } from "@/components/app/app-shell";
 import { StudyNavigator } from "@/components/onboarding/study-navigator";
 import { Card } from "@/components/ui/card";
@@ -187,6 +188,10 @@ export default function StudyHubPage() {
           </Link>
         ))}
       </div>
+
+      {/* The busiest page in the app, and half of its visitors stop scrolling
+          before the shell's ad at the very bottom. */}
+      <AdSlot className="mt-6" />
 
       <Card data-tutorial="study-categories" className={cn(glass, "mt-6 p-6")}>
         <h2 className="font-display text-lg font-semibold">Study by category</h2>

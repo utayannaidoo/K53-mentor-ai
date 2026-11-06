@@ -11,6 +11,7 @@ import { PricingSection } from "@/components/landing/pricing-section";
 import { Faq } from "@/components/landing/faq";
 import { CtaBand } from "@/components/landing/cta-band";
 import { Footer } from "@/components/landing/footer";
+import { PublicAdSlot } from "@/components/ads/public-ad-slot";
 import { Reveal } from "@/components/shared/reveal";
 import { SmoothScroll } from "@/components/shared/smooth-scroll";
 import { APP_NAME, SEO_DESCRIPTION, SITE_URL } from "@/lib/constants";
@@ -105,6 +106,10 @@ export default function HomePage() {
         <Reveal>
           <CtaBand />
         </Reveal>
+        {/* Last, after the whole pitch: this page's job is to start people
+            studying, and every ad impression in the app depends on that. It is
+            requested only if someone scrolls this far. */}
+        <PublicAdSlot className="container mb-12" />
       </main>
       <Footer />
     </div>

@@ -14,6 +14,7 @@ import { Paywall } from "@/components/app/paywall";
 import { SignVisual, SignPreload } from "@/components/shared/sign-visual";
 import { signQuestionAlt } from "@/lib/content/sign-alt";
 import { ScoreRing } from "@/components/ui/score-ring";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { SessionRecap } from "@/components/study/session-recap";
 import { NextStepCard } from "@/components/study/next-step-card";
 import { SecondOpinion } from "@/components/study/second-opinion";
@@ -779,6 +780,9 @@ export function MockExam() {
             onRepeat={() => setPhase("intro")}
           />
         )}
+
+        {/* Results only. The paper itself stays ad-free: see NO_SHELL_AD_PREFIXES. */}
+        <AdSlot className="mt-8" />
 
         <SessionRecap
           className="mt-5"
