@@ -220,7 +220,7 @@ export const SIGNS_PACK_QUESTIONS: Question[] = [
     prompt: "A reservation sign with a bus symbol above a lane means:",
     options: [
       "Buses may not use this lane",
-      "The lane (left of the solid yellow line) is for the exclusive use of buses",
+      "The lane (left of the broken yellow line) is for the exclusive use of buses",
       "Bus stop ahead",
       "All heavy vehicles must use this lane",
     ],
@@ -515,18 +515,19 @@ export const SIGNS_PACK_QUESTIONS: Question[] = [
   {
     id: "q4_mark_yellow_edge",
     categoryId: "signs",
-    prompt: "A continuous yellow line along the LEFT edge of the roadway indicates:",
+    prompt: "Your car develops a fault on a road with a continuous yellow line along its LEFT edge. For the emergency stop you should:",
     options: [
-      "The start of a cycle lane",
-      "No stopping alongside it (except emergencies or where a sign permits)",
-      "Overflow parking",
-      "The road narrows ahead",
+      "Stop in your lane with your hazard lights on",
+      "Make every reasonable effort to get the whole car to the left of the line",
+      "Stop with your left wheels on the yellow line",
+      "Cross over and stop on the right-hand side of the road",
     ],
     correctIndex: 1,
     explanation:
-      "The yellow edge line is a no-stopping instruction painted onto the road itself — common where a stopped car would block visibility or flow.",
+      "This is the left edge line. It keeps you off the shoulder while you're driving, but it isn't a no-stopping line: the shoulder beyond it is where a breakdown belongs, clear of the traffic lane, with your hazard lights on.",
     difficulty: 2,
     scope: "learners",
+    source: "SA Learner Driver Manual (Dept of Transport, 2012), p.49; SADC RTSM Vol 1 Ch 7, §7.2.8 (RM4.1)",
   },
   {
     id: "q4_mark_arrow_lane",
@@ -578,7 +579,7 @@ export const SIGNS_PACK_FLASHCARDS: Flashcard[] = [
   { id: "fc4_no_left_int", categoryId: "signs", image: signImg("no_left_intersection"), front: "Red-ringed left arrow at an intersection?", back: "No left turn at this intersection.", difficulty: 1 },
   { id: "fc4_no_ot_trucks", categoryId: "signs", image: signImg("no_overtaking_trucks"), front: "No-overtaking sign with a truck symbol?", back: "Goods vehicles may not overtake (next 500 m). Cars unaffected.", difficulty: 2 },
   { id: "fc4_no_hooter", categoryId: "signs", image: signImg("no_hooter"), front: "Hooter in a red-ringed circle?", back: "No excessive noise/hooting past this sign — except to warn of real danger.", difficulty: 2 },
-  { id: "fc4_reserved_bus", categoryId: "signs", image: signImg("reserved_lane_bus"), front: "Bus symbol reservation sign over a lane?", back: "Lane reserved exclusively for buses (left of the solid yellow line).", difficulty: 2 },
+  { id: "fc4_reserved_bus", categoryId: "signs", image: signImg("reserved_lane_bus"), front: "Bus symbol reservation sign over a lane?", back: "Lane reserved exclusively for buses (left of the broken yellow line).", difficulty: 2 },
   { id: "fc4_no_stopping", categoryId: "signs", front: "No stopping vs no parking?", back: "No stopping: not even a brief halt. No parking: brief stop to load/drop allowed, leaving the car isn't.", difficulty: 2 },
   { id: "fc4_speed_blue", categoryId: "signs", front: "Speed number in a BLUE circle?", back: "MINIMUM speed command (freeways). Red ring = maximum.", difficulty: 3 },
 
@@ -604,5 +605,5 @@ export const SIGNS_PACK_FLASHCARDS: Flashcard[] = [
   { id: "fc4_mark_island", categoryId: "signs", front: "Diagonal stripes painted on the tar?", back: "Painted island — keep off except in a genuine emergency.", difficulty: 2 },
   { id: "fc4_mark_arrows", categoryId: "signs", front: "Painted lane arrow — advisory or law?", back: "Regulatory: in an arrow lane you must move in that direction, even if there by mistake.", difficulty: 2 },
   { id: "fc4_mark_zebra", categoryId: "signs", front: "Broad white stripes across the road?", back: "Pedestrian crossing — give way to pedestrians on or entering it.", difficulty: 1 },
-  { id: "fc4_mark_yellow", categoryId: "signs", front: "Continuous yellow edge line?", back: "No stopping alongside it (emergencies excepted).", difficulty: 2 },
+  { id: "fc4_mark_yellow", categoryId: "signs", front: "Continuous yellow line along the left edge?", back: "Left edge line: don't drive or overtake on the shoulder beyond it. For an emergency stop, get fully to its left.", difficulty: 2 },
 ];

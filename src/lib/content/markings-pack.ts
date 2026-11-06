@@ -44,18 +44,19 @@ export const MARKINGS_PACK_QUESTIONS: Question[] = [
   {
     id: "q6_mark_white_edge",
     categoryId: "signs",
-    prompt: "A continuous WHITE line along the left edge of your lane is:",
+    prompt: "On a freeway, a continuous WHITE line along the RIGHT edge of your carriageway, beside the median, means:",
     options: [
       "A no-stopping line",
-      "The edge (fog) line marking the left boundary of the travelled lane — useful in poor visibility",
+      "You may not drive or cross to the right of it",
       "A cycle-lane divider",
-      "A barrier line you may never cross",
+      "Slower traffic may use the area to its right",
     ],
     correctIndex: 1,
     explanation:
-      "The white edge line shows where your lane ends and the shoulder begins. In rain or mist it's a vital reference for staying in lane.",
+      "Edge lines come in two colours: yellow on the left, white on the right. The white one keeps you off the median, and a U-turn across it on a freeway is not permitted.",
     difficulty: 2,
     scope: "learners",
+    source: "SA Learner Driver Manual (Dept of Transport, 2012), p.49; SADC RTSM Vol 1 Ch 7, §7.2.8 (RM4.2)",
   },
   {
     id: "q6_mark_yellow_freeway_shoulder",
@@ -349,9 +350,10 @@ export const MARKINGS_PACK_QUESTIONS: Question[] = [
     ],
     correctIndex: 1,
     explanation:
-      "Painted kerbs flag stopping/parking rules (exact colour conventions vary by municipality). Read the nearby sign to know the specific restriction.",
+      "Red means no stopping and yellow means no parking. A solid line applies at all times; a broken one applies only during the hours on the sign that goes with it.",
     difficulty: 2,
     scope: "learners",
+    source: "SA Learner Driver Manual (Dept of Transport, 2012), p.51; SADC RTSM Vol 1 Ch 7, §§7.2.16-7.2.17",
   },
 ];
 
@@ -359,7 +361,7 @@ export const MARKINGS_PACK_FLASHCARDS: Flashcard[] = [
   // Lines
   { id: "fc6_double_solid", categoryId: "signs", front: "Double solid centre lines?", back: "No crossing or overtaking for EITHER direction.", difficulty: 2 },
   { id: "fc6_barrier_legal", categoryId: "signs", front: "Crossing a barrier (solid) line — how serious?", back: "A traffic offence, not just unwise — even on an empty road.", difficulty: 2 },
-  { id: "fc6_white_edge", categoryId: "signs", front: "Continuous white line at the LEFT edge?", back: "Edge (fog) line — the left boundary of your lane; key in poor visibility.", difficulty: 2 },
+  { id: "fc6_white_edge", categoryId: "signs", front: "Continuous white line at the RIGHT edge, beside the median?", back: "Right edge line: don't drive or cross to its right. The left edge line is yellow.", difficulty: 2 },
   { id: "fc6_yellow_shoulder", categoryId: "signs", front: "Yellow line + shoulder on a freeway?", back: "Shoulder is NOT a driving/overtaking lane — emergencies only.", difficulty: 2 },
 
   // Studs
