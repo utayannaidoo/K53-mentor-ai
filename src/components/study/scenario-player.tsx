@@ -28,6 +28,7 @@ import { SessionNavRow } from "@/components/ui/session-nav";
 import { Paywall } from "@/components/app/paywall";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { CategoryIcon } from "@/components/shared/category-icon";
+import { AdSlot } from "@/components/ads/ad-slot";
 import { SessionRecap } from "@/components/study/session-recap";
 import { NextStepCard } from "@/components/study/next-step-card";
 import { useStudyStore } from "@/hooks/use-study-store";
@@ -391,6 +392,8 @@ export function ScenarioPlayer() {
         finish={isLast}
         finishLabel="Finish session"
       />
+      {/* Well clear of the phone's Next bar, which is tapped over and over. */}
+      <AdSlot className="mt-16" />
     </div>
   );
 }
@@ -516,6 +519,9 @@ function Summary({
           onRepeat={onPlayMore}
         />
       )}
+
+      {/* The end of a session is the natural break: score and next step first. */}
+      <AdSlot className="mt-8" />
 
       {catRows.length > 0 && (
         <Card className="mt-5 p-6">

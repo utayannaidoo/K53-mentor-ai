@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { MarketingNav } from "@/components/landing/marketing-nav";
+import { PublicAdSlot } from "@/components/ads/public-ad-slot";
 import { Footer } from "@/components/landing/footer";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -155,6 +156,8 @@ export default async function QuestionCategoryPage({ params }: Props) {
             );
           })}
         </ol>
+
+        <PublicAdSlot className="mt-10" />
 
         <div className="mt-12 rounded-2xl border border-border bg-card p-8 text-center">
           <h2 className="font-display text-xl font-semibold tracking-tight">

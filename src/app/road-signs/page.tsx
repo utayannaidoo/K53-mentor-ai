@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { MarketingNav } from "@/components/landing/marketing-nav";
+import { PublicAdSlot } from "@/components/ads/public-ad-slot";
 import { Footer } from "@/components/landing/footer";
 import { SignBrowser } from "@/components/shared/sign-browser";
 import { VERIFIED_SIGNS } from "@/lib/content/signs";
@@ -63,6 +64,8 @@ export default function RoadSignsPage() {
         <div className="mt-8">
           <SignBrowser signs={VERIFIED_SIGNS} initialFilter="all" />
         </div>
+
+        <PublicAdSlot className="mt-12" />
 
         {/* The browser above opens each sign in a dialog, which has no URL. This
             index is the crawlable path to every sign's own page — plain links,

@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="2026-10-11"
+      updated="2026-11-05"
       intro={`This policy explains what ${APP_NAME} collects, why we collect it, and the choices you have. We collect as little as we can get away with — your study data exists to teach you, not to sell you.`}
     >
       <section>
@@ -94,8 +94,9 @@ export default function PrivacyPage() {
       <section>
         <h2>Advertising</h2>
         <p>
-          The Free plan is paid for by adverts, shown inside the app by Google AdSense. Paid plans
-          show no adverts and load no advertising code at all.
+          The Free plan is paid for by adverts from Google AdSense, shown inside the app and on our
+          public pages, such as the home page, guides and road-sign pages. Signed in on a paid plan,
+          you see no adverts and no advertising code is loaded at all.
         </p>
         <p>
           We ask Google for <strong>non-personalised</strong> adverts only. That means the adverts
@@ -155,7 +156,7 @@ export default function PrivacyPage() {
             <strong>PostHog</strong> — product analytics, as described above.
           </li>
           <li>
-            <strong>Google (AdSense)</strong> — adverts on the Free plan, as described above.
+            <strong>Google (AdSense)</strong> — adverts on the Free plan and our public pages, as described above.
             Receives your IP address, device and browser details and the page address directly
             from your browser. Not used on paid plans.
           </li>
