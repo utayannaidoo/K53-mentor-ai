@@ -124,9 +124,12 @@ names newly verified for this batch were spot-checked against the rendered PNGs.
 
 Written for the `meaning` field of signs in `CURATED` (`src/lib/content/signs.ts`): first the 81 whose public pages were noindexed as thin after the AdSense "low-value content" rejection of 2026-11-01, then the 37 older pages under 15 words. Wording is original; these notes are paraphrase. Researched 2026-11-05.
 
-**Which source wins:** where sources differ, the Department of Transport manual [DOT] takes precedence over the K53 and Motus manuals, because it is the department's own text. Differences are listed under "Conflicts" below.
+**Which source wins:** the law first: the AARTO offence schedule [AARTO], then the K53 test modules [K53T] for what a driver is tested on. Below those, the Department of Transport learner manual [DOT] takes precedence over the K53 and Motus manuals. [DOT] is the department's teaching text rather than the law, and on two points below the gazette and the K53 test side against it. Differences are listed under "Conflicts" below.
 
 Source keys:
+- **[AARTO p.N]**: Schedule 3 of the [AARTO Regulations, Government Gazette 31242, 16 July 2008](https://www.gov.za/sites/default/files/gcis_document/201409/gg31242nn753pg167-186.pdf), with pp.187-205 in a [separate file](https://www.gov.za/sites/default/files/gcis_document/201409/gg31242nn753pg187-205.pdf), read as rendered pages because the text layer is rough OCR. Item and charge numbers are given where used. These are short charge wordings, and the schedule has been amended since (a 2013 notice changed some entries), so check the current gazette before quoting an amount or code.
+- **[K53T]**: the K53 Practical Driving Test modules for level crossings: [Vol 1, code B, module 48](https://source.acts.co.za/national-road-traffic-act-1996/r94_6__module_48_level_crossin.php); [Vol 2, codes C1, C, EC1 and EC, module 46](https://source.acts.co.za/national-road-traffic-act-1996/r95_6__module_46_level_crossin_.php); [Vol 3, codes A1 and A, module 41](https://source.acts.co.za/national-road-traffic-act-1996/r96_6__module_41_level_crossin_.php).
+- **[CHART]**: the [Department of Transport road traffic sign chart, 2000](https://www.sartsma.co.za/_files/ugd/4f7773_f67422e7934a4141a73351ca9452b1f0.pdf), which gives each sign's official name.
 - **[DOT p.N]**: [SA Learner Driver Manual, Road Traffic Signs, v1.00, June 2012](https://www.arrivealive.co.za/documents/presentations/2%20manual%20on%20road%20traffic%20signs%20jun%202012%20final.pdf), compiled by the Department of Transport. Page numbers are the printed ones. It gives name, place, purpose and driver action per sign, and its text layer is clean. The natis.gov.za copy returned 404 on 2026-11-05.
 - **[K53M p.N]**: the iDriving School K53 manual (`iDriving-School-K53_optimized.pdf`), the PDF `scripts/extract_signs.py` builds the catalogue from. Its text layer drops most body copy, which is why the catalogue held stubs like "Stop line:" and cut-offs like "…indicated on the". Pages were rendered and read visually for this batch.
 - **[RTSM §N]**: [SADC Road Traffic Signs Manual Vol 1 Ch 3, Warning Signs, May 2012](https://www.transport.gov.za/wp-content/uploads/2023/02/V1C3.pdf).
@@ -152,7 +155,7 @@ All 118 meanings were checked against [DOT], which corrected several first draft
 - **regulatory-022-01, steady red**: stop behind the line [MOTUS pp.138-140]; a green arrow gives right of way if the intersection is clear [MOTUS pp.138-140].
 
 ### Warning signs: road situations
-- **warning-027-02, gate / boom**: road may be closed by a gate, or a railway crossing with gates, booms or barriers [RTSM §3.4.12]. Be ready to stop if it is closing or closed [DOT p.28].
+- **warning-027-02, gate / boom**: road may be closed by a gate, or a railway crossing with gates, booms or barriers [RTSM §3.4.12]. Be ready to stop if it is closing or closed [DOT p.28]. At least 5 m from the nearest rail [K53T].
 - **warning-028-02, tar begins**: the change of surface may need less speed, and the join commonly breaks up and can become a hazard [RTSM §3.4.20]. Flying stones on gravel [AA-GRAVEL].
 - **warning-028-03, uneven road**: depression, ridge or potholes that call for less speed [RTSM §3.4.25]; the temporary yellow version [K53M p.28]. Slow down to avoid potholes without endangering other traffic [DOT p.29].
 - **warning-029-02, falling rocks**: rocks or stones in loose rock cuttings [RTSM §3.4.28]; especially after rain [K53M p.29]; watch the cutting (Bank: hazard batch).
@@ -203,7 +206,7 @@ All 118 meanings were checked against [DOT], which corrected several first draft
 - **marking-084-02, no motorcycles**: may not proceed beyond it [K53M p.84].
 - **marking-084-03, mini-circle**: clockwise; give way to a vehicle that will cross a yield line first [K53M p.84; MOTUS pp.58-59].
 - **marking-084-04, disabled parking**: reserved, no other vehicle may park [K53M p.84]; matching sign [K53M p.14].
-- **marking-086-01, railway crossing ahead**: [K53M p.86]; flashing signals mean wait (Bank); stay out of the railway reserve [DOT pp.28, 34].
+- **marking-086-01, railway crossing ahead**: [K53M p.86]; flashing signals mean wait [DOT p.56]; at least 5 m from the nearest rail [K53T]; stopping in the railway reserve is an offence, Reg. 304(g) [AARTO p.198].
 - **marking-087-01, reversible lane**: the double-arrow lane carries oncoming traffic at set periods [K53M p.87].
 - **marking-087-03, no-overtaking line ahead**: solid line ahead, do not attempt to overtake [K53M p.87].
 - **marking-088-02, furcation arrows**: more lanes ahead in the arrows' direction [K53M p.88].
@@ -216,10 +219,10 @@ All 118 meanings were checked against [DOT], which corrected several first draft
 - **regulatory-009-07, roundabout**: clockwise; yield to vehicles from the right within it when close enough to be a danger [DOT p.10].
 - **regulatory-011-03 / 011-04, turn ahead prohibited**: do not turn at the intersection [DOT p.12]; the 011-04 crop is the yellow version [K53M p.11].
 - **regulatory-011-05, no U-turn**: [DOT p.12]; the night-time plate [DOT p.21; catalogue `regulatory-020-02`].
-- **regulatory-012-01, no overtaking**: any vehicle, next 500 m [DOT p.12]; a distance plate is a listed combination [DOT p.21].
-- **regulatory-012-02, no overtaking by heavy vehicles**: a heavy motor vehicle may not overtake another heavy vehicle [DOT p.12].
+- **regulatory-012-01, no overtaking**: within 500 m beyond the sign, items 1460-1461, charges 3864-3865 [AARTO p.175; DOT p.12]; a distance plate is a listed combination [DOT p.21].
+- **regulatory-012-02, no overtaking by goods vehicles**: official name "Overtaking by goods vehicle prohibited" [CHART]; a goods vehicle overtaking within 500 m beyond the sign, item 1462, charge 3866 [AARTO p.176]; [K53M p.12]. See the conflict note below.
 - **regulatory-012-05, no motorcycles**: may not enter; on a freeway, leave at the first exit [DOT p.13].
-- **regulatory-012-06, no hawkers**: used on narrow roads, near intersections or where parked vehicles impair vision; do not stop or park for hawkers [DOT p.15].
+- **regulatory-012-06, no hawkers**: a hawker may not trade within 75 m on either side of the sign, item 1492, charge 3896 [AARTO p.177]; day or night [K53M p.12]; do not stop or park for hawkers, and where the sign is used [DOT p.15].
 - **regulatory-014-01 / 014-06, parking**: vehicles under 3 500 kg, a fee may apply; time-limited bays, do not exceed the time shown [DOT p.16].
 - **regulatory-014-02 / 014-03 / 014-04 / 014-05, reservations**: for the class shown [K53M p.14; DOT pp.17-18]; authorised vehicles, such as the diplomatic corps [DOT p.18]; yellow = temporary [DOT p.3]; wheelchair symbol in the bay [K53M p.84].
 - **regulatory-017-02 / 017-04 / 017-07, de-restriction**: [K53M p.17; DOT p.22]; lights between sunset and sunrise, under 150 m visibility, and always for motorcycles [MOTUS p.66].
@@ -236,15 +239,14 @@ All 118 meanings were checked against [DOT], which corrected several first draft
 - **warning-029-07, narrow structure**: under 5 m [K53M p.29; RTSM §3.4.22]; stop at least 6 m from it and yield to oncoming traffic [DOT p.29].
 - **warning-040-01, danger plate**: arrowhead side [K53M p.40]; bridge abutments, culvert walls, unprotected posts [RTSM §3.5.1].
 - **warning-040-04, overhead plate**: mounted beside the height limit sign where clearance is low [RTSM §3.5.9; K53M p.40].
-- **warning-040-07, railway crossing**: one or more tracks; slow down, and stop if a train is coming, not on the track or in the reserve [DOT pp.28, 34]; extreme caution [RTSM §3.5]; one train can hide another (Bank: `rules.md`).
+- **warning-040-07, railway crossing**: one or more tracks; slow down, and stop if a train is coming [DOT pp.28, 34]; at least 5 m from the nearest rail [K53T]; stopping in the reserve is an offence, Reg. 304(g) [AARTO p.198]; extreme caution [RTSM §3.5]; one train can hide another (Bank: `rules.md`).
 - **information-043-01, countdown signs**: 300, 200 and 100 m [DOT p.46; MOTUS sheet 23]; be in the left lane by then [DOT p.42].
 - **information-043-03, cul-de-sac**: do not turn in unless going to a destination on that road [DOT p.46]; yellow = temporary [DOT p.3].
 - **information-043-05, right of way**: do not slow unnecessarily, but make sure other traffic yields [DOT p.46; MOTUS sheet 23].
 
 ### Checked against the Department of Transport manual
 These first drafts changed after [DOT] was read:
-- **regulatory-012-02**: the K53 manual reads as "any vehicle"; [DOT p.12] limits it to a heavy vehicle overtaking another heavy vehicle.
-- **regulatory-012-06**: the draft said drivers were unaffected; [DOT p.15] says not to stop or park for hawkers.
+- **regulatory-012-06**: the draft said drivers were unaffected; [DOT p.15] says not to stop or park for hawkers. The 75 m came later, from [AARTO p.177].
 - **regulatory-011-01 / 011-02**: added that you may go straight on or take the other turn [DOT p.12].
 - **regulatory-011-06**: added the exceptions: a traffic light, a traffic officer or avoiding a collision [DOT p.12].
 - **regulatory-007-03**: yield to vehicles in the circle or that will cross their yield line first [DOT p.5].
@@ -255,18 +257,18 @@ These first drafts changed after [DOT] was read:
 - **marking-077-05**: exceptions are an entrance on the other side, or a stationary obstruction, if safe [DOT p.48].
 - **marking-078-01**: one exception, a stationary vehicle or obstruction [DOT p.48].
 - **marking-081-04**: the bus lane applies during the times on the sign [DOT p.50].
-- **marking-082-04**: see the box junction conflict below [DOT p.51].
+- **marking-082-04**: see the box junction conflict below [DOT p.51]; the offence is entering the box while unable to move forward [AARTO p.187].
 - **marking-083-02 / 083-04**: emergency exception, and the definition of parking as longer than it takes to load or offload [DOT p.51].
 - **marking-087-03**: move back left before the line starts [DOT p.53].
 - **marking-088-02**: do not straddle the lane markings [DOT p.54].
 
 ### Conflicts found while sourcing
-Meanings follow [DOT] where it speaks. Items marked *open* were not changed by this batch.
+Meanings follow the source order at the top of this section. Items marked *open* are not settled.
 - **Box junction**: [K53M p.82] allows stopping when entering from the side to turn; [DOT p.51] has no such exception, so the meaning omits it.
 - **Double no-crossing line**: [K53M p.78] says "at any time"; [DOT p.48] allows passing a stationary vehicle or obstruction. The meaning follows [DOT].
 - **No overtaking**: older text said it runs until a sign ends it. [DOT p.12] and [K53M p.12] say the next 500 m, so `q_sign_no_overtaking` and `fc_no_overtaking` were corrected with this batch. The "Restrictions" note above ("runs until cancelled") is too broad for this sign.
-- **Railway stopping distance** (*open*): [MOTUS pp.138-140] says at least 5 m from the nearest rail; [DOT p.34] says no closer than 3 m. No meaning states a figure, and no question should until the regulations are checked.
-- **Goods-vehicle overtaking wording** (*open*): `signs-pack.ts` (`q4_sign_no_ot_trucks`, `fc4_no_ot_trucks`) and `signs-junctions-pack.ts` say goods vehicles may not overtake, without [DOT p.12]'s "another heavy vehicle".
+- **Railway stopping distance** (settled: at least 5 m): [DOT p.34] says no closer than 3 m where there is no stop line or sign. The K53 test says at least 5 m for every licence code [K53T], as do [MOTUS pp.138-140] and [Arrive Alive](https://www.arrivealive.co.za/print.aspx?i=2863). Teach 5 m: it is what the test asks, and it also satisfies the 3 m figure. No regulation stating a distance was found; the offence that was found, Reg. 304(g), is stopping within the railway reserve [AARTO p.198], so the meanings say both.
+- **Goods-vehicle overtaking** (settled: goods vehicles may not overtake for 500 m): [DOT p.12] says a heavy vehicle may not overtake "another heavy vehicle". The official sign name [CHART], the gazetted offence [AARTO p.176] and [K53M p.12] have no such limit, so the meaning follows them, and `q4_sign_no_ot_trucks`, `fc4_no_ot_trucks` and the `signs-junctions-pack.ts` item were already right and stay unchanged. A goods vehicle that does not overtake complies under either reading. No mass threshold was found in these sources, so none is stated.
 - **Road studs** (*open*): `markings-pack.ts` and the Sprint 3 note above teach red studs on the left edge and yellow studs on the right. The chapter pairs red with the right edge, no-overtaking and no-crossing lines and with wrong-way warnings, and yellow with yellow markings, which puts yellow on the left edge [RTSM7 §7.5.2].
 - **marking-084-05**: the K53 manual pairs a bicycle symbol with a caption about vehicles carrying disabled people [K53M p.84]. It stays unnamed.
 
