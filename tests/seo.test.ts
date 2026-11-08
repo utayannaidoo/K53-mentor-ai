@@ -5,7 +5,14 @@ import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { GUIDES } from "@/app/guides/guides";
 import { QUESTION_PAGES, questionsFor } from "@/lib/content/question-pages";
-import { INDEXED_SIGN_PAGES, SIGN_PAGES, isIndexableSign } from "@/lib/content/sign-pages";
+import {
+  INDEXED_SIGN_PAGES,
+  MIN_OWN_WORDS,
+  SIGN_PAGES,
+  isIndexableSign,
+  ownWords,
+} from "@/lib/content/sign-pages";
+import { PAGE_UPDATED } from "@/lib/page-dates";
 
 const ROOT = path.resolve(__dirname, "..");
 const read = (p: string) => readFileSync(path.join(ROOT, p), "utf8");
@@ -194,6 +201,30 @@ describe("sitemap", () => {
     }
   });
 
+  it("dates every entry with a real calendar date", () => {
+    // 171 of 188 entries had no date when the site was resubmitted to AdSense,
+    // which reads as a site nobody maintains. A date must be a real day, and
+    // never in the future (a build-time `now` would be today, then stale).
+    const today = new Date().toISOString().slice(0, 10);
+    for (const e of sitemap()) {
+      const date = String(e.lastModified ?? "");
+      expect(date, `${e.url} has no lastModified`).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(Number.isNaN(Date.parse(date)), `${e.url}: ${date}`).toBe(false);
+      expect(date <= today, `${e.url} is dated in the future`).toBe(true);
+    }
+  });
+
+  it("takes each info page's date from the same place as its Last updated line", () => {
+    // Same rule as the guides: one date, read by both the page and the sitemap.
+    for (const route of ["/about", "/privacy", "/refunds", "/sources", "/terms"] as const) {
+      const src = read(`src/app${route}/page.tsx`);
+      expect(src, `${route} hard-codes its date`).not.toMatch(/updated="/);
+      expect(src).toContain(`updated={PAGE_UPDATED["${route}"]}`);
+      const entry = sitemap().find((e) => new URL(e.url).pathname === route);
+      expect(entry?.lastModified).toBe(PAGE_UPDATED[route]);
+    }
+  });
+
   it("never lists a route robots disallows", () => {
     const rule = robots().rules;
     const disallow = (Array.isArray(rule) ? rule[0] : rule).disallow as string[];
@@ -245,43 +276,41 @@ describe("programmatic pages", () => {
     // AdSense rejected the site as "low-value content" while 152 near-identical
     // sign pages were 80% of the sitemap. A thin page may exist for visitors,
     // but submitting it is asking to be judged on it.
-    //
-    // Every verified sign has a real meaning today, so `thin` is empty until
-    // someone names a sign without writing one. The rule itself is pinned by the
-    // next test, so an empty list here can't hide a broken rule.
     const thin = SIGN_PAGES.filter((p) => !isIndexableSign(p.sign));
     for (const p of thin) expect(paths).not.toContain(`/road-signs/${p.slug}`);
     const src = read("src/app/road-signs/[slug]/page.tsx");
     expect(src).toMatch(/!isIndexableSign\(sign\) && \{ robots: \{ index: false/);
   });
 
-  it("a sign is indexable only when its meaning says more than its name, in whole sentences", () => {
+  it("indexes a sign page only when it says enough about its own sign, in whole sentences", () => {
+    const sentence = "Slow down and be ready to stop for animals crossing or standing on the road.";
+    const long = Array.from({ length: 12 }, () => sentence).join(" ");
+    expect(ownWords({ name: "Cattle ahead", meaning: long })).toBeGreaterThanOrEqual(MIN_OWN_WORDS);
+    expect(isIndexableSign({ name: "Cattle ahead", meaning: long })).toBe(true);
+
     expect(isIndexableSign({ name: "Cattle ahead", meaning: "Cattle ahead." })).toBe(false);
-    expect(isIndexableSign({ name: "Stop line", meaning: "Stop line:" })).toBe(false);
-    // Extraction fragments: the tail of the previous caption, or a cut-off clause.
-    expect(
-      isIndexableSign({
-        name: "No stopping",
-        meaning: "not being impaired by stationary vehicles on the road here.",
-      }),
-    ).toBe(false);
-    expect(
-      isIndexableSign({
-        name: "Box junction",
-        meaning: "Box junction: You may not stop on this painted marking unless you are entering the",
-      }),
-    ).toBe(false);
+    // One good sentence is a real meaning, and still a thin page.
     expect(
       isIndexableSign({
         name: "No entry",
         meaning: "No vehicles may enter this road in this direction at any time.",
       }),
-    ).toBe(true);
+    ).toBe(false);
+    // Extraction fragments stay out however long they are: the tail of the
+    // previous caption, or a clause cut off mid-way.
+    expect(isIndexableSign({ name: "No stopping", meaning: `not ${long}` })).toBe(false);
+    expect(isIndexableSign({ name: "Box junction", meaning: `${long} unless you are entering the` })).toBe(
+      false,
+    );
   });
 
-  it("keeps at least as many sign pages indexed as it had when the rule landed", () => {
-    // A ratchet, like content coverage: raise it as meanings are repaired.
-    expect(INDEXED_SIGN_PAGES.length).toBeGreaterThanOrEqual(151);
+  it("submits no sign page today: each says about 36 words of its own", () => {
+    // The 2026-11-08 decision. Every sign page is one meaning inside about 200
+    // words shared with the others, so none is submitted until a sign gets
+    // content of its own. Re-admitting signs is expected: when that happens,
+    // replace this with a check that each submitted page clears MIN_OWN_WORDS.
+    expect(INDEXED_SIGN_PAGES).toEqual([]);
+    expect(Math.max(...SIGN_PAGES.map((p) => ownWords(p.sign)))).toBeLessThan(MIN_OWN_WORDS);
   });
 
   it("no indexed sign page has a meaning under 15 words", () => {

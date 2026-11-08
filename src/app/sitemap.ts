@@ -1,21 +1,23 @@
 import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/constants";
+import { PAGE_UPDATED, type DatedPage } from "@/lib/page-dates";
 import { QUESTION_PAGES } from "@/lib/content/question-pages";
 import { INDEXED_SIGN_PAGES } from "@/lib/content/sign-pages";
 import { GUIDES } from "./guides/guides";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const page = (path: string, priority: number): MetadataRoute.Sitemap[number] => ({
+  const entry = (path: string, priority: number, lastModified: string): MetadataRoute.Sitemap[number] => ({
     url: `${SITE_URL}${path}`,
+    lastModified,
     changeFrequency: "monthly",
     priority,
   });
+  const page = (path: DatedPage, priority: number) => entry(path, priority, PAGE_UPDATED[path]);
 
-  // No `lastModified` on the static pages: this function re-renders on every
-  // build, so stamping `now` claimed every page had changed on every deploy — a
-  // fake date search engines learn to ignore at best. Guides are the exception
-  // because they carry a real one: the catalogue's `updated` is the same date
-  // the article displays, so the sitemap and the page cannot disagree.
+  // Every entry carries the date its content last changed, never the build
+  // time: this function re-renders on every deploy, and stamping `now` claimed
+  // every page had changed every time. Dates live in PAGE_UPDATED and the guide
+  // catalogue, which the pages' own "Last updated" lines read too.
   return [
     page("/", 1),
     page("/pricing", 0.9),
@@ -25,17 +27,18 @@ export default function sitemap(): MetadataRoute.Sitemap {
     page("/free-quiz", 0.9),
     page("/road-signs", 0.9),
     page("/k53-questions", 0.9),
-    ...QUESTION_PAGES.map((p) => page(`/k53-questions/${p.slug}`, 0.8)),
+    ...QUESTION_PAGES.map((p) =>
+      entry(`/k53-questions/${p.slug}`, 0.8, PAGE_UPDATED["/k53-questions"]),
+    ),
     page("/guides", 0.8),
     // The school product page: software for driving schools.
     page("/for-driving-schools", 0.7),
-    ...GUIDES.map((g) => ({ ...page(`/guides/${g.slug}`, 0.8), lastModified: g.updated })),
-    // One page per verified sign whose meaning says more than its name, each
-    // with its image so the sign can surface in image search — where "what
-    // does this sign mean" is often asked. Thin ones are noindex; see
-    // isIndexableSign.
+    ...GUIDES.map((g) => entry(`/guides/${g.slug}`, 0.8, g.updated)),
+    // Only sign pages that say enough about their own sign, each with its image
+    // for image search. None qualify today; the library above links them all.
+    // See isIndexableSign.
     ...INDEXED_SIGN_PAGES.map(({ slug, sign }) => ({
-      ...page(`/road-signs/${slug}`, 0.6),
+      ...entry(`/road-signs/${slug}`, 0.6, PAGE_UPDATED["/road-signs"]),
       images: [`${SITE_URL}${sign.image}`],
     })),
     // No /login or /signup: a form is not content, and both are noindex.

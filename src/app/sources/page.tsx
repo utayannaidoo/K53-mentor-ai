@@ -1,3 +1,4 @@
+import { PAGE_UPDATED } from "@/lib/page-dates";
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/landing/legal-page";
 import { APP_NAME } from "@/lib/constants";
@@ -11,7 +12,7 @@ export default function SourcesPage() {
   return (
     <LegalPage
       title="Content sources"
-      updated="2026-09-11"
+      updated={PAGE_UPDATED["/sources"]}
       intro={`Everything you study in ${APP_NAME} is aligned to official South African road-traffic material. This page lists what our content is based on and how we keep it honest.`}
     >
       <section>

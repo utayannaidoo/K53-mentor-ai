@@ -1,3 +1,4 @@
+import { PAGE_UPDATED } from "@/lib/page-dates";
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/landing/legal-page";
 import { APP_NAME, BUSINESS } from "@/lib/constants";
@@ -11,7 +12,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="2026-11-05"
+      updated={PAGE_UPDATED["/privacy"]}
       intro={`This policy explains what ${APP_NAME} collects, why we collect it, and the choices you have. We collect as little as we can get away with — your study data exists to teach you, not to sell you.`}
     >
       <section>

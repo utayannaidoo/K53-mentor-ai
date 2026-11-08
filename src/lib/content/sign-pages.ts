@@ -28,28 +28,41 @@ export const SIGN_PAGES: { slug: string; sign: RoadSign }[] = VERIFIED_SIGNS.map
 }));
 
 /**
+ * Words a sign page must say about its own sign before it is submitted for
+ * indexing: roughly as much as the copy every sign page shares (family rule,
+ * category blurb, the test-section paragraph and the call to action, about 200
+ * words). Below that, most of the page is the same as 150 others.
+ */
+export const MIN_OWN_WORDS = 150;
+
+/**
  * Whether a sign's page says enough to deserve a place in the index.
  *
- * Every sign page shares its family copy, the test-section paragraph and the
- * call to action; the meaning is the only part unique to it. When the meaning
- * just restates the name ("Cattle ahead.") or is an extraction fragment cut
- * mid-sentence ("…indicated on the"), the page is near-identical to a hundred
- * others. That is the pattern AdSense rejected the site for as "low-value
- * content" on 2026-11-01, when 152 such pages were 80% of the sitemap.
+ * AdSense rejected the site as "low-value content" on 2026-11-01, when 152 sign
+ * pages were 80% of the sitemap. Writing a real meaning for every sign (PR #128)
+ * did not change the shape: a crawl on 2026-11-08 found a median of 36 words
+ * unique to each page, inside about 200 words shared with all the others, and
+ * the meaning is the only per-sign text a page has. So no sign page qualifies
+ * today, and all of them are left out of the index until one says more.
  *
  * Thin pages stay up for visitors and keep their links; they are left out of
- * the sitemap and marked noindex. Fixing a sign's meaning in CURATED
- * re-admits its page with no other change.
+ * the sitemap and marked noindex. To re-admit one, give the sign more content
+ * of its own (what it is confused with, the exam trap, where you meet it),
+ * sourced like any other fact, and count it in `ownWords` below.
  */
 export function isIndexableSign(sign: Pick<RoadSign, "name" | "meaning">): boolean {
-  const words = (s: string) => s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  const name = new Set(words(sign.name));
-  const said = words(sign.meaning).filter((w) => !name.has(w)).length;
   const meaning = sign.meaning.trim();
   // A whole sentence: starts on a capital and ends on a full stop, not a
   // lowercase tail of the previous caption or a cut-off clause.
   const whole = /^[A-Z0-9]/.test(meaning) && /[.!?)]$/.test(meaning);
-  return said >= 6 && whole;
+  return whole && ownWords(sign) >= MIN_OWN_WORDS;
+}
+
+/** Words this sign's page says that no other sign page does, not counting its name. */
+export function ownWords(sign: Pick<RoadSign, "name" | "meaning">): number {
+  const words = (s: string) => s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
+  const name = new Set(words(sign.name));
+  return words(sign.meaning).filter((w) => !name.has(w)).length;
 }
 
 /** The sign pages submitted in the sitemap and open to indexing. */

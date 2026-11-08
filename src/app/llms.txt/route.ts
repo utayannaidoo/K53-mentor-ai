@@ -49,10 +49,16 @@ export function GET() {
     "",
     ...GUIDES.map((g) => link(g.title, `/guides/${g.slug}`, g.description)),
     "",
-    "## Road signs",
-    "",
-    ...INDEXED_SIGN_PAGES.map((p) => link(p.sign.name, `/road-signs/${p.slug}`, p.sign.meaning)),
-    "",
+    // Only the sign pages open to indexing; none are today (see isIndexableSign),
+    // and the library at /road-signs is linked above.
+    ...(INDEXED_SIGN_PAGES.length > 0
+      ? [
+          "## Road signs",
+          "",
+          ...INDEXED_SIGN_PAGES.map((p) => link(p.sign.name, `/road-signs/${p.slug}`, p.sign.meaning)),
+          "",
+        ]
+      : []),
     "## About",
     "",
     link("Pricing", "/pricing", "practice is free; paid plans add the AI tutor and remove ads"),
