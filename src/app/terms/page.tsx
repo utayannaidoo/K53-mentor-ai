@@ -1,3 +1,4 @@
+import { PAGE_UPDATED } from "@/lib/page-dates";
 import type { Metadata } from "next";
 import { LegalPage } from "@/components/landing/legal-page";
 import { APP_NAME } from "@/lib/constants";
@@ -12,7 +13,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of service"
-      updated="2026-08-08"
+      updated={PAGE_UPDATED["/terms"]}
       intro={`These terms apply when you use ${APP_NAME}. They're written to be read — the short version: we help you study, we don't write the test for you, and we ask you to use the service honestly.`}
     >
       <section>

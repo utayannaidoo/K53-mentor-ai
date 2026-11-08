@@ -1,3 +1,4 @@
+import { PAGE_UPDATED } from "@/lib/page-dates";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/landing/legal-page";
@@ -17,7 +18,7 @@ export default function RefundsPage() {
   return (
     <LegalPage
       title="Refund & cancellation policy"
-      updated="2026-08-08"
+      updated={PAGE_UPDATED["/refunds"]}
       intro={`This policy explains how to cancel your ${APP_NAME} subscription, when you can get a refund, and how we handle billing disputes. The short version: you can cancel yourself at any time in a couple of taps, we never bill you again after that, and if something went wrong with a charge we'll make it right.`}
     >
       <section>

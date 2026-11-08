@@ -1,3 +1,4 @@
+import { PAGE_UPDATED } from "@/lib/page-dates";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/landing/legal-page";
@@ -34,7 +35,7 @@ export default function AboutPage() {
   return (
     <LegalPage
       title={`About ${APP_NAME}`}
-      updated="2026-11-01"
+      updated={PAGE_UPDATED["/about"]}
       intro={`${APP_NAME} is a South African study site for the K53 learner's and driver's licence tests. This page explains who it is for, where the material comes from, how we check it, and how the site pays for itself.`}
     >
       <section>
