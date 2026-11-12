@@ -103,12 +103,11 @@ describe("client / content boundary", () => {
     //  - guide-quiz: the five-question quiz at the foot of each guide, for
     //    signed-out search visitors. Same terms as product-preview: imported
     //    lazily on mount, learner's-scope starter items only, never the bank.
-    //  - free-quiz: the ungated /free-quiz page, the link destination for
-    //    social traffic, so it must work with no account at all. Same terms
-    //    again — the starter pack is the ceiling, never the bank.
+    //
+    // free-quiz left this list when /free-quiz began picking its ten questions
+    // on the server and passing them down as a prop.
     const SANCTIONED = [
       "content-provider.tsx",
-      "free-quiz.tsx",
       "guide-quiz.tsx",
       "product-preview.tsx",
     ];
