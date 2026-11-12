@@ -15,7 +15,7 @@
 export const PAGE_UPDATED = {
   "/": "2026-10-24",
   "/pricing": "2026-10-24",
-  "/free-quiz": "2026-10-24",
+  "/free-quiz": "2026-11-12",
   // The library renders every verified sign's meaning, so it changes with them.
   "/road-signs": "2026-11-07",
   // The index and each topic page are built from the starter question pack.

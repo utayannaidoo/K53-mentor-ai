@@ -6,7 +6,7 @@ import { withShuffledOptions } from "./shuffle-options";
 export const QUIZ_SIZE = 10;
 
 /** Roughly the real paper's shape (28 signs / 28 rules / 8 controls), at 1/6 scale. */
-const MIX: Record<ExamSection, number> = { signs: 4, rules: 4, controls: 2 };
+export const MIX: Record<ExamSection, number> = { signs: 4, rules: 4, controls: 2 };
 
 export function pickQuestions(pool: Question[]): Question[] {
   const bySection = new Map<ExamSection, Question[]>();

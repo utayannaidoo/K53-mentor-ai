@@ -6,7 +6,7 @@ import { ArrowRight, Check, CornerDownRight, X } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { SignVisual } from "@/components/shared/sign-visual";
 import { EXAM_FORMAT, SECTION_LABEL, SECTION_OF, type ExamSection } from "@/lib/constants";
-import { pickQuestions, QUIZ_SIZE } from "@/lib/quiz/free-quiz";
+import { QUIZ_SIZE } from "@/lib/quiz/free-quiz";
 import { track } from "@/lib/analytics";
 import { cn } from "@/lib/utils";
 import type { Question } from "@/types";
@@ -28,42 +28,25 @@ import type { Question } from "@/types";
 const LETTERS = ["A", "B", "C", "D"];
 type Answer = { question: Question; selected: number };
 
-export function FreeQuiz() {
-  const [questions, setQuestions] = React.useState<Question[] | null>(null);
+/**
+ * `questions` is the sample the page picked on the server. It arrives as a
+ * prop, so the first question is in the HTML (for a crawler, and for a learner
+ * before the script loads) and the client never has to choose a sample of its
+ * own that could disagree with it. The page re-picks on a timer; see there.
+ */
+export function FreeQuiz({ questions }: { questions: Question[] }) {
   const [answers, setAnswers] = React.useState<Answer[]>([]);
   const [selected, setSelected] = React.useState<number | null>(null);
 
-  // Picked after mount, not during render: the sample is random, and a random
-  // sample chosen on the server never matches the one the client would choose.
-  // Imported here rather than at module scope for the same reason the landing
-  // demo does it — the pack is ~31KB that only this page needs.
-  React.useEffect(() => {
-    let live = true;
-    void import("@/lib/content/starter").then(({ STARTER_QUESTIONS }) => {
-      if (live) setQuestions(pickQuestions(STARTER_QUESTIONS));
-    });
-    return () => {
-      live = false;
-    };
-  }, []);
-
   const index = answers.length;
-  const done = questions !== null && index >= questions.length;
-  const current = questions?.[index];
+  const done = index >= questions.length;
+  const current = questions[index];
 
   const score = answers.filter((a) => a.selected === a.question.correctIndex).length;
 
   React.useEffect(() => {
     if (done) track("free_quiz_completed", { score, total: QUIZ_SIZE });
   }, [done, score]);
-
-  if (!questions) {
-    return (
-      <div className="glass-2 flex h-[520px] items-center justify-center rounded-2xl border border-border">
-        <p className="text-sm text-muted-foreground">Loading your questions…</p>
-      </div>
-    );
-  }
 
   if (done) return <Results answers={answers} />;
   if (!current) return null;
