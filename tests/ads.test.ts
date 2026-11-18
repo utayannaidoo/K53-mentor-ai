@@ -67,18 +67,13 @@ describe("the most-used pages keep a placement", () => {
     ["src/app/page.tsx", "PublicAdSlot"],
     ["src/components/landing/legal-page.tsx", "PublicAdSlot"],
     ["src/app/road-signs/page.tsx", "PublicAdSlot"],
+    // The sign family pages, which replaced 151 templated single-sign pages
+    // that were kept ad-free on purpose (no ad code on auto-generated pages
+    // with little original content).
+    ["src/app/road-signs/[category]/page.tsx", "PublicAdSlot"],
     ["src/app/k53-questions/[category]/page.tsx", "PublicAdSlot"],
   ])("%s renders %s", (file, slot) => {
     expect(source(file)).toContain(`<${slot}`);
-  });
-
-  it("keeps ads off the templated single-sign pages", () => {
-    // 151 pages from one template, each mostly shared text. AdSense's guidance
-    // is no ad code on auto-generated pages with little original content, and
-    // its crawler reads these whether or not they say noindex. The library at
-    // /road-signs keeps its slot. Put one back here only once each sign page
-    // stands on its own content.
-    expect(source("src/app/road-signs/[slug]/page.tsx")).not.toContain("PublicAdSlot");
   });
 
   it("gives each route its own shell ad, so moving around a section earns a new one", () => {

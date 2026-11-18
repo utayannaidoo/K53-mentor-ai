@@ -16,8 +16,12 @@ export const PAGE_UPDATED = {
   "/": "2026-10-24",
   "/pricing": "2026-10-24",
   "/free-quiz": "2026-11-12",
-  // The library renders every verified sign's meaning, so it changes with them.
-  "/road-signs": "2026-11-07",
+  // The hub shows the information signs in full and links the three family
+  // pages; all four change with the signs' meanings.
+  "/road-signs": "2026-11-18",
+  "/road-signs/regulatory-signs": "2026-11-18",
+  "/road-signs/warning-signs": "2026-11-18",
+  "/road-signs/road-markings": "2026-11-18",
   // The index and each topic page are built from the starter question pack.
   "/k53-questions": "2026-11-07",
   "/guides": "2026-10-24",
