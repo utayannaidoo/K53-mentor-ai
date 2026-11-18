@@ -2,8 +2,8 @@ import * as React from "react";
 import Link from "next/link";
 import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
-import { APP_NAME, SITE_URL, SUPPORT_EMAIL } from "@/lib/constants";
-import { JsonLd, PUBLISHER, breadcrumbSchema } from "@/lib/seo";
+import { FOUNDER_NAME, SITE_URL, SUPPORT_EMAIL } from "@/lib/constants";
+import { AUTHOR, JsonLd, PUBLISHER, breadcrumbSchema } from "@/lib/seo";
 import { GUIDES } from "@/app/guides/guides";
 import { GuideQuiz } from "@/components/guides/guide-quiz";
 import { PublicAdSlot } from "@/components/ads/public-ad-slot";
@@ -86,7 +86,7 @@ export function LegalPage({
           ...(revised && { datePublished: revised, dateModified: revised }),
           inLanguage: "en-ZA",
           isAccessibleForFree: true,
-          author: PUBLISHER,
+          author: AUTHOR,
           publisher: PUBLISHER,
           mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
         },
@@ -154,8 +154,11 @@ export function LegalPage({
               {articleSlug && (
                 <>
                   {" · By "}
-                  <Link href="/about" className="underline underline-offset-4 hover:text-foreground">
-                    {APP_NAME}
+                  <Link
+                    href="/about#who-runs-it"
+                    className="underline underline-offset-4 hover:text-foreground"
+                  >
+                    {FOUNDER_NAME}
                   </Link>
                 </>
               )}
@@ -200,10 +203,12 @@ export function LegalPage({
                 About this guide
               </h2>
               <p className="mt-2">
-                Written by {APP_NAME} against official South African sources, such as the
-                National Road Traffic Act and its Regulations, the Department of Transport&apos;s
-                manual of road traffic signs and the published K53 practical test procedure. Facts with legal weight, such as distances, speed
-                limits and licence codes, are checked against the Act and current regulations.{" "}
+                Written by {FOUNDER_NAME} with the help of AI tools, against official South
+                African sources such as the National Road Traffic Act and its Regulations, the
+                Department of Transport&apos;s manual of road traffic signs and the published K53
+                practical test procedure. Every fact is recorded with the source it comes from, and
+                facts with legal weight, such as distances, speed limits and licence codes, are
+                checked against the Act and current regulations.{" "}
                 <Link href="/sources" className="font-medium text-primary underline underline-offset-4">
                   Our sources
                 </Link>{" "}

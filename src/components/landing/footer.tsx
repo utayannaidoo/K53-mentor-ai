@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ShieldCheck, Lock } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { CopyrightYear } from "@/components/landing/copyright-year";
-import { APP_NAME, SUPPORT_EMAIL } from "@/lib/constants";
+import { APP_NAME, SOCIAL_PROFILES, SUPPORT_EMAIL } from "@/lib/constants";
 
 const GROUPS = [
   {
@@ -65,6 +65,24 @@ export function Footer() {
               >
                 {SUPPORT_EMAIL}
               </a>
+            </p>
+            {/* The site's own accounts, so a visitor (or a reviewer checking
+                that the site is a real, maintained presence) can find them.
+                "me" ties the profiles to this domain. */}
+            <p className="text-sm text-muted-foreground">
+              Follow us on{" "}
+              {SOCIAL_PROFILES.map((p, i) => (
+                <span key={p.url}>
+                  {i > 0 && " and "}
+                  <a
+                    href={p.url}
+                    rel="noopener noreferrer me"
+                    className="font-medium text-foreground underline underline-offset-2 hover:text-primary"
+                  >
+                    {p.label}
+                  </a>
+                </span>
+              ))}
             </p>
             <div className="flex flex-wrap gap-3 pt-1 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">

@@ -14,6 +14,7 @@ import {
   signsInGroup,
 } from "@/lib/content/sign-category-pages";
 import { PAGE_UPDATED } from "@/lib/page-dates";
+import { SOCIAL_PROFILES } from "@/lib/constants";
 
 const ROOT = path.resolve(__dirname, "..");
 const read = (p: string) => readFileSync(path.join(ROOT, p), "utf8");
@@ -394,6 +395,38 @@ describe("the free material is easy to find", () => {
     expect(layout).toContain("About this guide");
     expect(layout).toMatch(/articleSlug && \(\s*<>\s*\{" · By "\}/);
     expect(layout).toContain("mailto:${SUPPORT_EMAIL}");
+  });
+});
+
+describe("who is behind the site", () => {
+  // Google's helpful-content guidance: make clear who created the content, with
+  // bylines that lead to information about them, and say how it was made when
+  // a reader would reasonably ask, including the use of AI.
+  it("About names the person who runs it and says AI helps write the content", () => {
+    const about = read("src/app/about/page.tsx");
+    expect(about).toContain('id="who-runs-it"');
+    expect(about).toContain("{FOUNDER_NAME}");
+    expect(about).toContain("with the help of AI tools");
+  });
+
+  it("guides credit that person, in the byline and in the Article schema", () => {
+    const layout = read("src/components/landing/legal-page.tsx");
+    expect(layout).toContain('href="/about#who-runs-it"');
+    expect(layout).toContain("author: AUTHOR");
+    expect(layout).toContain("with the help of AI tools");
+    // seo.tsx holds JSX, which this suite can't import, so read it as text.
+    const seo = read("src/lib/seo.tsx");
+    expect(seo).toMatch(/export const AUTHOR = \{\s*"@type": "Person",\s*name: FOUNDER_NAME,/);
+  });
+
+  it("ties the social profiles to the organisation", () => {
+    const urls = SOCIAL_PROFILES.map((p) => p.url);
+    expect(urls.length).toBeGreaterThan(0);
+    for (const url of urls) expect(url).toMatch(/^https:\/\/www\.(tiktok|instagram)\.com\//);
+    const sameAs = "sameAs: SOCIAL_PROFILES.map((p) => p.url)";
+    expect(read("src/lib/seo.tsx")).toContain(sameAs);
+    expect(read("src/app/page.tsx")).toContain(sameAs);
+    expect(read("src/components/landing/footer.tsx")).toContain("SOCIAL_PROFILES.map");
   });
 });
 

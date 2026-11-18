@@ -15,7 +15,13 @@ import { Footer } from "@/components/landing/footer";
 import { PublicAdSlot } from "@/components/ads/public-ad-slot";
 import { Reveal } from "@/components/shared/reveal";
 import { SmoothScroll } from "@/components/shared/smooth-scroll";
-import { APP_NAME, SEO_DESCRIPTION, SITE_URL } from "@/lib/constants";
+import {
+  APP_NAME,
+  FOUNDER_NAME,
+  SEO_DESCRIPTION,
+  SITE_URL,
+  SOCIAL_PROFILES,
+} from "@/lib/constants";
 
 /**
  * Site-level entities for the homepage only.
@@ -34,6 +40,8 @@ const SITE_SCHEMA = {
       name: APP_NAME,
       url: SITE_URL,
       logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png`, width: 512, height: 512 },
+      sameAs: SOCIAL_PROFILES.map((p) => p.url),
+      founder: { "@type": "Person", name: FOUNDER_NAME, url: `${SITE_URL}/about#who-runs-it` },
     },
     {
       "@type": "WebSite",

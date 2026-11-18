@@ -111,6 +111,11 @@ export default function PrivacyPage() {
           your name, email address, answers, readiness score or tutor conversations.
         </p>
         <p>
+          If you visit from the European Economic Area, the United Kingdom or Switzerland, Google&apos;s
+          consent message asks for your choice before advertising cookies are used, and you can
+          consent, refuse, or choose what to allow.
+        </p>
+        <p>
           You can read how Google uses this information at{" "}
           <a
             href="https://policies.google.com/technologies/partner-sites"

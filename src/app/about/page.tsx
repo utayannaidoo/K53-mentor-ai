@@ -2,7 +2,14 @@ import { PAGE_UPDATED } from "@/lib/page-dates";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/landing/legal-page";
-import { APP_NAME, BUSINESS, EXAM_FORMAT, SUPPORT_EMAIL } from "@/lib/constants";
+import {
+  APP_NAME,
+  BUSINESS,
+  EXAM_FORMAT,
+  FOUNDER_NAME,
+  SOCIAL_PROFILES,
+  SUPPORT_EMAIL,
+} from "@/lib/constants";
 import { GUIDES } from "@/app/guides/guides";
 import { QUESTION_PAGES } from "@/lib/content/question-pages";
 import { VERIFIED_SIGNS } from "@/lib/content/signs";
@@ -36,7 +43,7 @@ export default function AboutPage() {
     <LegalPage
       title={`About ${APP_NAME}`}
       updated={PAGE_UPDATED["/about"]}
-      intro={`${APP_NAME} is a South African study site for the K53 learner's and driver's licence tests. This page explains who it is for, where the material comes from, how we check it, and how the site pays for itself.`}
+      intro={`${APP_NAME} is a South African study site for the K53 learner's and driver's licence tests. This page explains who runs it, who it is for, where the material comes from and how it is made, how we check it, and how the site pays for itself.`}
     >
       <section>
         <h2>Why it exists</h2>
@@ -52,6 +59,21 @@ export default function AboutPage() {
           not just its name, and why a rule exists, so a reworded question still makes sense. The
           study app tracks every section on its own, so you can see which one would fail you before
           the testing centre does.
+        </p>
+      </section>
+
+      <section id="who-runs-it" className="scroll-mt-24">
+        <h2>Who runs it</h2>
+        <p>
+          {APP_NAME} is built and run by {FOUNDER_NAME}: the study app, the guides, the question
+          bank and the support inbox.
+        </p>
+        <p>
+          The study material is written with the help of AI tools, which research and draft it.
+          That is said here plainly because you should know how the content you are learning from
+          was made. AI is not treated as a source: every fact is recorded with the official
+          document it comes from before it is published, as described below, and where an AI
+          draft and the law disagree, the law wins.
         </p>
       </section>
 
@@ -102,8 +124,9 @@ export default function AboutPage() {
           <Link href="/sources">content sources</Link> page.
         </p>
         <p>
-          Questions, flashcards, scenarios and guides are our own writing, not copied from the
-          manual or from other question sites. Before a fact goes into the question bank it is
+          Questions, flashcards, scenarios and guides are written for this site, with the help of
+          AI tools, not copied from the manual or from other question sites. Before a fact goes
+          into the question bank it is
           recorded with the source it came from, and facts with legal weight (following distances,
           speed limits, alcohol limits, licence codes) are checked against the Act and current
           regulations. Road-sign images and their official meanings come from the Department of
@@ -154,6 +177,18 @@ export default function AboutPage() {
           {BUSINESS.legalName ? ` on behalf of ${BUSINESS.legalName}` : ""}. Support, billing and
           privacy requests are covered on the <Link href="/contact">contact page</Link>. If you run a
           driving school, see <Link href="/for-driving-schools">{APP_NAME} for driving schools</Link>.
+        </p>
+        <p>
+          You can also follow {APP_NAME} on{" "}
+          {SOCIAL_PROFILES.map((p, i) => (
+            <span key={p.url}>
+              {i > 0 && (i === SOCIAL_PROFILES.length - 1 ? " and " : ", ")}
+              <a href={p.url} rel="noopener noreferrer me">
+                {p.label}
+              </a>
+            </span>
+          ))}
+          , for short videos on K53 signs, rules and test tips.
         </p>
       </section>
     </LegalPage>

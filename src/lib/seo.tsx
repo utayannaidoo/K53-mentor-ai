@@ -1,4 +1,4 @@
-import { APP_NAME, SITE_URL } from "@/lib/constants";
+import { APP_NAME, FOUNDER_NAME, SITE_URL, SOCIAL_PROFILES } from "@/lib/constants";
 
 /**
  * Structured-data helpers shared by the public, indexable pages.
@@ -18,6 +18,18 @@ export const PUBLISHER = {
   name: APP_NAME,
   url: SITE_URL,
   logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png`, width: 512, height: 512 },
+  sameAs: SOCIAL_PROFILES.map((p) => p.url),
+} as const;
+
+/**
+ * The person who writes the content, for Article `author`. The publisher stays
+ * the Organization; the author is who a reader can hold to account, and the url
+ * is the About section that says who that is and how the content is made.
+ */
+export const AUTHOR = {
+  "@type": "Person",
+  name: FOUNDER_NAME,
+  url: `${SITE_URL}/about#who-runs-it`,
 } as const;
 
 /** Absolute URL for a site path ("/road-signs" → "https://…/road-signs"). */

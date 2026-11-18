@@ -9,7 +9,7 @@ import { SignSections } from "@/components/shared/sign-entry";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { EXAM_FORMAT, SITE_URL } from "@/lib/constants";
-import { JsonLd, PUBLISHER, breadcrumbSchema, itemListSchema } from "@/lib/seo";
+import { AUTHOR, JsonLd, PUBLISHER, breadcrumbSchema, itemListSchema } from "@/lib/seo";
 import { PAGE_UPDATED } from "@/lib/page-dates";
 import {
   SIGN_CATEGORY_PAGES,
@@ -90,7 +90,7 @@ export default async function SignCategoryPage({ params }: Props) {
             dateModified: updated,
             inLanguage: "en-ZA",
             isAccessibleForFree: true,
-            author: PUBLISHER,
+            author: AUTHOR,
             publisher: PUBLISHER,
             mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}${path}` },
           },
