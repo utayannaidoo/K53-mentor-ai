@@ -5,14 +5,16 @@ import robots from "@/app/robots";
 import sitemap from "@/app/sitemap";
 import { GUIDES } from "@/app/guides/guides";
 import { QUESTION_PAGES, questionsFor } from "@/lib/content/question-pages";
+import { SIGN_PAGES } from "@/lib/content/sign-pages";
 import {
-  INDEXED_SIGN_PAGES,
-  MIN_OWN_WORDS,
-  SIGN_PAGES,
-  isIndexableSign,
-  ownWords,
-} from "@/lib/content/sign-pages";
+  INFORMATION_GROUP,
+  SIGN_CATEGORY_PAGES,
+  sectionAnchor,
+  signCategoryPageBySlug,
+  signsInGroup,
+} from "@/lib/content/sign-category-pages";
 import { PAGE_UPDATED } from "@/lib/page-dates";
+import { SOCIAL_PROFILES } from "@/lib/constants";
 
 const ROOT = path.resolve(__dirname, "..");
 const read = (p: string) => readFileSync(path.join(ROOT, p), "utf8");
@@ -183,7 +185,7 @@ describe("sitemap", () => {
       // Programmatic pages resolve through one dynamic segment each; their
       // slugs are checked against the generating catalogues further down.
       const dynamic = [
-        ["/road-signs/", "src/app/road-signs/[slug]/page.tsx"],
+        ["/road-signs/", "src/app/road-signs/[category]/page.tsx"],
         ["/k53-questions/", "src/app/k53-questions/[category]/page.tsx"],
       ].find(([prefix]) => p.startsWith(prefix));
       if (dynamic) {
@@ -258,67 +260,64 @@ describe("programmatic pages", () => {
   const paths = new Set(sitemap().map((e) => new URL(e.url).pathname));
 
   it("every verified sign has a unique, readable slug", () => {
-    // Two signs sharing a slug would silently drop one from the site: the
-    // second overwrites the first in the lookup and its URL never exists.
+    // The slug is the sign's anchor on its family page and the source of its
+    // old URL's redirect. Two signs sharing one would send a link to the wrong
+    // sign.
     const slugs = SIGN_PAGES.map((p) => p.slug);
     expect(slugs.length).toBeGreaterThanOrEqual(90);
     expect(new Set(slugs).size).toBe(slugs.length);
     for (const slug of slugs) expect(slug).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
   });
 
-  it("every indexable sign page and every question page is in the sitemap", () => {
-    for (const p of INDEXED_SIGN_PAGES) expect(paths).toContain(`/road-signs/${p.slug}`);
+  it("every sign family page and every question page is in the sitemap", () => {
+    for (const p of SIGN_CATEGORY_PAGES) expect(paths).toContain(`/road-signs/${p.slug}`);
     for (const p of QUESTION_PAGES) expect(paths).toContain(`/k53-questions/${p.slug}`);
     expect(paths).toContain("/k53-questions");
   });
 
-  it("no thin sign page is submitted, and each one says noindex", () => {
-    // AdSense rejected the site as "low-value content" while 152 near-identical
-    // sign pages were 80% of the sitemap. A thin page may exist for visitors,
-    // but submitting it is asking to be judged on it.
-    const thin = SIGN_PAGES.filter((p) => !isIndexableSign(p.sign));
-    for (const p of thin) expect(paths).not.toContain(`/road-signs/${p.slug}`);
-    const src = read("src/app/road-signs/[slug]/page.tsx");
-    expect(src).toMatch(/!isIndexableSign\(sign\) && \{ robots: \{ index: false/);
+  it("submits no single-sign page", () => {
+    // AdSense rejected the site as "low-value content" twice while 151
+    // near-identical single-sign pages were up. They now redirect to their
+    // family page, so a sitemap entry for one would submit a redirect.
+    const family = new Set(SIGN_CATEGORY_PAGES.map((p) => `/road-signs/${p.slug}`));
+    const signPaths = [...paths].filter((p) => p.startsWith("/road-signs/"));
+    expect(signPaths.filter((p) => !family.has(p))).toEqual([]);
+    expect(existsSync(path.join(ROOT, "src/app/road-signs/[slug]/page.tsx"))).toBe(false);
   });
 
-  it("indexes a sign page only when it says enough about its own sign, in whole sentences", () => {
-    const sentence = "Slow down and be ready to stop for animals crossing or standing on the road.";
-    const long = Array.from({ length: 12 }, () => sentence).join(" ");
-    expect(ownWords({ name: "Cattle ahead", meaning: long })).toBeGreaterThanOrEqual(MIN_OWN_WORDS);
-    expect(isIndexableSign({ name: "Cattle ahead", meaning: long })).toBe(true);
-
-    expect(isIndexableSign({ name: "Cattle ahead", meaning: "Cattle ahead." })).toBe(false);
-    // One good sentence is a real meaning, and still a thin page.
-    expect(
-      isIndexableSign({
-        name: "No entry",
-        meaning: "No vehicles may enter this road in this direction at any time.",
-      }),
-    ).toBe(false);
-    // Extraction fragments stay out however long they are: the tail of the
-    // previous caption, or a clause cut off mid-way.
-    expect(isIndexableSign({ name: "No stopping", meaning: `not ${long}` })).toBe(false);
-    expect(isIndexableSign({ name: "Box junction", meaning: `${long} unless you are entering the` })).toBe(
-      false,
-    );
+  it("shows every verified sign exactly once: on its family page, or on the hub", () => {
+    // signsInGroup drops a sign whose subcategory no section names, which
+    // would hide it and point its old URL at an anchor that isn't there.
+    const groups = [...SIGN_CATEGORY_PAGES, INFORMATION_GROUP];
+    const shown = groups.flatMap((g) => signsInGroup(g).flatMap((s) => s.signs.map((e) => e.slug)));
+    expect(shown.sort()).toEqual(SIGN_PAGES.map((p) => p.slug).sort());
+    // Every family the verified set contains has a home.
+    const homes = new Set(groups.map((g) => g.category));
+    for (const p of SIGN_PAGES) expect(homes, p.slug).toContain(p.sign.category);
   });
 
-  it("submits no sign page today: each says about 36 words of its own", () => {
-    // The 2026-11-08 decision. Every sign page is one meaning inside about 200
-    // words shared with the others, so none is submitted until a sign gets
-    // content of its own. Re-admitting signs is expected: when that happens,
-    // replace this with a check that each submitted page clears MIN_OWN_WORDS.
-    expect(INDEXED_SIGN_PAGES).toEqual([]);
-    expect(Math.max(...SIGN_PAGES.map((p) => ownWords(p.sign)))).toBeLessThan(MIN_OWN_WORDS);
+  it("no family page is thin, and none has an empty section", () => {
+    // A family page replaced dozens of single-sign pages; one with a handful of
+    // signs would be the thin page all over again.
+    for (const page of SIGN_CATEGORY_PAGES) {
+      const groups = signsInGroup(page);
+      expect(groups.reduce((n, g) => n + g.signs.length, 0), page.slug).toBeGreaterThanOrEqual(20);
+      for (const g of groups) expect(g.signs.length, `${page.slug}: ${g.section.heading}`).toBeGreaterThan(0);
+      expect(page.intro.length, page.slug).toBeGreaterThan(0);
+    }
   });
 
-  it("no indexed sign page has a meaning under 15 words", () => {
-    // isIndexableSign only asks for six words beyond the name, and the meaning
-    // is the one part of the page that is unique to it. Every page clears this
-    // today, so a shorter meaning is a regression.
-    const short = INDEXED_SIGN_PAGES.filter((p) => p.sign.meaning.trim().split(/\s+/).length < 15);
-    expect(short.map((p) => p.slug)).toEqual([]);
+  it("anchors on a page never collide", () => {
+    // Sign slugs and section anchors share one id namespace per page; a family
+    // slug matching a sign slug would also shadow that sign's redirect.
+    const slugs = new Set(SIGN_PAGES.map((p) => p.slug));
+    for (const page of SIGN_CATEGORY_PAGES) {
+      expect(slugs.has(page.slug), page.slug).toBe(false);
+      for (const { section } of signsInGroup(page)) {
+        expect(slugs.has(sectionAnchor(section)), section.heading).toBe(false);
+      }
+    }
+    for (const id of ["information-signs", "mix-ups"]) expect(slugs.has(id), id).toBe(false);
   });
 
   it("no question page is thin", () => {
@@ -337,14 +336,18 @@ describe("programmatic pages", () => {
   });
 
   it("the guide links into sign pages resolve", () => {
-    // Guides link to individual signs by slug; a renamed sign would turn the
-    // link into a 404 that no type checks.
-    const signSlugs = new Set(SIGN_PAGES.map((p) => p.slug));
+    // Guides link to individual signs as /road-signs/<family>#<sign>; a renamed
+    // sign would leave the link on a page without that anchor, which no type
+    // checks. A bare /road-signs/<sign> link would only work through a redirect.
     const questionSlugs = new Set(QUESTION_PAGES.map((p) => p.slug));
     for (const guide of GUIDES) {
       const src = read(`src/app/guides/${guide.slug}/page.tsx`);
-      for (const [, slug] of src.matchAll(/href="\/road-signs\/([^"/]+)"/g)) {
-        expect(signSlugs, `${guide.slug} links to missing sign ${slug}`).toContain(slug);
+      for (const [, pageSlug, anchor] of src.matchAll(/href="\/road-signs\/([^"/#]+)(?:#([^"]+))?"/g)) {
+        const page = signCategoryPageBySlug(pageSlug);
+        expect(page, `${guide.slug} links to /road-signs/${pageSlug}, which is not a family page`).toBeDefined();
+        if (!page || !anchor) continue;
+        const onPage = signsInGroup(page).flatMap((g) => g.signs.map((s) => s.slug));
+        expect(onPage, `${guide.slug} links to missing sign ${pageSlug}#${anchor}`).toContain(anchor);
       }
       for (const [, slug] of src.matchAll(/href="\/k53-questions\/([^"/]+)"/g)) {
         expect(questionSlugs, `${guide.slug} links to missing topic ${slug}`).toContain(slug);
@@ -353,6 +356,77 @@ describe("programmatic pages", () => {
         expect(GUIDES.map((g) => g.slug), `${guide.slug} links to missing guide ${slug}`).toContain(slug);
       }
     }
+  });
+});
+
+describe("the free material is easy to find", () => {
+  // AdSense's site-readiness guidance asks for navigation that helps visitors
+  // find what they're looking for. With the site rejected twice for "low-value
+  // content", the top menu linked only back into the landing page and the home
+  // page linked none of the free material, so a reviewer who never scrolled to
+  // the footer saw nothing to read.
+  it("the top menu links the free material", () => {
+    const nav = read("src/components/landing/marketing-nav.tsx");
+    const links = nav.match(/const LINKS = \[([\s\S]*?)\];/)?.[1] ?? "";
+    for (const href of ["/free-quiz", "/road-signs", "/guides"]) {
+      expect(links, href).toContain(`href: "${href}"`);
+    }
+  });
+
+  it("the home page links every free hub", () => {
+    expect(read("src/app/page.tsx")).toContain("<FreeMaterial />");
+    const section = read("src/components/landing/free-material.tsx");
+    for (const href of ["/free-quiz", "/road-signs", "/k53-questions", "/guides"]) {
+      expect(section, href).toContain(`href: "${href}"`);
+    }
+    expect(section).not.toContain('"use client"');
+  });
+
+  it("the home page's popular guides exist", () => {
+    const section = read("src/components/landing/free-material.tsx");
+    const list = section.match(/const POPULAR_GUIDES = \[([\s\S]*?)\];/)?.[1] ?? "";
+    const slugs = [...list.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    expect(slugs.length).toBeGreaterThan(0);
+    for (const slug of slugs) expect(GUIDES.map((g) => g.slug)).toContain(slug);
+  });
+
+  it("every guide says who wrote it and how to report a mistake", () => {
+    const layout = read("src/components/landing/legal-page.tsx");
+    expect(layout).toContain("About this guide");
+    expect(layout).toMatch(/articleSlug && \(\s*<>\s*\{" · By "\}/);
+    expect(layout).toContain("mailto:${SUPPORT_EMAIL}");
+  });
+});
+
+describe("who is behind the site", () => {
+  // Google's helpful-content guidance: make clear who created the content, with
+  // bylines that lead to information about them, and say how it was made when
+  // a reader would reasonably ask, including the use of AI.
+  it("About names the person who runs it and says AI helps write the content", () => {
+    const about = read("src/app/about/page.tsx");
+    expect(about).toContain('id="who-runs-it"');
+    expect(about).toContain("{FOUNDER_NAME}");
+    expect(about).toContain("with the help of AI tools");
+  });
+
+  it("guides credit that person, in the byline and in the Article schema", () => {
+    const layout = read("src/components/landing/legal-page.tsx");
+    expect(layout).toContain('href="/about#who-runs-it"');
+    expect(layout).toContain("author: AUTHOR");
+    expect(layout).toContain("with the help of AI tools");
+    // seo.tsx holds JSX, which this suite can't import, so read it as text.
+    const seo = read("src/lib/seo.tsx");
+    expect(seo).toMatch(/export const AUTHOR = \{\s*"@type": "Person",\s*name: FOUNDER_NAME,/);
+  });
+
+  it("ties the social profiles to the organisation", () => {
+    const urls = SOCIAL_PROFILES.map((p) => p.url);
+    expect(urls.length).toBeGreaterThan(0);
+    for (const url of urls) expect(url).toMatch(/^https:\/\/www\.(tiktok|instagram)\.com\//);
+    const sameAs = "sameAs: SOCIAL_PROFILES.map((p) => p.url)";
+    expect(read("src/lib/seo.tsx")).toContain(sameAs);
+    expect(read("src/app/page.tsx")).toContain(sameAs);
+    expect(read("src/components/landing/footer.tsx")).toContain("SOCIAL_PROFILES.map");
   });
 });
 

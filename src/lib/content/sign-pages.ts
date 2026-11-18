@@ -2,16 +2,21 @@ import type { RoadSign } from "@/types";
 import { VERIFIED_SIGNS } from "./signs";
 
 /**
- * The public, indexable page for each hand-verified road sign.
+ * The hand-verified road signs shown on the public pages, each with a slug.
  *
  * Built on VERIFIED_SIGNS for the reason given on that export: a derived name
  * is often an OCR fragment and a composite crop shows several signs under one
- * caption. Either would be the page's title here, so only verified signs get
- * a URL.
+ * caption, and the name is printed beside the sign on a public page.
+ *
+ * Each sign once had a page of its own at /road-signs/<slug>. Those were merged
+ * into one page per family (sign-category-pages.ts) after the second AdSense
+ * "low-value content" rejection. The slug is now the sign's anchor there, and
+ * the old URL redirects to it (sign-redirects.json, read by next.config.mjs).
  *
  * Slugs come from the verified name, not the catalogue id — "no-entry" is what
  * someone types, "regulatory-008-01" is not. tests/seo.test.ts pins them
- * unique, because a collision would silently drop a sign from the site.
+ * unique, because two signs on one anchor would send one sign's old URL to the
+ * wrong place.
  */
 export function signSlug(sign: Pick<RoadSign, "name">): string {
   return sign.name
@@ -26,57 +31,6 @@ export const SIGN_PAGES: { slug: string; sign: RoadSign }[] = VERIFIED_SIGNS.map
   slug: signSlug(sign),
   sign,
 }));
-
-/**
- * Words a sign page must say about its own sign before it is submitted for
- * indexing: roughly as much as the copy every sign page shares (family rule,
- * category blurb, the test-section paragraph and the call to action, about 200
- * words). Below that, most of the page is the same as 150 others.
- */
-export const MIN_OWN_WORDS = 150;
-
-/**
- * Whether a sign's page says enough to deserve a place in the index.
- *
- * AdSense rejected the site as "low-value content" on 2026-11-01, when 152 sign
- * pages were 80% of the sitemap. Writing a real meaning for every sign (PR #128)
- * did not change the shape: a crawl on 2026-11-08 found a median of 36 words
- * unique to each page, inside about 200 words shared with all the others, and
- * the meaning is the only per-sign text a page has. So no sign page qualifies
- * today, and all of them are left out of the index until one says more.
- *
- * Thin pages stay up for visitors and keep their links; they are left out of
- * the sitemap and marked noindex. To re-admit one, give the sign more content
- * of its own (what it is confused with, the exam trap, where you meet it),
- * sourced like any other fact, and count it in `ownWords` below.
- */
-export function isIndexableSign(sign: Pick<RoadSign, "name" | "meaning">): boolean {
-  const meaning = sign.meaning.trim();
-  // A whole sentence: starts on a capital and ends on a full stop, not a
-  // lowercase tail of the previous caption or a cut-off clause.
-  const whole = /^[A-Z0-9]/.test(meaning) && /[.!?)]$/.test(meaning);
-  return whole && ownWords(sign) >= MIN_OWN_WORDS;
-}
-
-/** Words this sign's page says that no other sign page does, not counting its name. */
-export function ownWords(sign: Pick<RoadSign, "name" | "meaning">): number {
-  const words = (s: string) => s.toLowerCase().match(/[a-z0-9]+/g) ?? [];
-  const name = new Set(words(sign.name));
-  return words(sign.meaning).filter((w) => !name.has(w)).length;
-}
-
-/** The sign pages submitted in the sitemap and open to indexing. */
-export const INDEXED_SIGN_PAGES = SIGN_PAGES.filter((p) => isIndexableSign(p.sign));
-
-const BY_SLUG = new Map(SIGN_PAGES.map((p) => [p.slug, p.sign]));
-
-export function signBySlug(slug: string): RoadSign | undefined {
-  return BY_SLUG.get(slug);
-}
-
-export function signPath(sign: Pick<RoadSign, "name">): string {
-  return `/road-signs/${signSlug(sign)}`;
-}
 
 /**
  * What the sign's family obliges a driver to do — the part of the answer that

@@ -7,7 +7,12 @@ import { Footer } from "@/components/landing/footer";
 import { SignBrowser } from "@/components/shared/sign-browser";
 import { VERIFIED_SIGNS } from "@/lib/content/signs";
 import { SIGN_CATEGORIES } from "@/lib/content/sign-categories";
-import { INDEXED_SIGN_PAGES, SIGN_PAGES } from "@/lib/content/sign-pages";
+import {
+  INFORMATION_GROUP,
+  SIGN_CATEGORY_PAGES,
+  signCount,
+} from "@/lib/content/sign-category-pages";
+import { SignSections } from "@/components/shared/sign-entry";
 import { JsonLd, breadcrumbSchema, itemListSchema } from "@/lib/seo";
 import { EXAM_FORMAT } from "@/lib/constants";
 import { buttonVariants } from "@/components/ui/button";
@@ -41,7 +46,7 @@ export default function RoadSignsPage() {
           breadcrumbSchema([{ name: "South African road signs", path: "/road-signs" }]),
           itemListSchema(
             "South African road signs and their meanings",
-            INDEXED_SIGN_PAGES.map((p) => ({ name: p.sign.name, path: `/road-signs/${p.slug}` })),
+            SIGN_CATEGORY_PAGES.map((p) => ({ name: p.h1, path: `/road-signs/${p.slug}` })),
           ),
         ]}
       />
@@ -67,40 +72,55 @@ export default function RoadSignsPage() {
 
         <PublicAdSlot className="mt-12" />
 
-        {/* The browser above opens each sign in a dialog, which has no URL. This
-            index is the crawlable path to every sign's own page — plain links,
-            grouped the way the manual groups them. */}
+        {/* The browser above opens each sign in a dialog, which has no URL.
+            These are the crawlable pages: one per family, every sign on it in
+            full. They replaced 151 single-sign pages; see
+            src/lib/content/sign-category-pages.ts. */}
         <section className="mt-16">
           <h2 className="font-display text-xl font-semibold tracking-tight">
-            Every sign, with its own page
+            Every sign, by family
           </h2>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Each sign below has a page with its meaning, what kind of sign it is, and how it comes
-            up in the learner&apos;s test.
+            Each page shows every sign in the family with what it means and what you must do,
+            grouped the way the official manual groups them.
           </p>
-          {SIGN_CATEGORIES.map((category) => {
-            const pages = SIGN_PAGES.filter((p) => p.sign.category === category.id);
-            if (pages.length === 0) return null;
-            return (
-              <div key={category.id} className="mt-6">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-                  {category.label}
-                </h3>
-                <ul className="mt-3 grid gap-x-6 gap-y-1.5 text-sm sm:grid-cols-2 lg:grid-cols-3">
-                  {pages.map((p) => (
-                    <li key={p.slug}>
-                      <Link
-                        href={`/road-signs/${p.slug}`}
-                        className="inline-block py-0.5 text-primary underline-offset-4 hover:underline"
-                      >
-                        {p.sign.name}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            );
-          })}
+          <ul className="mt-6 grid gap-4 sm:grid-cols-3">
+            {SIGN_CATEGORY_PAGES.map((p) => (
+              <li key={p.slug}>
+                <Link
+                  href={`/road-signs/${p.slug}`}
+                  className="flex h-full flex-col rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40"
+                >
+                  <span className="font-display text-lg font-semibold tracking-tight text-foreground">
+                    {p.label}
+                  </span>
+                  <span className="mt-1 text-xs uppercase tracking-wide text-muted-foreground">
+                    {signCount(p)} {p.noun}
+                  </span>
+                  <span className="mt-3 text-sm leading-relaxed text-muted-foreground">
+                    {SIGN_CATEGORIES.find((c) => c.id === p.category)?.blurb}
+                  </span>
+                  <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary">
+                    See every {p.label.toLowerCase().replace(/s$/, "")}{" "}
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        {/* Eight signs are too few for a page of their own, so they live here. */}
+        <section id="information-signs" className="mt-16 scroll-mt-24">
+          <h2 className="font-display text-xl font-semibold tracking-tight">
+            Information signs and plates
+          </h2>
+          {INFORMATION_GROUP.intro.map((paragraph) => (
+            <p key={paragraph.slice(0, 32)} className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              {paragraph}
+            </p>
+          ))}
+          <SignSections group={INFORMATION_GROUP} headingLevel={3} />
         </section>
 
         <div className="mt-16 rounded-2xl border border-border bg-card p-8 text-center">

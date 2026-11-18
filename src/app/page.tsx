@@ -2,6 +2,7 @@ import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Hero } from "@/components/landing/hero";
 import { Problem } from "@/components/landing/problem";
 import { CategoryMarquee } from "@/components/landing/category-marquee";
+import { FreeMaterial } from "@/components/landing/free-material";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { ProductPreview } from "@/components/landing/product-preview";
 import { Features } from "@/components/landing/features";
@@ -14,7 +15,13 @@ import { Footer } from "@/components/landing/footer";
 import { PublicAdSlot } from "@/components/ads/public-ad-slot";
 import { Reveal } from "@/components/shared/reveal";
 import { SmoothScroll } from "@/components/shared/smooth-scroll";
-import { APP_NAME, SEO_DESCRIPTION, SITE_URL } from "@/lib/constants";
+import {
+  APP_NAME,
+  FOUNDER_NAME,
+  SEO_DESCRIPTION,
+  SITE_URL,
+  SOCIAL_PROFILES,
+} from "@/lib/constants";
 
 /**
  * Site-level entities for the homepage only.
@@ -33,6 +40,8 @@ const SITE_SCHEMA = {
       name: APP_NAME,
       url: SITE_URL,
       logo: { "@type": "ImageObject", url: `${SITE_URL}/icon-512.png`, width: 512, height: 512 },
+      sameAs: SOCIAL_PROFILES.map((p) => p.url),
+      founder: { "@type": "Person", name: FOUNDER_NAME, url: `${SITE_URL}/about#who-runs-it` },
     },
     {
       "@type": "WebSite",
@@ -81,6 +90,12 @@ export default function HomePage() {
         </Reveal>
         <Reveal>
           <CategoryMarquee />
+        </Reveal>
+        {/* High on the page: median scroll here is shallow, and this is the
+            only place the landing page links to anything a visitor can read
+            without signing up. */}
+        <Reveal>
+          <FreeMaterial />
         </Reveal>
 
         {/* No Reveal wrapper: this section pins itself as you scroll through it,

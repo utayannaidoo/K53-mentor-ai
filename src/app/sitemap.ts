@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { SITE_URL } from "@/lib/constants";
 import { PAGE_UPDATED, type DatedPage } from "@/lib/page-dates";
 import { QUESTION_PAGES } from "@/lib/content/question-pages";
-import { INDEXED_SIGN_PAGES } from "@/lib/content/sign-pages";
+import { SIGN_CATEGORY_PAGES, signsInGroup } from "@/lib/content/sign-category-pages";
 import { GUIDES } from "./guides/guides";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -34,12 +34,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     // The school product page: software for driving schools.
     page("/for-driving-schools", 0.7),
     ...GUIDES.map((g) => entry(`/guides/${g.slug}`, 0.8, g.updated)),
-    // Only sign pages that say enough about their own sign, each with its image
-    // for image search. None qualify today; the library above links them all.
-    // See isIndexableSign.
-    ...INDEXED_SIGN_PAGES.map(({ slug, sign }) => ({
-      ...entry(`/road-signs/${slug}`, 0.6, PAGE_UPDATED["/road-signs"]),
-      images: [`${SITE_URL}${sign.image}`],
+    // One page per sign family, every sign on it, each with its images for
+    // image search. These replaced 151 single-sign pages; see
+    // src/lib/content/sign-category-pages.ts.
+    ...SIGN_CATEGORY_PAGES.map((p) => ({
+      ...page(`/road-signs/${p.slug}`, 0.8),
+      images: signsInGroup(p).flatMap((g) => g.signs.map((s) => `${SITE_URL}${s.sign.image}`)),
     })),
     // No /login or /signup: a form is not content, and both are noindex.
     page("/about", 0.5),

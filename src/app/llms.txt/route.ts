@@ -1,6 +1,6 @@
 import { APP_NAME, EXAM_FORMAT, SEO_DESCRIPTION, SITE_URL } from "@/lib/constants";
 import { QUESTION_PAGES } from "@/lib/content/question-pages";
-import { INDEXED_SIGN_PAGES } from "@/lib/content/sign-pages";
+import { SIGN_CATEGORY_PAGES, signCount } from "@/lib/content/sign-category-pages";
 import { GUIDES } from "@/app/guides/guides";
 
 /**
@@ -49,16 +49,13 @@ export function GET() {
     "",
     ...GUIDES.map((g) => link(g.title, `/guides/${g.slug}`, g.description)),
     "",
-    // Only the sign pages open to indexing; none are today (see isIndexableSign),
-    // and the library at /road-signs is linked above.
-    ...(INDEXED_SIGN_PAGES.length > 0
-      ? [
-          "## Road signs",
-          "",
-          ...INDEXED_SIGN_PAGES.map((p) => link(p.sign.name, `/road-signs/${p.slug}`, p.sign.meaning)),
-          "",
-        ]
-      : []),
+    "## Road signs by family",
+    "",
+    ...SIGN_CATEGORY_PAGES.map((p) =>
+      link(p.h1, `/road-signs/${p.slug}`, `${signCount(p)} ${p.noun}, each with its meaning`),
+    ),
+    link("Information signs and plates", "/road-signs#information-signs"),
+    "",
     "## About",
     "",
     link("Pricing", "/pricing", "practice is free; paid plans add the AI tutor and remove ads"),

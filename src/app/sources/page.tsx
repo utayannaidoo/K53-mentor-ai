@@ -45,7 +45,8 @@ export default function SourcesPage() {
         <h2>How our content is written</h2>
         <p>
           Our questions, flashcards, scenarios and licence-prep guides are original works written
-          against the sources above — we do not reproduce the official manual&apos;s text. Facts
+          against the sources above, with the help of AI tools — we do not reproduce the official
+          manual&apos;s text, and AI is never cited as a source. Facts
           with legal weight (distances, speed limits, blood-alcohol limits, licence codes) are
           cross-checked against the Act and current regulatory summaries before publication.
         </p>

@@ -64,8 +64,8 @@ export default function GuidePage() {
           A stop sign means a complete halt, then go when it is safe. A yield sign means give way
           to cross traffic and to pedestrians crossing or about to cross — you need not stop if the
           way is clear, but you must be ready to. See the{" "}
-          <Link href="/road-signs/stop">stop sign</Link> and the{" "}
-          <Link href="/road-signs/yield">yield sign</Link>.
+          <Link href="/road-signs/regulatory-signs#stop">stop sign</Link> and the{" "}
+          <Link href="/road-signs/regulatory-signs#yield">yield sign</Link>.
         </p>
       </section>
       <section>

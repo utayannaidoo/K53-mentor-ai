@@ -279,3 +279,25 @@ The signs on a yellow background are `warning-028-03`, `warning-031-01..06` and 
 
 ### The two real diamonds
 Exactly two signs in the catalogue are diamonds, and neither is a warning. `regulatory-007-04` Pedestrian priority is a red diamond [K53M p.7; DOT p.2], and `information-043-05` Priority road is a yellow diamond on a white one [K53M p.43]. A geometric scan of all 439 crops, checked by eye, found no others. The library's Diamond filter now returns these two.
+
+## Category page copy (November 2026)
+
+The intros, section intros and "signs learners mix up" notes in `src/lib/content/sign-category-pages.ts` restate facts already in this file. They introduce none of their own. They replaced the 151 single-sign pages after the second AdSense "low-value content" rejection on 2026-11-17. Where each claim comes from:
+
+- **Regulatory intro**: red ring prohibits, blue circle commands, both compulsory ("Reading the system"); an ignored sign ends the driving test (`SIGN_FAMILY_COPY.regulatory`); plates qualify the main sign with times, distance or vehicle class ("Reading the system"); yellow means temporary, same force ("Temporary signs").
+- **Control**: stop vs yield (confusion pairs); first to stop goes first at a multi-way stop [K53M p.6].
+- **Command**: keep to the side shown, follow the arrow, headlights on ("Batch 4": 009-01, 009-04, 009-05); a command sign can name the class of user that must use a section [K53M p.9].
+- **Prohibition**: what red rings ban ("Batch 4", "Hazard, dimension and command signs batch"). The intro does not say a ban "runs until cancelled", because that is wrong for no overtaking (500 m; see "Conflicts found while sourcing"). It tells the reader to check the plate instead.
+- **Reservation**: the R sets a road, lane or area aside, not a prohibition, and a plate may add a time limit ("Junction-priority ... batch").
+- **Comprehensive**: residential-area rules [K53M p.16]; freeway rules, including road users barred from it [K53M p.16; MOTUS p.64].
+- **De-restriction**: a red cross means the restriction, command or set of rules no longer applies [K53M p.17].
+- **Signals**: red, steady amber and green ("Batch 4": 022-01/03/04).
+- **Warning intro**: triangle, adjust rather than obey (`SIGN_FAMILY_COPY.warning`); sited back from the hazard on purpose ("Reading the system"); yellow triangles are temporary with the same force ("Temporary warning signs are yellow triangles").
+- **Road ahead**: a triangle warns of a dimension limit; the red ring is the offence ("Warning of a restriction vs the restriction").
+- **Junctions**: thick limb is the priority road; staggered junctions are a poor place to overtake ("Junction priority").
+- **Moving hazards**: expect more than one animal, brake rather than swerve [AA-ANIMALS]; slow early at road works, expect unseen workers [AA-WORKS].
+- **Hazard markers**: black-and-yellow markers at obstructions ("Delineation"); the X-shaped cross marks the level crossing itself ("Level crossings").
+- **Markings intro**: markings are in the signs section of the test and a regulatory marking binds (`SIGN_FAMILY_COPY.marking`); crossing a solid barrier line is an offence (Sprint 3); red no stopping, yellow kerb no parking, solid at all times, broken in the signed hours ("Lines along the road"; Sprint 3 kerb markings).
+- **Regulatory markings**: stop line solid, yield line broken; obey the line nearest you (road markings sub-batch); the no-overtaking line exceptions [K53M p.77]; lane arrows are compulsory (road markings sub-batch).
+- **Warning and guidance markings**: lane-reduction arrows warn that a lane is ending (Sprint 3).
+- **Information section on the hub**: what information signs do (`SIGN_FAMILY_COPY.information`); the red bar on a no-through-road sign and the 300 m exit countdown (the `information-043-03` and `information-043-01` meanings in `CURATED`); plates qualify the main sign ("Reading the system"); the recommended-speed plate is advice, but exceeding it can lead to prosecution after a crash [MOTUS sheet 23].

@@ -98,6 +98,23 @@ export const SECTION_LABEL: Record<ExamSection, string> = {
 export const SUPPORT_EMAIL = "support@k53mentorai.co.za";
 
 /**
+ * The person who builds and runs the site: named on /about and as the guides'
+ * author. Google's helpful-content guidance asks for a byline that leads to who
+ * wrote the page; "K53 Mentor AI" alone told a reader nothing.
+ */
+export const FOUNDER_NAME = "Utayan Naidoo";
+
+/**
+ * The site's own social profiles, linked from the footer and /about and listed
+ * as the Organization's sameAs, which is how search engines tie the accounts to
+ * the domain. Both profiles link back to k53mentorai.co.za.
+ */
+export const SOCIAL_PROFILES = [
+  { label: "TikTok", url: "https://www.tiktok.com/@k53mentorai" },
+  { label: "Instagram", url: "https://www.instagram.com/k53mentorai/" },
+] as const;
+
+/**
  * Operator details disclosed on /contact.
  *
  * ECTA s43 requires an electronic-commerce provider to publish its legal name,

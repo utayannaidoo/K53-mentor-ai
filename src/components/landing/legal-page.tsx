@@ -2,8 +2,8 @@ import * as React from "react";
 import Link from "next/link";
 import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Footer } from "@/components/landing/footer";
-import { SITE_URL } from "@/lib/constants";
-import { JsonLd, PUBLISHER, breadcrumbSchema } from "@/lib/seo";
+import { FOUNDER_NAME, SITE_URL, SUPPORT_EMAIL } from "@/lib/constants";
+import { AUTHOR, JsonLd, PUBLISHER, breadcrumbSchema } from "@/lib/seo";
 import { GUIDES } from "@/app/guides/guides";
 import { GuideQuiz } from "@/components/guides/guide-quiz";
 import { PublicAdSlot } from "@/components/ads/public-ad-slot";
@@ -86,7 +86,7 @@ export function LegalPage({
           ...(revised && { datePublished: revised, dateModified: revised }),
           inLanguage: "en-ZA",
           isAccessibleForFree: true,
-          author: PUBLISHER,
+          author: AUTHOR,
           publisher: PUBLISHER,
           mainEntityOfPage: { "@type": "WebPage", "@id": articleUrl },
         },
@@ -149,6 +149,19 @@ export function LegalPage({
           {updatedLabel && (
             <p className="mt-3 text-xs uppercase tracking-wide text-muted-foreground">
               Last updated: {updatedLabel}
+              {/* Guides only: a byline that leads to who we are, as Google's
+                  helpful-content guidance asks of articles. */}
+              {articleSlug && (
+                <>
+                  {" · By "}
+                  <Link
+                    href="/about#who-runs-it"
+                    className="underline underline-offset-4 hover:text-foreground"
+                  >
+                    {FOUNDER_NAME}
+                  </Link>
+                </>
+              )}
             </p>
           )}
           <p className="mt-4 text-muted-foreground">{intro}</p>
@@ -173,6 +186,49 @@ export function LegalPage({
             <div className="mt-12">
               <GuideQuiz slug={articleSlug} categories={quiz.categories} />
             </div>
+          )}
+          {/* Who wrote it, how it was checked, and how to report an error: the
+              "who" and "how" that Google's helpful-content guidance asks pages
+              to make clear. Every claim here is one the About page makes for
+              all of the site's writing. */}
+          {articleSlug && (
+            <aside
+              aria-labelledby="about-this-guide"
+              className="mt-12 rounded-2xl border border-border bg-card p-6 text-sm leading-relaxed text-muted-foreground"
+            >
+              <h2
+                id="about-this-guide"
+                className="font-display text-base font-semibold tracking-tight text-foreground"
+              >
+                About this guide
+              </h2>
+              <p className="mt-2">
+                Written by {FOUNDER_NAME} with the help of AI tools, against official South
+                African sources such as the National Road Traffic Act and its Regulations, the
+                Department of Transport&apos;s manual of road traffic signs and the published K53
+                practical test procedure. Every fact is recorded with the source it comes from, and
+                facts with legal weight, such as distances, speed limits and licence codes, are
+                checked against the Act and current regulations.{" "}
+                <Link href="/sources" className="font-medium text-primary underline underline-offset-4">
+                  Our sources
+                </Link>{" "}
+                lists them with links, and{" "}
+                <Link href="/about" className="font-medium text-primary underline underline-offset-4">
+                  About us
+                </Link>{" "}
+                explains how we check what we publish.
+              </p>
+              <p className="mt-2">
+                Spotted a mistake or something out of date? Email{" "}
+                <a
+                  href={`mailto:${SUPPORT_EMAIL}`}
+                  className="font-medium text-primary underline underline-offset-4"
+                >
+                  {SUPPORT_EMAIL}
+                </a>{" "}
+                and we will correct it in the next update.
+              </p>
+            </aside>
           )}
           {articleSlug && <PublicAdSlot className="mt-12" />}
           {siblings.length > 0 && (

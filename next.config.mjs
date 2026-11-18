@@ -1,4 +1,11 @@
+import { readFileSync } from "node:fs";
+
 const isProd = process.env.NODE_ENV === "production";
+
+/** Retired /road-signs/<slug> → its anchor on a family page. See redirects() below. */
+const SIGN_REDIRECTS = JSON.parse(
+  readFileSync(new URL("./src/lib/content/sign-redirects.json", import.meta.url), "utf8"),
+);
 // Ads (AdSense) are optional. The policy below only opens up for Google's ad
 // hosts when a publisher id is configured, so a deployment without ads keeps
 // the tight allow-list. Mirrors the check in src/lib/ads.ts.
@@ -81,6 +88,15 @@ const nextConfig = {
     return [
       { source: "/diagnostic", destination: "/study/questions", permanent: false },
       { source: "/diagnostic/:path*", destination: "/study/questions", permanent: false },
+      // Each verified sign had its own page until they were merged into one
+      // page per family (src/lib/content/sign-category-pages.ts). Every old
+      // URL goes permanently to the anchor that shows the sign now, so links
+      // to it keep working. The map is generated: node scripts/sign-redirects.mjs.
+      ...Object.entries(SIGN_REDIRECTS).map(([slug, destination]) => ({
+        source: `/road-signs/${slug}`,
+        destination,
+        permanent: true,
+      })),
     ];
   },
 };

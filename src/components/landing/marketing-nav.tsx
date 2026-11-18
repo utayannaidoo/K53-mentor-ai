@@ -9,11 +9,23 @@ import { buttonVariants } from "@/components/ui/button";
 import { StartCta } from "@/components/landing/start-cta";
 import { cn } from "@/lib/utils";
 
+/**
+ * The site's free material, not the home page's own sections.
+ *
+ * These used to be How it works, Features, Pricing and FAQ: three anchors back
+ * into the landing page. That left the guides, road signs and free test
+ * reachable only from the footer, and AdSense's site-readiness guidance asks
+ * for navigation that "helps visitors find what they're looking for". It was
+ * rejected for "low-value content" twice with the old menu. Four links is the
+ * width budget: the scrolled pill is 850px wide (see the note on the desktop
+ * row below). The K53 questions hub is linked from the home page section and
+ * the footer instead.
+ */
 const LINKS = [
-  { href: "/#how", label: "How it works" },
-  { href: "/#features", label: "Features" },
+  { href: "/free-quiz", label: "Free test" },
+  { href: "/road-signs", label: "Road signs" },
+  { href: "/guides", label: "Guides" },
   { href: "/pricing", label: "Pricing" },
-  { href: "/#faq", label: "FAQ" },
 ];
 
 export function MarketingNav() {
