@@ -20,6 +20,9 @@ import type { Flashcard, Question } from "@/types";
  */
 
 const MOTUS = "Official Motus/Safeways K53 Learner's & Driver's Manual, 11th ed.";
+// The manual gives 24 hours for every accident; the Act sets it only where
+// someone is killed or injured (docs/content/facts/rules.md, crash duties).
+const NRTA_S61 = "National Road Traffic Act 93 of 1996, s61(1)(f)";
 
 export const MOTUS_RULES_QUESTIONS: Question[] = [
   // ── General duties of drivers ───────────────────────────────
@@ -778,7 +781,8 @@ export const MOTUS_RULES_QUESTIONS: Question[] = [
   {
     id: "qmr_accident_report_24h",
     categoryId: "rules",
-    prompt: "After an accident you must report it at the nearest police station within:",
+    prompt:
+      "Someone is injured in an accident and no police or traffic officer came to the scene. You must report it at a police station within:",
     options: [
       "24 hours, with your driving licence on you",
       "7 days, with proof of insurance",
@@ -787,10 +791,10 @@ export const MOTUS_RULES_QUESTIONS: Question[] = [
     ],
     correctIndex: 0,
     explanation:
-      "Twenty-four hours, and take your licence — turning up without it turns one problem into two.",
+      "Where anyone is injured or killed the Act allows 24 hours at most, and you must produce your licence when you report. A damage-only accident is due by the first working day after it, so reporting within 24 hours meets the law either way.",
     difficulty: 2,
     scope: "learners",
-    source: MOTUS,
+    source: NRTA_S61,
   },
   {
     id: "qmr_accident_no_alcohol",
@@ -1165,7 +1169,7 @@ export const MOTUS_RULES_FLASHCARDS: Flashcard[] = [
     id: "fmr_accident_procedure",
     categoryId: "rules",
     front: "What must you do after an accident?",
-    back: "Stop immediately · check for injuries and call the police if any · assist the injured · give your name and address, the registration number and the owner's details · report at the nearest police station within **24 hours** with your licence. No alcohol or drugs before you report.",
+    back: "Stop immediately · check for injuries and call the police if any · assist the injured · give your name and address, the registration number and the owner's details · unless an officer dealt with it at the scene, report it at a police station with your licence — within **24 hours** if anyone is injured or killed, otherwise by the **first working day** after. No alcohol or drugs before you report.",
     difficulty: 2,
   },
   {

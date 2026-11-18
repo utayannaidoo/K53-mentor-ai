@@ -10,7 +10,7 @@ Sources: National Road Traffic Act 93/1996 + Regulations; [SA Learner Driver Man
 - Parking: within 450 mm of kerb; not within 5 m of an intersection; left side of two-way roads only.
 - Towing by rope: max 30 km/h; connecting length max 3,5 m; person steering towed vehicle must be licensed.
 - Rear load projection: max 1,8 m; red flag by day / red light at night.
-- Crash duties: stop, assist, exchange details, report to police within 24 h.
+- Crash duties: stop, assist, exchange details; unless already reported to an officer at the scene, report to police within 24 h if anyone is killed or injured, otherwise on the first working day ([NRTA s61(1)(f)](https://source.acts.co.za/national-road-traffic-act-1996/61_duty_of_driver_in_event_of_accident.php)). The manuals' "24 h for every accident" is stricter than the Act; 24 h always complies.
 - Hooter: only to warn of danger; not in urban areas otherwise.
 
 ## AARTO (from facts/aarto.md)

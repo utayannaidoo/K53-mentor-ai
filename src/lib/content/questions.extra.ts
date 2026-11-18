@@ -414,7 +414,7 @@ export const EXTRA_QUESTIONS: Question[] = [
     ],
     correctIndex: 1,
     explanation:
-      "After a crash you must stop, assist any injured people, give your details — and report the crash to the police within 24 hours (immediately if someone is hurt and no officer attended).",
+      "You must stop, assist anyone injured and give your details. Because someone is hurt, a crash no officer dealt with at the scene must be reported to the police within 24 hours; a damage-only crash is due by the first working day after it.",
     difficulty: 2,
     scope: "learners",
   },
