@@ -127,6 +127,27 @@ export const GUIDES = [
       "What changes when you write the heavy-vehicle learner's — following distance, speed limits, air brakes and combination vehicles.",
     updated: "2026-10-11",
   },
+  {
+    slug: "learners-licence-eye-test",
+    title: "The learner's licence eye test: what the DLTC checks and how to pass",
+    description:
+      "The eyesight standard in regulation 102, per eye and per licence code — plus glasses, the screening machine, and what to do if you fall short.",
+    updated: "2026-11-18",
+  },
+  {
+    slug: "learner-driver-freeway-rules",
+    title: "Can learners drive on the freeway? South African freeway rules",
+    description:
+      "Yes, with a licensed supervisor — and here's who is banned from a freeway, when you may stop on one, and the lane rules in regulation 323.",
+    updated: "2026-11-18",
+  },
+  {
+    slug: "what-to-do-after-a-car-accident",
+    title: "What to do after a car accident: a driver's legal duties in South Africa",
+    description:
+      "Stop, help, give your details, report it — the duties section 61 puts on every driver, when you may move the car, and the reporting deadline most guides simplify.",
+    updated: "2026-11-18",
+  },
 ] as const;
 
 export type GuideSlug = (typeof GUIDES)[number]["slug"];

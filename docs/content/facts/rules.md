@@ -91,3 +91,97 @@ that a regulated number needs the regulation open beside it.
 - **Intersections**: at a T-junction your road ends, so you give way both ways. A filter lane with an island does not confer priority. An officer's raised palm means stop until waved on. A flashing pedestrian phase lets those already crossing finish. Mini-circle: circulating traffic clears, then the right-hand rule. At a multi-track level crossing, a second train may be hidden by the first.
 - **Parking**: near a corner hides emerging traffic and pedestrians from each other; across a driveway blocks the pavement even if it is your own; leaving a space is mirrors–signal–observation–gap; finish parallel and close to the kerb without mounting it.
 - **Following / hazard**: spray from a large vehicle in rain blinds you for seconds; leaving a merge gap costs little and prevents a standstill rejoin; set navigation before moving off; eating or reaching breaches the duty to remain in full control; passengers do not share the driver's responsibility; temporary roadworks limits apply whether or not workers are present; slowing to look at a crash on the opposite carriageway causes crashes in your own.
+
+## Freeways and crash duties, from the Act and regulations (verified 2026-11-18)
+
+For the guides `learner-driver-freeway-rules` and `what-to-do-after-a-car-accident`. The Act
+and regulations are the authority here; where Motus or the bank says otherwise, it's called out.
+
+Sources:
+- **[REG 323]** reg 323, special provisions relating to freeways,
+  <https://source.acts.co.za/national-road-traffic-act-1996/r225_323__special_provisions_r.php>
+- **[S61]** National Road Traffic Act 93 of 1996, s61, duty of driver in event of accident,
+  <https://source.acts.co.za/national-road-traffic-act-1996/61_duty_of_driver_in_event_of_accident.php>
+- **[OBITER]** *Obiter* commentary on s61, <https://obiter.mandela.ac.za/article/view/14143>
+- **[WC-EM]** Western Cape Government, *Know who you can call in an emergency*,
+  <https://www.westerncape.gov.za/know-who-you-can-call-emergency>
+- **[MOTUS]**, **[DOT]**, **[RTSM7]**, **[K53M]** as in `motus-manual-11ed.md` and `signs.md`.
+
+### Freeways
+- **Barred from a freeway** [REG 323(1)]: animal-drawn vehicles; pedal cycles; motorcycles of
+  **50 cc or less** and **electrically propelled motorcycles**; motor tricycles and
+  quadricycles; vehicles of **230 kg or less** built or adapted for people with a disability;
+  tractors (except for freeway construction or maintenance).
+- **On foot** only in a signed stopping or parking area, or for a cause beyond the person's
+  control [REG 323(2)(a)]. **Animals** only inside a vehicle or in a signed stopping or parking
+  area [REG 323(2)(b)].
+- **Stopping** only where a road sign or traffic officer directs, in a signed stopping or
+  parking area, or for a cause beyond the driver's control [REG 323(2)(c)]. Emergency,
+  breakdown and on-duty vehicles are exempt [REG 323(4)(c)].
+- **Hand signals** may not be given on a freeway, except for a cause beyond the driver's
+  control [REG 323(2)(d)].
+- **Being overtaken**: a driver in the right-hand lane who becomes aware that someone behind
+  wants to overtake must move **one lane left** when it's safe, and **must not speed up** until
+  the overtaking vehicle has passed [REG 323(5)].
+- **Headlight flash**: on a freeway, the overtaking driver **may flash their headlights** to show
+  the driver ahead they intend to pass [REG 323(6)]. This is the one place the regulations give
+  a flash a meaning, so the "a headlight flash has no legal meaning" principle above is about
+  ordinary roads.
+- Reg 323 says nothing about learner drivers; see `licensing.md`.
+- **Speed**: 120 km/h on a freeway unless a sign says otherwise [MOTUS p.65; reg 292 on Acts
+  Online]. A 2015 draft amendment proposed 100 km/h where a freeway passes through a
+  residential area. It was published for comment and isn't confirmed in force, so **don't
+  publish it**.
+- At 120 km/h a vehicle covers about **33 m every second** (120 000 m ÷ 3 600 s), so the
+  two-second gap is about 67 m. Arithmetic from the limit and the 2-second rule.
+- **Road test, freeway** [MOTUS p.126–140]: start the checks at least 100 m or 12 s before an
+  entrance or exit; check both blind spots again 50 m before it; check the left blind spot
+  passing an on-ramp and both passing an off-ramp; examiners prefer you blend rather than
+  stop; don't use the right-hand lane except to overtake. Penalties: Mir 3, Bl. sp 5, Sig 5,
+  Sig. can 4, Cl. sp 5, each time it happens.
+- **Shoulder**: on a road with more than one lane in either direction you may not drive or
+  overtake on the shoulder left of the yellow edge line; in an emergency stop, get the whole
+  vehicle to its left [RTSM7 §7.2.8.1], hazard lights on [DOT p.49]. The single-lane shoulder
+  rule (MOTUS p.54) doesn't apply to a multi-lane freeway.
+
+### Crash duties (section 61)
+- **Trigger** [S61(1)]: the driver of a vehicle "involved in or contributes to" an accident in
+  which anyone is **killed or injured**, or any **property, including a vehicle**, or an
+  **animal** is damaged. A vehicle can contribute without being touched.
+- "Animal" means cattle, horses, donkeys, mules, sheep, goats, pigs, ostriches and dogs
+  [S61(5)].
+- The duties, in the Act's order [S61(1)(a)–(g)]:
+  (a) **stop immediately**;
+  (b) **ascertain the nature and extent** of any injury;
+  (c) if anyone is injured, give them the help you are capable of giving;
+  (d) ascertain the nature and extent of any damage;
+  (e) if someone with reasonable grounds asks, give **your name and address**, the **owner's
+  name and address**, and the vehicle's **licence number**;
+  (f) **report** it, unless already reported to a police or traffic officer at the scene;
+  (g) **no alcohol or narcotic drug** until you've reported and, if a traffic officer requires
+  it, been examined by a doctor — unless a doctor gives or prescribes it for injury or shock.
+- **Reporting deadline** [S61(1)(f)]: at a police station or a designated traffic office, as
+  soon as reasonably practicable — **within 24 hours where anyone is killed or injured**, and
+  otherwise **on the first working day** after the accident. Produce your driving licence, give
+  your identity number and the (e) details. A driver whose own injuries prevent it is excused.
+  - **Conflict:** Motus p.66 and the bank teach 24 hours for every accident
+    (`qmr_accident_report_24h`, `fc2_accident_24h` in `flashcards.extra.ts`, the crash-duties
+    item in `questions.extra.ts`, the accident flashcard in `motus-rules-pack.ts`, and the
+    `k53-rules-of-the-road` guide FAQ). Reporting within 24 hours meets the Act in every case,
+    so the bank isn't teaching an unlawful habit, but it states the damage-only deadline more
+    strictly than the law does. Guides say what the Act says and note the manuals' figure.
+- **Moving the vehicles** [S61(2)]: after an accident where **someone is killed or injured**, no
+  one may move a vehicle from where it came to rest until a **traffic officer authorises** it.
+  The exception is when the accident completely blocks the roadway: then mark the vehicle's
+  position clearly on the road surface and move it only far enough to let traffic pass.
+  Damage only: you may move it if it's obstructing traffic [MOTUS p.66].
+- **Removal from the scene** [S61(3)]: no one may remove a vehicle from the scene, except to let
+  traffic pass, without the permission of its owner, driver or operator, or a person lawfully
+  entitled to possess it. So a tow operator needs that permission.
+- Section 61(1) creates **seven separate offences** [OBITER], so failing any one duty is an offence.
+- **Emergency numbers**: police **10111**, ambulance **10177**, and **112** from a mobile phone
+  [WC-EM]. Fire numbers vary by municipality.
+- **On the road test**, causing an accident fails the test. If someone else causes it, the test
+  may continue at the examiner's discretion if the vehicle is still roadworthy [MOTUS p.126–140].
+- Hazard lights: only in an emergency or when stopped in a hazardous position [MOTUS p.66].
+  Warning triangle: set it well back (see the controls bullet above).
