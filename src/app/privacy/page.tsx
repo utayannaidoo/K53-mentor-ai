@@ -104,10 +104,11 @@ export default function PrivacyPage() {
           you see are chosen from the page you are on and your general location, not from a
           profile of your interests or your browsing elsewhere. To show an advert, your browser
           contacts Google directly, so Google receives your IP address, details of your device and
-          browser, and the address of the page the advert is on. Google may also store cookies or
-          similar identifiers in your browser to limit how often you see the same advert, to
-          measure advert performance, and to detect fraud. We do not send Google your name, email
-          address, answers, readiness score or tutor conversations.
+          browser, and the address of the page the advert is on. Google, as a third-party vendor,
+          may place and read cookies in your browser, and may use web beacons or your IP address
+          to collect information as a result of serving the advert: to limit how often you see the
+          same advert, to measure advert performance, and to detect fraud. We do not send Google
+          your name, email address, answers, readiness score or tutor conversations.
         </p>
         <p>
           You can read how Google uses this information at{" "}

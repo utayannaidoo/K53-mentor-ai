@@ -107,8 +107,8 @@ export default function AboutPage() {
           recorded with the source it came from, and facts with legal weight (following distances,
           speed limits, alcohol limits, licence codes) are checked against the Act and current
           regulations. Road-sign images and their official meanings come from the Department of
-          Transport&apos;s manual, and each sign&apos;s name is checked by hand before it gets a
-          public page.
+          Transport&apos;s manual, and each sign&apos;s name is checked by hand before it appears
+          on a public page.
         </p>
       </section>
 

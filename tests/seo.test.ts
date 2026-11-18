@@ -358,6 +358,45 @@ describe("programmatic pages", () => {
   });
 });
 
+describe("the free material is easy to find", () => {
+  // AdSense's site-readiness guidance asks for navigation that helps visitors
+  // find what they're looking for. With the site rejected twice for "low-value
+  // content", the top menu linked only back into the landing page and the home
+  // page linked none of the free material, so a reviewer who never scrolled to
+  // the footer saw nothing to read.
+  it("the top menu links the free material", () => {
+    const nav = read("src/components/landing/marketing-nav.tsx");
+    const links = nav.match(/const LINKS = \[([\s\S]*?)\];/)?.[1] ?? "";
+    for (const href of ["/free-quiz", "/road-signs", "/guides"]) {
+      expect(links, href).toContain(`href: "${href}"`);
+    }
+  });
+
+  it("the home page links every free hub", () => {
+    expect(read("src/app/page.tsx")).toContain("<FreeMaterial />");
+    const section = read("src/components/landing/free-material.tsx");
+    for (const href of ["/free-quiz", "/road-signs", "/k53-questions", "/guides"]) {
+      expect(section, href).toContain(`href: "${href}"`);
+    }
+    expect(section).not.toContain('"use client"');
+  });
+
+  it("the home page's popular guides exist", () => {
+    const section = read("src/components/landing/free-material.tsx");
+    const list = section.match(/const POPULAR_GUIDES = \[([\s\S]*?)\];/)?.[1] ?? "";
+    const slugs = [...list.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    expect(slugs.length).toBeGreaterThan(0);
+    for (const slug of slugs) expect(GUIDES.map((g) => g.slug)).toContain(slug);
+  });
+
+  it("every guide says who wrote it and how to report a mistake", () => {
+    const layout = read("src/components/landing/legal-page.tsx");
+    expect(layout).toContain("About this guide");
+    expect(layout).toMatch(/articleSlug && \(\s*<>\s*\{" · By "\}/);
+    expect(layout).toContain("mailto:${SUPPORT_EMAIL}");
+  });
+});
+
 describe("titles", () => {
   it("every app section names itself, so tabs are distinguishable", () => {
     const sections = readdirSync(path.join(ROOT, "src/app/(app)"), { withFileTypes: true })

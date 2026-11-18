@@ -2,6 +2,7 @@ import { MarketingNav } from "@/components/landing/marketing-nav";
 import { Hero } from "@/components/landing/hero";
 import { Problem } from "@/components/landing/problem";
 import { CategoryMarquee } from "@/components/landing/category-marquee";
+import { FreeMaterial } from "@/components/landing/free-material";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { ProductPreview } from "@/components/landing/product-preview";
 import { Features } from "@/components/landing/features";
@@ -81,6 +82,12 @@ export default function HomePage() {
         </Reveal>
         <Reveal>
           <CategoryMarquee />
+        </Reveal>
+        {/* High on the page: median scroll here is shallow, and this is the
+            only place the landing page links to anything a visitor can read
+            without signing up. */}
+        <Reveal>
+          <FreeMaterial />
         </Reveal>
 
         {/* No Reveal wrapper: this section pins itself as you scroll through it,

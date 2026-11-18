@@ -13,7 +13,7 @@
  * Dates were set on 2026-11-08 from each page's last content commit on main.
  */
 export const PAGE_UPDATED = {
-  "/": "2026-10-24",
+  "/": "2026-11-18",
   "/pricing": "2026-10-24",
   "/free-quiz": "2026-11-12",
   // The hub shows the information signs in full and links the three family
@@ -29,7 +29,7 @@ export const PAGE_UPDATED = {
   "/about": "2026-11-01",
   "/sources": "2026-09-11",
   "/contact": "2026-09-05",
-  "/privacy": "2026-11-05",
+  "/privacy": "2026-11-18",
   "/terms": "2026-08-08",
   "/refunds": "2026-08-08",
 } as const satisfies Record<string, string>;
