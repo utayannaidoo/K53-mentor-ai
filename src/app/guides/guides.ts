@@ -76,7 +76,7 @@ export const GUIDES = [
     title: "K53 rules of the road: speed limits, distances & the numbers to know",
     description:
       "The speed limits, parking and stopping distances, alcohol limits and overtaking rules the learner's test asks about — in one place.",
-    updated: "2026-10-11",
+    updated: "2026-11-18",
   },
   {
     slug: "four-way-stop-right-of-way",

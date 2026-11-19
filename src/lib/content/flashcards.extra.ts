@@ -23,7 +23,7 @@ export const EXTRA_FLASHCARDS: Flashcard[] = [
   { id: "fc2_wild_animals", categoryId: "signs", front: "Wild-animal warning — riskiest times?", back: "Dawn and dusk: animals move and are hardest to see. Slow down and scan the verges.", difficulty: 2 },
 
   // ── Rules ──────────────────────────────────────────────────
-  { id: "fc2_accident_24h", categoryId: "rules", front: "Crash duties?", back: "Stop, help injured, exchange details, report to police within 24 hours.", difficulty: 2 },
+  { id: "fc2_accident_24h", categoryId: "rules", front: "Crash duties?", back: "Stop, help injured, exchange details. Unless an officer attended, report to police: within 24 hours if anyone is hurt, otherwise by the first working day.", difficulty: 2 },
   { id: "fc2_tow_rope", categoryId: "rules", front: "Towing with a rope — max speed?", back: "30 km/h. Gap between vehicles max 3,5 m; towed vehicle's steerer must be licensed.", difficulty: 2 },
   { id: "fc2_caravan_people", categoryId: "rules", front: "People in a towed caravan/trailer?", back: "Prohibited — no crash protection, and the combination can sway or detach.", difficulty: 1 },
   { id: "fc2_load_rear", categoryId: "rules", front: "Max rear load projection?", back: "1,8 m beyond the vehicle — marked with a red flag by day, red light at night.", difficulty: 3 },

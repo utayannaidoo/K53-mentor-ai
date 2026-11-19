@@ -55,7 +55,7 @@ export const ACUITY_LEVELS: readonly AcuityLevel[] = [
  *
  * Note what the regulation does *not* say: "6/12 in one eye, or both eyes
  * together". That looser reading is widely repeated and it used to be the rule
- * implemented here, and the difference is not academic — a reader with 6/6 on
+ * implemented here, and the difference is not academic — a reader with 6/12 on
  * the left and 6/36 on the right satisfies it and fails the actual standard,
  * because a left eye carrying a right one has to reach 6/9, not 6/12. Telling
  * that reader they are fine is the one mistake this screener must not make.

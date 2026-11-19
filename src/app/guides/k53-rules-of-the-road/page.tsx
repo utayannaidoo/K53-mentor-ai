@@ -34,7 +34,7 @@ export default function GuidePage() {
         {
           question: "How long do you have to report an accident?",
           answer:
-            "You must report the accident at a police station within 24 hours, with your driving licence on you, and you may not take alcohol or drugs before reporting it.",
+            "If no police or traffic officer dealt with it at the scene, report it at a police station or traffic office as soon as you reasonably can: within 24 hours if anyone was injured or killed, otherwise on the first working day after the accident. Take your driving licence, and don't take alcohol or drugs before you report it.",
         },
       ]}
     >
@@ -181,8 +181,9 @@ export default function GuidePage() {
             <strong>0,02 g</strong> for professional drivers.
           </li>
           <li>
-            After an accident: stop, check for injuries, help, exchange details, and report it to
-            the police within <strong>24 hours</strong>.
+            After an accident: stop, check for injuries, help and exchange details. Unless an
+            officer dealt with it at the scene, report it to the police within{" "}
+            <strong>24 hours</strong> if anyone was injured, otherwise on the first working day.
           </li>
           <li>
             Towing: the rope, chain or bar between the vehicles may not be longer than{" "}
