@@ -547,8 +547,10 @@ National Road Traffic Act** (Act 93 of 1996), which is what the DLTC applies:
 Two things this corrects, both of which `acuity.ts` had wrong before 2026-08-15:
 
 1. It is written **per eye**, not "6/12 in one eye, or both eyes together". The looser wording
-   is widely repeated and passes people the DLTC will fail — someone at 6/6 left and 6/36
+   is widely repeated and passes people the DLTC will fail — someone at 6/12 left and 6/36
    right meets it and fails regulation 102, because a carrying eye needs 6/9, not 6/12.
+   (This example read "6/6 left" until 2026-11-18. A 6/6 eye clears 6/9, so that reader
+   passes either way; `lmvVerdict()` gets it right. Worked examples in `licensing.md`.)
 2. A binocular reading cannot rescue a failing eye. The DLTC does test both eyes together, so
    the screener still shows that reading, labelled as context.
 
