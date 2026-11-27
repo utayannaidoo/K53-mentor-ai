@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { LegalPage } from "@/components/landing/legal-page";
 
 export const metadata: Metadata = {
@@ -19,7 +20,8 @@ export default function GuidePage() {
         <ul>
           <li>
             <strong>Code 8 (B)</strong> — light motor vehicles up to 3&nbsp;500&nbsp;kg GVM:
-            normal cars and bakkies, trailer up to 750&nbsp;kg. EB covers heavier trailers. This
+            normal cars and bakkies, trailer up to 750&nbsp;kg.{" "}
+            <Link href="/guides/code-eb-trailer-licence">Code EB</Link> covers heavier trailers. This
             is the licence most people mean by "a driver's licence". Learner's from age 17.
           </li>
           <li>
@@ -30,7 +32,11 @@ export default function GuidePage() {
           <li>
             <strong>Code 14 (EC)</strong> — articulated and combination vehicles above
             16&nbsp;000&nbsp;kg: truck-tractors with semi-trailers, the big rigs. Learner's from
-            age 18. Professional drivers usually also need a PrDP (professional driving permit).
+            age 18. Professional drivers usually also need a{" "}
+            <Link href="/guides/prdp-professional-driving-permit">
+              PrDP (professional driving permit)
+            </Link>
+            .
           </li>
         </ul>
       </section>

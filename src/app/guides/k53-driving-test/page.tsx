@@ -56,7 +56,10 @@ export default function GuidePage() {
           You only reach the road if you pass the yard. The manoeuvres are covered step by step in
           the <Link href="/guides/k53-parallel-parking-alley-docking">yard test guide</Link>, and
           the walk-around in the{" "}
-          <Link href="/guides/k53-pre-trip-inspection">pre-trip inspection guide</Link>.
+          <Link href="/guides/k53-pre-trip-inspection">pre-trip inspection guide</Link>. This
+          is the light-vehicle (Code 8) test. Heavy vehicles have different yard manoeuvres:
+          see the{" "}
+          <Link href="/guides/code-10-code-14-driving-test">Code 10 &amp; Code 14 driving test</Link>.
         </p>
       </section>
       <section>

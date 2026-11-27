@@ -143,10 +143,12 @@ export default function GuidePage() {
         <p>
           Carrying goods or passengers for reward usually needs a professional driving permit
           (PrDP) on top of the licence, and transporting dangerous goods needs the dangerous-goods
-          category with the correct placards displayed. On the driving test, the pre-trip
-          inspection for a goods vehicle or bus adds the information plate and the rear chevron —
-          see the{" "}
-          <Link href="/guides/k53-pre-trip-inspection">pre-trip inspection guide</Link>.
+          category with the correct placards displayed. The{" "}
+          <Link href="/guides/prdp-professional-driving-permit">PrDP guide</Link> covers the
+          categories, ages and medical. On the driving test, the pre-trip inspection for a goods
+          vehicle or bus adds the information plate and the rear chevron, and the yard
+          manoeuvres are different from Code 8 — see the{" "}
+          <Link href="/guides/code-10-code-14-driving-test">heavy-vehicle driving test guide</Link>.
         </p>
       </section>
       <section>
