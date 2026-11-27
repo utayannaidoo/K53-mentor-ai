@@ -24,7 +24,7 @@ export const PAGE_UPDATED = {
   "/road-signs/road-markings": "2026-11-18",
   // The index and each topic page are built from the starter question pack.
   "/k53-questions": "2026-11-07",
-  "/guides": "2026-10-24",
+  "/guides": "2026-11-27",
   "/for-driving-schools": "2026-10-11",
   "/about": "2026-11-18",
   "/sources": "2026-11-18",

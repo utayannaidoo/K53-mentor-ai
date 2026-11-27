@@ -128,6 +128,27 @@ export const GUIDES = [
     updated: "2026-10-11",
   },
   {
+    slug: "code-10-code-14-driving-test",
+    title: "Code 10 & Code 14 driving test: the heavy-vehicle yard and road test",
+    description:
+      "No parallel parking, no three-point turn and no emergency stop — the four heavy yard manoeuvres, the test truck, and the air-brake pre-trip checks.",
+    updated: "2026-11-27",
+  },
+  {
+    slug: "prdp-professional-driving-permit",
+    title: "PrDP: the professional driving permit explained",
+    description:
+      "Who needs one, what categories G, P and D cover, the ages (21 for P, 25 for D), the medical and criminal-record rules, and the two-year renewal.",
+    updated: "2026-11-27",
+  },
+  {
+    slug: "code-eb-trailer-licence",
+    title: "Code EB licence: when you need it to tow a trailer",
+    description:
+      "Code 8 tows a trailer up to 750 kg GVM; heavier needs EB. How to tell which you need, how to get it, and the trailer-brake and towing rules.",
+    updated: "2026-11-27",
+  },
+  {
     slug: "learners-licence-eye-test",
     title: "The learner's licence eye test: what the DLTC checks and how to pass",
     description:
